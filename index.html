@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vehicle Manager — Barrie Ford</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f5f4; --surface: #ffffff; --border: #e2e2df; --border-strong: #c8c8c4;
+    --text: #1a1a18; --text-muted: #6b6b67; --text-faint: #9c9c98;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --radius: 10px; --radius-sm: 6px;
+  }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.5; min-height: 100vh; }
+
+  /* Name setup screen */
+  .setup-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .setup-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; width: 100%; max-width: 380px; }
+  .setup-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .setup-icon { width: 32px; height: 32px; background: var(--text); border-radius: 7px; display: flex; align-items: center; justify-content: center; }
+  .setup-icon svg { width: 18px; height: 18px; fill: none; stroke: white; stroke-width: 1.8; }
+  .setup-title { font-size: 16px; font-weight: 600; }
+  .setup-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; line-height: 1.6; }
+  .setup-row { margin-bottom: 14px; }
+  .setup-row label { display: block; font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .setup-row input, .setup-row select { width: 100%; padding: 10px 12px; font-size: 14px; font-family: var(--font); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); outline: none; transition: border-color 0.15s; }
+  .setup-row input:focus, .setup-row select:focus { border-color: var(--text); background: white; }
+  .btn-setup { width: 100%; padding: 11px; background: var(--text); color: white; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 4px; transition: opacity 0.15s; }
+  .btn-setup:hover { opacity: 0.85; }
+  .setup-error { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 10px 12px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 14px; display: none; }
+
+  /* App */
+  #app { display: none; }
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 10; }
+  .header-brand { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  .header-icon { width: 28px; height: 28px; background: var(--text); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+  .header-icon svg { width: 16px; height: 16px; fill: none; stroke: white; stroke-width: 1.8; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .header-user { font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+  .user-avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--text); color: white; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .btn-rename { font-size: 12px; color: var(--text-faint); background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: var(--radius-sm); }
+  .btn-rename:hover { color: var(--text-muted); background: var(--bg); }
+  .header-time { font-size: 13px; color: var(--text-muted); }
+  .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; transition: background 0.3s; }
+  .sync-dot.live { background: #22c55e; } .sync-dot.error { background: #ef4444; }
+
+  .tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; overflow-x: auto; }
+  .tab { padding: 12px 18px; font-size: 14px; font-weight: 500; border: none; background: none; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -1px; display: flex; align-items: center; gap: 6px; transition: color 0.15s; white-space: nowrap; }
+  .tab:hover { color: var(--text); } .tab.active { color: var(--text); border-bottom-color: var(--text); }
+  .tab-count { background: var(--bg); border-radius: 20px; padding: 1px 7px; font-size: 11px; font-weight: 600; color: var(--text-muted); min-width: 20px; text-align: center; }
+  .tab.active .tab-count { background: var(--text); color: white; }
+
+  .main { padding: 24px; max-width: 960px; margin: 0 auto; }
+  .panel { display: none; } .panel.active { display: block; }
+
+  /* Form */
+  .form-wrap { max-width: 500px; }
+  .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
+  .form-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .form-subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+  .form-row { margin-bottom: 16px; }
+  .form-row label { display: block; font-size: 13px; font-weight: 500; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .form-row input, .form-row select, .form-row textarea { width: 100%; padding: 10px 12px; font-size: 14px; font-family: var(--font); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); outline: none; transition: border-color 0.15s; }
+  .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--text); background: white; }
+  .form-row textarea { resize: vertical; min-height: 72px; }
+  .requester-banner { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; color: var(--text-muted); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .requester-banner strong { color: var(--text); }
+
+  .booking-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+  .toggle-btn { padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); cursor: pointer; text-align: center; transition: all 0.15s; }
+  .toggle-btn.active { background: var(--text); color: white; border-color: var(--text); }
+  .toggle-btn-label { font-size: 14px; font-weight: 600; display: block; }
+  .toggle-btn-sub { font-size: 12px; opacity: 0.6; display: block; margin-top: 2px; }
+
+  .wait-banner { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 16px; }
+  .wait-banner-top { font-size: 13px; color: #1d4ed8; font-weight: 500; }
+  .wait-banner-time { font-size: 22px; font-weight: 700; color: #1d4ed8; margin: 2px 0; }
+  .wait-banner-sub { font-size: 12px; color: #3b82f6; }
+  .scheduled-fields { display: none; }
+
+  .btn-submit { width: 100%; padding: 11px; background: var(--text); color: white; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 4px; transition: opacity 0.15s; }
+  .btn-submit:hover { opacity: 0.85; } .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+  .toast { padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 16px; display: none; }
+  .toast.success { background: #f0faf4; border: 1px solid #a8dfc0; color: #1a6640; }
+  .toast.error { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .stat-num { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
+  .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .queue-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .queue-toolbar h2 { font-size: 15px; font-weight: 600; }
+  .btn-ghost { padding: 7px 14px; font-size: 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); cursor: pointer; color: var(--text-muted); transition: color 0.15s, border-color 0.15s; }
+  .btn-ghost:hover { color: var(--text); border-color: var(--border-strong); }
+  .section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); margin: 20px 0 8px; }
+
+  .entry { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 8px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  .entry.status-progress { border-left: 3px solid #3b82f6; }
+  .entry.status-done { opacity: 0.5; }
+  .entry.type-scheduled { border-left: 3px solid #8b5cf6; }
+  .entry.type-scheduled.status-progress { border-left: 3px solid #3b82f6; }
+  .entry-stock { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 5px; }
+  .entry-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 3px; }
+  .dest-pill { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .dest-offsite   { background: #e1f5ee; color: #085041; }
+  .dest-testdrive { background: #e6f1fb; color: #0c447c; }
+  .dest-wholesale { background: #faeeda; color: #633806; }
+  .dest-detail    { background: #eeedfe; color: #3c3489; }
+  .dest-service   { background: #fcebeb; color: #791f1f; }
+  .status-pill { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .status-pill.pending  { background: #fef9ec; color: #7c5a0a; }
+  .status-pill.progress { background: #eff6ff; color: #1d4ed8; }
+  .status-pill.done     { background: #f0faf4; color: #1a6640; }
+  .type-pill-scheduled { background: #f3f0ff; color: #5b21b6; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .type-pill-asap { background: #fff7ed; color: #9a3412; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .claimed-pill { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; background: #eff6ff; color: #1d4ed8; }
+  .entry-meta { font-size: 13px; color: var(--text-muted); }
+  .entry-notes { font-size: 13px; color: var(--text-muted); margin-top: 3px; font-style: italic; }
+  .entry-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+  .btn-action { padding: 5px 12px; font-size: 12px; font-weight: 500; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--border); background: var(--bg); color: var(--text); white-space: nowrap; }
+  .btn-action:hover { background: #ebebea; }
+  .btn-action.complete { border-color: #a8dfc0; background: #f0faf4; color: #1a6640; }
+  .btn-action.complete:hover { background: #ddf5ea; }
+  .entry-time { font-size: 11px; color: var(--text-faint); text-align: right; }
+  .progress-bar-wrap { margin-top: 10px; }
+  .progress-bar-label { display: flex; justify-content: space-between; font-size: 11px; color: #3b82f6; margin-bottom: 4px; font-weight: 500; }
+  .progress-bar-track { height: 6px; background: #dbeafe; border-radius: 99px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: #3b82f6; border-radius: 99px; transition: width 1s linear; }
+  .hold-bar-fill { height: 100%; background: #d97706; border-radius: 99px; transition: width 1s linear; }
+  .status-pill.cancelled  { background: #dc2626; color: #ffffff; }
+  .status-pill.denied     { background: #dc2626; color: #ffffff; }
+  .status-pill.unavailable{ background: #dc2626; color: #ffffff; }
+  .status-pill.onhold     { background: #d97706; color: #ffffff; }
+  .deny-reason { font-size: 12px; color: #92400e; margin-top: 4px; font-style: italic; font-weight: 500; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 4px; padding: 4px 8px; display: inline-block; }
+  .tv-deny-reason { font-size: 13px; color: #92400e; font-weight: 600; margin-top: 5px; background: #fef3c7; border-radius: 4px; padding: 3px 8px; display: inline-block; }
+
+  /* Deny modal */
+  .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:200; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .modal-card { background:var(--surface); border-radius:var(--radius); padding:24px; width:100%; max-width:400px; box-shadow:0 20px 60px rgba(0,0,0,0.2); }
+  .modal-title { font-size:16px; font-weight:600; margin-bottom:6px; }
+  .modal-sub { font-size:13px; color:var(--text-muted); margin-bottom:16px; }
+  .modal-reasons { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+  .reason-btn { padding:10px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--bg); font-size:14px; cursor:pointer; text-align:left; transition:all 0.1s; }
+  .reason-btn:hover { background:#fef2f2; border-color:#fca5a5; color:#991b1b; }
+  .reason-btn.selected { background:#fef2f2; border-color:#f87171; color:#991b1b; font-weight:500; }
+  .modal-custom { width:100%; padding:9px 12px; font-size:14px; font-family:var(--font); border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--bg); color:var(--text); outline:none; margin-bottom:16px; }
+  .modal-custom:focus { border-color:var(--text); }
+  .modal-actions { display:flex; gap:8px; }
+  .modal-actions .btn-submit { margin-top:0; }
+  .btn-modal-cancel { flex:1; padding:10px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface); font-size:14px; cursor:pointer; color:var(--text-muted); }
+  .empty-icon { font-size: 32px; margin-bottom: 10px; }
+  .empty-state p { font-size: 14px; }
+
+  /* History / Stats */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .stats-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+  .stats-card-num { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
+  .stats-card-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 3px; }
+  .stats-card-sub { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+  .attendant-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .attendant-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+  .attendant-name { font-size: 15px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .attendant-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--text); color: white; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .attendant-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .att-stat { background: var(--bg); border-radius: var(--radius-sm); padding: 8px 10px; }
+  .att-stat-num { font-size: 18px; font-weight: 600; }
+  .att-stat-label { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+  .speed-bar-wrap { margin-top: 10px; }
+  .speed-bar-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: flex; justify-content: space-between; }
+  .speed-bar-track { height: 6px; background: var(--bg); border-radius: 99px; overflow: hidden; border: 1px solid var(--border); }
+  .speed-bar-fill { height: 100%; border-radius: 99px; transition: width 0.5s; }
+  .rank-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+  .rank-1 { background: #fef9c3; color: #854d0e; }
+  .rank-2 { background: #f1f5f9; color: #475569; }
+  .rank-3 { background: #fef3c7; color: #92400e; }
+  .history-filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .filter-btn { padding: 6px 14px; font-size: 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); cursor: pointer; color: var(--text-muted); transition: all 0.15s; }
+  .filter-btn.active { background: var(--text); color: white; border-color: var(--text); }
+  .history-table { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .history-table-header { display: grid; grid-template-columns: 80px 1fr 120px 100px 100px 90px; gap: 0; background: var(--bg); border-bottom: 1px solid var(--border); padding: 8px 16px; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .history-row { display: grid; grid-template-columns: 80px 1fr 120px 100px 100px 90px; gap: 0; padding: 10px 16px; border-bottom: 1px solid var(--border); font-size: 13px; align-items: center; }
+  .history-row:last-child { border-bottom: none; }
+  .history-row:hover { background: var(--bg); }
+  .history-duration { font-weight: 600; }
+  .history-duration.fast { color: #15803d; }
+  .history-duration.slow { color: #b45309; }
+  .history-duration.veryslow { color: #dc2626; }
+
+  /* TV — full 16:9 display mode */
+  #panel-tv { padding: 0 !important; }
+  .tv-panel {
+    background: #00095b;
+    width: 100vw;
+    height: 100vh;
+    position: fixed;
+    top: 0; left: 0;
+    padding: 36px 40px 28px;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 100;
+  }
+  .tv-panel::before { content:''; position:absolute; top:0; left:0; right:0; height:4px; background:linear-gradient(90deg,#6eb4ff 0%,rgba(110,180,255,0.2) 100%); }
+  .tv-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; flex-shrink: 0; }
+  .tv-title { font-size: 32px; font-weight: 700; letter-spacing: -0.02em; display: flex; align-items: center; gap: 14px; }
+  .tv-title-icon { width: 38px; height: 38px; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .tv-title-icon svg { width: 22px; height: 22px; fill: none; stroke: #00095b; stroke-width: 2; }
+  .tv-clock { font-size: 32px; font-weight: 300; opacity: 0.6; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .tv-sub { font-size: 14px; opacity: 0.35; margin-bottom: 18px; text-transform: uppercase; letter-spacing: 0.1em; flex-shrink: 0; }
+  .tv-body { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 0; }
+  .tv-section-label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.4; margin: 14px 0 10px; flex-shrink: 0; }
+  .tv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .tv-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .tv-card { background: #ffffff; border: none; border-radius: 12px; padding: 18px 20px; position: relative; color: #00095b; }
+  .tv-card.in-progress { border-left: 5px solid #3b82f6; }
+  .tv-card.type-scheduled { border-left: 5px solid #8b5cf6; }
+  .tv-card.type-scheduled.in-progress { border-left: 5px solid #3b82f6; }
+  .tv-card.is-done { border-left: 5px solid #16a34a; opacity: 0.55; }
+  .tv-stock { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; color: #00095b; }
+  .tv-stock.done-stock { text-decoration: line-through; opacity: 0.6; }
+  .tv-dest { margin-bottom: 8px; }
+  .tv-dest .dest-pill { font-size: 13px; padding: 4px 12px; }
+  .tv-scheduled-time { font-size: 15px; color: #6d28d9; font-weight: 600; margin-bottom: 7px; }
+  .tv-wait { font-size: 15px; color: #b45309; font-weight: 600; margin-bottom: 7px; }
+  .tv-claimed { font-size: 14px; color: #1d4ed8; margin-bottom: 5px; font-weight: 700; }
+  .tv-done-by { font-size: 14px; color: #15803d; margin-bottom: 5px; font-weight: 700; }
+  .tv-by { font-size: 13px; color: #00095b; opacity: 0.45; }
+  .tv-notes { font-size: 12px; color: #00095b; opacity: 0.4; margin-top: 4px; font-style: italic; }
+  .tv-ago { font-size: 12px; color: #00095b; opacity: 0.3; margin-top: 8px; }
+  .tv-progress-wrap { margin-top: 10px; }
+  .tv-progress-track { height: 5px; background: #dbeafe; border-radius: 99px; overflow: hidden; }
+  .tv-progress-fill { height: 100%; background: #1d4ed8; border-radius: 99px; }
+  .tv-empty { text-align: center; padding: 60px 24px; opacity: 0.2; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .tv-empty p { font-size: 24px; margin-top: 16px; }
+  .tv-sync { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; display: inline-block; margin-right: 6px; }
+
+  @media (max-width: 640px) {
+    .main { padding: 16px; } .stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .stat { padding: 12px; } .stat-num { font-size: 22px; }
+    .entry { flex-direction: column; } .entry-actions { flex-direction: row; align-self: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAME SETUP -->
+<div id="setup-screen">
+  <div class="setup-wrap">
+    <div class="setup-card">
+      <div class="setup-logo">
+        <div class="setup-icon">
+          <svg viewBox="0 0 24 24"><path d="M5 11l1.5-4.5h11L19 11M19 11v5H5v-5M5 11H3v2h2M19 11h2v2h-2M7.5 16v1.5M16.5 16v1.5M7 13.5h2M15 13.5h2"/></svg>
+        </div>
+        <span class="setup-title">Vehicle Manager</span>
+      </div>
+      <div class="setup-sub">Enter your name and role. This is saved to this device and won't be asked again.</div>
+      <div id="setup-error" class="setup-error"></div>
+      <div class="setup-row">
+        <label>Your name</label>
+        <input id="s-name" type="text" placeholder="e.g. Ryan Dumais" autocomplete="name" />
+      </div>
+      <div class="setup-row">
+        <label>Your role</label>
+        <select id="s-role">
+          <option value="sales">Sales</option>
+          <option value="service">Service</option>
+          <option value="detail">Detail</option>
+          <option value="reception">Reception</option>
+          <option value="lot">Inventory Control</option>
+          <option value="merchandiser">Merchandiser</option>
+        </select>
+      </div>
+      <button class="btn-setup" onclick="saveIdentity()">Get started</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header class="header">
+    <div class="header-brand">
+      <div class="header-icon">
+        <svg viewBox="0 0 24 24"><path d="M5 11l1.5-4.5h11L19 11M19 11v5H5v-5M5 11H3v2h2M19 11h2v2h-2M7.5 16v1.5M16.5 16v1.5M7 13.5h2M15 13.5h2"/></svg>
+      </div>
+      Vehicle Manager
+    </div>
+    <div class="header-right">
+      <div class="sync-dot" id="sync-dot"></div>
+      <div class="header-user">
+        <div class="user-avatar" id="user-avatar"></div>
+        <span id="user-name-display" style="font-size:13px;color:var(--text-muted)"></span>
+        <span id="user-role-display" style="font-size:11px;color:var(--text-faint);background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:1px 8px;"></span>
+        <button class="btn-rename" onclick="resetIdentity()" title="Change name">✎</button>
+      </div>
+      <div class="header-time" id="header-time"></div>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" id="tab-form" onclick="switchTab('form',this)">New request</button>
+    <button class="tab" id="tab-queue" onclick="switchTab('queue',this)">Queue <span class="tab-count" id="tc-queue">0</span></button>
+    <button class="tab" id="tab-tv" onclick="switchTab('tv',this)">TV display <span class="tab-count" id="tc-tv">0</span></button>
+    <button class="tab" id="tab-history" onclick="switchTab('history',this)">History</button>
+    <button class="tab" id="tab-settings" onclick="switchTab('settings',this)">Settings</button>
+  </nav>
+
+  <main class="main">
+
+    <div id="panel-form" class="panel active">
+      <div class="form-wrap">
+        <div class="form-card">
+          <div class="form-title">Request a vehicle move</div>
+          <div class="form-subtitle">ASAP requests join the queue immediately. Scheduled requests appear at the chosen time.</div>
+          <div id="form-toast" class="toast"></div>
+          <div class="requester-banner">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            Requesting as <strong id="requester-name-display">—</strong>
+          </div>
+          <div class="booking-toggle">
+            <button class="toggle-btn active" id="btn-asap" onclick="setBookingType('asap')">
+              <span class="toggle-btn-label">ASAP</span>
+              <span class="toggle-btn-sub">Next available</span>
+            </button>
+            <button class="toggle-btn" id="btn-scheduled" onclick="setBookingType('scheduled')">
+              <span class="toggle-btn-label">Schedule</span>
+              <span class="toggle-btn-sub">Pick a time</span>
+            </button>
+          </div>
+          <div id="wait-banner" class="wait-banner">
+            <div class="wait-banner-top">Estimated wait time</div>
+            <div class="wait-banner-time" id="wait-time-display">~15 min</div>
+            <div class="wait-banner-sub" id="wait-time-sub">Calculating…</div>
+          </div>
+          <div id="scheduled-fields" class="scheduled-fields">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="form-row" style="margin-bottom:0">
+                <label>Date <span style="color:#e24b4a">*</span></label>
+                <input type="date" id="f-date" />
+              </div>
+              <div class="form-row" style="margin-bottom:0">
+                <label>Time <span style="color:#e24b4a">*</span></label>
+                <input type="time" id="f-time" min="08:00" max="18:00" />
+              </div>
+            </div>
+            <div id="schedule-preview" style="font-size:13px;color:var(--text-muted);margin-top:8px;margin-bottom:4px"></div>
+          </div>
+          <div class="form-row">
+            <label>Stock # / VIN <span style="color:#e24b4a">*</span></label>
+            <input id="f-stock" type="text" placeholder="e.g. 12345 or last 6 of VIN" autocomplete="off" />
+          </div>
+          <div class="form-row">
+            <label>Destination <span style="color:#e24b4a">*</span></label>
+            <select id="f-dest" onchange="handleDestChange(this.value)">
+              <option value="">Select destination…</option>
+              <option value="Test Drive (Drop-Off Out Back)">Test Drive (Drop-Off Out Back)</option>
+              <option value="Display / Showcase">Display / Showcase</option>
+              <option value="Sold Row">Sold Row</option>
+              <option value="Fuel / Get Ready">Fuel / Get Ready</option>
+              <option value="Service">Service</option>
+              <option value="Service — 323 Bayview">Service — 323 Bayview</option>
+              <option value="Detail — 323 Bayview">Detail — 323 Bayview</option>
+              <option value="Off-Site Drop-Off">Off-Site Drop-Off</option>
+              <option value="Off-Site Pickup">Off-Site Pickup</option>
+              <option value="323 Bayview (Compound)">323 Bayview (Compound)</option>
+              <option value="Merchandisers">Merchandisers</option>
+              <option value="Auction / Wholesale">Auction / Wholesale</option>
+              <option value="Battery Jump">Battery Jump</option>
+            </select>
+          </div>
+          <div class="form-row" id="offsite-location-row" style="display:none">
+            <label>Location <span style="color:#e24b4a">*</span></label>
+            <input id="f-offsite-location" type="text" placeholder="Enter the drop-off / pickup address or location name" autocomplete="off" />
+          </div>
+          <div class="form-row">
+            <label>Notes <span style="color:var(--text-faint);font-weight:400;text-transform:none;letter-spacing:0">optional</span></label>
+            <textarea id="f-notes" placeholder="Special instructions, key location…"></textarea>
+          </div>
+          <button class="btn-submit" id="btn-submit" onclick="submitRequest()">Submit request</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="panel-queue" class="panel">
+      <div class="stats">
+        <div class="stat"><div class="stat-num" id="s-pending">0</div><div class="stat-label">Pending</div></div>
+        <div class="stat"><div class="stat-num" id="s-progress">0</div><div class="stat-label">In progress</div></div>
+        <div class="stat"><div class="stat-num" id="s-scheduled">0</div><div class="stat-label">Scheduled</div></div>
+        <div class="stat"><div class="stat-num" id="s-done">0</div><div class="stat-label">Done today</div></div>
+      </div>
+      <div class="queue-toolbar">
+        <h2>All requests</h2>
+        <button class="btn-ghost" id="btn-clear" onclick="clearCompleted()">Clear completed</button>
+      </div>
+      <div id="queue-list"><div style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</div></div>
+    </div>
+
+    <div id="panel-tv" class="panel">
+      <div class="tv-panel">
+        <div class="tv-header">
+          <div class="tv-title">
+            <div class="tv-title-icon"><svg viewBox="0 0 24 24"><path d="M5 11l1.5-4.5h11L19 11M19 11v5H5v-5M5 11H3v2h2M19 11h2v2h-2M7.5 16v1.5M16.5 16v1.5M7 13.5h2M15 13.5h2"/></svg></div>
+            Vehicle Manager
+          </div>
+          <div style="display:flex;align-items:center;gap:16px">
+            <div class="tv-clock" id="tv-clock"></div>
+            <div id="tv-controls" style="display:none;gap:8px;align-items:center">
+              <button onclick="resetIdentity()" style="font-size:11px;padding:5px 12px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.12);border-radius:6px;cursor:pointer;">Change role</button>
+              <button onclick="exitTV()" style="font-size:11px;padding:5px 12px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.12);border-radius:6px;cursor:pointer;">Exit display</button>
+            </div>
+          </div>
+        </div>
+        <div class="tv-sub" id="tv-count">Connecting…</div>
+        <div class="tv-body" id="tv-list"></div>
+        <div id="tv-hint" style="position:absolute;bottom:14px;right:18px;font-size:10px;opacity:0.15;color:white;user-select:none">Hold to show controls</div>
+      </div>
+    </div>
+
+    <div id="panel-settings" class="panel">
+      <div style="max-width:480px">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:16px">
+          <div style="font-size:16px;font-weight:600;margin-bottom:6px">Lot settings</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:24px">These settings apply to all Inventory Control accounts in real time.</div>
+
+          <div class="form-row">
+            <label>Move time (minutes)</label>
+            <div style="display:flex;align-items:center;gap:10px">
+              <input type="number" id="s-movemins" min="5" max="60" style="width:100px" />
+              <span style="font-size:13px;color:var(--text-muted)">How long each vehicle move takes</span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label>Scheduled → Active conversion (minutes before)</label>
+            <div style="display:flex;align-items:center;gap:10px">
+              <input type="number" id="s-convertmins" min="15" max="120" style="width:100px" />
+              <span style="font-size:13px;color:var(--text-muted)">When upcoming jobs move into the active queue</span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label>Sound alerts</label>
+            <div style="display:flex;align-items:center;gap:10px">
+              <input type="checkbox" id="s-sound" style="width:auto;accent-color:var(--text)" checked onchange="toggleSound(this.checked)" />
+              <span style="font-size:13px;color:var(--text-muted)">Play chime sounds for new requests and status changes</span>
+            </div>
+          </div>
+          <button class="btn-submit" id="btn-save-settings" onclick="saveSettings()" style="margin-top:4px">Save settings</button>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px">
+          <div style="font-size:15px;font-weight:600;margin-bottom:4px">Current settings</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-top:12px;display:flex;flex-direction:column;gap:8px">
+            <div>Move time: <strong id="disp-movemins">—</strong> min</div>
+            <div>Convert to active: <strong id="disp-convertmins">—</strong> min before scheduled time</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="panel-history" class="panel">
+      <div class="history-filters">
+        <span style="font-size:13px;color:var(--text-muted);margin-right:4px">Show:</span>
+        <button class="filter-btn" id="hf-7" onclick="setHistoryFilter(7,this)">7 days</button>
+        <button class="filter-btn active" id="hf-30" onclick="setHistoryFilter(30,this)">30 days</button>
+        <button class="filter-btn" id="hf-all" onclick="setHistoryFilter(0,this)">All time</button>
+        <span style="margin-left:auto;font-size:12px;color:var(--text-faint)" id="history-range"></span>
+      </div>
+
+      <!-- Summary stats -->
+      <div class="stats-grid" id="history-summary"></div>
+
+      <!-- Per-attendant cards -->
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em">Attendant performance</div>
+      <div class="attendant-grid" id="attendant-cards"></div>
+
+      <!-- Log table -->
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em">Move log</div>
+      <div class="history-table">
+        <div class="history-table-header">
+          <div>Stock #</div>
+          <div>Destination</div>
+          <div>Moved by</div>
+          <div>Requested by</div>
+          <div>Duration</div>
+          <div>Date</div>
+        </div>
+        <div id="history-log"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Vehicle On Hold modal -->
+<div id="deny-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this)closeDenyModal()">
+  <div class="modal-card">
+    <div class="modal-title">Vehicle On Hold</div>
+    <div class="modal-sub">Enter the reason this vehicle can't be moved right now.</div>
+    <input class="modal-custom" id="deny-custom" type="text" placeholder="e.g. Dead battery, at body shop, out for test drive…" autocomplete="off" />
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeDenyModal()">Cancel</button>
+      <button class="btn-submit" style="flex:1;background:#d97706" onclick="confirmDeny()">Mark On Hold</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, push, get, onValue, update, remove } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDYj9RC-cmfcfZ6sPo_9TmF67mWeEkxkwo",
+  authDomain: "lot-queue.firebaseapp.com",
+  databaseURL: "https://lot-queue-default-rtdb.firebaseio.com",
+  projectId: "lot-queue",
+  storageBucket: "lot-queue.firebasestorage.app",
+  messagingSenderId: "729445608944",
+  appId: "1:729445608944:web:7bfe67714631e279b54135"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+let MOVE_MINS    = 15;
+let CONVERT_MINS = 45;
+const LOT_OPEN   = 8;
+const LOT_CLOSE  = 18;
+
+let entries     = {};
+let historyData = {};
+let historyDays = 30;
+let currentUser = null;
+let bookingType = 'asap';
+
+// ── Identity (localStorage) ───────────────────────────
+function loadIdentity() {
+  const isDisplay = new URLSearchParams(window.location.search).get('display') === 'true';
+  if (isDisplay) {
+    currentUser = { name: 'Display', role: 'display' };
+    startApp();
+    return;
+  }
+  const saved = localStorage.getItem('lq-identity');
+  if (saved) {
+    currentUser = JSON.parse(saved);
+    startApp();
+  } else {
+    document.getElementById('setup-screen').style.display = 'block';
+    document.getElementById('app').style.display = 'none';
+    setTimeout(() => document.getElementById('s-name').focus(), 100);
+  }
+}
+
+window.saveIdentity = function() {
+  const name = document.getElementById('s-name').value.trim();
+  const role = document.getElementById('s-role').value;
+  if (!name) {
+    const err = document.getElementById('setup-error');
+    err.textContent = 'Please enter your name.'; err.style.display = 'block'; return;
+  }
+  currentUser = { name, role };
+  localStorage.setItem('lq-identity', JSON.stringify(currentUser));
+  startApp();
+};
+
+window.resetIdentity = function() {
+  if (!confirm('Change your name and role on this device?')) return;
+  localStorage.removeItem('lq-identity');
+  location.reload();
+};
+
+document.getElementById('s-name').addEventListener('keydown', e => { if (e.key === 'Enter') window.saveIdentity(); });
+
+// ── Start app ─────────────────────────────────────────
+function startApp() {
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+
+  const initials = currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('user-avatar').textContent = initials;
+  document.getElementById('user-name-display').textContent = currentUser.name;
+  document.getElementById('requester-name-display').textContent = currentUser.name;
+  const roleLabels = { lot:'Inventory Control', sales:'Sales', service:'Service', detail:'Detail', reception:'Reception', merchandiser:'Merchandiser', display:'Display' };
+  document.getElementById('user-role-display').textContent = roleLabels[currentUser.role] || currentUser.role;
+
+  const role = currentUser.role;
+
+  // Merchandiser: TV display only
+  if (role === 'merchandiser' || role === 'display') {
+    document.getElementById('tab-form').style.display     = 'none';
+    document.getElementById('tab-queue').style.display    = 'none';
+    document.getElementById('tab-settings').style.display = 'none';
+    document.getElementById('tab-history').style.display  = 'none';
+    document.getElementById('btn-clear').style.display    = 'none';
+    switchTab('tv', document.getElementById('tab-tv'));
+
+  // Inventory Control: full access, no TV tab
+  } else if (role === 'lot') {
+    document.getElementById('tab-tv').style.display    = 'none';
+    document.getElementById('btn-clear').style.display = 'block';
+
+  // Sales / Service / Detail / Reception: request + queue read only
+  } else {
+    document.getElementById('tab-tv').style.display       = 'none';
+    document.getElementById('tab-settings').style.display = 'none';
+    document.getElementById('tab-history').style.display  = 'none';
+    document.getElementById('btn-clear').style.display    = 'none';
+  }
+
+  onValue(ref(db, 'entries'), (snap) => {
+    const newEntries = snap.val() || {};
+    const role = currentUser.role;
+    const isFirstLoad = Object.keys(entries).length === 0 && Object.keys(newEntries).length > 0;
+
+    if (!isFirstLoad) {
+      // Detect new entries
+      for (const id in newEntries) {
+        if (!entries[id]) {
+          // Brand new entry added
+          if (role === 'lot') chime('new');
+        } else {
+          const prev = entries[id];
+          const curr = newEntries[id];
+          // Status changed
+          if (prev.status !== curr.status) {
+            if (role === 'lot' && curr.status === 'done') chime('complete');
+            if ((role === 'sales' || role === 'service' || role === 'detail' || role === 'reception')) {
+              // Only chime if this was their request
+              if (curr.requestedBy === currentUser.name) {
+                if (curr.status === 'progress') chime('claimed');
+                if (curr.status === 'done')     chime('complete');
+              }
+            }
+          }
+        }
+      }
+    }
+
+    entries = newEntries;
+    document.getElementById('sync-dot').className = 'sync-dot live';
+    render();
+    updateWaitBanner();
+  }, () => { document.getElementById('sync-dot').className = 'sync-dot error'; });
+
+  // Listen to settings from Firebase — applies to all lot accounts live
+  onValue(ref(db, 'settings'), (snap) => {
+    const s = snap.val() || {};
+    if (s.moveMins)    MOVE_MINS    = s.moveMins;
+    if (s.convertMins) CONVERT_MINS = s.convertMins;
+    const mm = document.getElementById('s-movemins');
+    const cm = document.getElementById('s-convertmins');
+    const dm = document.getElementById('disp-movemins');
+    const dc = document.getElementById('disp-convertmins');
+    if (mm) mm.value = MOVE_MINS;
+    if (cm) cm.value = CONVERT_MINS;
+    if (dm) dm.textContent = MOVE_MINS;
+    if (dc) dc.textContent = CONVERT_MINS;
+    render();
+  });
+
+  // History listener — only for lot team
+  if (currentUser.role === 'lot') {
+    onValue(ref(db,'history'), (snap) => {
+      historyData = snap.val() || {};
+      renderHistory();
+    });
+  }
+
+  updateWaitBanner();
+}
+
+// ── Data helpers ──────────────────────────────────────
+function allSorted() {
+  return Object.entries(entries).map(([id,e]) => ({id,...e}))
+    .sort((a,b) => (a.bookingType==='scheduled'?a.scheduledTs:a.ts) - (b.bookingType==='scheduled'?b.scheduledTs:b.ts));
+}
+
+function activeQueue() {
+  const now = Date.now();
+  const cutoff = now + CONVERT_MINS * 60 * 1000;
+  return allSorted().filter(e => {
+    if (e.status === 'done' || e.status === 'onhold') return false;
+    if (e.bookingType !== 'scheduled') return true;
+    return e.scheduledTs <= cutoff;
+  });
+}
+function upcomingScheduled() {
+  const now = Date.now();
+  const cutoff = now + CONVERT_MINS * 60 * 1000;
+  return allSorted().filter(e => e.bookingType==='scheduled' && e.scheduledTs > cutoff && e.status!=='done' && e.status!=='onhold');
+}
+function calcWaitMins() { return activeQueue().filter(e=>e.status!=='done').length * MOVE_MINS; }
+function estimatedReadyTime(mins) {
+  const d = new Date(); d.setMinutes(d.getMinutes()+mins);
+  return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+
+// ── Form ──────────────────────────────────────────────
+window.handleDestChange = function(val) {
+  const isOffsite = val === 'Off-Site Drop-Off' || val === 'Off-Site Pickup';
+  document.getElementById('offsite-location-row').style.display = isOffsite ? 'block' : 'none';
+  if (!isOffsite) document.getElementById('f-offsite-location').value = '';
+};
+
+window.setBookingType = function(type) {
+  bookingType = type;
+  document.getElementById('btn-asap').classList.toggle('active', type==='asap');
+  document.getElementById('btn-scheduled').classList.toggle('active', type==='scheduled');
+  document.getElementById('scheduled-fields').style.display = type==='scheduled'?'block':'none';
+  document.getElementById('wait-banner').style.display = type==='asap'?'block':'none';
+  if (type==='asap') updateWaitBanner();
+};
+
+function updateWaitBanner() {
+  if (bookingType!=='asap') return;
+  const wait = calcWaitMins();
+  const timeEl = document.getElementById('wait-time-display');
+  const subEl  = document.getElementById('wait-time-sub');
+  if (!timeEl) return;
+  if (wait===0) { timeEl.textContent='Ready now'; subEl.textContent='No vehicles ahead in queue'; }
+  else {
+    timeEl.textContent = '~'+wait+' min';
+    const q = activeQueue();
+    subEl.textContent = q.length+' vehicle'+(q.length!==1?'s':'')+' ahead — ready around '+estimatedReadyTime(wait);
+  }
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('form-toast');
+  t.textContent=msg; t.className='toast '+type; t.style.display='block';
+  setTimeout(()=>{t.style.display='none';},4500);
+}
+
+window.submitRequest = async function() {
+  const stock = document.getElementById('f-stock').value.trim();
+  let dest    = document.getElementById('f-dest').value;
+  const notes = document.getElementById('f-notes').value.trim();
+  const timeVal = document.getElementById('f-time').value;
+  const offsiteLoc = document.getElementById('f-offsite-location').value.trim();
+  if (!stock||!dest) { showToast('Please fill in Stock # and Destination.','error'); return; }
+  const isOffsite = dest === 'Off-Site Drop-Off' || dest === 'Off-Site Pickup';
+  if (isOffsite && !offsiteLoc) { showToast('Please enter the off-site location.','error'); return; }
+  if (isOffsite) dest = dest + ': ' + offsiteLoc;
+  if (bookingType==='scheduled'&&!timeVal) { showToast('Please select a requested time.','error'); return; }
+  let scheduledTs = null;
+  if (bookingType==='scheduled') {
+    const dateVal = document.getElementById('f-date').value;
+    if (!dateVal) { showToast('Please select a date.','error'); return; }
+    const [h,m] = timeVal.split(':').map(Number);
+    if (h<LOT_OPEN||h>=LOT_CLOSE) { showToast('Please choose a time between 8:00 AM and 6:00 PM.','error'); return; }
+    const [yr,mo,dy] = dateVal.split('-').map(Number);
+    const d = new Date(yr, mo-1, dy, h, m, 0, 0); // local time, no UTC shift
+    const now = Date.now();
+    if (d.getTime() < now) { showToast('Scheduled time is in the past.','error'); return; }
+    const sevenDays = now + 7 * 24 * 60 * 60 * 1000;
+    if (d.getTime() > sevenDays) { showToast('Appointments can only be scheduled up to 7 days ahead.','error'); return; }
+    scheduledTs = d.getTime();
+  }
+  const btn = document.getElementById('btn-submit');
+  btn.disabled=true; btn.textContent='Submitting…';
+  try {
+    await push(ref(db,'entries'), {
+      stock: stock.toUpperCase(), dest, notes,
+      requestedBy: currentUser.name,
+      status:'pending', bookingType, scheduledTs, ts:Date.now()
+    });
+    document.getElementById('f-stock').value='';
+    document.getElementById('f-dest').value='';
+    document.getElementById('f-notes').value='';
+    document.getElementById('f-offsite-location').value='';
+    document.getElementById('offsite-location-row').style.display='none';
+    document.getElementById('f-stock').focus();
+    showToast('✓ '+stock.toUpperCase()+' → '+dest+' added to queue','success');
+  } catch(e) { showToast('Error submitting — check connection.','error'); }
+  btn.disabled=false; btn.textContent='Submit request';
+};
+
+window.setStatus = async function(id, status) {
+  const updates = {status};
+  if (status==='progress') { updates.progressTs=Date.now(); updates.claimedBy=currentUser.name; }
+  if (status==='done') {
+    const completedTs = Date.now();
+    updates.completedTs = completedTs;
+    updates.claimedBy = currentUser.name;
+    const e = entries[id];
+    if (e && e.progressTs) {
+      const durationMins = Math.round((completedTs - e.progressTs) / 60000);
+      await push(ref(db,'history'), {
+        stock: e.stock, dest: e.dest,
+        requestedBy: e.requestedBy||'—',
+        claimedBy: currentUser.name,
+        progressTs: e.progressTs,
+        completedTs, durationMins, ts: completedTs
+      });
+      // Auto-clear history older than 30 days
+      const cutoff = Date.now() - 30*24*60*60*1000;
+      const histSnap = await get(ref(db,'history'));
+      const hist = histSnap.val() || {};
+      const stale = Object.entries(hist).filter(([,v])=>v.ts<cutoff).map(([k])=>k);
+      await Promise.all(stale.map(k=>remove(ref(db,'history/'+k))));
+    }
+  }
+  await update(ref(db,'entries/'+id), updates);
+};
+
+window.unassign = async function(id) {
+  await update(ref(db,'entries/'+id), { status:'pending', claimedBy:null, progressTs:null });
+};
+
+window.adjustETA = async function(id, deltaMins) {
+  const e = entries[id];
+  if (!e || !e.progressTs) return;
+  const newTs = e.progressTs - (deltaMins * 60 * 1000);
+  await update(ref(db,'entries/'+id), { progressTs: newTs });
+};
+
+window.cancelRequest = async function(id) {
+  if (!confirm('Cancel this request?')) return;
+  await update(ref(db,'entries/'+id), { status:'cancelled', denyReason:'Cancelled by requester' });
+};
+
+let denyTargetId = null;
+
+window.openHoldModal = function(id) {
+  denyTargetId = id;
+  document.getElementById('deny-custom').value = '';
+  document.getElementById('deny-modal').style.display = 'flex';
+  setTimeout(()=>document.getElementById('deny-custom').focus(), 100);
+};
+
+window.closeDenyModal = function() {
+  document.getElementById('deny-modal').style.display = 'none';
+  denyTargetId = null;
+};
+
+window.confirmDeny = async function() {
+  const reason = document.getElementById('deny-custom').value.trim();
+  if (!reason) { alert('Please enter a reason.'); return; }
+  await update(ref(db,'entries/'+denyTargetId), {
+    status: 'onhold',
+    denyReason: reason,
+    deniedBy: currentUser.name,
+    holdTs: Date.now()
+  });
+  closeDenyModal();
+};
+
+window.releaseHold = async function(id) {
+  await update(ref(db,'entries/'+id), {
+    status: 'pending',
+    denyReason: null,
+    deniedBy: null,
+    holdTs: null
+  });
+};
+
+document.getElementById('deny-custom').addEventListener('keydown', e => {
+  if (e.key === 'Enter') window.confirmDeny();
+});
+
+window.saveSettings = async function() {
+  const mm = parseInt(document.getElementById('s-movemins').value);
+  const cm = parseInt(document.getElementById('s-convertmins').value);
+  if (isNaN(mm)||mm<5||mm>60)  { showSettingsToast('Move time must be between 5 and 60 minutes.','error'); return; }
+  if (isNaN(cm)||cm<15||cm>120){ showSettingsToast('Conversion window must be between 15 and 120 minutes.','error'); return; }
+  const btn = document.getElementById('btn-save-settings');
+  btn.disabled=true; btn.textContent='Saving…';
+  try {
+    await update(ref(db,'settings'), { moveMins: mm, convertMins: cm });
+    showSettingsToast('✓ Settings saved — all lot accounts updated instantly.','success');
+  } catch(e) { showSettingsToast('Error saving — check your connection.','error'); }
+  btn.disabled=false; btn.textContent='Save settings';
+};
+
+function showSettingsToast(msg, type) {
+  const t = document.getElementById('settings-toast');
+  t.textContent=msg; t.className='toast '+type; t.style.display='block';
+  setTimeout(()=>{ t.style.display='none'; },4000);
+}
+window.deleteEntry = async (id) => { await remove(ref(db,'entries/'+id)); };
+window.clearCompleted = async function() {
+  await Promise.all(Object.entries(entries).filter(([,e])=>e.status==='done').map(([id])=>remove(ref(db,'entries/'+id))));
+};
+
+// ── Render ────────────────────────────────────────────
+function destClass(d) {
+  if(!d) return 'dest-offsite';
+  if(d.startsWith('Test Drive'))          return 'dest-testdrive';
+  if(d.startsWith('Display'))             return 'dest-detail';
+  if(d==='Sold Row')                      return 'dest-offsite';
+  if(d.startsWith('Fuel'))               return 'dest-wholesale';
+  if(d.startsWith('Service'))            return 'dest-service';
+  if(d.startsWith('Detail'))             return 'dest-detail';
+  if(d.startsWith('Off-Site'))           return 'dest-wholesale';
+  if(d.startsWith('323 Bayview'))        return 'dest-service';
+  if(d==='Merchandisers')                return 'dest-detail';
+  if(d.startsWith('Auction'))            return 'dest-wholesale';
+  if(d==='Battery Jump')                 return 'dest-service';
+  return 'dest-offsite';
+}
+function timeAgo(ts) {
+  const diff=Math.floor((Date.now()-ts)/60000);
+  if(diff<1)return'Just now';if(diff===1)return'1 min ago';
+  if(diff<60)return diff+' mins ago';
+  const h=Math.floor(diff/60);return h+(h===1?' hr ago':' hrs ago');
+}
+function fmtCountdown(ms) {
+  if (ms <= 0) return 'Starting now';
+  const totalSecs = Math.floor(ms / 1000);
+  const d = Math.floor(totalSecs / 86400);
+  const h = Math.floor((totalSecs % 86400) / 3600);
+  const m = Math.floor((totalSecs % 3600) / 60);
+  const s = totalSecs % 60;
+  if (d > 0) return d+'d '+h+'h '+m+'m';
+  if (h > 0) return h+'h '+m+'m '+s+'s';
+  if (m > 0) return m+'m '+s+'s';
+  return s+'s';
+}
+
+function fmtTime(ts){return new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
+function fmtDateTime(ts){
+  const d = new Date(ts);
+  const date = d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
+  const time = d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  return date+' · '+time;
+}
+
+function entryHTML(e) {
+  const dc=destClass(e.dest);
+  const statusMap = { pending:'pending', progress:'progress', done:'done', cancelled:'cancelled', denied:'denied', unavailable:'unavailable', onhold:'onhold' };
+  const labelMap  = { pending:'Pending', progress:'In progress', done:'Done', cancelled:'Cancelled', denied:'Denied', unavailable:'Unavailable', onhold:'Vehicle On Hold' };
+  const sc = statusMap[e.status] || 'pending';
+  const sl = labelMap[e.status]  || e.status;
+  const typePill=e.bookingType==='scheduled'
+    ?`<span class="type-pill-scheduled">Scheduled ${fmtTime(e.scheduledTs)}</span>`
+    :`<span class="type-pill-asap">ASAP</span>`;
+  const claimedBadge=e.claimedBy?`<span class="claimed-pill">🔧 ${e.claimedBy}</span>`:'';
+  const isLot  = currentUser && currentUser.role==='lot';
+  const isMine = currentUser && e.requestedBy === currentUser.name;
+  let actions='';
+
+  if(e.status==='pending'){
+    if(isLot){
+      actions=`<button class="btn-action" onclick="setStatus('${e.id}','progress')">Start move</button>
+               <button class="btn-action" onclick="openHoldModal('${e.id}')" style="color:#92400e;border-color:#fcd34d;background:#fffbeb">Vehicle On Hold</button>`;
+    } else if(isMine){
+      actions=`<button class="btn-action" onclick="cancelRequest('${e.id}')" style="color:#991b1b;border-color:#fca5a5">Cancel</button>`;
+    }
+  } else if(e.status==='progress'){
+    if(isLot){
+      actions=`
+        <button class="btn-action complete" onclick="setStatus('${e.id}','done')">Complete</button>
+        <button class="btn-action" onclick="unassign('${e.id}')" style="color:#b45309;border-color:#fde68a">Unassign</button>
+        <div style="display:flex;gap:4px;margin-top:2px">
+          <button class="btn-action" onclick="adjustETA('${e.id}',-5)" style="font-size:11px;padding:3px 8px" title="Remove 5 min">−5m</button>
+          <button class="btn-action" onclick="adjustETA('${e.id}',5)" style="font-size:11px;padding:3px 8px" title="Add 5 min">+5m</button>
+          <button class="btn-action" onclick="adjustETA('${e.id}',10)" style="font-size:11px;padding:3px 8px" title="Add 10 min">+10m</button>
+        </div>`;
+    }
+  } else if(e.status==='done'||e.status==='cancelled'||e.status==='denied'||e.status==='unavailable'||e.status==='onhold'){
+    if(e.status==='onhold' && isLot){
+      actions=`<button class="btn-action" onclick="releaseHold('${e.id}')" style="color:#065f46;border-color:#6ee7b7;background:#ecfdf5;font-weight:600">✓ Release Hold</button>
+               <button class="btn-action" onclick="deleteEntry('${e.id}')" style="font-size:11px">Remove</button>`;
+    } else if(isLot){
+      actions=`<button class="btn-action" onclick="deleteEntry('${e.id}')">Remove</button>`;
+    } else if(isMine && (e.status==='cancelled'||e.status==='denied'||e.status==='unavailable'||e.status==='onhold')){
+      actions=`<button class="btn-action" onclick="deleteEntry('${e.id}')">Dismiss</button>`;
+    }
+  }
+  const typeClass=e.bookingType==='scheduled'?' type-scheduled':'';
+  const fadedClass=(e.status==='cancelled'||e.status==='denied'||e.status==='unavailable')?' status-done':'';
+  const reasonBanner=e.denyReason?`<div class="deny-reason">⚠ ${e.denyReason}</div>`:'';
+  let progressBar='';
+  if(e.status==='progress'&&e.progressTs){
+    const elapsed=Math.floor((Date.now()-e.progressTs)/1000);
+    const pct=Math.min(100,Math.round((elapsed/(MOVE_MINS*60))*100));
+    const remaining=Math.max(0,MOVE_MINS-Math.floor(elapsed/60));
+    const label=pct>=100?'Should be arriving…':remaining+' min remaining';
+    progressBar=`<div class="progress-bar-wrap"><div class="progress-bar-label"><span>Move in progress</span><span>${label}</span></div><div class="progress-bar-track"><div class="progress-bar-fill" style="width:${pct}%"></div></div></div>`;
+  } else if(e.status==='onhold'&&e.holdTs){
+    const elapsedMs = Date.now()-e.holdTs;
+    const elapsedSecs = Math.floor(elapsedMs/1000);
+    const d=Math.floor(elapsedSecs/86400), h=Math.floor((elapsedSecs%86400)/3600), m=Math.floor((elapsedSecs%3600)/60), s=elapsedSecs%60;
+    let elapsed='';
+    if(d>0) elapsed=d+'d '+h+'h '+m+'m';
+    else if(h>0) elapsed=h+'h '+m+'m '+s+'s';
+    else if(m>0) elapsed=m+'m '+s+'s';
+    else elapsed=s+'s';
+    // Bar fills over 60 mins to show urgency
+    const pct=Math.min(100,Math.round((elapsedSecs/3600)*100));
+    const barColor=pct>=100?'#dc2626':pct>=50?'#f97316':'#d97706';
+    progressBar=`<div class="progress-bar-wrap">
+      <div class="progress-bar-label" style="color:${barColor}"><span>On hold for</span><span>${elapsed}</span></div>
+      <div class="progress-bar-track" style="background:#fef3c7"><div class="hold-bar-fill" style="width:${pct}%;background:${barColor}"></div></div>
+    </div>`;
+  } else if(e.bookingType==='scheduled'&&e.scheduledTs&&e.status==='pending'){
+    const now=Date.now();
+    const msUntil=Math.max(0, e.scheduledTs-now);
+    const totalWindow=CONVERT_MINS*60*1000;
+    const elapsed=Math.max(0,totalWindow-msUntil);
+    const pct=Math.min(100,Math.round((elapsed/totalWindow)*100));
+    const minsUntil=Math.floor(msUntil/60000);
+    const countdownLabel=fmtCountdown(msUntil);
+    const barColor=minsUntil<=5?'#ef4444':minsUntil<=10?'#f97316':'#8b5cf6';
+    progressBar=`<div class="progress-bar-wrap">
+      <div class="progress-bar-label" style="color:${barColor}"><span>Scheduled appointment</span><span>${countdownLabel}</span></div>
+      <div class="progress-bar-track" style="background:#ede9fe"><div class="progress-bar-fill" style="width:${pct}%;background:${barColor}"></div></div>
+    </div>`;
+  }
+  return `<div class="entry status-${e.status}${typeClass}${fadedClass}">
+    <div style="flex:1">
+      <div class="entry-stock">${e.stock}</div>
+      <div class="entry-meta" style="margin-bottom:5px">Requested by ${e.requestedBy||'—'}</div>
+      <div class="entry-row"><span class="dest-pill ${dc}">${e.dest}</span><span class="status-pill ${sc}">${sl}</span>${typePill}</div>
+      ${e.claimedBy?`<div class="entry-meta" style="color:#1d4ed8;font-weight:500;margin-top:3px">🔧 ${e.claimedBy}</div>`:''}
+      ${e.notes?`<div class="entry-notes">${e.notes}</div>`:''}
+      ${reasonBanner}
+      ${progressBar}
+    </div>
+    <div class="entry-actions">${actions}<div class="entry-time">${timeAgo(e.ts)}</div></div>
+  </div>`;
+}
+
+function render() {
+  const all=allSorted(), active=activeQueue(), upcoming=upcomingScheduled();
+  const done=all.filter(e=>e.status==='done');
+  const closed=all.filter(e=>['cancelled','denied','unavailable'].includes(e.status));
+  const pending=active.filter(e=>e.status==='pending').length;
+  const progress=active.filter(e=>e.status==='progress').length;
+
+  document.getElementById('s-pending').textContent=pending;
+  document.getElementById('s-progress').textContent=progress;
+  document.getElementById('s-scheduled').textContent=upcoming.length;
+  document.getElementById('s-done').textContent=done.length;
+  document.getElementById('tc-queue').textContent=pending+progress+upcoming.length+all.filter(e=>e.status==='onhold').length;
+  document.getElementById('tc-tv').textContent=active.length+upcoming.length;
+
+  const list=document.getElementById('queue-list');
+  if(!all.length){
+    list.innerHTML='<div class="empty-state"><div class="empty-icon">🚗</div><p>No requests yet.</p></div>';
+  } else {
+    let html='';
+    const onhold=all.filter(e=>e.status==='onhold');
+    if(active.length)   html+='<div class="section-label">Active queue</div>'+active.map(entryHTML).join('');
+    if(onhold.length)   html+='<div class="section-label">On Hold</div>'+onhold.map(entryHTML).join('');
+    if(upcoming.length) html+='<div class="section-label">Upcoming scheduled</div>'+upcoming.map(entryHTML).join('');
+    if(done.length)     html+='<div class="section-label">Completed</div>'+done.map(entryHTML).join('');
+    if(closed.length)   html+='<div class="section-label">Cancelled</div>'+closed.map(entryHTML).join('');
+    if(!html) html='<div class="empty-state"><div class="empty-icon">🚗</div><p>No active requests right now.</p></div>';
+    list.innerHTML=html;
+  }
+
+  const tvList=document.getElementById('tv-list');
+  const tvCount=document.getElementById('tv-count');
+  const total=active.length+upcoming.length;
+  const recentDone=done.slice(-6);
+
+  if(!total && !recentDone.length){
+    tvCount.textContent='No active moves';
+    tvList.innerHTML='<div class="tv-empty"><div style="font-size:48px">✓</div><p>All clear — no pending moves</p></div>';
+  } else {
+    tvCount.textContent=
+      (pending?pending+' pending · ':'')+
+      (progress?progress+' in transit · ':'')+
+      (upcoming.length?upcoming.length+' upcoming · ':'')+
+      (recentDone.length?recentDone.length+' completed':'');
+
+    // Helper: build progress/countdown bar for a TV card
+    function tvBar(e){
+      if(e.status==='progress'&&e.progressTs){
+        const el=Math.floor((Date.now()-e.progressTs)/1000);
+        const pct=Math.min(100,Math.round((el/(MOVE_MINS*60))*100));
+        const remMs=Math.max(0,(MOVE_MINS*60-el)*1000);
+        const rl=pct>=100?'Arriving soon':fmtCountdown(remMs);
+        return `<div class="tv-progress-wrap">
+          <div style="font-size:13px;color:#1d4ed8;margin-bottom:4px;display:flex;justify-content:space-between;font-weight:600"><span>In transit</span><span>${rl}</span></div>
+          <div class="tv-progress-track"><div class="tv-progress-fill" style="width:${pct}%"></div></div>
+        </div>`;
+      }
+      if(e.bookingType==='scheduled'&&e.scheduledTs&&e.status==='pending'){
+        const now=Date.now();
+        const msUntil=Math.max(0,e.scheduledTs-now);
+        const totalWindow=CONVERT_MINS*60*1000;
+        const elapsed=Math.max(0,totalWindow-msUntil);
+        const pct=Math.min(100,Math.round((elapsed/totalWindow)*100));
+        const minsUntil=Math.floor(msUntil/60000);
+        const lbl=fmtCountdown(msUntil);
+        const bc=minsUntil<=5?'#dc2626':minsUntil<=10?'#d97706':'#4f46e5';
+        const tc=minsUntil<=5?'#fee2e2':minsUntil<=10?'#fef3c7':'#ede9fe';
+        return `<div class="tv-progress-wrap">
+          <div style="font-size:13px;color:${bc};margin-bottom:4px;display:flex;justify-content:space-between;font-weight:600"><span>Countdown</span><span>${lbl}</span></div>
+          <div class="tv-progress-track" style="background:${tc}"><div class="tv-progress-fill" style="width:${pct}%;background:${bc}"></div></div>
+        </div>`;
+      }
+      return '';
+    }
+
+    let tvHtml='';
+
+    if(active.length){
+      tvHtml+=`<div class="tv-section-label">Now — ${active.length} active</div><div class="tv-grid">`;
+      tvHtml+=active.map(e=>{
+        const dc=destClass(e.dest);
+        const prog=e.status==='progress'?' in-progress':'';
+        const wait=calcWaitMins();
+        return `<div class="tv-card${prog}">
+          <div class="tv-stock">${e.stock}</div>
+          <div class="tv-by">By ${e.requestedBy||'—'}</div>
+          <div class="tv-dest"><span class="dest-pill ${dc}">${e.dest}</span></div>
+          ${e.status==='pending'&&e.bookingType==='asap'?`<div class="tv-wait">~${wait} min wait</div>`:''}
+          ${e.bookingType==='scheduled'&&e.status==='pending'?`<div class="tv-scheduled-time">Appointment ${fmtDateTime(e.scheduledTs)}</div>`:''}
+          ${e.claimedBy?`<div class="tv-claimed">🔧 ${e.claimedBy}</div>`:''}
+          ${tvBar(e)}
+          ${e.notes?`<div class="tv-notes">${e.notes}</div>`:''}
+          <div class="tv-ago">${timeAgo(e.ts)}</div>
+        </div>`;
+      }).join('')+'</div>';
+    }
+
+    if(upcoming.length){
+      tvHtml+=`<div class="tv-section-label">Upcoming — ${upcoming.length} scheduled</div><div class="tv-grid">`;
+      tvHtml+=upcoming.map(e=>{
+        const dc=destClass(e.dest);
+        return `<div class="tv-card type-scheduled">
+          <div class="tv-stock">${e.stock}</div>
+          <div class="tv-by">By ${e.requestedBy||'—'}</div>
+          <div class="tv-dest"><span class="dest-pill ${dc}">${e.dest}</span></div>
+          <div class="tv-scheduled-time">Appointment ${fmtDateTime(e.scheduledTs)}</div>
+          ${tvBar(e)}
+          ${e.notes?`<div class="tv-notes">${e.notes}</div>`:''}
+        </div>`;
+      }).join('')+'</div>';
+    }
+
+    if(recentDone.length){
+      tvHtml+=`<div class="tv-section-label">Completed — ${recentDone.length} today</div><div class="tv-grid-4">`;
+      tvHtml+=recentDone.map(e=>{
+        const dc=destClass(e.dest);
+        return `<div class="tv-card is-done">
+          <div class="tv-stock done-stock">${e.stock}</div>
+          <div class="tv-by">By ${e.requestedBy||'—'}</div>
+          <div class="tv-dest"><span class="dest-pill ${dc}">${e.dest}</span></div>
+          ${e.claimedBy?`<div class="tv-done-by">✓ ${e.claimedBy}</div>`:''}
+          <div class="tv-ago">${timeAgo(e.ts)}</div>
+        </div>`;
+      }).join('')+'</div>';
+    }
+
+    // On Hold — separate section on TV
+    const onholdEntries = allSorted().filter(e=>e.status==='onhold');
+    if(onholdEntries.length){
+      tvHtml+=`<div class="tv-section-label">On Hold — ${onholdEntries.length} vehicle${onholdEntries.length!==1?'s':''}</div><div class="tv-grid-4">`;
+      tvHtml+=onholdEntries.map(e=>{
+        const dc=destClass(e.dest);
+        let holdTimer='';
+        if(e.holdTs){
+          const elapsedSecs=Math.floor((Date.now()-e.holdTs)/1000);
+          const d=Math.floor(elapsedSecs/86400),h=Math.floor((elapsedSecs%86400)/3600),m=Math.floor((elapsedSecs%3600)/60),s=elapsedSecs%60;
+          let elapsed='';
+          if(d>0) elapsed=d+'d '+h+'h '+m+'m';
+          else if(h>0) elapsed=h+'h '+m+'m '+s+'s';
+          else if(m>0) elapsed=m+'m '+s+'s';
+          else elapsed=s+'s';
+          const pct=Math.min(100,Math.round((elapsedSecs/3600)*100));
+          const bc=pct>=100?'#dc2626':pct>=50?'#f97316':'#d97706';
+          holdTimer=`<div class="tv-progress-wrap">
+            <div style="font-size:13px;color:${bc};margin-bottom:4px;display:flex;justify-content:space-between;font-weight:600"><span>On hold for</span><span>${elapsed}</span></div>
+            <div class="tv-progress-track" style="background:#fef3c7"><div class="tv-progress-fill" style="width:${pct}%;background:${bc}"></div></div>
+          </div>`;
+        }
+        return `<div class="tv-card" style="border-left:4px solid #d97706">
+          <div class="tv-stock">${e.stock}</div>
+          <div class="tv-by">By ${e.requestedBy||'\u2014'}</div>
+          <div class="tv-dest"><span class="dest-pill ${dc}">${e.dest}</span></div>
+          <div style="display:inline-block;background:#d97706;color:white;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;margin:5px 0;text-transform:uppercase;letter-spacing:0.04em">Vehicle On Hold</div>
+          ${e.denyReason?`<div class="tv-deny-reason">&#9888; ${e.denyReason}</div>`:''}
+          ${holdTimer}
+          ${e.deniedBy?`<div style="font-size:11px;opacity:0.45;margin-top:4px">&#8212; ${e.deniedBy}</div>`:''}
+        </div>`;
+      }).join('')+'</div>';
+    }
+
+    // Cancelled
+    const recentClosed = allSorted().filter(e=>['denied','unavailable','cancelled'].includes(e.status)).slice(-4);
+    if(recentClosed.length){
+      tvHtml+=`<div class="tv-section-label">Cancelled</div><div class="tv-grid-4">`;
+      tvHtml+=recentClosed.map(e=>{
+        const dc=destClass(e.dest);
+        return `<div class="tv-card" style="border-left:4px solid #dc2626;opacity:0.7">
+          <div class="tv-stock">${e.stock}</div>
+          <div class="tv-by">By ${e.requestedBy||'\u2014'}</div>
+          <div class="tv-dest"><span class="dest-pill ${dc}">${e.dest}</span></div>
+          <div style="display:inline-block;background:#dc2626;color:white;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;margin:5px 0;text-transform:uppercase;letter-spacing:0.04em">Cancelled</div>
+          ${e.denyReason?`<div class="tv-deny-reason">&#9888; ${e.denyReason}</div>`:''}
+          <div class="tv-ago">${timeAgo(e.ts)}</div>
+        </div>`;
+      }).join('')+'</div>';
+    }
+
+        tvList.innerHTML=tvHtml;
+  }
+  updateWaitBanner();
+}
+
+window.exitTV = function() {
+  if (currentUser.role === 'lot') {
+    switchTab('queue', document.getElementById('tab-queue'));
+  } else {
+    switchTab('form', document.getElementById('tab-form'));
+  }
+  document.getElementById('tv-controls').style.display = 'none';
+};
+
+// Hold for 2 seconds on TV panel to reveal controls
+let holdTimer = null;
+document.addEventListener('mousedown', function(ev) {
+  const tvPanel = document.querySelector('.tv-panel');
+  if (!tvPanel || !tvPanel.contains(ev.target)) return;
+  holdTimer = setTimeout(() => {
+    const ctrl = document.getElementById('tv-controls');
+    if (ctrl) { ctrl.style.display = 'flex'; }
+  }, 2000);
+});
+document.addEventListener('mouseup', function() { clearTimeout(holdTimer); });
+document.addEventListener('touchstart', function(ev) {
+  const tvPanel = document.querySelector('.tv-panel');
+  if (!tvPanel || !tvPanel.contains(ev.target)) return;
+  holdTimer = setTimeout(() => {
+    const ctrl = document.getElementById('tv-controls');
+    if (ctrl) { ctrl.style.display = 'flex'; }
+  }, 2000);
+}, { passive: true });
+document.addEventListener('touchend', function() { clearTimeout(holdTimer); });
+
+window.switchTab=function(name,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-'+name).classList.add('active');
+  const isTV = name==='tv';
+  document.querySelector('.header').style.display = isTV?'none':'flex';
+  document.querySelector('.tabs').style.display   = isTV?'none':'flex';
+  document.querySelector('.main').style.padding   = isTV?'0':'24px';
+  if (!isTV) { const c=document.getElementById('tv-controls'); if(c) c.style.display='none'; }
+  if (name==='settings') {
+    const sc = document.getElementById('s-sound');
+    if (sc) sc.checked = soundEnabled;
+  }
+  if (name==='history') renderHistory();
+};
+
+function updateClock(){
+  const now=new Date();
+  const t=now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const d=now.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
+  const h=document.getElementById('header-time');
+  const tv=document.getElementById('tv-clock');
+  if(h)h.textContent=d+' · '+t;
+  if(tv)tv.textContent=t;
+}
+
+updateClock();
+setInterval(updateClock,10000);
+setInterval(render,1000);
+
+// Default date to today, time to next 15-min slot
+const n=new Date();
+n.setMinutes(Math.ceil(n.getMinutes()/15)*15,0,0);
+const todayStr = new Date().toISOString().split('T')[0];
+const maxDateStr = new Date(Date.now()+7*24*60*60*1000).toISOString().split('T')[0];
+const fDateEl = document.getElementById('f-date');
+const fTimeEl = document.getElementById('f-time');
+if(fDateEl){ fDateEl.value=todayStr; fDateEl.min=todayStr; fDateEl.max=maxDateStr; }
+if(fTimeEl){ fTimeEl.value=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0'); }
+
+// Live schedule preview label
+function updateSchedulePreview(){
+  const preview = document.getElementById('schedule-preview');
+  if(!preview) return;
+  const dv = document.getElementById('f-date')?.value;
+  const tv = document.getElementById('f-time')?.value;
+  if(!dv||!tv){ preview.textContent=''; return; }
+  const [h,m] = tv.split(':').map(Number);
+  const [yr,mo,dy] = dv.split('-').map(Number);
+  const d = new Date(yr, mo-1, dy, h, m, 0, 0);
+  const now = Date.now();
+  const diffMs = d.getTime()-now;
+  if(diffMs<0){ preview.textContent='⚠ That time is in the past'; preview.style.color='#e24b4a'; return; }
+  const diffDays = Math.floor(diffMs/86400000);
+  const diffHrs  = Math.floor((diffMs%86400000)/3600000);
+  const diffMins = Math.floor((diffMs%3600000)/60000);
+  const friendly = d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'})+' at '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const eta = fmtCountdown(diffMs);
+  preview.textContent='📅 '+friendly+' — '+eta+' away';
+  preview.style.color='var(--text-muted)';
+}
+document.getElementById('f-date')?.addEventListener('change', updateSchedulePreview);
+document.getElementById('f-time')?.addEventListener('change', updateSchedulePreview);
+updateSchedulePreview();
+
+// ── Chimes (Web Audio API — no files needed) ──────────
+let audioCtx = null;
+let soundEnabled = localStorage.getItem('lq-sound') !== 'false';
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+window.toggleSound = function(val) {
+  soundEnabled = val;
+  localStorage.setItem('lq-sound', val ? 'true' : 'false');
+};
+
+function playTone(freq, startTime, duration, gainVal, type='sine') {
+  const ctx = getAudioCtx();
+  const osc  = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, ctx.currentTime + startTime);
+  gain.gain.setValueAtTime(0, ctx.currentTime + startTime);
+  gain.gain.linearRampToValueAtTime(gainVal, ctx.currentTime + startTime + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startTime + duration);
+  osc.start(ctx.currentTime + startTime);
+  osc.stop(ctx.currentTime + startTime + duration);
+}
+
+function chime(type) {
+  if (!soundEnabled) return;
+  try {
+    if (type === 'new') {
+      // Two-tone upward ding — new request added (lot team)
+      playTone(660, 0,    0.25, 0.3);
+      playTone(880, 0.18, 0.35, 0.25);
+    } else if (type === 'claimed') {
+      // Single warm tone — job claimed (salesperson notification)
+      playTone(523, 0,    0.2,  0.25);
+      playTone(659, 0.15, 0.3,  0.2);
+      playTone(784, 0.3,  0.4,  0.2);
+    } else if (type === 'complete') {
+      // Three-tone ascending chime — job complete
+      playTone(523, 0,    0.2,  0.2);
+      playTone(659, 0.15, 0.2,  0.2);
+      playTone(784, 0.3,  0.2,  0.2);
+      playTone(1046,0.45, 0.5,  0.25);
+    }
+  } catch(e) { /* Audio not supported or blocked */ }
+}
+
+// Unlock audio context on first user interaction (browser requirement)
+document.addEventListener('click', () => { try { getAudioCtx().resume(); } catch(e){} }, { once: true });
+document.addEventListener('touchstart', () => { try { getAudioCtx().resume(); } catch(e){} }, { once: true, passive: true });
+
+// ── History & Stats ───────────────────────────────────
+window.setHistoryFilter = function(days, btn) {
+  historyDays = days;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderHistory();
+};
+
+function filteredHistory() {
+  const all = Object.values(historyData);
+  if (!historyDays) return all.sort((a,b)=>b.ts-a.ts);
+  const cutoff = Date.now() - historyDays*24*60*60*1000;
+  return all.filter(h=>h.ts>=cutoff).sort((a,b)=>b.ts-a.ts);
+}
+
+function renderHistory() {
+  const hist = filteredHistory();
+  const rangeEl = document.getElementById('history-range');
+  if (rangeEl) rangeEl.textContent = hist.length + ' moves' + (historyDays ? ' in last '+historyDays+' days' : ' all time');
+
+  // ── Summary stats ──
+  const totalMoves = hist.length;
+  const avgDuration = totalMoves ? Math.round(hist.reduce((s,h)=>s+h.durationMins,0)/totalMoves) : 0;
+  const fastest = totalMoves ? Math.min(...hist.map(h=>h.durationMins)) : 0;
+  const todayCutoff = new Date(); todayCutoff.setHours(0,0,0,0);
+  const today = hist.filter(h=>h.ts>=todayCutoff.getTime()).length;
+
+  const summaryEl = document.getElementById('history-summary');
+  if (summaryEl) summaryEl.innerHTML = `
+    <div class="stats-card"><div class="stats-card-num">${totalMoves}</div><div class="stats-card-label">Total moves</div><div class="stats-card-sub">${historyDays?'Last '+historyDays+' days':'All time'}</div></div>
+    <div class="stats-card"><div class="stats-card-num">${today}</div><div class="stats-card-label">Moves today</div></div>
+    <div class="stats-card"><div class="stats-card-num">${avgDuration}<span style="font-size:16px;font-weight:400"> min</span></div><div class="stats-card-label">Avg move time</div></div>
+    <div class="stats-card"><div class="stats-card-num">${fastest}<span style="font-size:16px;font-weight:400"> min</span></div><div class="stats-card-label">Fastest move</div><div class="stats-card-sub" style="color:#15803d">Best time</div></div>
+  `;
+
+  // ── Per-attendant stats ──
+  const byAttendant = {};
+  hist.forEach(h => {
+    const name = h.claimedBy || 'Unknown';
+    if (!byAttendant[name]) byAttendant[name] = { name, moves:0, totalMins:0, fastest:Infinity, slowest:0 };
+    byAttendant[name].moves++;
+    byAttendant[name].totalMins += h.durationMins;
+    byAttendant[name].fastest = Math.min(byAttendant[name].fastest, h.durationMins);
+    byAttendant[name].slowest = Math.max(byAttendant[name].slowest, h.durationMins);
+  });
+
+  const attendants = Object.values(byAttendant).sort((a,b)=>b.moves-a.moves);
+  const maxMoves = attendants.length ? attendants[0].moves : 1;
+  const ranks = ['🥇','🥈','🥉'];
+
+  const attEl = document.getElementById('attendant-cards');
+  if (attEl) {
+    if (!attendants.length) {
+      attEl.innerHTML = '<div style="color:var(--text-muted);font-size:14px;padding:16px 0">No completed moves yet in this period.</div>';
+    } else {
+      attEl.innerHTML = attendants.map((a,i) => {
+        const avg = Math.round(a.totalMins / a.moves);
+        const pct = Math.round((a.moves/maxMoves)*100);
+        const avgColor = avg<=10?'#15803d':avg<=20?'#d97706':'#dc2626';
+        const initials = a.name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+        const rankBadge = i<3 ? `<span style="font-size:18px">${ranks[i]}</span>` : `<span style="font-size:13px;color:var(--text-faint)">#${i+1}</span>`;
+        return `<div class="attendant-card">
+          <div class="attendant-name">
+            <div class="attendant-avatar">${initials}</div>
+            ${a.name}
+            <span style="margin-left:auto">${rankBadge}</span>
+          </div>
+          <div class="attendant-stats">
+            <div class="att-stat"><div class="att-stat-num">${a.moves}</div><div class="att-stat-label">Total moves</div></div>
+            <div class="att-stat"><div class="att-stat-num" style="color:${avgColor}">${avg} min</div><div class="att-stat-label">Avg time</div></div>
+            <div class="att-stat"><div class="att-stat-num" style="color:#15803d">${a.fastest===Infinity?'—':a.fastest+' min'}</div><div class="att-stat-label">Fastest</div></div>
+            <div class="att-stat"><div class="att-stat-num" style="color:#dc2626">${a.slowest} min</div><div class="att-stat-label">Slowest</div></div>
+          </div>
+          <div class="speed-bar-wrap">
+            <div class="speed-bar-label"><span>Volume vs top performer</span><span>${a.moves} moves</span></div>
+            <div class="speed-bar-track"><div class="speed-bar-fill" style="width:${pct}%;background:${avgColor}"></div></div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // ── Move log ──
+  const logEl = document.getElementById('history-log');
+  if (logEl) {
+    if (!hist.length) {
+      logEl.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:14px">No moves recorded in this period.</div>';
+    } else {
+      const durationClass = d => d<=10?'fast':d<=25?'':'slow';
+      logEl.innerHTML = hist.slice(0,100).map(h => {
+        const date = new Date(h.ts).toLocaleDateString([],{month:'short',day:'numeric'});
+        const dc = durationClass(h.durationMins);
+        return `<div class="history-row">
+          <div style="font-weight:600">${h.stock}</div>
+          <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--text-muted)">${h.dest}</div>
+          <div style="font-size:13px">${h.claimedBy||'—'}</div>
+          <div style="font-size:13px;color:var(--text-muted)">${h.requestedBy||'—'}</div>
+          <div class="history-duration ${dc}">${h.durationMins} min</div>
+          <div style="font-size:12px;color:var(--text-faint)">${date}</div>
+        </div>`;
+      }).join('');
+    }
+  }
+}
+
+loadIdentity();
+</script>
+</body>
+</html>
