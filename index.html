@@ -163,15 +163,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tv-inc-card.status-stock   {border-left:4px solid #1d4ed8}
 .tv-inc-stock{font-size:14px;font-weight:700;margin-bottom:3px}
 .tv-inc-vehicle{font-size:11px;color:#475569;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tv-inc-flags{display:flex;gap:4px;flex-wrap:wrap}
-.tv-inc-flag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em}
-.tv-inc-flag.done-pdi  {background:#111827;color:#fff}
-.tv-inc-flag.done-photo{background:#7c3aed;color:#fff}
-.tv-inc-flag.done-ic   {background:#c2410c;color:#fff}
-.tv-inc-flag.done-acc  {background:#15803d;color:#fff}
-.tv-inc-flag.pend-pdi  {background:#f1f5f9;color:#94a3b8}
-.tv-inc-flag.pend-photo{background:#f1f5f9;color:#94a3b8}
-.tv-inc-flag.pend-ic   {background:#f1f5f9;color:#94a3b8}
+.tv-inc-flags{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px}
+.tv-inc-flag-box{border-radius:6px;padding:5px 4px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.tv-inc-flag-box .fb-icon{font-size:14px;line-height:1}
+.tv-inc-flag-box .fb-label{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;line-height:1}
+.fb-done-acc  {background:#dcfce7;color:#15803d}
+.fb-done-pdi  {background:#111827;color:#fff}
+.fb-done-photo{background:#7c3aed;color:#fff}
+.fb-done-ic   {background:#c2410c;color:#fff}
+.fb-pend      {background:#f1f5f9;color:#94a3b8}
+.fb-na        {background:#f8fafc;color:#cbd5e1}
 .tv-inc-section{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;opacity:.35;margin:10px 0 6px;flex-shrink:0}
 .tv-section-label{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;opacity:.4;margin:14px 0 10px;flex-shrink:0}
 .tv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
@@ -1419,8 +1420,17 @@ function renderTVIncoming() {
     { label:'Other',    items: sorted.filter(u=>u.status!=='STOCK'&&u.status!=='TURNOVER'&&u.status!=='SOLD'), cls:'' },
   ].filter(g=>g.items.length);
 
-  const flag = (label, done, doneClass, pendClass) =>
-    `<span class="tv-inc-flag ${done?doneClass:pendClass}">${done?'✓':'-'} ${label}</span>`;
+  const flagBox = (label, done, doneClass, icon) =>
+    `<div class="tv-inc-flag-box ${done ? doneClass : 'fb-pend'}">
+      <span class="fb-icon">${done ? icon : '✗'}</span>
+      <span class="fb-label">${label}</span>
+    </div>`;
+
+  const naBox = (label) =>
+    `<div class="tv-inc-flag-box fb-na">
+      <span class="fb-icon" style="font-size:10px">N/A</span>
+      <span class="fb-label">${label}</span>
+    </div>`;
 
   let html = '';
   groups.forEach(g => {
@@ -1430,10 +1440,10 @@ function renderTVIncoming() {
         <div class="tv-inc-stock">${u.stock||'—'} ${isUnitComplete(u)?'<span style="font-size:9px;background:#15803d;color:white;padding:1px 5px;border-radius:20px;font-weight:700">DONE</span>':''}</div>
         <div class="tv-inc-vehicle">${u.vehicle||'—'}</div>
         <div class="tv-inc-flags">
-          ${flag('Acc',u.accessories,'done-acc','pend-pdi')}
-          ${flag('PDI',u.pdi,'done-pdi','pend-pdi')}
-          ${photoRequired(u)?flag('Photo',u.photo,'done-photo','pend-photo'):'<span class="tv-inc-flag" style="background:#f1f5f9;color:#94a3b8">N/A Photo</span>'}
-          ${flag('IC',u.icMoved,'done-ic','pend-ic')}
+          ${flagBox('Acc',u.accessories,'fb-done-acc','✓')}
+          ${flagBox('PDI',u.pdi,'fb-done-pdi','✓')}
+          ${photoRequired(u)?flagBox('Photo',u.photo,'fb-done-photo','✓'):naBox('Photo')}
+          ${flagBox('IC',u.icMoved,'fb-done-ic','✓')}
         </div>
       </div>`).join('');
   });
