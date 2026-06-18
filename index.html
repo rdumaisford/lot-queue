@@ -161,8 +161,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tv-inc-card.status-sold    {border-left:4px solid #dc2626}
 .tv-inc-card.status-turnover{border-left:4px solid #d97706}
 .tv-inc-card.status-stock   {border-left:4px solid #1d4ed8}
-.tv-inc-stock{font-size:13px;font-weight:700;margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tv-inc-vehicle{font-size:10px;color:#475569;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tv-inc-header{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:2px}
+.tv-inc-stock{font-size:15px;font-weight:700;white-space:nowrap}
+.tv-inc-vin{font-size:11px;color:#64748b;font-family:monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tv-inc-status-pill{font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;flex-shrink:0}
+.tv-inc-vehicle{font-size:10px;color:#475569;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tv-inc-flags{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-top:6px}
 .tv-inc-flag-box{border-radius:5px;padding:4px 2px;display:flex;flex-direction:column;align-items:center;gap:2px}
 .tv-inc-flag-box .fb-icon{font-size:12px;line-height:1;font-weight:700}
@@ -1412,13 +1415,12 @@ function renderTVIncoming() {
     return (a.stock||'').localeCompare(b.stock||'');
   });
 
-  // Group by status for display
-  const groups = [
-    { label:'Stock',    items: sorted.filter(u=>u.status==='STOCK'),    cls:'status-stock' },
-    { label:'Turnover', items: sorted.filter(u=>u.status==='TURNOVER'), cls:'status-turnover' },
-    { label:'Sold',     items: sorted.filter(u=>u.status==='SOLD'),     cls:'status-sold' },
-    { label:'Other',    items: sorted.filter(u=>u.status!=='STOCK'&&u.status!=='TURNOVER'&&u.status!=='SOLD'), cls:'' },
-  ].filter(g=>g.items.length);
+  const statusPillStyle = {
+    STOCK:    'background:#dbeafe;color:#1d4ed8',
+    SOLD:     'background:#fee2e2;color:#dc2626',
+    TURNOVER: 'background:#fef3c7;color:#d97706',
+    OTHER:    'background:#f1f5f9;color:#64748b',
+  };
 
   const flagBox = (label, done, doneClass, icon) =>
     `<div class="tv-inc-flag-box ${done ? doneClass : 'fb-pend'}">
@@ -1428,26 +1430,34 @@ function renderTVIncoming() {
 
   const naBox = (label) =>
     `<div class="tv-inc-flag-box fb-na">
-      <span class="fb-icon" style="font-size:10px">N/A</span>
+      <span class="fb-icon" style="font-size:9px">N/A</span>
       <span class="fb-label">${label}</span>
     </div>`;
 
-  let html = '';
-  groups.forEach(g => {
-    html += `<div class="tv-inc-section">${g.label} — ${g.items.length}</div>`;
-    html += g.items.map(u => `
-      <div class="tv-inc-card ${g.cls}">
-        <div class="tv-inc-stock">${u.stock||'—'} ${isUnitComplete(u)?'<span style="font-size:9px;background:#15803d;color:white;padding:1px 5px;border-radius:20px;font-weight:700">DONE</span>':''}</div>
-        <div class="tv-inc-vehicle">${u.vehicle||'—'}</div>
-        <div class="tv-inc-flags">
-          ${flagBox('Acc',u.accessories,'fb-done-acc','✓')}
-          ${flagBox('PDI',u.pdi,'fb-done-pdi','✓')}
-          ${photoRequired(u)?flagBox('Photo',u.photo,'fb-done-photo','✓'):naBox('Photo')}
-          ${flagBox('IC',u.icMoved,'fb-done-ic','✓')}
-        </div>
-      </div>`).join('');
-  });
-  listEl.innerHTML = html;
+  const statusCls = {STOCK:'status-stock',SOLD:'status-sold',TURNOVER:'status-turnover'};
+
+  let html = sorted.map(u => {
+    const ps = statusPillStyle[u.status]||statusPillStyle.OTHER;
+    const sc = statusCls[u.status]||'';
+    const doneBadge = isUnitComplete(u) ? `<span style="font-size:8px;background:#15803d;color:white;padding:1px 5px;border-radius:20px;font-weight:700;flex-shrink:0">DONE</span>` : '';
+    return `<div class="tv-inc-card ${sc}">
+      <div class="tv-inc-header">
+        <span class="tv-inc-stock">${u.stock||'—'}</span>
+        <span class="tv-inc-vin">${u.vin ? u.vin.slice(-8) : ''}</span>
+        <span class="tv-inc-status-pill" style="${ps}">${u.status||'?'}</span>
+        ${doneBadge}
+      </div>
+      <div class="tv-inc-vehicle">${u.vehicle||'—'}</div>
+      <div class="tv-inc-flags">
+        ${flagBox('Acc',u.accessories,'fb-done-acc','✓')}
+        ${flagBox('PDI',u.pdi,'fb-done-pdi','✓')}
+        ${photoRequired(u)?flagBox('Photo',u.photo,'fb-done-photo','✓'):naBox('Photo')}
+        ${flagBox('IC',u.icMoved,'fb-done-ic','✓')}
+      </div>
+    </div>`;
+  }).join('');
+
+  listEl.innerHTML = html || '<div style="opacity:.3;font-size:13px;text-align:center;padding:20px">No incoming units</div>';
 }
 let selectedUnits = new Set();
 
