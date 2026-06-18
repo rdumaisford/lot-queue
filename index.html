@@ -1486,10 +1486,10 @@ function renderTracker() {
   const rows = getTrackerFiltered();
   const role = currentUser?.role;
   const canEdit = ['reception','lot','management'].includes(role);
-  const canAcc   = ['reception'].includes(role);
+  const canAcc   = ['reception','lot','management'].includes(role);
   const canPdi   = ['reception','lot','management','merchandiser'].includes(role);
-  const canPhoto = ['merchandiser'].includes(role);
-  const canIC    = ['lot','management'].includes(role);
+  const canPhoto = ['reception','merchandiser','lot','management'].includes(role);
+  const canIC    = ['reception','lot','management'].includes(role);
   const active = rows.filter(u => !isUnitComplete(u));
   const completed = rows.filter(u => isUnitComplete(u));
   document.getElementById('t-row-count').textContent = rows.length+' unit'+(rows.length!==1?'s':'')+' · '+active.length+' active';
