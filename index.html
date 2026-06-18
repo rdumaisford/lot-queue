@@ -201,6 +201,24 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tracker-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:box-shadow .15s}
 .tracker-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .tracker-card.is-complete{background:#f0fdf4;border-color:#bbf7d0}
+
+/* Status colours on card header border */
+.tracker-card.status-stock   { border-left: 4px solid #1d4ed8 }
+.tracker-card.status-sold    { border-left: 4px solid #dc2626 }
+.tracker-card.status-turnover{ border-left: 4px solid #d97706 }
+.tracker-card.status-other   { border-left: 4px solid #94a3b8 }
+.tracker-card.is-complete    { border-left: 4px solid #15803d }
+
+/* Checkbox colours per category */
+.cb-tap.on.cb-pdi     { background:#111827; border-color:#374151 }
+.cb-tap.on.cb-pdi svg { stroke:#fff }
+.cb-tap.on.cb-photo   { background:#7c3aed; border-color:#6d28d9 }
+.cb-tap.on.cb-photo svg{ stroke:#fff }
+.cb-tap.on.cb-ic      { background:#c2410c; border-color:#b45309 }
+.cb-tap.on.cb-ic svg  { stroke:#fff }
+/* Acc and default stay green */
+.cb-tap.on            { background:#dcfce7; border-color:#86efac }
+.cb-tap.on svg        { stroke:#15803d }
 .tracker-card-header{padding:14px 16px 10px;border-bottom:1px solid var(--border)}
 .tracker-card-stock{font-size:17px;font-weight:700;color:var(--ford);display:flex;align-items:center;gap:8px;margin-bottom:2px}
 .tracker-card-vin{font-size:11px;color:var(--text-faint);font-family:monospace;letter-spacing:.03em}
@@ -213,9 +231,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cb-tap.on{background:#dcfce7;border-color:#86efac}
 .cb-tap.on svg{stroke:#15803d}
 .cb-tap svg{width:18px;height:18px;fill:none;stroke-width:2.5;stroke:#cbd5e1}
-.tracker-card-meta{display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap}
-.inline-status{padding:6px 8px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);cursor:pointer;color:var(--text);font-family:var(--font);outline:none;min-height:36px}
+.tracker-card-meta{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.inline-status{padding:8px 10px;font-size:13px;font-weight:600;border:2px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);cursor:pointer;color:var(--text);font-family:var(--font);outline:none;min-height:40px;flex:1;min-width:120px}
 .inline-status:focus{border-color:var(--ford)}
+.inline-status option[value="STOCK"]  {color:#1d4ed8;font-weight:700}
+.inline-status option[value="SOLD"]   {color:#dc2626;font-weight:700}
+.inline-status option[value="TURNOVER"]{color:#d97706;font-weight:700}
 .tracker-card-notes textarea{width:100%;padding:10px 16px;font-size:13px;font-family:var(--font);border:none;background:transparent;color:var(--text);outline:none;resize:none;min-height:44px;display:block}
 .tracker-card-notes textarea:focus{background:#fafaf9}
 .tracker-card-notes textarea::placeholder{color:var(--text-faint)}
@@ -1335,8 +1356,17 @@ window.tSortBy = function(col) {
   renderTracker();
 };
 
+function photoRequired(u) {
+  // Photo/video not required for Turnover or Sold units
+  return u.status !== 'TURNOVER' && u.status !== 'SOLD';
+}
+
 function isUnitComplete(u) {
-  return u.accessories && u.pdi && u.photo && u.icMoved;
+  // Accessories is optional — PDI + IC Moved always required
+  // Photo only required if not Turnover/Sold
+  if (!u.pdi || !u.icMoved) return false;
+  if (photoRequired(u) && !u.photo) return false;
+  return true;
 }
 
 function getTrackerFiltered() {
@@ -1378,7 +1408,24 @@ window.inlineNotes = async function(id, value) {
 };
 
 window.inlineStatus = async function(id, value) {
-  await update(ref(db,'tracker/'+id), {status: value, updatedBy: currentUser.name});
+  const updates = {status: value, updatedBy: currentUser.name};
+  // Turnover/Sold — photo not required, mark it N/A (true) automatically
+  if (value === 'TURNOVER' || value === 'SOLD') {
+    updates.photo = true;
+    updates.photoNA = true;
+  } else {
+    updates.photoNA = false;
+  }
+  // Re-check completion after status change
+  const u = {...units[id], ...updates};
+  if(isUnitComplete(u) && !units[id].completedAt) {
+    updates.completedAt = Date.now();
+    updates.completedBy = currentUser.name;
+  } else if(!isUnitComplete(u)) {
+    updates.completedAt = null;
+    updates.completedBy = null;
+  }
+  await update(ref(db,'tracker/'+id), updates);
 };
 
 // Row selection
@@ -1453,15 +1500,25 @@ function renderTracker() {
     const isSelected = selectedUnits.has(u.id);
     const completeBadge = isComplete ? `<span class="complete-badge">✓ Done</span>` : '';
 
-    const cbBtn = (field, label, val) =>
-      `<div class="tracker-cb-item">
-        <div class="cb-tap ${val?'on':'off'}" onclick="inlineUpdate('${u.id}','${field}',${!val})">
+    const statusClass = {STOCK:'status-stock',SOLD:'status-sold',TURNOVER:'status-turnover'}[u.status]||'status-other';
+
+    const cbBtn = (field, label, val, naOverride, extraClass='') => {
+      if (naOverride) return `<div class="tracker-cb-item">
+        <div class="cb-tap" style="background:#f1f5f9;border-color:#e2e2df;cursor:default;opacity:.6">
+          <span style="font-size:10px;font-weight:700;color:#94a3b8">N/A</span>
+        </div>
+        <span class="tracker-cb-label">${label}</span>
+      </div>`;
+      return `<div class="tracker-cb-item">
+        <div class="cb-tap ${val?'on':'off'} ${extraClass}" onclick="inlineUpdate('${u.id}','${field}',${!val})">
           <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
         <span class="tracker-cb-label">${label}</span>
       </div>`;
+    };
+    const isNoPhoto = !photoRequired(u);
 
-    return `<div class="tracker-card${isComplete?' is-complete':''}" id="tc-${u.id}">
+    return `<div class="tracker-card${isComplete?' is-complete':''} ${isComplete?'':statusClass}" id="tc-${u.id}">
       <div class="tracker-card-header">
         <div class="tracker-card-stock">
           ${canEdit?`<input type="checkbox" class="row-select row-cb" ${isSelected?'checked':''} onchange="toggleRowSelect('${u.id}',this.checked)" style="width:15px;height:15px;accent-color:var(--ford);cursor:pointer;flex-shrink:0"/>`:''}
@@ -1472,10 +1529,10 @@ function renderTracker() {
         <div class="tracker-card-vehicle">${u.vehicle||''}</div>
       </div>
       <div class="tracker-card-checks">
-        ${cbBtn('accessories','Acc.',u.accessories)}
-        ${cbBtn('pdi','PDI',u.pdi)}
-        ${cbBtn('photo','Photo',u.photo)}
-        ${cbBtn('icMoved','IC Moved',u.icMoved)}
+        ${cbBtn('accessories','Acc.',u.accessories,false,'')}
+        ${cbBtn('pdi','PDI',u.pdi,false,'cb-pdi')}
+        ${cbBtn('photo','Photo',u.photo,isNoPhoto,'cb-photo')}
+        ${cbBtn('icMoved','IC Moved',u.icMoved,false,'cb-ic')}
       </div>
       <div class="tracker-card-meta">
         ${canEdit?`<select class="inline-status" onchange="inlineStatus('${u.id}',this.value)">
@@ -1532,7 +1589,7 @@ function renderTrackerSummary() {
     <div class="t-stat"><div class="t-stat-num" style="color:#1d4ed8">${stock}</div><div class="t-stat-label">Stock</div></div>
     <div class="t-stat"><div class="t-stat-num" style="color:#15803d">${sold}</div><div class="t-stat-label">Sold</div></div>
     <div class="t-stat"><div class="t-stat-num" style="color:#92400e">${to}</div><div class="t-stat-label">Turnover</div></div>
-    <div class="t-stat"><div class="t-stat-num" style="color:${pdiLeft>0?'#dc2626':'#15803d'}">${pdiLeft}</div><div class="t-stat-label">Units left to do</div></div>
+    <div class="t-stat"><div class="t-stat-num" style="color:${pdiLeft>0?'#dc2626':'#15803d'}">${pdiLeft}</div><div class="t-stat-label">PDI needed</div></div>
     <div class="t-stat"><div class="t-stat-num" style="color:${icLeft>0?'#dc2626':'#15803d'}">${icLeft}</div><div class="t-stat-label">IC units left to move</div></div>
     <div class="t-stat"><div class="t-stat-num" style="color:${photoLeft>0?'#b45309':'#15803d'}">${photoLeft}</div><div class="t-stat-label">Photo pending</div></div>
     <div class="t-stat"><div class="t-stat-num" style="color:#15803d">${doneCount}</div><div class="t-stat-label">All done ✓</div></div>`;
@@ -1595,7 +1652,9 @@ window.saveUnit = async function() {
     updatedBy:currentUser.name,
     ts:editingUnitId?(units[editingUnitId]?.ts||Date.now()):Date.now()
   };
-  if(!unit.stock&&!unit.vin){alert('Please enter a Stock # or VIN.');return;}
+  const isNoPhoto = unit.status === 'TURNOVER' || unit.status === 'SOLD';
+  if (isNoPhoto) { unit.photo = true; unit.photoNA = true; }
+  if (!unit.stock&&!unit.vin){alert('Please enter a Stock # or VIN.');return;}
   const btn=document.getElementById('unit-save-btn');
   btn.disabled=true;btn.textContent='Saving…';
   try {
@@ -1796,12 +1855,13 @@ updateClock();
 setInterval(updateClock,10000);
 setInterval(()=>{
   render();
-  // Don't re-render tracker table if user is actively typing in an inline field
+  // Don't re-render tracker if user is actively using an inline field inside a card
   const active = document.activeElement;
   const isTrackerFocused = active && (
-    active.classList.contains('inline-notes') ||
-    active.classList.contains('inline-status') ||
-    active.closest('#tracker-table')
+    active.tagName === 'TEXTAREA' ||
+    active.tagName === 'SELECT' ||
+    active.closest('#tracker-body') ||
+    active.closest('.tracker-card')
   );
   if (!isTrackerFocused) {
     renderTracker();
