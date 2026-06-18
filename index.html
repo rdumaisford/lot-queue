@@ -195,39 +195,40 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .t-stat-num{font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--ford)}
 .t-stat-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-top:1px}
 
-/* Inline table */
-.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)}
-table{width:100%;border-collapse:collapse;font-size:13px;min-width:960px}
-thead th{text-align:left;padding:9px 10px;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);background:#fafaf9;cursor:pointer;user-select:none;white-space:nowrap}
-thead th:hover{color:var(--text)}
-thead th .sa{display:inline-block;margin-left:3px;opacity:.4}
-thead th.sorted .sa{opacity:1;color:var(--ford)}
-tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
-tbody tr:last-child{border-bottom:none}
-tbody tr:hover{background:#f9fafb}
-tbody tr.row-complete{background:#f0fdf4;opacity:.75}
-tbody tr.row-complete:hover{background:#dcfce7}
-tbody td{padding:7px 8px;vertical-align:middle}
-.td-stock{font-weight:600;font-size:13px;color:var(--ford)}
-.td-vin{font-size:11px;color:var(--text-faint);font-family:monospace}
-
-/* Inline checkbox toggle — large tap targets */
-.cb-toggle{display:flex;justify-content:center}
-.cb-tap{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid var(--border);background:var(--bg);transition:all .15s;flex-shrink:0}
+/* ── Tracker card grid (all screen sizes — no table scroll) ── */
+.table-wrap{background:transparent;border:none;border-radius:0}
+.tracker-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.tracker-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:box-shadow .15s}
+.tracker-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.tracker-card.is-complete{background:#f0fdf4;border-color:#bbf7d0}
+.tracker-card-header{padding:14px 16px 10px;border-bottom:1px solid var(--border)}
+.tracker-card-stock{font-size:17px;font-weight:700;color:var(--ford);display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.tracker-card-vin{font-size:11px;color:var(--text-faint);font-family:monospace;letter-spacing:.03em}
+.tracker-card-vehicle{font-size:13px;color:var(--text-muted);margin-top:3px;font-weight:500}
+.tracker-card-checks{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.tracker-cb-item{display:flex;flex-direction:column;align-items:center;gap:5px}
+.tracker-cb-label{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;text-align:center;line-height:1.2}
+.cb-tap{width:100%;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid var(--border);background:var(--bg);transition:all .15s;flex-shrink:0}
 .cb-tap:hover{border-color:#94a3b8;background:#f1f5f9}
 .cb-tap.on{background:#dcfce7;border-color:#86efac}
 .cb-tap.on svg{stroke:#15803d}
-.cb-tap.off svg{stroke:#cbd5e1}
-.cb-tap svg{width:16px;height:16px;fill:none;stroke-width:2.5;stroke:#cbd5e1}
-
-/* Inline status select */
-.inline-status{padding:3px 6px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);cursor:pointer;color:var(--text);font-family:var(--font);outline:none}
+.cb-tap svg{width:18px;height:18px;fill:none;stroke-width:2.5;stroke:#cbd5e1}
+.tracker-card-meta{display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.inline-status{padding:6px 8px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);cursor:pointer;color:var(--text);font-family:var(--font);outline:none;min-height:36px}
 .inline-status:focus{border-color:var(--ford)}
+.tracker-card-notes textarea{width:100%;padding:10px 16px;font-size:13px;font-family:var(--font);border:none;background:transparent;color:var(--text);outline:none;resize:none;min-height:44px;display:block}
+.tracker-card-notes textarea:focus{background:#fafaf9}
+.tracker-card-notes textarea::placeholder{color:var(--text-faint)}
+.tracker-card-actions{display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--border)}
+.btn-tedit{flex:1;padding:8px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);cursor:pointer;color:var(--text-muted);text-align:center}
+.btn-tedit:hover{background:var(--surface);color:var(--text)}
+.btn-tdel{padding:8px 14px;font-size:12px;border:1px solid #fca5a5;border-radius:var(--radius-sm);background:#fef2f2;cursor:pointer;color:#dc2626}
+.btn-tdel:hover{background:#fee2e2}
+.section-divider{padding:8px 0;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin:8px 0 4px;grid-column:1/-1}
+.complete-badge{font-size:10px;font-weight:700;background:#15803d;color:white;padding:2px 6px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em}
 
-/* Inline notes */
-.inline-notes{width:100%;padding:4px 7px;font-size:12px;font-family:var(--font);border:1px solid transparent;border-radius:var(--radius-sm);background:transparent;color:var(--text);outline:none;resize:none;min-width:140px}
-.inline-notes:focus{border-color:var(--ford);background:white}
-.inline-notes::placeholder{color:var(--text-faint)}
+/* Desktop: bigger grid */
+@media(min-width:1200px){.tracker-card-grid{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}}
 
 /* Row select */
 .row-select{width:15px;height:15px;accent-color:var(--ford);cursor:pointer}
@@ -696,24 +697,7 @@ tbody td{padding:7px 8px;vertical-align:middle}
 
       <div class="tracker-summary" id="tracker-summary"></div>
       <div class="table-wrap">
-        <table id="tracker-table">
-          <thead><tr>
-            <th style="width:32px"><input type="checkbox" class="row-select" id="select-all" onchange="toggleSelectAll(this.checked)" title="Select all"/></th>
-            <th onclick="tSortBy('arrived')">Arrived <span class="sa">↕</span></th>
-            <th onclick="tSortBy('stock')">Stock # <span class="sa">↕</span></th>
-            <th onclick="tSortBy('vehicle')">Vehicle <span class="sa">↕</span></th>
-            <th>KMs</th>
-            <th onclick="tSortBy('status')">Status <span class="sa">↕</span></th>
-            <th>Work Req.</th>
-            <th title="Accessories">Acc.</th>
-            <th>PDI</th>
-            <th>Photo/Video</th>
-            <th>IC Moved</th>
-            <th>Notes</th>
-            <th id="t-actions-col" style="display:none"></th>
-          </tr></thead>
-          <tbody id="tracker-body"></tbody>
-        </table>
+        <div id="tracker-body" class="tracker-card-grid"></div>
       </div>
     </div>
 
@@ -925,7 +909,7 @@ function startApp() {
     } else {
       document.getElementById('btn-add-unit').style.display = 'flex';
     }
-    document.getElementById('t-actions-col').style.display = '';
+    // card grid handles edit/delete visibility via canEdit check in makeCard
   }
   if (role==='merchandiser'||role==='display') {
     ['tab-queue','tab-tracker','tab-settings','tab-history'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
@@ -1348,9 +1332,6 @@ window.setTrackerFilter = function(status,btn) {
 };
 window.tSortBy = function(col) {
   if(tSortCol===col) tSortAsc=!tSortAsc; else{tSortCol=col;tSortAsc=true;}
-  document.querySelectorAll('#tracker-table thead th').forEach(th=>{th.classList.remove('sorted');const sa=th.querySelector('.sa');if(sa)sa.textContent='↕';});
-  const th=[...document.querySelectorAll('#tracker-table thead th')].find(t=>t.getAttribute('onclick')==="tSortBy('"+col+"')");
-  if(th){th.classList.add('sorted');const sa=th.querySelector('.sa');if(sa)sa.textContent=tSortAsc?'↑':'↓';}
   renderTracker();
 };
 
@@ -1459,123 +1440,72 @@ function renderTracker() {
   const canEdit = ['reception','lot','management','pdi'].includes(currentUser?.role);
   const active = rows.filter(u => !isUnitComplete(u));
   const completed = rows.filter(u => isUnitComplete(u));
-
   document.getElementById('t-row-count').textContent = rows.length+' unit'+(rows.length!==1?'s':'')+' · '+active.length+' active';
 
-  const tbody = document.getElementById('tracker-body');
+  const body = document.getElementById('tracker-body');
   if(!rows.length){
-    tbody.innerHTML=`<tr><td colspan="13" style="text-align:center;padding:48px;color:var(--text-muted);font-size:14px">No units match your search.</td></tr>`;
+    body.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted);font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)">No units match your search.</div>`;
     return;
   }
 
-  function makeRow(u) {
+  function makeCard(u) {
     const isComplete = isUnitComplete(u);
     const isSelected = selectedUnits.has(u.id);
-    const rowClass = isComplete ? 'row-complete' : '';
     const completeBadge = isComplete ? `<span class="complete-badge">✓ Done</span>` : '';
 
-    if(canEdit) {
-      return `<tr class="${rowClass}" id="tr-${u.id}">
-        <td style="display:none"><input type="checkbox" class="row-select row-cb" ${isSelected?'checked':''} onchange="toggleRowSelect('${u.id}',this.checked)"/></td>
-        <td data-label="Arrived" style="white-space:nowrap;font-size:12px;color:var(--text-muted)">${u.arrived||'—'}</td>
+    const cbBtn = (field, label, val) =>
+      `<div class="tracker-cb-item">
+        <div class="cb-tap ${val?'on':'off'}" onclick="inlineUpdate('${u.id}','${field}',${!val})">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <span class="tracker-cb-label">${label}</span>
+      </div>`;
 
-        <td class="mob-header">
-          <div class="td-stock">${u.stock||'—'}${completeBadge}</div>
-          <div class="td-vin">${u.vin||''}</div>
-          <div style="font-size:12px;font-weight:500;color:var(--text-muted);margin-top:3px">${u.vehicle||''}</div>
-        </td>
-
-        <td class="mob-checks">
-          <div class="mob-cb-grid">
-            <div class="mob-cb-item">
-              <div class="cb-tap ${u.accessories?'on':'off'}" onclick="inlineUpdate('${u.id}','accessories',${!u.accessories})"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <span class="mob-cb-label">Acc.</span>
-            </div>
-            <div class="mob-cb-item">
-              <div class="cb-tap ${u.pdi?'on':'off'}" onclick="inlineUpdate('${u.id}','pdi',${!u.pdi})"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <span class="mob-cb-label">PDI</span>
-            </div>
-            <div class="mob-cb-item">
-              <div class="cb-tap ${u.photo?'on':'off'}" onclick="inlineUpdate('${u.id}','photo',${!u.photo})"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <span class="mob-cb-label">Photo</span>
-            </div>
-            <div class="mob-cb-item">
-              <div class="cb-tap ${u.icMoved?'on':'off'}" onclick="inlineUpdate('${u.id}','icMoved',${!u.icMoved})"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <span class="mob-cb-label">IC Moved</span>
-            </div>
-          </div>
-        </td>
-
-        <td class="mob-meta">
-          <select class="inline-status" onchange="inlineStatus('${u.id}',this.value)">
-            <option value="STOCK" ${u.status==='STOCK'?'selected':''}>Stock</option>
-            <option value="SOLD" ${u.status==='SOLD'?'selected':''}>Sold</option>
-            <option value="TURNOVER" ${u.status==='TURNOVER'?'selected':''}>Turnover</option>
-            <option value="OTHER" ${u.status==='OTHER'?'selected':''}>Other</option>
-            <option value="?" ${u.status==='?'?'selected':''}>?</option>
-          </select>
-          <span style="font-size:11px;color:var(--text-faint)">${u.workReq||''}</span>
-          <span style="font-size:11px;color:var(--text-faint)">${u.kms?u.kms+' km':''}</span>
-        </td>
-
-        <td class="mob-notes">
-          <textarea placeholder="Add notes…" onchange="inlineNotes('${u.id}',this.value)" onblur="inlineNotes('${u.id}',this.value)">${u.notes||''}</textarea>
-        </td>
-
-        <td class="mob-actions">
-          <button class="btn-tedit" onclick="openUnitModal('${u.id}')">✎ Edit</button>
-          <button class="btn-tdel" onclick="deleteUnit('${u.id}','${(u.stock||u.vin).replace(/'/g,"\\'")}')">✕ Delete</button>
-        </td>
-
-        <td data-label="Arrived" style="white-space:nowrap;font-size:12px;color:var(--text-muted);display:none">${u.arrived||'—'}</td>
-        <td data-label="Vehicle" style="font-weight:500;max-width:200px;font-size:12px;display:none">${u.vehicle||'—'}</td>
-        <td data-label="KMs" style="font-size:12px;color:var(--text-muted);display:none">${u.kms||'—'}</td>
-        <td data-label="Status" style="display:none">
-          <select class="inline-status" onchange="inlineStatus('${u.id}',this.value)" style="display:none">
-            <option value="STOCK" ${u.status==='STOCK'?'selected':''}>Stock</option>
-            <option value="SOLD" ${u.status==='SOLD'?'selected':''}>Sold</option>
-            <option value="TURNOVER" ${u.status==='TURNOVER'?'selected':''}>Turnover</option>
-            <option value="OTHER" ${u.status==='OTHER'?'selected':''}>Other</option>
-            <option value="?" ${u.status==='?'?'selected':''}>?</option>
-          </select>
-        </td>
-        <td data-label="Work Req." style="font-size:12px;font-family:monospace;color:var(--text-muted);display:none">${u.workReq||'—'}</td>
-        <td style="display:none"><div class="cb-toggle"><div class="cb-tap ${u.accessories?'on':'off'}" onclick="inlineUpdate('${u.id}','accessories',${!u.accessories})"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div></div></td>
-        <td style="display:none"><div class="cb-toggle"><div class="cb-tap ${u.pdi?'on':'off'}" onclick="inlineUpdate('${u.id}','pdi',${!u.pdi})"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div></div></td>
-        <td style="display:none"><div class="cb-toggle"><div class="cb-tap ${u.photo?'on':'off'}" onclick="inlineUpdate('${u.id}','photo',${!u.photo})"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div></div></td>
-        <td style="display:none"><div class="cb-toggle"><div class="cb-tap ${u.icMoved?'on':'off'}" onclick="inlineUpdate('${u.id}','icMoved',${!u.icMoved})"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div></div></td>
-        <td style="display:none"><textarea class="inline-notes" rows="1" placeholder="Add notes…" onchange="inlineNotes('${u.id}',this.value)" onblur="inlineNotes('${u.id}',this.value)">${u.notes||''}</textarea></td>
-        <td style="display:none"></td>
-      </tr>`;
-    } else {
-      // Read-only row
-      const ci = val => val
-        ? `<div class="cb-toggle"><div style="width:18px;height:18px;border-radius:4px;background:#dcfce7;display:flex;align-items:center;justify-content:center;margin:0 auto"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#15803d" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div></div>`
-        : `<div class="cb-toggle"><div style="width:18px;height:18px;border-radius:4px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;margin:0 auto"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div></div>`;
-      return `<tr class="${rowClass}">
-        <td></td>
-        <td style="white-space:nowrap;font-size:12px;color:var(--text-muted)">${u.arrived||'—'}</td>
-        <td><div class="td-stock">${u.stock||'—'}${completeBadge}</div><div class="td-vin">${u.vin||''}</div></td>
-        <td style="font-weight:500;font-size:12px">${u.vehicle||'—'}</td>
-        <td style="font-size:12px;color:var(--text-muted)">${u.kms||'—'}</td>
-        <td>${tStatusPill(u.status)}</td>
-        <td style="font-size:12px;font-family:monospace;color:var(--text-muted)">${u.workReq||'—'}</td>
-        <td>${ci(u.accessories)}</td><td>${ci(u.pdi)}</td><td>${ci(u.photo)}</td><td>${ci(u.icMoved)}</td>
-        <td style="font-size:12px;color:var(--text-muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.notes||''}</td>
-        <td style="display:none"></td>
-      </tr>`;
-    }
+    return `<div class="tracker-card${isComplete?' is-complete':''}" id="tc-${u.id}">
+      <div class="tracker-card-header">
+        <div class="tracker-card-stock">
+          ${canEdit?`<input type="checkbox" class="row-select row-cb" ${isSelected?'checked':''} onchange="toggleRowSelect('${u.id}',this.checked)" style="width:15px;height:15px;accent-color:var(--ford);cursor:pointer;flex-shrink:0"/>`:''}
+          <span>${u.stock||'—'}</span>
+          ${completeBadge}
+        </div>
+        <div class="tracker-card-vin">${u.vin||''}</div>
+        <div class="tracker-card-vehicle">${u.vehicle||''}</div>
+      </div>
+      <div class="tracker-card-checks">
+        ${cbBtn('accessories','Acc.',u.accessories)}
+        ${cbBtn('pdi','PDI',u.pdi)}
+        ${cbBtn('photo','Photo',u.photo)}
+        ${cbBtn('icMoved','IC Moved',u.icMoved)}
+      </div>
+      <div class="tracker-card-meta">
+        ${canEdit?`<select class="inline-status" onchange="inlineStatus('${u.id}',this.value)">
+          <option value="STOCK" ${u.status==='STOCK'?'selected':''}>Stock</option>
+          <option value="SOLD" ${u.status==='SOLD'?'selected':''}>Sold</option>
+          <option value="TURNOVER" ${u.status==='TURNOVER'?'selected':''}>Turnover</option>
+          <option value="OTHER" ${u.status==='OTHER'?'selected':''}>Other</option>
+          <option value="?" ${u.status==='?'?'selected':''}>?</option>
+        </select>`:tStatusPill(u.status)}
+        ${u.arrived?`<span style="font-size:12px;color:var(--text-faint)">${u.arrived}</span>`:''}
+        ${u.kms?`<span style="font-size:12px;color:var(--text-faint)">${u.kms} km</span>`:''}
+        ${u.workReq?`<span style="font-size:12px;font-family:monospace;color:var(--text-faint)">${u.workReq}</span>`:''}
+      </div>
+      <div class="tracker-card-notes">
+        <textarea placeholder="Add notes…" onchange="inlineNotes('${u.id}',this.value)" onblur="inlineNotes('${u.id}',this.value)">${u.notes||''}</textarea>
+      </div>
+      ${canEdit?`<div class="tracker-card-actions">
+        <button class="btn-tedit" onclick="openUnitModal('${u.id}')">✎ Edit</button>
+        <button class="btn-tdel" onclick="deleteUnit('${u.id}','${(u.stock||u.vin).replace(/'/g,"\\'")}')">✕</button>
+      </div>`:''}
+    </div>`;
   }
 
   let html = '';
-  if(active.length) {
-    html += active.map(makeRow).join('');
-  }
+  if(active.length) html += active.map(makeCard).join('');
   if(completed.length) {
-    html += `<tr><td colspan="13" class="section-divider">✓ Completed (${completed.length}) — all boxes checked</td></tr>`;
-    html += completed.map(makeRow).join('');
+    html += `<div class="section-divider">✓ Completed (${completed.length})</div>`;
+    html += completed.map(makeCard).join('');
   }
-  tbody.innerHTML = html;
+  body.innerHTML = html;
   updateBulkBar();
 }
 
