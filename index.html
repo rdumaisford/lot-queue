@@ -922,7 +922,7 @@ function startApp() {
   const roleLabels = {lot:'Inventory Control',sales:'Sales',service:'Service',detail:'Detail',reception:'Reception',merchandiser:'Merchandiser',display:'Display',pdi:'PDI'};
   document.getElementById('user-role-badge').textContent = roleLabels[currentUser.role]||currentUser.role;
   const role = currentUser.role;
-  const canEditTracker = ['reception','lot','management','pdi'].includes(role);
+  const canEditTracker = ['reception','lot','management'].includes(role);
   if (canEditTracker) {
     // PDI gets their own labelled button, others get generic Add unit
     if (role === 'pdi') {
@@ -1484,7 +1484,12 @@ function tStatusPill(s){const map={STOCK:'ts-stock',SOLD:'ts-sold',TURNOVER:'ts-
 
 function renderTracker() {
   const rows = getTrackerFiltered();
-  const canEdit = ['reception','lot','management','pdi'].includes(currentUser?.role);
+  const role = currentUser?.role;
+  const canEdit = ['reception','lot','management'].includes(role);
+  const canAcc   = ['reception'].includes(role);
+  const canPdi   = ['reception','lot','management','merchandiser'].includes(role);
+  const canPhoto = ['merchandiser'].includes(role);
+  const canIC    = ['lot','management'].includes(role);
   const active = rows.filter(u => !isUnitComplete(u));
   const completed = rows.filter(u => isUnitComplete(u));
   document.getElementById('t-row-count').textContent = rows.length+' unit'+(rows.length!==1?'s':'')+' · '+active.length+' active';
@@ -1502,10 +1507,16 @@ function renderTracker() {
 
     const statusClass = {STOCK:'status-stock',SOLD:'status-sold',TURNOVER:'status-turnover'}[u.status]||'status-other';
 
-    const cbBtn = (field, label, val, naOverride, extraClass='') => {
+    const cbBtn = (field, label, val, naOverride, extraClass='', canCheck=true) => {
       if (naOverride) return `<div class="tracker-cb-item">
         <div class="cb-tap" style="background:#f1f5f9;border-color:#e2e2df;cursor:default;opacity:.6">
           <span style="font-size:10px;font-weight:700;color:#94a3b8">N/A</span>
+        </div>
+        <span class="tracker-cb-label">${label}</span>
+      </div>`;
+      if (!canCheck) return `<div class="tracker-cb-item">
+        <div class="cb-tap ${val?'on':''} ${extraClass}" style="cursor:default;pointer-events:none;opacity:${val?'1':'.45'}">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
         <span class="tracker-cb-label">${label}</span>
       </div>`;
@@ -1529,10 +1540,10 @@ function renderTracker() {
         <div class="tracker-card-vehicle">${u.vehicle||''}</div>
       </div>
       <div class="tracker-card-checks">
-        ${cbBtn('accessories','Acc.',u.accessories,false,'')}
-        ${cbBtn('pdi','PDI',u.pdi,false,'cb-pdi')}
-        ${cbBtn('photo','Photo',u.photo,isNoPhoto,'cb-photo')}
-        ${cbBtn('icMoved','IC Moved',u.icMoved,false,'cb-ic')}
+        ${cbBtn('accessories','Acc.',u.accessories,false,'',canAcc)}
+        ${cbBtn('pdi','PDI',u.pdi,false,'cb-pdi',canPdi)}
+        ${cbBtn('photo','Photo',u.photo,isNoPhoto,'cb-photo',canPhoto)}
+        ${cbBtn('icMoved','IC Moved',u.icMoved,false,'cb-ic',canIC)}
       </div>
       <div class="tracker-card-meta">
         ${canEdit?`<select class="inline-status" onchange="inlineStatus('${u.id}',this.value)">
