@@ -145,7 +145,34 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tv-title-icon svg{width:22px;height:22px;fill:none;stroke:var(--ford);stroke-width:2}
 .tv-clock{font-size:32px;font-weight:300;opacity:.6;font-variant-numeric:tabular-nums}
 .tv-sub{font-size:14px;opacity:.35;margin-bottom:18px;text-transform:uppercase;letter-spacing:.1em;flex-shrink:0}
-.tv-body{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.tv-body{flex:1;overflow:hidden;display:flex;flex-direction:row;gap:20px}
+.tv-col-queue{flex:1.4;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.tv-col-incoming{flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0;border-left:1px solid rgba(255,255,255,.12);padding-left:20px}
+.tv-col-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;opacity:.4;margin-bottom:10px;flex-shrink:0}
+.tv-incoming-summary{display:flex;gap:8px;margin-bottom:12px;flex-shrink:0}
+.tv-inc-stat{flex:1;background:rgba(255,255,255,.07);border-radius:8px;padding:8px 10px;text-align:center}
+.tv-inc-stat-num{font-size:20px;font-weight:700;letter-spacing:-.02em}
+.tv-inc-stat-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;opacity:.5;margin-top:1px}
+.tv-inc-list{overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px}
+.tv-inc-list::-webkit-scrollbar{width:3px}
+.tv-inc-list::-webkit-scrollbar-track{background:transparent}
+.tv-inc-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:99px}
+.tv-inc-card{background:#fff;border-radius:8px;padding:10px 12px;color:var(--ford);flex-shrink:0}
+.tv-inc-card.status-sold    {border-left:4px solid #dc2626}
+.tv-inc-card.status-turnover{border-left:4px solid #d97706}
+.tv-inc-card.status-stock   {border-left:4px solid #1d4ed8}
+.tv-inc-stock{font-size:14px;font-weight:700;margin-bottom:3px}
+.tv-inc-vehicle{font-size:11px;color:#475569;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tv-inc-flags{display:flex;gap:4px;flex-wrap:wrap}
+.tv-inc-flag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em}
+.tv-inc-flag.done-pdi  {background:#111827;color:#fff}
+.tv-inc-flag.done-photo{background:#7c3aed;color:#fff}
+.tv-inc-flag.done-ic   {background:#c2410c;color:#fff}
+.tv-inc-flag.done-acc  {background:#15803d;color:#fff}
+.tv-inc-flag.pend-pdi  {background:#f1f5f9;color:#94a3b8}
+.tv-inc-flag.pend-photo{background:#f1f5f9;color:#94a3b8}
+.tv-inc-flag.pend-ic   {background:#f1f5f9;color:#94a3b8}
+.tv-inc-section{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;opacity:.35;margin:10px 0 6px;flex-shrink:0}
 .tv-section-label{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;opacity:.4;margin:14px 0 10px;flex-shrink:0}
 .tv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .tv-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
@@ -516,6 +543,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   .tv-grid,.tv-grid-4{grid-template-columns:repeat(2,1fr);gap:8px}
   .tv-stock{font-size:18px}
   .tv-dest .dest-pill{font-size:11px;padding:3px 8px}
+  .tv-col-incoming{display:none}
+  .tv-body{gap:0}
 }
 
 /* iOS zoom prevention + min touch targets */
@@ -739,7 +768,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           </div>
         </div>
         <div class="tv-sub" id="tv-count">Connecting…</div>
-        <div class="tv-body" id="tv-list"></div>
+        <div class="tv-body">
+          <div class="tv-col-queue" id="tv-list"></div>
+          <div class="tv-col-incoming">
+            <div class="tv-col-title">Incoming Units</div>
+            <div class="tv-incoming-summary" id="tv-inc-summary"></div>
+            <div class="tv-inc-list" id="tv-inc-list"></div>
+          </div>
+        </div>
         <div id="tv-hint" style="position:absolute;bottom:14px;right:18px;font-size:10px;opacity:.15;color:white;user-select:none">Hold to show controls</div>
       </div>
     </div>
@@ -996,6 +1032,7 @@ function startApp() {
     units = snap.val()||{};
     document.getElementById('tc-tracker').textContent = Object.keys(units).length;
     renderTracker(); renderTrackerSummary();
+    renderTVIncoming();
   });
 
   if (role==='lot') {
@@ -1339,9 +1376,69 @@ function renderTV() {
     }).join('')+'</div>';
   }
   tvList.innerHTML=tvHtml;
+  renderTVIncoming();
 }
 
-// ── Tracker ───────────────────────────────────────────
+function renderTVIncoming() {
+  const sumEl  = document.getElementById('tv-inc-summary');
+  const listEl = document.getElementById('tv-inc-list');
+  if (!sumEl || !listEl) return;
+
+  const all = Object.values(units);
+  const active = all.filter(u => !isUnitComplete(u));
+  const stock    = all.filter(u=>u.status==='STOCK').length;
+  const sold     = all.filter(u=>u.status==='SOLD').length;
+  const turnover = all.filter(u=>u.status==='TURNOVER').length;
+  const pdiLeft  = active.filter(u=>!u.pdi).length;
+
+  sumEl.innerHTML = `
+    <div class="tv-inc-stat"><div class="tv-inc-stat-num">${all.length}</div><div class="tv-inc-stat-label">Total</div></div>
+    <div class="tv-inc-stat"><div class="tv-inc-stat-num" style="color:#6eb4ff">${stock}</div><div class="tv-inc-stat-label">Stock</div></div>
+    <div class="tv-inc-stat"><div class="tv-inc-stat-num" style="color:#fbbf24">${turnover}</div><div class="tv-inc-stat-label">Turnover</div></div>
+    <div class="tv-inc-stat"><div class="tv-inc-stat-num" style="color:#f87171">${sold}</div><div class="tv-inc-stat-label">Sold</div></div>
+    <div class="tv-inc-stat"><div class="tv-inc-stat-num" style="color:${pdiLeft>0?'#f87171':'#4ade80'}">${pdiLeft}</div><div class="tv-inc-stat-label">PDI left</div></div>
+  `;
+
+  if (!all.length) {
+    listEl.innerHTML = '<div style="opacity:.3;font-size:13px;text-align:center;padding:20px">No incoming units</div>';
+    return;
+  }
+
+  // Sort: incomplete first, then by stock #
+  const sorted = [...all].sort((a,b) => {
+    const ac=isUnitComplete(a)?1:0, bc=isUnitComplete(b)?1:0;
+    if(ac!==bc) return ac-bc;
+    return (a.stock||'').localeCompare(b.stock||'');
+  });
+
+  // Group by status for display
+  const groups = [
+    { label:'Stock',    items: sorted.filter(u=>u.status==='STOCK'),    cls:'status-stock' },
+    { label:'Turnover', items: sorted.filter(u=>u.status==='TURNOVER'), cls:'status-turnover' },
+    { label:'Sold',     items: sorted.filter(u=>u.status==='SOLD'),     cls:'status-sold' },
+    { label:'Other',    items: sorted.filter(u=>u.status!=='STOCK'&&u.status!=='TURNOVER'&&u.status!=='SOLD'), cls:'' },
+  ].filter(g=>g.items.length);
+
+  const flag = (label, done, doneClass, pendClass) =>
+    `<span class="tv-inc-flag ${done?doneClass:pendClass}">${done?'✓':'-'} ${label}</span>`;
+
+  let html = '';
+  groups.forEach(g => {
+    html += `<div class="tv-inc-section">${g.label} — ${g.items.length}</div>`;
+    html += g.items.map(u => `
+      <div class="tv-inc-card ${g.cls}">
+        <div class="tv-inc-stock">${u.stock||'—'} ${isUnitComplete(u)?'<span style="font-size:9px;background:#15803d;color:white;padding:1px 5px;border-radius:20px;font-weight:700">DONE</span>':''}</div>
+        <div class="tv-inc-vehicle">${u.vehicle||'—'}</div>
+        <div class="tv-inc-flags">
+          ${flag('Acc',u.accessories,'done-acc','pend-pdi')}
+          ${flag('PDI',u.pdi,'done-pdi','pend-pdi')}
+          ${photoRequired(u)?flag('Photo',u.photo,'done-photo','pend-photo'):'<span class="tv-inc-flag" style="background:#f1f5f9;color:#94a3b8">N/A Photo</span>'}
+          ${flag('IC',u.icMoved,'done-ic','pend-ic')}
+        </div>
+      </div>`).join('');
+  });
+  listEl.innerHTML = html;
+}
 let selectedUnits = new Set();
 
 window.setTrackerFilter = function(status,btn) {
