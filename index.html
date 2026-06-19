@@ -360,6 +360,24 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .modal-custom{width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;margin-bottom:16px}
 .modal-custom:focus{border-color:var(--ford)}
 
+/* ── Home portal ── */
+.home-hero{text-align:center;padding:28px 16px 8px}
+.home-hero-title{font-size:24px;font-weight:700;color:var(--ford);letter-spacing:-.02em}
+.home-hero-sub{font-size:14px;color:var(--text-muted);margin-top:4px}
+.home-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;padding:24px 0;max-width:980px;margin:0 auto}
+.home-tile{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px 20px;text-align:left;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;gap:10px;position:relative;overflow:hidden}
+.home-tile:hover{border-color:var(--ford);box-shadow:0 4px 16px rgba(0,9,91,.1);transform:translateY(-2px)}
+.home-tile-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.home-tile-icon svg{width:22px;height:22px;fill:none;stroke-width:2}
+.home-tile-title{font-size:16px;font-weight:700;color:var(--text)}
+.home-tile-desc{font-size:13px;color:var(--text-muted);line-height:1.4}
+.home-tile-badge{position:absolute;top:18px;right:18px;background:var(--ford);color:white;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;min-width:22px;text-align:center}
+.home-tile.tone-blue   .home-tile-icon{background:#dbeafe;color:#1d4ed8}
+.home-tile.tone-amber  .home-tile-icon{background:#fef3c7;color:#b45309}
+.home-tile.tone-navy   .home-tile-icon{background:#e0e7ff;color:#00095b}
+.home-tile.tone-green  .home-tile-icon{background:#dcfce7;color:#15803d}
+.home-tile.tone-grey   .home-tile-icon{background:#f1f5f9;color:#475569}
+
 /* ── Mobile PDI card layout ── */
 @media(max-width:768px){
   /* Layout */
@@ -619,7 +637,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   </header>
 
   <nav class="tabs">
-    <button class="tab active" id="tab-queue" onclick="switchTab('queue',this)">Vehicle Appointments <span class="tab-count" id="tc-queue">0</span></button>
+    <button class="tab active" id="tab-home" onclick="switchTab('home',this)">Home</button>
+    <button class="tab" id="tab-queue" onclick="switchTab('queue',this)">Vehicle Appointments <span class="tab-count" id="tc-queue">0</span></button>
     <button class="tab" id="tab-tracker" onclick="switchTab('tracker',this)">Incoming <span class="tab-count" id="tc-tracker">0</span></button>
     <button class="tab" id="tab-tv" onclick="switchTab('tv',this)">TV display <span class="tab-count" id="tc-tv">0</span></button>
     <button class="tab" id="tab-history" onclick="switchTab('history',this)">History</button>
@@ -628,8 +647,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 
   <main class="main" id="main-wrap">
 
+    <!-- HOME PORTAL -->
+    <div id="panel-home" class="panel active">
+      <div class="home-hero">
+        <div class="home-hero-title">Welcome, <span id="home-name-display">there</span></div>
+        <div class="home-hero-sub">Pick where you'd like to go.</div>
+      </div>
+      <div class="home-grid" id="home-grid"></div>
+    </div>
+
     <!-- QUEUE + REQUEST FORM -->
-    <div id="panel-queue" class="panel active">
+    <div id="panel-queue" class="panel">
 
       <!-- Slide-down request form -->
       <div class="request-form-wrap" id="request-form-wrap">
@@ -967,6 +995,8 @@ function startApp() {
   document.getElementById('requester-name-display').textContent = currentUser.name;
   const roleLabels = {lot:'Inventory Control',sales:'Sales',service:'Service',detail:'Detail',reception:'Reception',merchandiser:'Merchandiser',display:'Display',pdi:'PDI'};
   document.getElementById('user-role-badge').textContent = roleLabels[currentUser.role]||currentUser.role;
+  const homeNameEl = document.getElementById('home-name-display');
+  if (homeNameEl) homeNameEl.textContent = currentUser.name.split(' ')[0];
   const role = currentUser.role;
   const canEditTracker = ['reception','lot','management'].includes(role);
   if (canEditTracker) {
@@ -979,20 +1009,22 @@ function startApp() {
     // card grid handles edit/delete visibility via canEdit check in makeCard
   }
   if (role==='merchandiser'||role==='display') {
-    ['tab-queue','tab-tracker','tab-settings','tab-history'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
+    ['tab-home','tab-queue','tab-tracker','tab-settings','tab-history'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
     document.getElementById('btn-clear').style.display='none';
     switchTab('tv',document.getElementById('tab-tv'));
   } else if (role==='pdi') {
     // PDI: sees Tracker (with add button) + Queue read-only, no TV/History/Settings/Vehicle Appointments
     ['tab-tv','tab-settings','tab-history'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
     document.getElementById('btn-clear').style.display='none';
-    switchTab('tracker',document.getElementById('tab-tracker'));
+    renderHomeGrid();
   } else if (role==='lot') {
     document.getElementById('tab-tv').style.display='none';
     document.getElementById('btn-clear').style.display='block';
+    renderHomeGrid();
   } else {
     ['tab-tv','tab-settings','tab-history'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
     document.getElementById('btn-clear').style.display='none';
+    renderHomeGrid();
   }
 
   // Firebase listeners
@@ -1999,6 +2031,8 @@ setInterval(()=>{
     renderTracker();
     renderTrackerSummary();
   }
+  const homePanel = document.getElementById('panel-home');
+  if (homePanel && homePanel.classList.contains('active')) renderHomeGrid();
 },1000);
 
 // ── Today's Drops PDF print ───────────────────────────
@@ -2116,6 +2150,62 @@ window.printTodaysDrops = function() {
   win.focus();
   setTimeout(()=>{ win.print(); }, 500);
 };
+
+// ── Home portal ───────────────────────────────────────
+function renderHomeGrid() {
+  const grid = document.getElementById('home-grid');
+  if (!grid) return;
+  const role = currentUser.role;
+
+  const icon = {
+    queue:    `<path d="M5 11l1.5-4.5h11L19 11M19 11v5H5v-5M5 11H3v2h2M19 11h2v2h-2M7.5 16v1.5M16.5 16v1.5M7 13.5h2M15 13.5h2"/>`,
+    tracker:  `<path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>`,
+    tv:       `<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>`,
+    history:  `<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/>`,
+    settings: `<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/>`,
+  };
+
+  const tiles = [];
+
+  tiles.push({
+    name: 'queue', tone: 'navy', icon: icon.queue,
+    title: 'Vehicle Appointments',
+    desc: 'Submit a move request or view the live lot queue.',
+    badge: () => Object.values(entries).filter(e=>['pending','progress'].includes(e.status)).length
+  });
+
+  if (['reception','lot','management','pdi'].includes(role) || true) {
+    tiles.push({
+      name: 'tracker', tone: 'blue', icon: icon.tracker,
+      title: 'Incoming Units',
+      desc: 'Track PDI, photos, and IC moves for incoming stock.',
+      badge: () => Object.values(units).filter(u=>!isUnitComplete(u)).length
+    });
+  }
+
+  if (role === 'lot') {
+    tiles.push({
+      name: 'history', tone: 'green', icon: icon.history,
+      title: 'History & Stats',
+      desc: 'See attendant performance and move history.'
+    });
+    tiles.push({
+      name: 'settings', tone: 'grey', icon: icon.settings,
+      title: 'Settings',
+      desc: 'Adjust move times, lot hours, and sound alerts.'
+    });
+  }
+
+  grid.innerHTML = tiles.map(t => {
+    const badgeNum = t.badge ? t.badge() : null;
+    return `<div class="home-tile tone-${t.tone}" onclick="switchTab('${t.name}',document.getElementById('tab-${t.name}'))">
+      ${badgeNum ? `<div class="home-tile-badge">${badgeNum}</div>` : ''}
+      <div class="home-tile-icon"><svg viewBox="0 0 24 24">${t.icon}</svg></div>
+      <div class="home-tile-title">${t.title}</div>
+      <div class="home-tile-desc">${t.desc}</div>
+    </div>`;
+  }).join('');
+}
 
 loadIdentity();
 </script>
