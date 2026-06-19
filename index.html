@@ -610,6 +610,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <option value="lot">Inventory Control</option>
           <option value="pdi">PDI</option>
           <option value="merchandiser">Merchandiser</option>
+          <option value="management">Management</option>
         </select>
       </div>
       <button class="btn-setup" onclick="saveIdentity()">Get started</button>
@@ -859,7 +860,22 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
             <div>Lot hours: <strong id="disp-hours">—</strong></div>
           </div>
         </div>
+      </div>
 
+      <!-- Roles & Permissions -->
+      <div style="margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;max-width:100%;overflow-x:auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:10px">
+          <div>
+            <div style="font-size:16px;font-weight:600">Roles & Permissions</div>
+            <div style="font-size:13px;color:var(--text-muted);margin-top:2px">Toggle what each role can see and do. Changes apply live to everyone.</div>
+          </div>
+          <button onclick="resetPermissionsToDefault()" style="padding:7px 14px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text-muted);cursor:pointer;white-space:nowrap">Reset to defaults</button>
+        </div>
+        <div id="permissions-toast" class="toast" style="margin:12px 0 0"></div>
+        <div id="permissions-editor" style="margin-top:16px;overflow-x:auto"></div>
+      </div>
+
+      <div style="max-width:480px">
         <div style="background:var(--surface);border:1px solid #fca5a5;border-radius:var(--radius);padding:24px;margin-top:16px">
           <div style="font-size:15px;font-weight:600;margin-bottom:4px;color:#dc2626">Danger zone</div>
           <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">These actions are permanent and cannot be undone.</div>
@@ -959,6 +975,123 @@ let historyDays = 30, soundEnabled = localStorage.getItem('lq-sound') !== 'false
 let tFilterStatus = 'ALL', tSortCol = 'arrived', tSortAsc = false, editingUnitId = null;
 let denyTargetId = null;
 
+// ── Roles & Permissions (Firebase-backed, editable in Settings) ──
+const ALL_ROLES = ['lot','reception','service','sales','detail','pdi','merchandiser','management'];
+const ROLE_LABELS = {lot:'Inventory Control',reception:'Reception',service:'Service',sales:'Sales',detail:'Detail',pdi:'PDI',merchandiser:'Merchandiser',management:'Management',display:'Display'};
+
+// Default permission matrix — used until Firebase settings/permissions loads (or if a role/perm is missing there)
+const DEFAULT_PERMISSIONS = {
+  lot:          { tabHome:true, tabQueue:true, tabTracker:true, tabTV:false, tabHistory:true, tabSettings:true, trackerAdd:true, trackerEdit:true, trackerDelete:true, cbAcc:true, cbPdi:true, cbPhoto:true, cbIC:true, queueAdmin:true, clearCompleted:true },
+  reception:    { tabHome:true, tabQueue:true, tabTracker:true, tabTV:false, tabHistory:false, tabSettings:false, trackerAdd:true, trackerEdit:true, trackerDelete:true, cbAcc:true, cbPdi:true, cbPhoto:true, cbIC:true, queueAdmin:false, clearCompleted:false },
+  service:      { tabHome:true, tabQueue:true, tabTracker:true, tabTV:false, tabHistory:false, tabSettings:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false },
+  sales:        { tabHome:true, tabQueue:true, tabTracker:true, tabTV:false, tabHistory:false, tabSettings:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false },
+  detail:       { tabHome:true, tabQueue:true, tabTracker:true, tabTV:false, tabHistory:false, tabSettings:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false },
+  pdi:          { tabHome:true, tabQueue:true, tabTracker:true, tabTV:false, tabHistory:false, tabSettings:false, trackerAdd:true, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false },
+  merchandiser: { tabHome:false,tabQueue:false,tabTracker:false,tabTV:true,  tabHistory:false, tabSettings:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true, cbPhoto:true, cbIC:false, queueAdmin:false, clearCompleted:false },
+  management:   { tabHome:true, tabQueue:true, tabTracker:true, tabTV:false, tabHistory:true, tabSettings:true, trackerAdd:true, trackerEdit:true, trackerDelete:true, cbAcc:true, cbPdi:true, cbPhoto:true, cbIC:true, queueAdmin:true, clearCompleted:true },
+};
+
+let PERMISSIONS = JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS)); // live copy, overwritten by Firebase
+
+function perm(key) {
+  if (!currentUser) return false;
+  if (currentUser.role === 'display') return key === 'tabTV';
+  const rolePerms = PERMISSIONS[currentUser.role] || DEFAULT_PERMISSIONS[currentUser.role] || {};
+  return !!rolePerms[key];
+}
+
+function applyPermissions() {
+  if (!currentUser) return;
+  const tabMap = { tabHome:'tab-home', tabQueue:'tab-queue', tabTracker:'tab-tracker', tabTV:'tab-tv', tabHistory:'tab-history', tabSettings:'tab-settings' };
+  for (const key in tabMap) {
+    const el = document.getElementById(tabMap[key]);
+    if (el) el.style.display = perm(key) ? '' : 'none';
+  }
+  const addBtn    = document.getElementById('btn-add-unit');
+  const addBtnPdi = document.getElementById('btn-add-unit-pdi');
+  if (addBtn)    addBtn.style.display    = (perm('trackerAdd') && currentUser.role!=='pdi') ? 'flex' : 'none';
+  if (addBtnPdi) addBtnPdi.style.display = (perm('trackerAdd') && currentUser.role==='pdi') ? 'flex' : 'none';
+  const clearBtn = document.getElementById('btn-clear');
+  if (clearBtn) clearBtn.style.display = perm('clearCompleted') ? 'block' : 'none';
+
+  // Land on the right tab for roles whose only access is TV
+  if (perm('tabTV') && !perm('tabHome')) {
+    switchTab('tv', document.getElementById('tab-tv'));
+  }
+}
+
+// ── Permissions matrix editor (Settings tab) ──────────
+const PERM_GROUPS = [
+  { label:'Tabs', keys: [
+    ['tabHome','Home'], ['tabQueue','Vehicle Appointments'], ['tabTracker','Incoming'],
+    ['tabTV','TV Display'], ['tabHistory','History'], ['tabSettings','Settings'],
+  ]},
+  { label:'Incoming Tracker', keys: [
+    ['trackerAdd','Add units'], ['trackerEdit','Edit / change status'], ['trackerDelete','Delete units'],
+  ]},
+  { label:'Tracker Checkboxes', keys: [
+    ['cbAcc','Accessories'], ['cbPdi','PDI'], ['cbPhoto','Photo/Video'], ['cbIC','IC Moved'],
+  ]},
+  { label:'Vehicle Appointments', keys: [
+    ['queueAdmin','Start/Complete/Hold moves'], ['clearCompleted','Clear completed button'],
+  ]},
+];
+
+function renderPermissionsEditor() {
+  const el = document.getElementById('permissions-editor');
+  if (!el) return;
+  const roles = ALL_ROLES;
+
+  let html = '<table style="border-collapse:collapse;font-size:12px;min-width:760px">';
+  html += '<thead><tr><th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--border);position:sticky;left:0;background:var(--surface);min-width:170px"></th>';
+  roles.forEach(r => {
+    html += `<th style="padding:6px 8px;border-bottom:2px solid var(--border);font-weight:700;color:var(--ford);text-align:center;min-width:80px">${ROLE_LABELS[r]}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  PERM_GROUPS.forEach(group => {
+    html += `<tr><td colspan="${roles.length+1}" style="padding:10px 10px 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);position:sticky;left:0">${group.label}</td></tr>`;
+    group.keys.forEach(([key,label]) => {
+      html += `<tr><td style="padding:5px 10px;border-bottom:1px solid var(--border);position:sticky;left:0;background:var(--surface);white-space:nowrap">${label}</td>`;
+      roles.forEach(r => {
+        const val = (PERMISSIONS[r]||DEFAULT_PERMISSIONS[r]||{})[key];
+        html += `<td style="padding:5px 8px;border-bottom:1px solid var(--border);text-align:center">
+          <input type="checkbox" ${val?'checked':''} onchange="togglePermission('${r}','${key}',this.checked)" style="width:17px;height:17px;accent-color:var(--ford);cursor:pointer"/>
+        </td>`;
+      });
+      html += '</tr>';
+    });
+  });
+
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+window.togglePermission = async function(role, key, value) {
+  if (!PERMISSIONS[role]) PERMISSIONS[role] = { ...(DEFAULT_PERMISSIONS[role]||{}) };
+  PERMISSIONS[role][key] = value;
+  try {
+    await update(ref(db,'permissions/'+role), { [key]: value });
+    const t = document.getElementById('permissions-toast');
+    if (t) { t.textContent='✓ Saved — applied live to all '+ROLE_LABELS[role]+' accounts.'; t.className='toast success'; t.style.display='block'; setTimeout(()=>{t.style.display='none';},2500); }
+  } catch(e) {
+    const t = document.getElementById('permissions-toast');
+    if (t) { t.textContent='Error saving — check connection.'; t.className='toast error'; t.style.display='block'; setTimeout(()=>{t.style.display='none';},3000); }
+  }
+};
+
+window.resetPermissionsToDefault = async function() {
+  if (!confirm('Reset all roles to default permissions? This will overwrite any custom changes.')) return;
+  try {
+    await remove(ref(db,'permissions'));
+    PERMISSIONS = JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS));
+    renderPermissionsEditor();
+    applyPermissions();
+    const t = document.getElementById('permissions-toast');
+    if (t) { t.textContent='✓ Reset to defaults.'; t.className='toast success'; t.style.display='block'; setTimeout(()=>{t.style.display='none';},2500); }
+  } catch(e) { alert('Error resetting — check connection.'); }
+};
+
 // ── Identity ──────────────────────────────────────────
 function loadIdentity() {
   const isDisplay = new URLSearchParams(window.location.search).get('display') === 'true';
@@ -993,39 +1126,12 @@ function startApp() {
   document.getElementById('user-avatar').textContent = initials;
   document.getElementById('user-name-display').textContent = currentUser.name;
   document.getElementById('requester-name-display').textContent = currentUser.name;
-  const roleLabels = {lot:'Inventory Control',sales:'Sales',service:'Service',detail:'Detail',reception:'Reception',merchandiser:'Merchandiser',display:'Display',pdi:'PDI'};
-  document.getElementById('user-role-badge').textContent = roleLabels[currentUser.role]||currentUser.role;
+  document.getElementById('user-role-badge').textContent = ROLE_LABELS[currentUser.role]||currentUser.role;
   const homeNameEl = document.getElementById('home-name-display');
   if (homeNameEl) homeNameEl.textContent = currentUser.name.split(' ')[0];
   const role = currentUser.role;
-  const canEditTracker = ['reception','lot','management'].includes(role);
-  if (canEditTracker) {
-    // PDI gets their own labelled button, others get generic Add unit
-    if (role === 'pdi') {
-      document.getElementById('btn-add-unit-pdi').style.display = 'flex';
-    } else {
-      document.getElementById('btn-add-unit').style.display = 'flex';
-    }
-    // card grid handles edit/delete visibility via canEdit check in makeCard
-  }
-  if (role==='merchandiser'||role==='display') {
-    ['tab-home','tab-queue','tab-tracker','tab-settings','tab-history'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
-    document.getElementById('btn-clear').style.display='none';
-    switchTab('tv',document.getElementById('tab-tv'));
-  } else if (role==='pdi') {
-    // PDI: sees Tracker (with add button) + Queue read-only, no TV/History/Settings/Vehicle Appointments
-    ['tab-tv','tab-settings','tab-history'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
-    document.getElementById('btn-clear').style.display='none';
-    renderHomeGrid();
-  } else if (role==='lot') {
-    document.getElementById('tab-tv').style.display='none';
-    document.getElementById('btn-clear').style.display='block';
-    renderHomeGrid();
-  } else {
-    ['tab-tv','tab-settings','tab-history'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
-    document.getElementById('btn-clear').style.display='none';
-    renderHomeGrid();
-  }
+  applyPermissions();
+  if (role !== 'merchandiser' && role !== 'display') renderHomeGrid();
 
   // Firebase listeners
   onValue(ref(db,'entries'), snap=>{
@@ -1033,12 +1139,12 @@ function startApp() {
     const isFirst = Object.keys(entries).length===0 && Object.keys(newEntries).length>0;
     if (!isFirst) {
       for (const id in newEntries) {
-        if (!entries[id]) { if(role==='lot') chime('new'); }
+        if (!entries[id]) { if(perm('queueAdmin')) chime('new'); }
         else {
           const prev=entries[id], curr=newEntries[id];
           if (prev.status!==curr.status) {
-            if(role==='lot'&&curr.status==='done') chime('complete');
-            if(['sales','service','detail','reception'].includes(role)&&curr.requestedBy===currentUser.name) {
+            if(perm('queueAdmin')&&curr.status==='done') chime('complete');
+            if(!perm('queueAdmin')&&curr.requestedBy===currentUser.name) {
               if(curr.status==='progress') chime('claimed');
               if(curr.status==='done') chime('complete');
             }
@@ -1070,6 +1176,17 @@ function startApp() {
     render();
   });
 
+  // Live permissions — merges Firebase overrides on top of defaults
+  onValue(ref(db,'permissions'), snap=>{
+    const fbPerms = snap.val()||{};
+    PERMISSIONS = JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS));
+    for (const r in fbPerms) {
+      PERMISSIONS[r] = { ...(PERMISSIONS[r]||{}), ...fbPerms[r] };
+    }
+    applyPermissions();
+    if (document.getElementById('panel-settings')?.classList.contains('active')) renderPermissionsEditor();
+  });
+
   onValue(ref(db,'tracker'), snap=>{
     units = snap.val()||{};
     document.getElementById('tc-tracker').textContent = Object.keys(units).length;
@@ -1077,7 +1194,7 @@ function startApp() {
     renderTVIncoming();
   });
 
-  if (role==='lot') {
+  if (perm('tabHistory')) {
     onValue(ref(db,'history'), snap=>{ historyData=snap.val()||{}; renderHistory(); });
   }
 
@@ -1277,7 +1394,7 @@ function entryHTML(e) {
   const labelMap={pending:'Pending',progress:'In progress',done:'Done',cancelled:'Cancelled',onhold:'Vehicle On Hold'};
   const sc=statusMap[e.status]||'pending', sl=labelMap[e.status]||e.status;
   const typePill=e.bookingType==='scheduled'?`<span class="type-pill-scheduled">Scheduled ${fmtTime(e.scheduledTs)}</span>`:`<span class="type-pill-asap">ASAP</span>`;
-  const isLot=currentUser&&currentUser.role==='lot';
+  const isLot=currentUser&&perm('queueAdmin');
   const isMine=currentUser&&e.requestedBy===currentUser.name;
   let actions='';
   if(e.status==='pending') {
@@ -1637,12 +1754,11 @@ function tStatusPill(s){const map={STOCK:'ts-stock',SOLD:'ts-sold',TURNOVER:'ts-
 
 function renderTracker() {
   const rows = getTrackerFiltered();
-  const role = currentUser?.role;
-  const canEdit = ['reception','lot','management'].includes(role);
-  const canAcc   = ['reception','lot','management'].includes(role);
-  const canPdi   = ['reception','lot','management','merchandiser'].includes(role);
-  const canPhoto = ['reception','merchandiser','lot','management'].includes(role);
-  const canIC    = ['reception','lot','management'].includes(role);
+  const canEdit  = perm('trackerEdit');
+  const canAcc   = perm('cbAcc');
+  const canPdi   = perm('cbPdi');
+  const canPhoto = perm('cbPhoto');
+  const canIC    = perm('cbIC');
   const active = rows.filter(u => !isUnitComplete(u));
   const completed = rows.filter(u => isUnitComplete(u));
   document.getElementById('t-row-count').textContent = rows.length+' unit'+(rows.length!==1?'s':'')+' · '+active.length+' active';
@@ -1975,7 +2091,7 @@ window.switchTab=function(name,btn){
   document.getElementById('main-wrap').style.padding=isTV?'0':'24px';
   document.getElementById('main-wrap').style.maxWidth=isTV?'none':'1100px';
   if(!isTV){const c=document.getElementById('tv-controls');if(c)c.style.display='none';}
-  if(name==='settings'){const sc=document.getElementById('s-sound');if(sc)sc.checked=soundEnabled;}
+  if(name==='settings'){const sc=document.getElementById('s-sound');if(sc)sc.checked=soundEnabled;renderPermissionsEditor();}
   if(name==='history') renderHistory();
   if(name==='tracker'){renderTracker();renderTrackerSummary();}
 };
@@ -2174,7 +2290,7 @@ function renderHomeGrid() {
     badge: () => Object.values(entries).filter(e=>['pending','progress'].includes(e.status)).length
   });
 
-  if (['reception','lot','management','pdi'].includes(role) || true) {
+  if (perm('tabTracker')) {
     tiles.push({
       name: 'tracker', tone: 'blue', icon: icon.tracker,
       title: 'Incoming Units',
@@ -2183,12 +2299,14 @@ function renderHomeGrid() {
     });
   }
 
-  if (role === 'lot') {
+  if (perm('tabHistory')) {
     tiles.push({
       name: 'history', tone: 'green', icon: icon.history,
       title: 'History & Stats',
       desc: 'See attendant performance and move history.'
     });
+  }
+  if (perm('tabSettings')) {
     tiles.push({
       name: 'settings', tone: 'grey', icon: icon.settings,
       title: 'Settings',
