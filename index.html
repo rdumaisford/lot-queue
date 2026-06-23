@@ -288,6 +288,41 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 /* Desktop: bigger grid */
 @media(min-width:1200px){.tracker-card-grid{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}}
 
+/* ── Get Ready ── */
+.gr-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:box-shadow .15s}
+.gr-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.gr-card.is-complete{background:#f0fdf4;border-color:#bbf7d0}
+.gr-card.type-as-is{border-left:4px solid #1d4ed8}
+.gr-card.type-retail{border-left:4px solid #7c3aed}
+.gr-card.type-wholesale{border-left:4px solid #d97706}
+.gr-card-header{padding:14px 16px 10px;border-bottom:1px solid var(--border)}
+.gr-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.gr-card-stock{font-size:17px;font-weight:700;color:var(--ford)}
+.gr-type-pill{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.gr-type-pill.as-is{background:#dbeafe;color:#1d4ed8}
+.gr-type-pill.retail{background:#ede9fe;color:#6d28d9}
+.gr-type-pill.wholesale{background:#fef3c7;color:#92400e}
+.gr-card-vehicle{font-size:13px;color:var(--text-muted);margin-top:3px;font-weight:500}
+.gr-card-customer{font-size:12px;color:var(--text-faint);margin-top:2px}
+.gr-gas-banner{display:flex;align-items:center;gap:8px;padding:8px 16px;background:#fef2f2;border-bottom:1px solid #fecaca;font-size:13px;font-weight:600;color:#991b1b}
+.gr-gas-banner.no-gas-needed{background:#f0fdf4;border-bottom-color:#bbf7d0;color:#15803d}
+.gr-delivery{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-muted);flex-wrap:wrap}
+.gr-delivery strong{color:var(--text)}
+.gr-checklist{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.gr-check-item{display:flex;flex-direction:column;align-items:center;gap:4px}
+.gr-check-label{font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;text-align:center}
+.gr-tap{width:100%;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid var(--border);background:var(--bg);transition:all .15s}
+.gr-tap:hover{border-color:#94a3b8}
+.gr-tap.on{background:#dcfce7;border-color:#86efac}
+.gr-tap.on svg{stroke:#15803d}
+.gr-tap svg{width:15px;height:15px;fill:none;stroke-width:2.5;stroke:#cbd5e1}
+.gr-notes textarea{width:100%;padding:10px 16px;font-size:13px;font-family:var(--font);border:none;background:transparent;color:var(--text);outline:none;resize:none;min-height:44px;display:block}
+.gr-notes textarea:focus{background:#fafaf9}
+.gr-notes textarea::placeholder{color:var(--text-faint)}
+.gr-card-actions{display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--border)}
+.gr-complete-badge{font-size:10px;font-weight:700;background:#15803d;color:white;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em}
+.gr-filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+
 /* Row select */
 .row-select{width:15px;height:15px;accent-color:var(--ford);cursor:pointer}
 .bulk-bar{background:var(--ford);color:white;padding:10px 16px;border-radius:var(--radius-sm);margin-bottom:12px;display:none;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px}
@@ -575,6 +610,18 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   .tv-body{gap:0}
 }
 
+/* ── Staff Locator ── */
+.loc-staff-dot{position:absolute;transform:translate(-50%,-50%);cursor:default;z-index:3;transition:left .8s ease,top .8s ease}
+.loc-staff-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.18);position:relative}
+.loc-staff-name{position:absolute;top:37px;left:50%;transform:translateX(-50%);background:rgba(0,9,91,.85);color:#fff;font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;white-space:nowrap;pointer-events:none}
+.loc-staff-pulse{position:absolute;inset:-4px;border-radius:50%;animation:locpulse 2s infinite;opacity:.5}
+@keyframes locpulse{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.4);opacity:.1}}
+.loc-entry{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:8px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.loc-entry-badge{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.loc-eta-pill{background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap}
+.loc-eta-pill.eta-close{background:#fef9ec;color:#b45309}
+.loc-eta-pill.eta-here{background:#f0faf4;color:#15803d}
+
 /* iOS zoom prevention + min touch targets */
 @media(max-width:768px){
   input[type=text],input[type=date],input[type=time],input[type=number],
@@ -641,7 +688,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     <button class="tab active" id="tab-home" onclick="switchTab('home',this)">Home</button>
     <button class="tab" id="tab-queue" onclick="switchTab('queue',this)">Vehicle Appointments <span class="tab-count" id="tc-queue">0</span></button>
     <button class="tab" id="tab-tracker" onclick="switchTab('tracker',this)">Incoming <span class="tab-count" id="tc-tracker">0</span></button>
+    <button class="tab" id="tab-getready" onclick="switchTab('getready',this)">Get Ready <span class="tab-count" id="tc-getready">0</span></button>
     <button class="tab" id="tab-tv" onclick="switchTab('tv',this)">TV display <span class="tab-count" id="tc-tv">0</span></button>
+    <button class="tab" id="tab-locator" onclick="switchTab('locator',this)" style="display:none">📍 Staff Locator <span class="tab-count" id="tc-locator">0</span></button>
     <button class="tab" id="tab-history" onclick="switchTab('history',this)">History</button>
     <button class="tab" id="tab-settings" onclick="switchTab('settings',this)">Settings</button>
   </nav>
@@ -655,6 +704,40 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div class="home-hero-sub">Pick where you'd like to go.</div>
       </div>
       <div class="home-grid" id="home-grid"></div>
+    </div>
+
+    <!-- STAFF LOCATOR -->
+    <div id="panel-locator" class="panel">
+      <div style="max-width:900px">
+        <!-- My location share bar (shown to lot/management) -->
+        <div id="loc-share-bar" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--radius);padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+          <div style="flex:1;min-width:160px">
+            <div style="font-size:14px;font-weight:600;color:#1d4ed8;margin-bottom:2px">📍 Share my location</div>
+            <div style="font-size:12px;color:#3b82f6" id="loc-share-status">Not sharing — tap to start</div>
+          </div>
+          <button id="loc-share-btn" onclick="toggleMyLocation()" style="padding:8px 18px;background:#1d4ed8;color:white;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer">Start sharing</button>
+        </div>
+
+        <!-- Mini map -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:18px">
+          <div style="padding:12px 16px 8px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:14px;font-weight:600">Live staff positions</span>
+            <span style="font-size:12px;color:var(--text-muted)" id="loc-map-updated"></span>
+          </div>
+          <div id="loc-map" style="position:relative;width:100%;padding-bottom:42%;background:#f0f4ff;overflow:hidden;min-height:160px">
+            <!-- grid lines -->
+            <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(0,9,91,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,9,91,.04) 1px,transparent 1px);background-size:20% 20%"></div>
+            <div id="loc-map-label" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#c8c8c4;font-weight:600;text-transform:uppercase;letter-spacing:.1em;pointer-events:none">Waiting for staff locations…</div>
+            <div id="loc-map-dots"></div>
+          </div>
+          <!-- Legend -->
+          <div id="loc-legend" style="padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px;border-top:1px solid var(--border)"></div>
+        </div>
+
+        <!-- Active moves with GPS ETAs -->
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:8px">Active moves — GPS ETAs</div>
+        <div id="loc-active-list"></div>
+      </div>
     </div>
 
     <!-- QUEUE + REQUEST FORM -->
@@ -787,6 +870,30 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <div class="tracker-summary" id="tracker-summary"></div>
       <div class="table-wrap">
         <div id="tracker-body" class="tracker-card-grid"></div>
+      </div>
+    </div>
+
+    <!-- GET READY -->
+    <div id="panel-getready" class="panel">
+      <div class="gr-filter-row">
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input class="search-input" id="gr-search" type="text" placeholder="Search stock, customer, deal #…" oninput="renderGetReady()"/>
+        </div>
+        <button class="filter-chip active" onclick="setGRFilter('ALL',this)">All</button>
+        <button class="filter-chip" onclick="setGRFilter('AS-IS',this)">As-Is</button>
+        <button class="filter-chip" onclick="setGRFilter('RETAIL',this)">Retail</button>
+        <button class="filter-chip" onclick="setGRFilter('WHOLESALE',this)">Wholesale</button>
+        <button class="filter-chip" onclick="setGRFilter('GAS',this)">Needs Gas</button>
+        <span id="gr-row-count" style="font-size:13px;color:var(--text-muted);white-space:nowrap"></span>
+        <button class="btn-add-unit" id="btn-add-getready" onclick="openGRModal()" style="display:none;margin-left:auto">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Add Get Ready
+        </button>
+      </div>
+      <div class="tracker-summary" id="gr-summary"></div>
+      <div class="table-wrap">
+        <div id="gr-body" class="tracker-card-grid"></div>
       </div>
     </div>
 
@@ -950,6 +1057,51 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   </div>
 </div>
 
+<!-- Add/Edit Get Ready modal -->
+<div id="gr-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this)closeGRModal()">
+  <div class="modal-card">
+    <div class="modal-title-row"><span id="gr-modal-title">Add Get Ready deal</span><button class="modal-close" onclick="closeGRModal()">×</button></div>
+    <div class="modal-grid">
+      <div class="modal-form-row"><label>Stock #</label><input id="gr-stock" type="text" placeholder="e.g. A1402"/></div>
+      <div class="modal-form-row"><label>Deal #</label><input id="gr-deal" type="text" placeholder="e.g. 6463159"/></div>
+      <div class="modal-form-row modal-full"><label>Vehicle</label><input id="gr-vehicle" type="text" placeholder="e.g. 2025 Bronco Sport"/></div>
+      <div class="modal-form-row"><label>Customer name</label><input id="gr-customer" type="text" placeholder="e.g. Brad Bodanis"/></div>
+      <div class="modal-form-row"><label>Salesperson</label><input id="gr-salesperson" type="text" placeholder="e.g. Michael Prince"/></div>
+      <div class="modal-form-row"><label>Type</label>
+        <select id="gr-type">
+          <option value="AS-IS">As-Is</option>
+          <option value="RETAIL">Retail</option>
+          <option value="WHOLESALE">Wholesale</option>
+        </select>
+      </div>
+      <div class="modal-form-row"><label>KMs allowed</label><input id="gr-kms" type="text" placeholder="e.g. 60000"/></div>
+      <div class="modal-form-row"><label>Delivery date</label><input id="gr-delivery-date" type="date"/></div>
+      <div class="modal-form-row"><label>Delivery time</label><input id="gr-delivery-time" type="time"/></div>
+      <div class="modal-form-row modal-full"><label>Special instructions</label><textarea id="gr-instructions" placeholder="Accessories to remove, supplier, amount, PO/RO#…"></textarea></div>
+      <div class="modal-form-row modal-full"><label>Notes</label><textarea id="gr-notes-field" placeholder="Any additional notes for the Get Ready team…"></textarea></div>
+    </div>
+    <div style="margin-top:10px;padding:12px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:var(--radius-sm)">
+      <div class="checkbox-row" style="padding:0">
+        <input type="checkbox" id="gr-needs-gas"/><label for="gr-needs-gas" style="font-weight:600;color:#991b1b">Needs Gas</label>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:10px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+      <div class="checkbox-row" style="border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-pdi"/><label for="gr-c-pdi">PDI</label></div>
+      <div class="checkbox-row" style="border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-lof"/><label for="gr-c-lof">LOF</label></div>
+      <div class="checkbox-row" style="border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-detail"/><label for="gr-c-detail">Detail</label></div>
+      <div class="checkbox-row" style="border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-paint"/><label for="gr-c-paint">Paint</label></div>
+      <div class="checkbox-row" style="border-right:1px solid var(--border)"><input type="checkbox" id="gr-c-safety"/><label for="gr-c-safety">Safety</label></div>
+      <div class="checkbox-row" style="border-right:1px solid var(--border)"><input type="checkbox" id="gr-c-leather"/><label for="gr-c-leather">Leather</label></div>
+      <div class="checkbox-row" style="border-right:1px solid var(--border)"><input type="checkbox" id="gr-c-fabric"/><label for="gr-c-fabric">Fabric</label></div>
+      <div class="checkbox-row"><input type="checkbox" id="gr-c-module"/><label for="gr-c-module">Module</label></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeGRModal()">Cancel</button>
+      <button class="btn-modal-primary" id="gr-save-btn" onclick="saveGR()">Add Get Ready deal</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getDatabase, ref, push, get, onValue, update, remove } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
@@ -968,12 +1120,13 @@ const appFB = initializeApp(firebaseConfig);
 const db = getDatabase(appFB);
 
 // ── State ─────────────────────────────────────────────
-let entries = {}, historyData = {}, units = {};
+let entries = {}, historyData = {}, units = {}, getReadyDeals = {};
 let currentUser = null, bookingType = 'asap';
 let MOVE_MINS = 15, CONVERT_MINS = 45, LOT_OPEN = 7, LOT_CLOSE = 21;
 let historyDays = 30, soundEnabled = localStorage.getItem('lq-sound') !== 'false';
 let tFilterStatus = 'ALL', tSortCol = 'arrived', tSortAsc = false, editingUnitId = null;
 let denyTargetId = null;
+let grFilterStatus = 'ALL', editingGRId = null;
 
 // ── Roles & Permissions (Firebase-backed, editable in Settings) ──
 const ALL_ROLES = ['lot','reception','service','sales','detail','pdi','merchandiser','management'];
@@ -981,14 +1134,14 @@ const ROLE_LABELS = {lot:'Inventory Control',reception:'Reception',service:'Serv
 
 // Default permission matrix — used until Firebase settings/permissions loads (or if a role/perm is missing there)
 const DEFAULT_PERMISSIONS = {
-  lot:          { tabHome:true, tabQueue:true, tabTracker:true, tabTV:false, tabHistory:true, tabSettings:true, trackerAdd:true, trackerEdit:true, trackerDelete:true, cbAcc:true, cbPdi:true, cbPhoto:true, cbIC:true, queueAdmin:true, clearCompleted:true },
-  reception:    { tabHome:true, tabQueue:true, tabTracker:true, tabTV:false, tabHistory:false, tabSettings:false, trackerAdd:true, trackerEdit:true, trackerDelete:true, cbAcc:true, cbPdi:true, cbPhoto:true, cbIC:true, queueAdmin:false, clearCompleted:false },
-  service:      { tabHome:true, tabQueue:true, tabTracker:true, tabTV:false, tabHistory:false, tabSettings:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false },
-  sales:        { tabHome:true, tabQueue:true, tabTracker:true, tabTV:false, tabHistory:false, tabSettings:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false },
-  detail:       { tabHome:true, tabQueue:true, tabTracker:true, tabTV:false, tabHistory:false, tabSettings:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false },
-  pdi:          { tabHome:true, tabQueue:true, tabTracker:true, tabTV:false, tabHistory:false, tabSettings:false, trackerAdd:true, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false },
-  merchandiser: { tabHome:false,tabQueue:false,tabTracker:false,tabTV:true,  tabHistory:false, tabSettings:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true, cbPhoto:true, cbIC:false, queueAdmin:false, clearCompleted:false },
-  management:   { tabHome:true, tabQueue:true, tabTracker:true, tabTV:false, tabHistory:true, tabSettings:true, trackerAdd:true, trackerEdit:true, trackerDelete:true, cbAcc:true, cbPdi:true, cbPhoto:true, cbIC:true, queueAdmin:true, clearCompleted:true },
+  lot:          { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:true, tabTV:false, tabHistory:true, tabSettings:true, trackerAdd:true, trackerEdit:true, trackerDelete:true, cbAcc:true, cbPdi:true, cbPhoto:true, cbIC:true, queueAdmin:true, clearCompleted:true, getReadyEdit:true },
+  reception:    { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:true, tabTV:false, tabHistory:false, tabSettings:false, trackerAdd:true, trackerEdit:true, trackerDelete:true, cbAcc:true, cbPdi:true, cbPhoto:true, cbIC:true, queueAdmin:false, clearCompleted:false, getReadyEdit:true },
+  service:      { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
+  sales:        { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
+  detail:       { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
+  pdi:          { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, trackerAdd:true, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
+  merchandiser: { tabHome:false,tabQueue:false,tabTracker:false,tabGetReady:false,tabTV:true,  tabHistory:false, tabSettings:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true, cbPhoto:true, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
+  management:   { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:true, tabTV:false, tabHistory:true, tabSettings:true, trackerAdd:true, trackerEdit:true, trackerDelete:true, cbAcc:true, cbPdi:true, cbPhoto:true, cbIC:true, queueAdmin:true, clearCompleted:true, getReadyEdit:true },
 };
 
 let PERMISSIONS = JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS)); // live copy, overwritten by Firebase
@@ -1002,7 +1155,7 @@ function perm(key) {
 
 function applyPermissions() {
   if (!currentUser) return;
-  const tabMap = { tabHome:'tab-home', tabQueue:'tab-queue', tabTracker:'tab-tracker', tabTV:'tab-tv', tabHistory:'tab-history', tabSettings:'tab-settings' };
+  const tabMap = { tabHome:'tab-home', tabQueue:'tab-queue', tabTracker:'tab-tracker', tabGetReady:'tab-getready', tabTV:'tab-tv', tabHistory:'tab-history', tabSettings:'tab-settings' };
   for (const key in tabMap) {
     const el = document.getElementById(tabMap[key]);
     if (el) el.style.display = perm(key) ? '' : 'none';
@@ -1013,6 +1166,8 @@ function applyPermissions() {
   if (addBtnPdi) addBtnPdi.style.display = (perm('trackerAdd') && currentUser.role==='pdi') ? 'flex' : 'none';
   const clearBtn = document.getElementById('btn-clear');
   if (clearBtn) clearBtn.style.display = perm('clearCompleted') ? 'block' : 'none';
+  const grAddBtn = document.getElementById('btn-add-getready');
+  if (grAddBtn) grAddBtn.style.display = perm('getReadyEdit') ? 'flex' : 'none';
 
   // Land on the right tab for roles whose only access is TV
   if (perm('tabTV') && !perm('tabHome')) {
@@ -1023,7 +1178,7 @@ function applyPermissions() {
 // ── Permissions matrix editor (Settings tab) ──────────
 const PERM_GROUPS = [
   { label:'Tabs', keys: [
-    ['tabHome','Home'], ['tabQueue','Vehicle Appointments'], ['tabTracker','Incoming'],
+    ['tabHome','Home'], ['tabQueue','Vehicle Appointments'], ['tabTracker','Incoming'], ['tabGetReady','Get Ready'],
     ['tabTV','TV Display'], ['tabHistory','History'], ['tabSettings','Settings'],
   ]},
   { label:'Incoming Tracker', keys: [
@@ -1034,6 +1189,9 @@ const PERM_GROUPS = [
   ]},
   { label:'Vehicle Appointments', keys: [
     ['queueAdmin','Start/Complete/Hold moves'], ['clearCompleted','Clear completed button'],
+  ]},
+  { label:'Get Ready', keys: [
+    ['getReadyEdit','Add / edit / complete deals'],
   ]},
 ];
 
@@ -1132,6 +1290,8 @@ function startApp() {
   const role = currentUser.role;
   applyPermissions();
   if (role !== 'merchandiser' && role !== 'display') renderHomeGrid();
+  maybeShowLocatorTab();
+  startLocatorListener();
 
   // Firebase listeners
   onValue(ref(db,'entries'), snap=>{
@@ -1192,6 +1352,13 @@ function startApp() {
     document.getElementById('tc-tracker').textContent = Object.keys(units).length;
     renderTracker(); renderTrackerSummary();
     renderTVIncoming();
+  });
+
+  onValue(ref(db,'getready'), snap=>{
+    getReadyDeals = snap.val()||{};
+    const active = Object.values(getReadyDeals).filter(d=>!d.completedAt);
+    document.getElementById('tc-getready').textContent = active.length;
+    renderGetReady(); renderGetReadySummary();
   });
 
   if (perm('tabHistory')) {
@@ -1422,7 +1589,18 @@ function entryHTML(e) {
     const elapsed=Math.floor((Date.now()-e.progressTs)/1000);
     const pct=Math.min(100,Math.round((elapsed/(MOVE_MINS*60))*100));
     const label=pct>=100?'Should be arriving…':fmtCountdown(Math.max(0,(MOVE_MINS*60-elapsed)*1000));
-    progressBar=`<div class="progress-bar-wrap"><div class="progress-bar-label"><span>Move in progress</span><span>${label}</span></div><div class="progress-bar-track"><div class="progress-bar-fill" style="width:${pct}%"></div></div></div>`;
+    // GPS ETA badge
+    const claimerLoc = e.claimedBy ? Object.values(staffLocations).find(s=>s.name===e.claimedBy) : null;
+    let gpsBadge='';
+    if (claimerLoc && e.destLat) {
+      const eta=etaMinutesLoc(claimerLoc,e.destLat,e.destLng,'vehicle');
+      const bgc=eta<=2?'#f0faf4':eta<=5?'#fef9ec':'#eff6ff';
+      const tc=eta<=2?'#15803d':eta<=5?'#b45309':'#1d4ed8';
+      gpsBadge=`<span style="margin-left:8px;background:${bgc};color:${tc};font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px">📍 ~${eta} min</span>`;
+    } else if (claimerLoc) {
+      gpsBadge=`<span style="margin-left:8px;background:#f1f5f9;color:#64748b;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px">📍 Live</span>`;
+    }
+    progressBar=`<div class="progress-bar-wrap"><div class="progress-bar-label"><span>Move in progress${gpsBadge}</span><span>${label}</span></div><div class="progress-bar-track"><div class="progress-bar-fill" style="width:${pct}%"></div></div></div>`;
   } else if(e.status==='onhold'&&e.holdTs) {
     const elapsedMs=Date.now()-e.holdTs, elapsedSecs=Math.floor(elapsedMs/1000);
     const d2=Math.floor(elapsedSecs/86400),h2=Math.floor((elapsedSecs%86400)/3600),m2=Math.floor((elapsedSecs%3600)/60),s2=elapsedSecs%60;
@@ -1474,6 +1652,8 @@ function render() {
   list.innerHTML=html;
   renderTV();
   updateWaitBanner();
+  // Update locator panel if it's active
+  if (document.getElementById('panel-locator')?.classList.contains('active')) renderLocatorPanel();
 }
 
 // ── TV render ─────────────────────────────────────────
@@ -1489,7 +1669,14 @@ function renderTV() {
       const el=Math.floor((Date.now()-e.progressTs)/1000);
       const pct=Math.min(100,Math.round((el/(MOVE_MINS*60))*100));
       const rl=pct>=100?'Arriving soon':fmtCountdown(Math.max(0,(MOVE_MINS*60-el)*1000));
-      return `<div class="tv-progress-wrap"><div style="font-size:13px;color:#1d4ed8;margin-bottom:4px;display:flex;justify-content:space-between;font-weight:600"><span>In transit</span><span>${rl}</span></div><div class="tv-progress-track"><div class="tv-progress-fill" style="width:${pct}%"></div></div></div>`;
+      // GPS ETA overlay
+      const claimerLoc = e.claimedBy ? Object.values(staffLocations).find(s=>s.name===e.claimedBy) : null;
+      let gpsLabel='';
+      if (claimerLoc && e.destLat) {
+        const eta=etaMinutesLoc(claimerLoc,e.destLat,e.destLng,'vehicle');
+        gpsLabel=` · 📍 ~${eta}m`;
+      }
+      return `<div class="tv-progress-wrap"><div style="font-size:13px;color:#1d4ed8;margin-bottom:4px;display:flex;justify-content:space-between;font-weight:600"><span>In transit${gpsLabel}</span><span>${rl}</span></div><div class="tv-progress-track"><div class="tv-progress-fill" style="width:${pct}%"></div></div></div>`;
     }
     if(e.bookingType==='scheduled'&&e.scheduledTs&&e.status==='pending'){
       const msUntil=Math.max(0,e.scheduledTs-Date.now());
@@ -1950,7 +2137,224 @@ window.deleteUnit = async function(id,label) {
 };
 
 // ── Import ────────────────────────────────────────────
-// ── History ───────────────────────────────────────────
+// ── Get Ready ─────────────────────────────────────────
+const GR_CHECKLIST = [
+  ['pdi','PDI'], ['lof','LOF'], ['detail','Detail'], ['paint','Paint'],
+  ['safety','Safety'], ['leather','Leather'], ['fabric','Fabric'], ['module','Module'],
+];
+
+function grIsComplete(d) {
+  return GR_CHECKLIST.every(([key]) => d[key]) && (!d.needsGas || d.gasFilled);
+}
+
+window.setGRFilter = function(status, btn) {
+  grFilterStatus = status;
+  document.querySelectorAll('#panel-getready .filter-chip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderGetReady();
+};
+
+function getGRFiltered() {
+  const q = document.getElementById('gr-search').value.trim().toLowerCase();
+  let rows = Object.entries(getReadyDeals).map(([id,d])=>({id,...d}));
+  if (grFilterStatus === 'GAS') rows = rows.filter(d => d.needsGas && !d.gasFilled);
+  else if (grFilterStatus !== 'ALL') rows = rows.filter(d => d.type === grFilterStatus);
+  if (q) rows = rows.filter(d => [d.stock,d.dealNum,d.vehicle,d.customer,d.salesperson,d.notes].join(' ').toLowerCase().includes(q));
+  rows.sort((a,b) => {
+    const ac = grIsComplete(a)?1:0, bc = grIsComplete(b)?1:0;
+    if (ac!==bc) return ac-bc;
+    const at = a.deliveryDate ? new Date(a.deliveryDate).getTime() : Infinity;
+    const bt = b.deliveryDate ? new Date(b.deliveryDate).getTime() : Infinity;
+    return at - bt;
+  });
+  return rows;
+}
+
+window.toggleGRField = async function(id, field, value) {
+  const updates = { [field]: value };
+  const d = { ...getReadyDeals[id], ...updates };
+  if (grIsComplete(d) && !getReadyDeals[id].completedAt) {
+    updates.completedAt = Date.now();
+    updates.completedBy = currentUser.name;
+  } else if (!grIsComplete(d) && getReadyDeals[id].completedAt) {
+    updates.completedAt = null;
+    updates.completedBy = null;
+  }
+  await update(ref(db,'getready/'+id), updates);
+};
+
+window.grNotes = async function(id, value) {
+  await update(ref(db,'getready/'+id), { notes: value, updatedBy: currentUser.name });
+};
+
+window.deleteGR = async function(id, label) {
+  if (!confirm('Delete Get Ready deal for '+label+'?')) return;
+  await remove(ref(db,'getready/'+id));
+};
+
+function fmtGRDate(dateStr, timeStr) {
+  if (!dateStr) return '';
+  const [yr,mo,dy] = dateStr.split('-').map(Number);
+  const d = new Date(yr,mo-1,dy);
+  let out = d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
+  if (timeStr) {
+    const [h,m] = timeStr.split(':').map(Number);
+    const t = new Date(); t.setHours(h,m,0,0);
+    out += ' · ' + t.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  }
+  return out;
+}
+
+function renderGetReadySummary() {
+  const all = Object.values(getReadyDeals);
+  const active = all.filter(d => !grIsComplete(d));
+  const asIs = all.filter(d=>d.type==='AS-IS').length;
+  const retail = all.filter(d=>d.type==='RETAIL').length;
+  const wholesale = all.filter(d=>d.type==='WHOLESALE').length;
+  const needsGas = all.filter(d=>d.needsGas && !d.gasFilled).length;
+  const done = all.filter(d=>grIsComplete(d)).length;
+  const el = document.getElementById('gr-summary');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="t-stat"><div class="t-stat-num">${all.length}</div><div class="t-stat-label">Total</div></div>
+    <div class="t-stat"><div class="t-stat-num" style="color:#1d4ed8">${asIs}</div><div class="t-stat-label">As-Is</div></div>
+    <div class="t-stat"><div class="t-stat-num" style="color:#6d28d9">${retail}</div><div class="t-stat-label">Retail</div></div>
+    <div class="t-stat"><div class="t-stat-num" style="color:#92400e">${wholesale}</div><div class="t-stat-label">Wholesale</div></div>
+    <div class="t-stat"><div class="t-stat-num" style="color:${needsGas>0?'#dc2626':'#15803d'}">${needsGas}</div><div class="t-stat-label">Needs Gas</div></div>
+    <div class="t-stat"><div class="t-stat-num" style="color:#15803d">${done}</div><div class="t-stat-label">All done ✓</div></div>`;
+}
+
+function renderGetReady() {
+  const rows = getGRFiltered();
+  const canEdit = perm('getReadyEdit');
+  const active = rows.filter(d => !grIsComplete(d));
+  const completed = rows.filter(d => grIsComplete(d));
+  document.getElementById('gr-row-count').textContent = rows.length+' deal'+(rows.length!==1?'s':'')+' · '+active.length+' active';
+
+  const body = document.getElementById('gr-body');
+  if (!rows.length) {
+    body.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted);font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)">No Get Ready deals match your search.</div>`;
+    return;
+  }
+
+  function makeCard(d) {
+    const isComplete = grIsComplete(d);
+    const typeClass = {'AS-IS':'type-as-is','RETAIL':'type-retail','WHOLESALE':'type-wholesale'}[d.type]||'';
+    const typePillClass = {'AS-IS':'as-is','RETAIL':'retail','WHOLESALE':'wholesale'}[d.type]||'as-is';
+    const completeBadge = isComplete ? `<span class="gr-complete-badge">✓ Ready</span>` : '';
+
+    const cbBtn = (field, label) => `<div class="gr-check-item">
+      <div class="gr-tap ${d[field]?'on':''}" onclick="${canEdit?`toggleGRField('${d.id}','${field}',${!d[field]})`:''}" style="${canEdit?'':'pointer-events:none;opacity:.6'}">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <span class="gr-check-label">${label}</span>
+    </div>`;
+
+    const gasBanner = d.needsGas
+      ? `<div class="gr-gas-banner ${d.gasFilled?'no-gas-needed':''}">
+          <span>⛽</span>
+          <span style="flex:1">${d.gasFilled?'Gas filled':'Needs Gas'}</span>
+          ${canEdit?`<div class="gr-tap" style="width:auto;height:28px;padding:0 10px;${d.gasFilled?'background:#dcfce7;border-color:#86efac':''}" onclick="toggleGRField('${d.id}','gasFilled',${!d.gasFilled})">
+            <span style="font-size:11px;font-weight:700;color:${d.gasFilled?'#15803d':'#991b1b'}">${d.gasFilled?'✓ Done':'Mark filled'}</span>
+          </div>`:''}
+        </div>`
+      : '';
+
+    return `<div class="gr-card${isComplete?' is-complete':' '+typeClass}" id="gr-${d.id}">
+      <div class="gr-card-header">
+        <div class="gr-card-top">
+          <span class="gr-card-stock">${d.stock||'—'}</span>
+          <span class="gr-type-pill ${typePillClass}">${d.type||'—'}</span>
+          ${completeBadge}
+        </div>
+        <div class="gr-card-vehicle">${d.vehicle||'—'}</div>
+        ${d.customer?`<div class="gr-card-customer">${d.customer}${d.salesperson?' · '+d.salesperson:''}</div>`:''}
+      </div>
+      ${gasBanner}
+      ${d.deliveryDate?`<div class="gr-delivery">📅 Delivery: <strong>${fmtGRDate(d.deliveryDate,d.deliveryTime)}</strong>${d.kms?` · ${d.kms} km allowed`:''}</div>`:''}
+      <div class="gr-checklist">
+        ${GR_CHECKLIST.map(([key,label])=>cbBtn(key,label)).join('')}
+      </div>
+      ${d.instructions?`<div style="padding:8px 16px;font-size:12px;color:#92400e;background:#fffbeb;border-bottom:1px solid var(--border)">⚠ ${d.instructions}</div>`:''}
+      <div class="gr-notes">
+        <textarea placeholder="Add notes…" ${canEdit?'':'readonly'} onchange="grNotes('${d.id}',this.value)" onblur="grNotes('${d.id}',this.value)">${d.notes||''}</textarea>
+      </div>
+      ${canEdit?`<div class="gr-card-actions">
+        <button class="btn-tedit" onclick="openGRModal('${d.id}')">✎ Edit</button>
+        <button class="btn-tdel" onclick="deleteGR('${d.id}','${(d.stock||d.customer||'').replace(/'/g,"\\'")}')">✕</button>
+      </div>`:''}
+    </div>`;
+  }
+
+  let html = '';
+  if (active.length) html += active.map(makeCard).join('');
+  if (completed.length) {
+    html += `<div class="section-divider">✓ Ready for delivery (${completed.length})</div>`;
+    html += completed.map(makeCard).join('');
+  }
+  body.innerHTML = html;
+}
+
+window.openGRModal = function(id) {
+  editingGRId = id || null;
+  const d = id ? getReadyDeals[id] : {};
+  document.getElementById('gr-modal-title').textContent = id ? 'Edit Get Ready deal' : 'Add Get Ready deal';
+  document.getElementById('gr-save-btn').textContent = id ? 'Save changes' : 'Add Get Ready deal';
+  document.getElementById('gr-stock').value = d.stock || '';
+  document.getElementById('gr-deal').value = d.dealNum || '';
+  document.getElementById('gr-vehicle').value = d.vehicle || '';
+  document.getElementById('gr-customer').value = d.customer || '';
+  document.getElementById('gr-salesperson').value = d.salesperson || '';
+  document.getElementById('gr-type').value = d.type || 'AS-IS';
+  document.getElementById('gr-kms').value = d.kms || '';
+  document.getElementById('gr-delivery-date').value = d.deliveryDate || '';
+  document.getElementById('gr-delivery-time').value = d.deliveryTime || '';
+  document.getElementById('gr-instructions').value = d.instructions || '';
+  document.getElementById('gr-notes-field').value = d.notes || '';
+  document.getElementById('gr-needs-gas').checked = d.needsGas || false;
+  GR_CHECKLIST.forEach(([key]) => { document.getElementById('gr-c-'+key).checked = d[key] || false; });
+  document.getElementById('gr-modal').style.display = 'flex';
+  setTimeout(()=>document.getElementById('gr-stock').focus(), 100);
+};
+
+window.closeGRModal = function() {
+  document.getElementById('gr-modal').style.display = 'none';
+  editingGRId = null;
+};
+
+window.saveGR = async function() {
+  const deal = {
+    stock: document.getElementById('gr-stock').value.trim().toUpperCase(),
+    dealNum: document.getElementById('gr-deal').value.trim(),
+    vehicle: document.getElementById('gr-vehicle').value.trim(),
+    customer: document.getElementById('gr-customer').value.trim(),
+    salesperson: document.getElementById('gr-salesperson').value.trim(),
+    type: document.getElementById('gr-type').value,
+    kms: document.getElementById('gr-kms').value.trim(),
+    deliveryDate: document.getElementById('gr-delivery-date').value,
+    deliveryTime: document.getElementById('gr-delivery-time').value,
+    instructions: document.getElementById('gr-instructions').value.trim(),
+    notes: document.getElementById('gr-notes-field').value.trim(),
+    needsGas: document.getElementById('gr-needs-gas').checked,
+    updatedBy: currentUser.name,
+    ts: editingGRId ? (getReadyDeals[editingGRId]?.ts || Date.now()) : Date.now()
+  };
+  GR_CHECKLIST.forEach(([key]) => { deal[key] = document.getElementById('gr-c-'+key).checked; });
+  if (editingGRId) deal.gasFilled = getReadyDeals[editingGRId]?.gasFilled || false;
+  else deal.gasFilled = false;
+
+  if (!deal.stock) { alert('Please enter a Stock #.'); return; }
+  const btn = document.getElementById('gr-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    if (editingGRId) await update(ref(db,'getready/'+editingGRId), deal);
+    else await push(ref(db,'getready'), deal);
+    closeGRModal();
+  } catch(e) { alert('Error saving — check your connection.'); }
+  btn.disabled = false; btn.textContent = editingGRId ? 'Save changes' : 'Add Get Ready deal';
+};
+
+
 window.setHistoryFilter = function(days,btn) {
   historyDays=days;
   document.querySelectorAll('.filter-chip').forEach(b=>b.classList.remove('active'));
@@ -2299,6 +2703,15 @@ function renderHomeGrid() {
     });
   }
 
+  if (perm('queueAdmin') || role === 'management') {
+    tiles.push({
+      name: 'locator', tone: 'blue', icon: `<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>`,
+      title: 'Staff Locator',
+      desc: 'See live GPS positions of lot staff and ETAs on active moves.',
+      badge: () => Object.values(staffLocations).filter(s=>s&&s.lat).length
+    });
+  }
+
   if (perm('tabHistory')) {
     tiles.push({
       name: 'history', tone: 'green', icon: icon.history,
@@ -2325,7 +2738,254 @@ function renderHomeGrid() {
   }).join('');
 }
 
+// ── Staff Locator ─────────────────────────────────────
+// Staff location data: { name, lat, lng, mode, ts }
+let staffLocations = {};
+let myLocationWatchId = null;
+let myLocSharingActive = false;
+const STAFF_COLORS_LOC = ['#00095b','#1d4ed8','#7c3aed','#065f46','#9a3412','#155e75','#3f3f46','#7f1d1d'];
+function staffLocColor(name) {
+  let h=0; for(let i=0;i<name.length;i++) h=(h*31+name.charCodeAt(i))&0xffff;
+  return STAFF_COLORS_LOC[h % STAFF_COLORS_LOC.length];
+}
+function staffLocInitials(name) {
+  return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+}
+function haversineMeters(a, b) {
+  const R=6371000, dLat=(b.lat-a.lat)*Math.PI/180, dLng=(b.lng-a.lng)*Math.PI/180;
+  const aa=Math.sin(dLat/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(aa),Math.sqrt(1-aa));
+}
+function etaMinutesLoc(staffLoc, destLat, destLng, mode) {
+  if (!staffLoc || !destLat) return null;
+  const dist = haversineMeters(staffLoc, {lat:destLat,lng:destLng});
+  const mph = (mode==='driving'||mode==='vehicle') ? 15 : 3;
+  const mpm = mph*1609.34/60;
+  return Math.max(1, Math.round(dist/mpm));
+}
+
+// Listen to Firebase staff_locations
+function startLocatorListener() {
+  onValue(ref(db,'staff_locations'), snap => {
+    staffLocations = snap.val()||{};
+    // Prune stale (>3 min old)
+    const cutoff = Date.now() - 3*60*1000;
+    Object.keys(staffLocations).forEach(k => {
+      if ((staffLocations[k].ts||0) < cutoff) delete staffLocations[k];
+    });
+    updateLocatorTab();
+    renderLocatorPanel();
+  });
+}
+
+function updateLocatorTab() {
+  const active = Object.values(staffLocations).filter(s=>s&&s.lat);
+  document.getElementById('tc-locator').textContent = active.length;
+}
+
+// Push my location to Firebase
+async function pushMyLocation(pos) {
+  if (!currentUser) return;
+  const key = currentUser.name.replace(/[.#$[\]]/g,'_');
+  await update(ref(db,'staff_locations/'+key), {
+    name: currentUser.name,
+    lat: pos.coords.latitude,
+    lng: pos.coords.longitude,
+    accuracy: Math.round(pos.coords.accuracy),
+    mode: 'vehicle', // lot staff are assumed driving/moving vehicles
+    ts: Date.now()
+  });
+}
+
+// Clear my location on stop
+async function clearMyLocation() {
+  if (!currentUser) return;
+  const key = currentUser.name.replace(/[.#$[\]]/g,'_');
+  await remove(ref(db,'staff_locations/'+key));
+}
+
+window.toggleMyLocation = async function() {
+  const btn = document.getElementById('loc-share-btn');
+  const status = document.getElementById('loc-share-status');
+  if (myLocSharingActive) {
+    // Stop
+    if (myLocationWatchId !== null) { navigator.geolocation.clearWatch(myLocationWatchId); myLocationWatchId=null; }
+    myLocSharingActive = false;
+    await clearMyLocation();
+    btn.textContent='Start sharing'; btn.style.background='#1d4ed8';
+    status.textContent='Not sharing — tap to start'; status.style.color='#3b82f6';
+  } else {
+    if (!navigator.geolocation) { alert('GPS is not available on this device.'); return; }
+    btn.textContent='Starting…'; btn.disabled=true;
+    navigator.geolocation.getCurrentPosition(async pos => {
+      await pushMyLocation(pos);
+      myLocSharingActive = true;
+      btn.textContent='Stop sharing'; btn.style.background='#dc2626'; btn.disabled=false;
+      status.textContent='Sharing live · GPS active'; status.style.color='#15803d';
+      // Watch position
+      myLocationWatchId = navigator.geolocation.watchPosition(
+        pos => pushMyLocation(pos),
+        err => { status.textContent='GPS error: '+err.message; status.style.color='#dc2626'; },
+        { enableHighAccuracy:true, maximumAge:5000 }
+      );
+    }, err => {
+      alert('Could not get GPS: '+err.message);
+      btn.textContent='Start sharing'; btn.disabled=false;
+    }, { enableHighAccuracy:true, timeout:10000 });
+  }
+};
+
+// Stop sharing when leaving the page
+window.addEventListener('beforeunload', ()=>{ if(myLocSharingActive) clearMyLocation(); });
+
+// ── Map rendering ──────────────────────────────────────
+function renderLocatorPanel() {
+  const mapEl = document.getElementById('loc-map-dots');
+  const legendEl = document.getElementById('loc-legend');
+  const labelEl = document.getElementById('loc-map-label');
+  const updEl = document.getElementById('loc-map-updated');
+  const activeListEl = document.getElementById('loc-active-list');
+  if (!mapEl) return;
+
+  const locs = Object.values(staffLocations).filter(s=>s&&s.lat&&s.lng);
+
+  // Update "last updated" time
+  if (locs.length) {
+    const newest = Math.max(...locs.map(s=>s.ts||0));
+    updEl.textContent = 'Updated '+timeAgo(newest);
+    labelEl.style.display='none';
+  } else {
+    updEl.textContent='';
+    labelEl.style.display='flex';
+    mapEl.innerHTML='';
+    legendEl.innerHTML='<span style="font-size:12px;color:var(--text-faint)">No staff are sharing their location right now.</span>';
+    activeListEl.innerHTML='<div class="empty-state"><div class="empty-icon">📍</div><p>No active staff locations — lot staff can start sharing from this tab on their device.</p></div>';
+    return;
+  }
+
+  // Compute bounding box to normalize dot positions
+  const lats=locs.map(s=>s.lat), lngs=locs.map(s=>s.lng);
+  let minLat=Math.min(...lats), maxLat=Math.max(...lats);
+  let minLng=Math.min(...lngs), maxLng=Math.max(...lngs);
+  // Expand box a bit so dots don't sit on edge
+  const padLat=(maxLat-minLat)||0.001, padLng=(maxLng-minLng)||0.001;
+  minLat-=padLat*.3; maxLat+=padLat*.3; minLng-=padLng*.3; maxLng+=padLng*.3;
+
+  function toXY(lat,lng) {
+    const x=((lng-minLng)/(maxLng-minLng))*88+6; // 6–94% range
+    const y=(1-(lat-minLat)/(maxLat-minLat))*88+6;
+    return {x:Math.max(4,Math.min(96,x)), y:Math.max(4,Math.min(96,y))};
+  }
+
+  // Draw dots
+  let dotsHtml='';
+  locs.forEach(s => {
+    const {x,y}=toXY(s.lat,s.lng);
+    const color=staffLocColor(s.name);
+    const ini=staffLocInitials(s.name);
+    const ageSecs=Math.floor((Date.now()-(s.ts||0))/1000);
+    const fresh=ageSecs<30;
+    dotsHtml+=`<div class="loc-staff-dot" style="left:${x}%;top:${y}%">
+      ${fresh?`<div class="loc-staff-pulse" style="background:${color}"></div>`:''}
+      <div class="loc-staff-avatar" style="background:${color}">${ini}</div>
+      <div class="loc-staff-name">${s.name.split(' ')[0]}</div>
+    </div>`;
+  });
+  mapEl.innerHTML=dotsHtml;
+
+  // Legend
+  legendEl.innerHTML=locs.map(s=>{
+    const color=staffLocColor(s.name);
+    const age=timeAgo(s.ts||0);
+    return `<div style="display:flex;align-items:center;gap:6px">
+      <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0"></div>
+      <span style="font-size:12px;color:var(--text-muted)">${s.name} · ${age}</span>
+    </div>`;
+  }).join('');
+
+  // Active moves list with GPS ETA
+  const activeMoves = Object.values(entries).filter(e=>e.status==='progress');
+  if (!activeMoves.length) {
+    activeListEl.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)">No moves in progress right now.</div>';
+    return;
+  }
+
+  let movesHtml='';
+  activeMoves.forEach(e=>{
+    const claimerLoc = locs.find(s=>s.name===e.claimedBy);
+    const color=e.claimedBy?staffLocColor(e.claimedBy):'#94a3b8';
+    const ini=e.claimedBy?staffLocInitials(e.claimedBy):'?';
+    const dc=destClass(e.dest);
+
+    let etaHtml='';
+    if (claimerLoc && e.destLat) {
+      const eta=etaMinutesLoc(claimerLoc,e.destLat,e.destLng,'vehicle');
+      const cls=eta<=2?'eta-here':eta<=5?'eta-close':'';
+      etaHtml=`<span class="loc-eta-pill ${cls}">~${eta} min away</span>`;
+    } else if (claimerLoc) {
+      etaHtml=`<span class="loc-eta-pill" style="background:#f1f5f9;color:#64748b">GPS — no dest pin</span>`;
+    } else if (e.claimedBy) {
+      etaHtml=`<span style="font-size:12px;color:var(--text-faint)">Not sharing GPS</span>`;
+    }
+
+    // Progress elapsed
+    const elapsed=e.progressTs?Math.floor((Date.now()-e.progressTs)/1000):0;
+    const pct=Math.min(100,Math.round((elapsed/(MOVE_MINS*60))*100));
+
+    movesHtml+=`<div class="loc-entry">
+      <div class="loc-entry-badge" style="background:${color}">${ini}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:600;margin-bottom:3px">${e.stock}</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px"><span class="dest-pill ${dc}">${e.dest}</span></div>
+        <div style="font-size:13px;color:#1d4ed8;font-weight:500">${e.claimedBy||'Unassigned'}</div>
+        ${claimerLoc?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">GPS ${timeAgo(claimerLoc.ts)} · ±${claimerLoc.accuracy||'?'}m accuracy</div>`:''}
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        ${etaHtml}
+        <div style="font-size:11px;color:var(--text-faint)">${pct}% elapsed</div>
+        ${perm('queueAdmin')?`<button class="btn-action" onclick="pinEntryDestination('${e.id}')" style="font-size:11px;padding:4px 10px">📍 Pin dest.</button>`:''}
+      </div>
+    </div>`;
+  });
+  activeListEl.innerHTML=movesHtml;
+}
+
+// Pin destination location for an entry (lets managers tap their location as the delivery point)
+window.pinEntryDestination = function(id) {
+  if (!navigator.geolocation) { alert('GPS not available.'); return; }
+  navigator.geolocation.getCurrentPosition(async pos => {
+    await update(ref(db,'entries/'+id), {
+      destLat: pos.coords.latitude,
+      destLng: pos.coords.longitude,
+      destPinnedBy: currentUser.name,
+      destPinnedAt: Date.now()
+    });
+    alert('✓ Destination pinned at your current location. ETAs will now calculate.');
+  }, err=>alert('GPS error: '+err.message), { enableHighAccuracy:true, timeout:8000 });
+};
+
+// Auto-show locator tab for lot/management
+function maybeShowLocatorTab() {
+  const tab = document.getElementById('tab-locator');
+  if (!tab) return;
+  if (perm('queueAdmin') || currentUser?.role==='management') {
+    tab.style.display='';
+  }
+}
+
+// Add locator to home grid tiles (for lot/management)
+const _origRenderHomeGrid = window.renderHomeGrid ? null : null;
+
+// ── Hook into startApp to wire up locator ─────────────
 loadIdentity();
-</script>
+
+// Refresh locator panel every 15s when it's the active tab
+setInterval(()=>{
+  if (document.getElementById('panel-locator')?.classList.contains('active')) {
+    renderLocatorPanel();
+    updateLocatorTab();
+  }
+}, 15000);
+
 </body>
 </html>
