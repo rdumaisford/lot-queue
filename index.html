@@ -1127,6 +1127,11 @@ let historyDays = 30, soundEnabled = localStorage.getItem('lq-sound') !== 'false
 let tFilterStatus = 'ALL', tSortCol = 'arrived', tSortAsc = false, editingUnitId = null;
 let denyTargetId = null;
 let grFilterStatus = 'ALL', editingGRId = null;
+// Staff locator state
+let staffLocations = {};
+let myLocationWatchId = null;
+let myLocSharingActive = false;
+const STAFF_COLORS_LOC = ['#00095b','#1d4ed8','#7c3aed','#065f46','#9a3412','#155e75','#3f3f46','#7f1d1d'];
 
 // ── Roles & Permissions (Firebase-backed, editable in Settings) ──
 const ALL_ROLES = ['lot','reception','service','sales','detail','pdi','merchandiser','management'];
@@ -2740,10 +2745,6 @@ function renderHomeGrid() {
 
 // ── Staff Locator ─────────────────────────────────────
 // Staff location data: { name, lat, lng, mode, ts }
-let staffLocations = {};
-let myLocationWatchId = null;
-let myLocSharingActive = false;
-const STAFF_COLORS_LOC = ['#00095b','#1d4ed8','#7c3aed','#065f46','#9a3412','#155e75','#3f3f46','#7f1d1d'];
 function staffLocColor(name) {
   let h=0; for(let i=0;i<name.length;i++) h=(h*31+name.charCodeAt(i))&0xffff;
   return STAFF_COLORS_LOC[h % STAFF_COLORS_LOC.length];
