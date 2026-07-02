@@ -639,7 +639,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot.appointed .cm-spot-num{color:#7c3aed}
 .cm-spot.appointed .cm-spot-stock{color:#6d28d9}
 .cm-spot-appt{font-size:7px;font-weight:700;color:#7c3aed;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
-.cm-spot-flag{position:absolute;top:2px;right:3px;font-size:9px;line-height:1;z-index:2}
+.cm-spot.cm-drag-over{border-color:var(--ford)!important;background:#eff6ff!important;box-shadow:0 0 0 2px #93c5fd!important;transform:scale(1.05)}
+.cm-spot[draggable="true"]{cursor:grab}
+.cm-spot[draggable="true"]:active{cursor:grabbing}
 .cm-del-spot{position:absolute;top:1px;right:1px;width:13px;height:13px;border-radius:50%;background:#ef4444;color:#fff;font-size:9px;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:3;line-height:1}
 .cm-edit-active .cm-del-spot{display:flex}
 /* ── /Compound Map ── */
@@ -2994,20 +2996,31 @@ function cmRenderMap() {
       const appt = veh ? apptMap[(veh.stock||'').toUpperCase().trim()] : null;
 
       if (!veh && !cmEditMode) {
-        html += `<div class="cm-spot empty" onclick="cmSpotClick('${key}',${ri},${ci})">
+        html += `<div class="cm-spot empty"
+          onclick="cmSpotClick('${key}',${ri},${ci})"
+          ondragover="cmDragOver(event)"
+          ondragleave="cmDragLeave(event)"
+          ondrop="cmDrop(event,'${key}')">
           <div class="cm-spot-num">${ci+1}</div>
         </div>`;
       } else if (!veh && cmEditMode) {
-        html += `<div class="cm-spot empty" onclick="cmSpotClick('${key}',${ri},${ci})">
+        html += `<div class="cm-spot empty"
+          onclick="cmSpotClick('${key}',${ri},${ci})">
           <div class="cm-spot-num">${ci+1}</div>
           <div style="font-size:16px;color:#cbd5e1;margin-top:4px">+</div>
         </div>`;
       } else {
         const stock = (veh.stock||'').substring(0,10);
         const typeLine = [veh.type, veh.colour].filter(Boolean).join(' ').substring(0,16);
-        // Appointed spots override colour class with 'appointed'
         const cls = appt ? 'appointed' : veh.status;
-        html += `<div class="cm-spot ${cls}" onclick="cmSpotClick('${key}',${ri},${ci})">
+        html += `<div class="cm-spot ${cls}"
+          onclick="cmSpotClick('${key}',${ri},${ci})"
+          draggable="true"
+          ondragstart="cmDragStart(event,'${key}')"
+          ondragend="cmDragEnd(event)"
+          ondragover="cmDragOver(event)"
+          ondragleave="cmDragLeave(event)"
+          ondrop="cmDrop(event,'${key}')">
           ${cmEditMode ? `<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
           ${veh.flagged && !cmEditMode ? `<div class="cm-spot-flag">🚩</div>` : ''}
           <div class="cm-spot-num">${ci+1}</div>
@@ -3175,6 +3188,86 @@ window.cmConfirmRow = ()=>{};
 window.cmCloseRow = ()=>{};
 window.cmRenderLotTabs = ()=>{};
 
+// ── Drag and drop state ───────────────────────────────
+let cmDragKey = null;
+let cmDragData = null;
+
+window.cmDragStart = function(e, key) {
+  cmDragKey = key;
+  cmDragData = (cmVehicles[cmCurrentLot]||{})[key];
+  e.dataTransfer.effectAllowed = 'move';
+  e.currentTarget.style.opacity = '0.4';
+};
+
+window.cmDragEnd = function(e) {
+  e.currentTarget.style.opacity = '';
+  cmDragKey = null;
+  cmDragData = null;
+};
+
+window.cmDragOver = function(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('cm-drag-over');
+};
+
+window.cmDragLeave = function(e) {
+  e.currentTarget.classList.remove('cm-drag-over');
+};
+
+window.cmDrop = async function(e, destKey) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('cm-drag-over');
+  if (!cmDragKey || cmDragKey === destKey || !cmDragData) return;
+
+  const destVeh = (cmVehicles[cmCurrentLot]||{})[destKey];
+
+  if (destVeh) {
+    // Swap — write both
+    await update(ref(db), {
+      [`compound_v2/${cmCurrentLot}/${destKey}`]: cmDragData,
+      [`compound_v2/${cmCurrentLot}/${cmDragKey}`]: destVeh,
+    });
+  } else {
+    // Move to empty — write destination, clear source
+    await set(ref(db, `compound_v2/${cmCurrentLot}/${destKey}`), cmDragData);
+    await remove(ref(db, `compound_v2/${cmCurrentLot}/${cmDragKey}`));
+  }
+
+  cmDragKey = null;
+  cmDragData = null;
+};
+
+// Fix cmStartListeners — always store data and render regardless of active tab
+function cmStartListeners() {
+  onValue(ref(db, 'compound_v2/bayview700'), snap => {
+    if (!snap.val()) {
+      const seed = {};
+      CM_BAYVIEW700_SEED.forEach((row, ri) => {
+        row.forEach((cell, ci) => {
+          const v = cmParseSeed(cell);
+          if (v) seed[`R${ri}-C${ci}`] = v;
+        });
+      });
+      set(ref(db, 'compound_v2/bayview700'), seed);
+    } else {
+      cmVehicles['bayview700'] = snap.val();
+      if (cmCurrentLot === 'bayview700') cmRender();
+    }
+  });
+  onValue(ref(db, 'compound_v2/mapleview55'), snap => {
+    cmVehicles['mapleview55'] = snap.val() || {};
+    if (cmCurrentLot === 'mapleview55') cmRender();
+  });
+}
+
+// Hook into switchTab so compound map renders when tab is opened
+const _cmOrigSwitchTab = window.switchTab;
+window.switchTab = function(name, btn) {
+  _cmOrigSwitchTab(name, btn);
+  if (name === 'compound') cmRender();
+};
+
 // Rewrite cmInit
 function cmInit() { cmStartListeners(); }
 
@@ -3182,6 +3275,6 @@ function cmInit() { cmStartListeners(); }
 
 loadIdentity();
 </script>
--e 
+
 </body>
 </html>
