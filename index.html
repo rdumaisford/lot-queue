@@ -737,7 +737,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     </div>
 
     <!-- COMPOUND MAP -->
-    <div id="panel-compound" class="panel" style="padding:0">
+    <div id="panel-compound" class="panel" style="padding:0;display:flex;flex-direction:column;height:calc(100vh - 54px)">
 
       <!-- Top toolbar -->
       <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;background:var(--surface);position:sticky;top:0;z-index:50">
@@ -769,7 +769,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       </div>
 
       <!-- The actual map grid -->
-      <div style="overflow:auto;padding:16px">
+      <div style="overflow:auto;padding:12px;flex:1;height:calc(100vh - 130px)">
         <div id="cm-map" style="display:inline-block;min-width:100%"></div>
       </div>
     </div>
@@ -3309,7 +3309,18 @@ function cmStartListeners() {
 const _cmOrigSwitchTab = window.switchTab;
 window.switchTab = function(name, btn) {
   _cmOrigSwitchTab(name, btn);
-  if (name === 'compound') cmRender();
+  if (name === 'compound') {
+    document.getElementById('main-wrap').style.padding = '0';
+    document.getElementById('main-wrap').style.maxWidth = 'none';
+    cmRender();
+  } else {
+    // Restore normal padding when leaving compound tab
+    const wasCompound = document.getElementById('panel-compound')?.classList.contains('active');
+    if (wasCompound || name !== 'tv') {
+      document.getElementById('main-wrap').style.padding = '';
+      document.getElementById('main-wrap').style.maxWidth = '';
+    }
+  }
 };
 
 // Rewrite cmInit
