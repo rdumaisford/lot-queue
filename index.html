@@ -642,6 +642,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot.cm-drag-over{border-color:var(--ford)!important;background:#eff6ff!important;box-shadow:0 0 0 2px #93c5fd!important;transform:scale(1.05)}
 .cm-spot[draggable="true"]{cursor:grab}
 .cm-spot[draggable="true"]:active{cursor:grabbing}
+.cm-spot.blocked{background:#e2e8f0;border-color:#94a3b8;border-style:dashed;cursor:pointer}
+.cm-spot.blocked .cm-spot-num{color:#94a3b8}
+.cm-spot.blocked .cm-spot-stock{color:#64748b;font-size:8px;font-weight:600}
+.cm-spot.blocked:hover{background:#cbd5e1!important}
+.cm-spot-flag{position:absolute;top:2px;right:3px;font-size:9px;line-height:1;z-index:2}
 .cm-del-spot{position:absolute;top:1px;right:1px;width:13px;height:13px;border-radius:50%;background:#ef4444;color:#fff;font-size:9px;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:3;line-height:1}
 .cm-edit-active .cm-del-spot{display:flex}
 /* ── /Compound Map ── */
@@ -759,6 +764,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fef3c7;border:1.5px solid #b45309"></div>Reserved</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fce7f3;border:1.5px solid #9d174d"></div>Special</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f3e8ff;border:1.5px solid #7c3aed"></div>Appointment</div>
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#e2e8f0;border:1.5px dashed #94a3b8"></div>Blocked</div>
         <span id="cm-edit-hint" style="display:none;color:#b45309;font-weight:600;margin-left:8px">✏️ Edit mode — click any spot to edit</span>
       </div>
 
@@ -817,10 +823,25 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <!-- Status -->
         <div class="field">
           <label>Status</label>
-          <select id="cm-f-status" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none">
+          <select id="cm-f-status" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none" onchange="document.getElementById('cm-block-label-field').style.display=this.value==='blocked'?'':'none';document.getElementById('cm-f-stock').closest('.field').style.display=this.value==='blocked'?'none':'';document.getElementById('cm-f-type').closest('.field') && (document.getElementById('cm-f-type').closest('div').style.display=this.value==='blocked'?'none':'');">
             <option value="occupied">Occupied</option>
             <option value="reserved">Reserved</option>
             <option value="special">Special</option>
+            <option value="blocked">Blocked — Building / Fence / Driveway</option>
+          </select>
+        </div>
+
+        <!-- Block label (shown when blocked is selected) -->
+        <div class="field" id="cm-block-label-field" style="display:none">
+          <label>Block label</label>
+          <select id="cm-f-block-label" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none">
+            <option value="🏢 Building">🏢 Building</option>
+            <option value="⛓ Fence">⛓ Fence</option>
+            <option value="🛣 Driveway">🛣 Driveway</option>
+            <option value="🏠 Gatehouse">🏠 Gatehouse</option>
+            <option value="🚧 No Parking">🚧 No Parking</option>
+            <option value="⛽ Fuel Station">⛽ Fuel Station</option>
+            <option value="🔒 Locked Area">🔒 Locked Area</option>
           </select>
         </div>
 
@@ -2896,30 +2917,6 @@ function cmParseSeed(str) {
   return { stock, desc, status: 'occupied' };
 }
 
-function cmStartListeners() {
-  // Seed 700 Bayview from CSV data if Firebase is empty
-  onValue(ref(db, 'compound_v2/bayview700'), snap => {
-    if (!snap.val()) {
-      // Write seed data
-      const seed = {};
-      CM_BAYVIEW700_SEED.forEach((row, ri) => {
-        row.forEach((cell, ci) => {
-          const v = cmParseSeed(cell);
-          if (v) seed[`R${ri}-C${ci}`] = v;
-        });
-      });
-      set(ref(db, 'compound_v2/bayview700'), seed);
-    } else {
-      cmVehicles['bayview700'] = snap.val();
-      if (cmCurrentLot === 'bayview700' && document.getElementById('panel-compound')?.classList.contains('active')) cmRender();
-    }
-  });
-  onValue(ref(db, 'compound_v2/mapleview55'), snap => {
-    cmVehicles['mapleview55'] = snap.val() || {};
-    if (cmCurrentLot === 'mapleview55' && document.getElementById('panel-compound')?.classList.contains('active')) cmRender();
-  });
-}
-
 function cmRender() {
   cmRenderStats();
   cmRenderMap();
@@ -3012,23 +3009,35 @@ function cmRenderMap() {
       } else {
         const stock = (veh.stock||'').substring(0,10);
         const typeLine = [veh.type, veh.colour].filter(Boolean).join(' ').substring(0,16);
-        const cls = appt ? 'appointed' : veh.status;
-        html += `<div class="cm-spot ${cls}"
-          onclick="cmSpotClick('${key}',${ri},${ci})"
-          draggable="true"
-          ondragstart="cmDragStart(event,'${key}')"
-          ondragend="cmDragEnd(event)"
-          ondragover="cmDragOver(event)"
-          ondragleave="cmDragLeave(event)"
-          ondrop="cmDrop(event,'${key}')">
-          ${cmEditMode ? `<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
-          ${veh.flagged && !cmEditMode ? `<div class="cm-spot-flag">🚩</div>` : ''}
-          <div class="cm-spot-num">${ci+1}</div>
-          <div class="cm-spot-stock">${stock}</div>
-          <div class="cm-spot-desc">${typeLine}</div>
-          ${appt && !cmEditMode ? `<div class="cm-spot-appt">🕐 ${appt.label}</div>` : ''}
-          ${veh.note && !cmEditMode ? `<div style="position:absolute;bottom:2px;left:0;right:0;height:3px;background:#f59e0b;border-radius:0 0 4px 4px"></div>` : ''}
-        </div>`;
+        const isBlocked = veh.status === 'blocked';
+        const cls = appt && !isBlocked ? 'appointed' : veh.status;
+        if (isBlocked) {
+          // Blocked spots — greyed out, no drag
+          html += `<div class="cm-spot blocked" onclick="cmSpotClick('${key}',${ri},${ci})"
+            ondragover="cmDragOver(event)" ondragleave="cmDragLeave(event)" ondrop="cmDrop(event,'${key}')">
+            ${cmEditMode ? `<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
+            <div class="cm-spot-num">${ci+1}</div>
+            <div class="cm-spot-stock">${(veh.blockLabel||'').split(' ').slice(0,1).join(' ')}</div>
+            <div class="cm-spot-desc" style="font-size:7px">${(veh.blockLabel||'').split(' ').slice(1).join(' ')}</div>
+          </div>`;
+        } else {
+          html += `<div class="cm-spot ${cls}"
+            onclick="cmSpotClick('${key}',${ri},${ci})"
+            draggable="true"
+            ondragstart="cmDragStart(event,'${key}')"
+            ondragend="cmDragEnd(event)"
+            ondragover="cmDragOver(event)"
+            ondragleave="cmDragLeave(event)"
+            ondrop="cmDrop(event,'${key}')">
+            ${cmEditMode ? `<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
+            ${veh.flagged && !cmEditMode ? `<div class="cm-spot-flag">🚩</div>` : ''}
+            <div class="cm-spot-num">${ci+1}</div>
+            <div class="cm-spot-stock">${stock}</div>
+            <div class="cm-spot-desc">${typeLine}</div>
+            ${appt && !cmEditMode ? `<div class="cm-spot-appt">🕐 ${appt.label}</div>` : ''}
+            ${veh.note && !cmEditMode ? `<div style="position:absolute;bottom:2px;left:0;right:0;height:3px;background:#f59e0b;border-radius:0 0 4px 4px"></div>` : ''}
+          </div>`;
+        }
       }
     }
     if (cmEditMode) html += `<div class="cm-add-spot" onclick="cmAddCol(${ri})" title="Add column">+</div>`;
@@ -3072,25 +3081,42 @@ window.cmSpotClick = function(key, ri, ci) {
   const v = (cmVehicles[cmCurrentLot]||{})[key];
   document.getElementById('cm-spot-title').textContent = `Spot R${ri+1}-${ci+1}`;
   const clearBtn = document.getElementById('cm-clear-btn');
+  const blockField = document.getElementById('cm-block-label-field');
+  const stockField = document.getElementById('cm-f-stock').closest('.field');
+  const typeRow = document.getElementById('cm-f-type')?.closest('div[style*="grid"]');
+
+  // Reset visibility
+  blockField.style.display = 'none';
+  if (stockField) stockField.style.display = '';
+  if (typeRow) typeRow.style.display = '';
+
   if (v) {
+    const isBlocked = v.status === 'blocked';
     const typeColour = [v.type, v.colour].filter(Boolean).join(' · ');
-    document.getElementById('cm-spot-current').innerHTML = `
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <span style="font-size:17px;font-weight:800;color:var(--ford)">${v.stock||'—'}</span>
-          ${typeColour ? `<span style="font-size:13px;color:var(--text-muted)">${typeColour}</span>` : ''}
-          ${v.flagged ? `<span style="margin-left:auto;font-size:12px;background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:20px;padding:2px 8px;font-weight:600">🚩 Flagged</span>` : ''}
-        </div>
-        ${v.note ? `<div style="font-size:12px;color:#b45309;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">📝 ${v.note}</div>` : ''}
-      </div>`;
+    document.getElementById('cm-spot-current').innerHTML = isBlocked
+      ? `<div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px"><span style="font-size:18px">${(v.blockLabel||'').split(' ')[0]||'🚧'}</span><span style="font-size:13px;font-weight:600;color:#64748b">${v.blockLabel||'Blocked area'}</span></div>`
+      : `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="font-size:17px;font-weight:800;color:var(--ford)">${v.stock||'—'}</span>
+            ${typeColour ? `<span style="font-size:13px;color:var(--text-muted)">${typeColour}</span>` : ''}
+            ${v.flagged ? `<span style="margin-left:auto;font-size:12px;background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:20px;padding:2px 8px;font-weight:600">🚩 Flagged</span>` : ''}
+          </div>
+          ${v.note ? `<div style="font-size:12px;color:#b45309;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">📝 ${v.note}</div>` : ''}
+        </div>`;
     document.getElementById('cm-f-stock').value = v.stock||'';
     document.getElementById('cm-f-type').value = v.type||'';
     document.getElementById('cm-f-colour').value = v.colour||'';
     document.getElementById('cm-f-status').value = v.status||'occupied';
     document.getElementById('cm-f-flagged').checked = !!v.flagged;
     document.getElementById('cm-f-note').value = v.note||'';
+    document.getElementById('cm-f-block-label').value = v.blockLabel||'🏢 Building';
+    if (isBlocked) {
+      blockField.style.display = '';
+      if (stockField) stockField.style.display = 'none';
+      if (typeRow) typeRow.style.display = 'none';
+    }
     clearBtn.style.display = '';
-    document.getElementById('cm-save-btn').textContent = 'Update';
+    document.getElementById('cm-save-btn').textContent = isBlocked ? 'Update' : 'Update';
   } else {
     document.getElementById('cm-spot-current').innerHTML = '';
     document.getElementById('cm-f-stock').value = '';
@@ -3099,6 +3125,7 @@ window.cmSpotClick = function(key, ri, ci) {
     document.getElementById('cm-f-status').value = 'occupied';
     document.getElementById('cm-f-flagged').checked = false;
     document.getElementById('cm-f-note').value = '';
+    document.getElementById('cm-f-block-label').value = '🏢 Building';
     clearBtn.style.display = 'none';
     document.getElementById('cm-save-btn').textContent = 'Assign';
   }
@@ -3107,13 +3134,24 @@ window.cmSpotClick = function(key, ri, ci) {
 };
 
 window.cmSaveSpot = async function() {
+  const status = document.getElementById('cm-f-status').value;
+  if (status === 'blocked') {
+    const data = {
+      stock: document.getElementById('cm-f-block-label').value,
+      blockLabel: document.getElementById('cm-f-block-label').value,
+      status: 'blocked',
+    };
+    await set(ref(db, `compound_v2/${cmCurrentLot}/${cmActiveKey}`), data);
+    cmCloseSpot();
+    return;
+  }
   const stock = document.getElementById('cm-f-stock').value.trim();
   if (!stock) { alert('Enter a stock number.'); return; }
   const data = {
     stock,
     type:    document.getElementById('cm-f-type').value.trim(),
     colour:  document.getElementById('cm-f-colour').value.trim(),
-    status:  document.getElementById('cm-f-status').value,
+    status,
     flagged: document.getElementById('cm-f-flagged').checked,
     note:    document.getElementById('cm-f-note').value.trim(),
   };
