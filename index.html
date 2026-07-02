@@ -635,6 +635,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-lane-txt{font-size:9px;font-weight:700;color:#cbd5e1;text-transform:uppercase;letter-spacing:.1em;padding:0 8px;white-space:nowrap}
 .cm-add-spot{width:28px;height:46px;border-radius:5px;border:1.5px dashed #cbd5e1;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:18px;font-weight:300;flex-shrink:0;transition:all .15s;margin-left:3px}
 .cm-add-spot:hover{border-color:var(--ford);color:var(--ford);background:#eff6ff}
+.cm-spot.appointed{background:#f3e8ff;border-color:#7c3aed;border-width:2px}
+.cm-spot.appointed .cm-spot-num{color:#7c3aed}
+.cm-spot.appointed .cm-spot-stock{color:#6d28d9}
+.cm-spot-appt{font-size:7px;font-weight:700;color:#7c3aed;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+.cm-spot-flag{position:absolute;top:2px;right:3px;font-size:9px;line-height:1;z-index:2}
 .cm-del-spot{position:absolute;top:1px;right:1px;width:13px;height:13px;border-radius:50%;background:#ef4444;color:#fff;font-size:9px;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:3;line-height:1}
 .cm-edit-active .cm-del-spot{display:flex}
 /* ── /Compound Map ── */
@@ -751,6 +756,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#eff6ff;border:1.5px solid #1d4ed8"></div>Occupied</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fef3c7;border:1.5px solid #b45309"></div>Reserved</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fce7f3;border:1.5px solid #9d174d"></div>Special</div>
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f3e8ff;border:1.5px solid #7c3aed"></div>Appointment</div>
         <span id="cm-edit-hint" style="display:none;color:#b45309;font-weight:600;margin-left:8px">✏️ Edit mode — click any spot to edit</span>
       </div>
 
@@ -762,26 +768,76 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 
     <!-- CM Spot Modal -->
     <div id="cm-spot-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this)cmCloseSpot()">
-      <div class="modal-card" style="max-width:400px">
+      <div class="modal-card" style="max-width:420px">
         <div class="modal-title-row">
           <span id="cm-spot-title" style="font-size:16px;font-weight:700"></span>
           <button class="modal-close" onclick="cmCloseSpot()">×</button>
         </div>
+
+        <!-- Current vehicle summary (shown when occupied) -->
         <div id="cm-spot-current" style="margin-bottom:12px"></div>
-        <div class="field"><label>Stock #</label><input id="cm-f-stock" type="text" placeholder="e.g. B0394" autocomplete="off" style="width:100%;padding:10px 12px;font-size:15px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box;font-weight:700"/></div>
-        <div class="field"><label>Description</label><input id="cm-f-desc" type="text" placeholder="e.g. F-150 Black" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/></div>
+
+        <!-- Stock # -->
+        <div class="field">
+          <label>Stock #</label>
+          <input id="cm-f-stock" type="text" placeholder="e.g. B0394" autocomplete="off" style="width:100%;padding:10px 12px;font-size:15px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box;font-weight:700"/>
+        </div>
+
+        <!-- Vehicle type + Colour side by side -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="field">
+            <label>Vehicle Type</label>
+            <select id="cm-f-type" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none">
+              <option value="">— Select —</option>
+              <option>F-150</option>
+              <option>F-250</option>
+              <option>F-350</option>
+              <option>F-550</option>
+              <option>Bronco</option>
+              <option>Bronco Sport</option>
+              <option>Ranger</option>
+              <option>Explorer</option>
+              <option>Maverick</option>
+              <option>Transit</option>
+              <option>Escape</option>
+              <option>Edge</option>
+              <option>Mustang</option>
+              <option>Lincoln</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Colour</label>
+            <input id="cm-f-colour" type="text" placeholder="e.g. Black" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/>
+          </div>
+        </div>
+
+        <!-- Status -->
         <div class="field">
           <label>Status</label>
           <select id="cm-f-status" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none">
             <option value="occupied">Occupied</option>
             <option value="reserved">Reserved</option>
-            <option value="special">Special / Note</option>
+            <option value="special">Special</option>
           </select>
         </div>
+
+        <!-- Flag / Note -->
+        <div class="field">
+          <label style="display:flex;align-items:center;gap:8px">
+            <span>Flag this unit</span>
+            <label style="display:flex;align-items:center;gap:5px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer">
+              <input type="checkbox" id="cm-f-flagged" style="width:16px;height:16px;accent-color:#dc2626;cursor:pointer"/>
+              <span style="font-size:12px;color:var(--text-muted)">Add flag 🚩</span>
+            </label>
+          </label>
+          <textarea id="cm-f-note" placeholder="Note (e.g. needs detailing, hold for customer, key missing…)" rows="2" style="width:100%;padding:10px 12px;font-size:13px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;resize:vertical;box-sizing:border-box;margin-top:6px"></textarea>
+        </div>
+
         <div class="modal-actions">
           <button class="btn-modal-cancel" onclick="cmCloseSpot()">Cancel</button>
-          <button class="btn-action" id="cm-clear-btn" onclick="cmClearSpot()" style="display:none;background:#fef2f2;color:#dc2626;border:1px solid #fca5a5">Clear</button>
-          <button class="btn-modal-primary" id="cm-save-btn" onclick="cmSaveSpot()">Save</button>
+          <button class="btn-action" id="cm-clear-btn" onclick="cmClearSpot()" style="display:none;background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;font-weight:700">🗑 Remove</button>
+          <button class="btn-modal-primary" id="cm-save-btn" onclick="cmSaveSpot()">Assign</button>
         </div>
       </div>
     </div>
@@ -1163,7 +1219,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getDatabase, ref, push, get, onValue, update, remove } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+import { getDatabase, ref, push, get, set, onValue, update, remove } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDYj9RC-cmfcfZ6sPo_9TmF67mWeEkxkwo",
@@ -1699,6 +1755,8 @@ function render() {
   list.innerHTML=html;
   renderTV();
   updateWaitBanner();
+  // Re-render compound map live if it's the active tab
+  if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
 }
 
 // ── TV render ─────────────────────────────────────────
@@ -2895,6 +2953,20 @@ function cmRenderMap() {
   const numCols = seed ? Math.max(...seed.map(r=>r.length)) : 52;
   const numRows = seed ? seed.length : 10;
 
+  // Build stock# → appointment lookup from live queue entries
+  const apptMap = {}; // { 'B0394': { label: 'ASAP' | '2:30 PM', status } }
+  Object.values(entries||{}).forEach(e => {
+    if (!e.stock || e.status === 'done') return;
+    const stock = e.stock.toUpperCase().trim();
+    let label = '';
+    if (e.bookingType === 'scheduled' && e.scheduledTs) {
+      label = fmtTime(e.scheduledTs);
+    } else {
+      label = e.status === 'progress' ? 'In Progress' : 'ASAP';
+    }
+    apptMap[stock] = { label, status: e.status };
+  });
+
   mapEl.className = `cm-grid${cmEditMode?' cm-edit-active':''}`;
 
   let html = '';
@@ -2910,7 +2982,6 @@ function cmRenderMap() {
   html += `</div>`;
 
   for (let ri=0; ri<numRows; ri++) {
-    // Drive lane between every 2 rows after row 5 (the layout gets sparser)
     if (ri === 6) {
       html += `<div class="cm-lane-bar"><div class="cm-lane-inner"></div><div class="cm-lane-txt">— Raptor / Special Area —</div><div class="cm-lane-inner"></div></div>`;
     }
@@ -2920,9 +2991,9 @@ function cmRenderMap() {
     for (let ci=0; ci<numCols; ci++) {
       const key = `R${ri}-C${ci}`;
       const veh = v[key];
-      const cls = veh ? veh.status : 'empty';
+      const appt = veh ? apptMap[(veh.stock||'').toUpperCase().trim()] : null;
+
       if (!veh && !cmEditMode) {
-        // Render empty spot
         html += `<div class="cm-spot empty" onclick="cmSpotClick('${key}',${ri},${ci})">
           <div class="cm-spot-num">${ci+1}</div>
         </div>`;
@@ -2933,12 +3004,17 @@ function cmRenderMap() {
         </div>`;
       } else {
         const stock = (veh.stock||'').substring(0,10);
-        const desc = (veh.desc||'').substring(0,18);
+        const typeLine = [veh.type, veh.colour].filter(Boolean).join(' ').substring(0,16);
+        // Appointed spots override colour class with 'appointed'
+        const cls = appt ? 'appointed' : veh.status;
         html += `<div class="cm-spot ${cls}" onclick="cmSpotClick('${key}',${ri},${ci})">
-          ${cmEditMode?`<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>`:''}
+          ${cmEditMode ? `<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
+          ${veh.flagged && !cmEditMode ? `<div class="cm-spot-flag">🚩</div>` : ''}
           <div class="cm-spot-num">${ci+1}</div>
           <div class="cm-spot-stock">${stock}</div>
-          <div class="cm-spot-desc">${desc}</div>
+          <div class="cm-spot-desc">${typeLine}</div>
+          ${appt && !cmEditMode ? `<div class="cm-spot-appt">🕐 ${appt.label}</div>` : ''}
+          ${veh.note && !cmEditMode ? `<div style="position:absolute;bottom:2px;left:0;right:0;height:3px;background:#f59e0b;border-radius:0 0 4px 4px"></div>` : ''}
         </div>`;
       }
     }
@@ -2984,21 +3060,32 @@ window.cmSpotClick = function(key, ri, ci) {
   document.getElementById('cm-spot-title').textContent = `Spot R${ri+1}-${ci+1}`;
   const clearBtn = document.getElementById('cm-clear-btn');
   if (v) {
+    const typeColour = [v.type, v.colour].filter(Boolean).join(' · ');
     document.getElementById('cm-spot-current').innerHTML = `
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;display:flex;gap:12px;align-items:center">
-        <div style="font-size:16px;font-weight:800;color:var(--ford)">${v.stock||'—'}</div>
-        <div style="font-size:13px;color:var(--text-muted)">${v.desc||''}</div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-size:17px;font-weight:800;color:var(--ford)">${v.stock||'—'}</span>
+          ${typeColour ? `<span style="font-size:13px;color:var(--text-muted)">${typeColour}</span>` : ''}
+          ${v.flagged ? `<span style="margin-left:auto;font-size:12px;background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:20px;padding:2px 8px;font-weight:600">🚩 Flagged</span>` : ''}
+        </div>
+        ${v.note ? `<div style="font-size:12px;color:#b45309;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">📝 ${v.note}</div>` : ''}
       </div>`;
     document.getElementById('cm-f-stock').value = v.stock||'';
-    document.getElementById('cm-f-desc').value = v.desc||'';
+    document.getElementById('cm-f-type').value = v.type||'';
+    document.getElementById('cm-f-colour').value = v.colour||'';
     document.getElementById('cm-f-status').value = v.status||'occupied';
+    document.getElementById('cm-f-flagged').checked = !!v.flagged;
+    document.getElementById('cm-f-note').value = v.note||'';
     clearBtn.style.display = '';
     document.getElementById('cm-save-btn').textContent = 'Update';
   } else {
     document.getElementById('cm-spot-current').innerHTML = '';
     document.getElementById('cm-f-stock').value = '';
-    document.getElementById('cm-f-desc').value = '';
+    document.getElementById('cm-f-type').value = '';
+    document.getElementById('cm-f-colour').value = '';
     document.getElementById('cm-f-status').value = 'occupied';
+    document.getElementById('cm-f-flagged').checked = false;
+    document.getElementById('cm-f-note').value = '';
     clearBtn.style.display = 'none';
     document.getElementById('cm-save-btn').textContent = 'Assign';
   }
@@ -3011,15 +3098,17 @@ window.cmSaveSpot = async function() {
   if (!stock) { alert('Enter a stock number.'); return; }
   const data = {
     stock,
-    desc: document.getElementById('cm-f-desc').value.trim(),
-    status: document.getElementById('cm-f-status').value,
+    type:    document.getElementById('cm-f-type').value.trim(),
+    colour:  document.getElementById('cm-f-colour').value.trim(),
+    status:  document.getElementById('cm-f-status').value,
+    flagged: document.getElementById('cm-f-flagged').checked,
+    note:    document.getElementById('cm-f-note').value.trim(),
   };
   await set(ref(db, `compound_v2/${cmCurrentLot}/${cmActiveKey}`), data);
   cmCloseSpot();
 };
 
 window.cmClearSpot = async function() {
-  if (!confirm('Clear this spot?')) return;
   await cmClearKey(cmActiveKey);
   cmCloseSpot();
 };
@@ -3037,7 +3126,11 @@ window.cmSearch = function(q) {
   const v = cmVehicles[cmCurrentLot]||{};
   const matched = new Set();
   Object.entries(v).forEach(([key,veh]) => {
-    if ((veh.stock||'').toLowerCase().includes(q)||(veh.desc||'').toLowerCase().includes(q)) matched.add(key);
+    if ((veh.stock||'').toLowerCase().includes(q)||
+        (veh.type||'').toLowerCase().includes(q)||
+        (veh.colour||'').toLowerCase().includes(q)||
+        (veh.note||'').toLowerCase().includes(q)||
+        (veh.desc||'').toLowerCase().includes(q)) matched.add(key);
   });
   document.querySelectorAll('.cm-spot').forEach(el => {
     const oc = el.getAttribute('onclick')||'';
