@@ -2953,13 +2953,23 @@ function cmRenderMap() {
   const numRows = seed ? seed.length : 10;
 
   // Build stock# → appointment lookup from live queue entries
-  const apptMap = {}; // { 'B0394': { label: 'ASAP' | '2:30 PM', status } }
+  const apptMap = {};
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
   Object.values(entries||{}).forEach(e => {
     if (!e.stock || e.status === 'done') return;
     const stock = e.stock.toUpperCase().trim();
     let label = '';
     if (e.bookingType === 'scheduled' && e.scheduledTs) {
-      label = fmtTime(e.scheduledTs);
+      const apptDate = new Date(e.scheduledTs);
+      const apptStr = `${apptDate.getFullYear()}-${apptDate.getMonth()}-${apptDate.getDate()}`;
+      if (apptStr === todayStr) {
+        // Same day — show time
+        label = fmtTime(e.scheduledTs);
+      } else {
+        // Future date — show short date e.g. "Jul 14"
+        label = apptDate.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
+      }
     } else {
       label = e.status === 'progress' ? 'In Progress' : 'ASAP';
     }
@@ -3258,22 +3268,18 @@ window.cmDrop = async function(e, destKey) {
   e.currentTarget.classList.remove('cm-drag-over');
   if (!cmDragKey || cmDragKey === destKey || !cmDragData) return;
 
-  const destVeh = (cmVehicles[cmCurrentLot]||{})[destKey];
-
-  if (destVeh) {
-    // Swap — write both
-    await update(ref(db), {
-      [`compound_v2/${cmCurrentLot}/${destKey}`]: cmDragData,
-      [`compound_v2/${cmCurrentLot}/${cmDragKey}`]: destVeh,
-    });
-  } else {
-    // Move to empty — write destination, clear source
-    await set(ref(db, `compound_v2/${cmCurrentLot}/${destKey}`), cmDragData);
-    await remove(ref(db, `compound_v2/${cmCurrentLot}/${cmDragKey}`));
-  }
-
+  const srcKey = cmDragKey;
+  const srcData = cmDragData;
   cmDragKey = null;
   cmDragData = null;
+
+  const destVeh = (cmVehicles[cmCurrentLot]||{})[destKey];
+
+  // Single atomic update — both keys written in one call to prevent double-render duplication
+  const updates = {};
+  updates[`compound_v2/${cmCurrentLot}/${destKey}`] = srcData;
+  updates[`compound_v2/${cmCurrentLot}/${srcKey}`] = destVeh || null;
+  await update(ref(db), updates);
 };
 
 // Fix cmStartListeners — always store data and render regardless of active tab
