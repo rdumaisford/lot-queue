@@ -610,18 +610,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   .tv-body{gap:0}
 }
 
-/* ── Staff Locator ── */
-.loc-staff-dot{position:absolute;transform:translate(-50%,-50%);cursor:default;z-index:3;transition:left .8s ease,top .8s ease}
-.loc-staff-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.18);position:relative}
-.loc-staff-name{position:absolute;top:37px;left:50%;transform:translateX(-50%);background:rgba(0,9,91,.85);color:#fff;font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;white-space:nowrap;pointer-events:none}
-.loc-staff-pulse{position:absolute;inset:-4px;border-radius:50%;animation:locpulse 2s infinite;opacity:.5}
-@keyframes locpulse{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.4);opacity:.1}}
-.loc-entry{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:8px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.loc-entry-badge{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
-.loc-eta-pill{background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap}
-.loc-eta-pill.eta-close{background:#fef9ec;color:#b45309}
-.loc-eta-pill.eta-here{background:#f0faf4;color:#15803d}
-
 /* iOS zoom prevention + min touch targets */
 @media(max-width:768px){
   input[type=text],input[type=date],input[type=time],input[type=number],
@@ -634,7 +622,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   .setup-row input,.setup-row select{font-size:16px}
 }
 </style>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDbzy7M3Zrerwv01DdJX_JtTmU_5qeEXAw" defer></script>
 </head>
 <body>
 
@@ -691,7 +678,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     <button class="tab" id="tab-tracker" onclick="switchTab('tracker',this)">Incoming <span class="tab-count" id="tc-tracker">0</span></button>
     <button class="tab" id="tab-getready" onclick="switchTab('getready',this)">Get Ready <span class="tab-count" id="tc-getready">0</span></button>
     <button class="tab" id="tab-tv" onclick="switchTab('tv',this)">TV display <span class="tab-count" id="tc-tv">0</span></button>
-    <button class="tab" id="tab-locator" onclick="switchTab('locator',this)" style="display:none">📍 Staff Locator <span class="tab-count" id="tc-locator">0</span></button>
     <button class="tab" id="tab-history" onclick="switchTab('history',this)">History</button>
     <button class="tab" id="tab-settings" onclick="switchTab('settings',this)">Settings</button>
   </nav>
@@ -705,67 +691,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div class="home-hero-sub">Pick where you'd like to go.</div>
       </div>
       <div class="home-grid" id="home-grid"></div>
-    </div>
-
-    <!-- STAFF LOCATOR -->
-    <div id="panel-locator" class="panel">
-      <div style="max-width:900px">
-
-        <!-- My location share bar -->
-        <div id="loc-share-bar" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--radius);padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-          <div style="flex:1;min-width:160px">
-            <div style="font-size:14px;font-weight:600;color:#1d4ed8;margin-bottom:2px">📍 Share my location</div>
-            <div style="font-size:12px;color:#3b82f6" id="loc-share-status">Not sharing — tap to start</div>
-          </div>
-          <button id="loc-share-btn" onclick="toggleMyLocation()" style="padding:8px 18px;background:#1d4ed8;color:white;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer">Start sharing</button>
-        </div>
-
-        <!-- Live Map -->
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:18px">
-          <div style="padding:12px 16px 8px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-            <span style="font-size:14px;font-weight:600">Live staff positions</span>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-              <span style="font-size:12px;color:var(--text-muted)" id="loc-map-updated"></span>
-              <div id="loc-jump-btns" style="display:flex;gap:6px;flex-wrap:wrap"></div>
-            </div>
-          </div>
-          <div id="loc-map" style="width:100%;height:420px"></div>
-          <div id="loc-legend" style="padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px;border-top:1px solid var(--border)"></div>
-        </div>
-
-        <!-- Location Pin Manager (lot/management only) -->
-        <div id="loc-pin-manager" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:18px;overflow:hidden">
-          <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-            <span style="font-size:14px;font-weight:600">Lot Location Pins</span>
-            <button onclick="openAddPinModal()" style="padding:6px 14px;background:var(--ford);color:white;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer">+ Add pin</button>
-          </div>
-          <div id="loc-pin-list" style="padding:12px 16px"></div>
-        </div>
-
-        <!-- Active moves with GPS ETAs -->
-        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:8px">Active moves — GPS ETAs</div>
-        <div id="loc-active-list"></div>
-      </div>
-    </div>
-
-    <!-- Add Pin Modal -->
-    <div id="pin-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this)closePinModal()">
-      <div class="modal-card" style="max-width:360px">
-        <div class="modal-title-row"><span id="pin-modal-title">Add location pin</span><button class="modal-close" onclick="closePinModal()">×</button></div>
-        <div style="margin-bottom:14px">
-          <label style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Pin name</label>
-          <input id="pin-name-input" type="text" placeholder="e.g. 323 Bayview Compound" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/>
-        </div>
-        <div style="margin-bottom:16px">
-          <label style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Location</label>
-          <div id="pin-coords-display" style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;color:var(--text-muted);margin-bottom:8px">No location captured yet</div>
-          <button onclick="grabPinLocation()" id="pin-grab-btn" style="width:100%;padding:10px;background:var(--ford);color:white;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer">📍 Grab my current location</button>
-        </div>
-        <div class="modal-actions">
-          <button class="btn-modal-cancel" onclick="closePinModal()">Cancel</button>
-          <button class="btn-modal-primary" id="pin-save-btn" onclick="savePin()" disabled style="opacity:.5">Save pin</button>
-        </div>
-      </div>
     </div>
 
     <!-- QUEUE + REQUEST FORM -->
@@ -1155,11 +1080,6 @@ let historyDays = 30, soundEnabled = localStorage.getItem('lq-sound') !== 'false
 let tFilterStatus = 'ALL', tSortCol = 'arrived', tSortAsc = false, editingUnitId = null;
 let denyTargetId = null;
 let grFilterStatus = 'ALL', editingGRId = null;
-// Staff locator state
-let staffLocations = {};
-let myLocationWatchId = null;
-let myLocSharingActive = false;
-const STAFF_COLORS_LOC = ['#00095b','#1d4ed8','#7c3aed','#065f46','#9a3412','#155e75','#3f3f46','#7f1d1d'];
 
 // ── Roles & Permissions (Firebase-backed, editable in Settings) ──
 const ALL_ROLES = ['lot','reception','service','sales','detail','pdi','merchandiser','management'];
@@ -1323,8 +1243,6 @@ function startApp() {
   const role = currentUser.role;
   applyPermissions();
   if (role !== 'merchandiser' && role !== 'display') renderHomeGrid();
-  maybeShowLocatorTab();
-  startLocatorListener();
 
   // Firebase listeners
   onValue(ref(db,'entries'), snap=>{
@@ -1622,18 +1540,7 @@ function entryHTML(e) {
     const elapsed=Math.floor((Date.now()-e.progressTs)/1000);
     const pct=Math.min(100,Math.round((elapsed/(MOVE_MINS*60))*100));
     const label=pct>=100?'Should be arriving…':fmtCountdown(Math.max(0,(MOVE_MINS*60-elapsed)*1000));
-    // GPS ETA badge
-    const claimerLoc = e.claimedBy ? Object.values(staffLocations).find(s=>s.name===e.claimedBy) : null;
-    let gpsBadge='';
-    if (claimerLoc && e.destLat) {
-      const eta=etaMinutesLoc(claimerLoc,e.destLat,e.destLng,'vehicle');
-      const bgc=eta<=2?'#f0faf4':eta<=5?'#fef9ec':'#eff6ff';
-      const tc=eta<=2?'#15803d':eta<=5?'#b45309':'#1d4ed8';
-      gpsBadge=`<span style="margin-left:8px;background:${bgc};color:${tc};font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px">📍 ~${eta} min</span>`;
-    } else if (claimerLoc) {
-      gpsBadge=`<span style="margin-left:8px;background:#f1f5f9;color:#64748b;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px">📍 Live</span>`;
-    }
-    progressBar=`<div class="progress-bar-wrap"><div class="progress-bar-label"><span>Move in progress${gpsBadge}</span><span>${label}</span></div><div class="progress-bar-track"><div class="progress-bar-fill" style="width:${pct}%"></div></div></div>`;
+    progressBar=`<div class="progress-bar-wrap"><div class="progress-bar-label"><span>Move in progress</span><span>${label}</span></div><div class="progress-bar-track"><div class="progress-bar-fill" style="width:${pct}%"></div></div></div>`;
   } else if(e.status==='onhold'&&e.holdTs) {
     const elapsedMs=Date.now()-e.holdTs, elapsedSecs=Math.floor(elapsedMs/1000);
     const d2=Math.floor(elapsedSecs/86400),h2=Math.floor((elapsedSecs%86400)/3600),m2=Math.floor((elapsedSecs%3600)/60),s2=elapsedSecs%60;
@@ -1685,8 +1592,6 @@ function render() {
   list.innerHTML=html;
   renderTV();
   updateWaitBanner();
-  // Update locator panel if it's active
-  if (document.getElementById('panel-locator')?.classList.contains('active')) renderLocatorPanel();
 }
 
 // ── TV render ─────────────────────────────────────────
@@ -1702,14 +1607,7 @@ function renderTV() {
       const el=Math.floor((Date.now()-e.progressTs)/1000);
       const pct=Math.min(100,Math.round((el/(MOVE_MINS*60))*100));
       const rl=pct>=100?'Arriving soon':fmtCountdown(Math.max(0,(MOVE_MINS*60-el)*1000));
-      // GPS ETA overlay
-      const claimerLoc = e.claimedBy ? Object.values(staffLocations).find(s=>s.name===e.claimedBy) : null;
-      let gpsLabel='';
-      if (claimerLoc && e.destLat) {
-        const eta=etaMinutesLoc(claimerLoc,e.destLat,e.destLng,'vehicle');
-        gpsLabel=` · 📍 ~${eta}m`;
-      }
-      return `<div class="tv-progress-wrap"><div style="font-size:13px;color:#1d4ed8;margin-bottom:4px;display:flex;justify-content:space-between;font-weight:600"><span>In transit${gpsLabel}</span><span>${rl}</span></div><div class="tv-progress-track"><div class="tv-progress-fill" style="width:${pct}%"></div></div></div>`;
+      return `<div class="tv-progress-wrap"><div style="font-size:13px;color:#1d4ed8;margin-bottom:4px;display:flex;justify-content:space-between;font-weight:600"><span>In transit</span><span>${rl}</span></div><div class="tv-progress-track"><div class="tv-progress-fill" style="width:${pct}%"></div></div></div>`;
     }
     if(e.bookingType==='scheduled'&&e.scheduledTs&&e.status==='pending'){
       const msUntil=Math.max(0,e.scheduledTs-Date.now());
@@ -2736,15 +2634,6 @@ function renderHomeGrid() {
     });
   }
 
-  if (perm('queueAdmin') || role === 'management') {
-    tiles.push({
-      name: 'locator', tone: 'blue', icon: `<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>`,
-      title: 'Staff Locator',
-      desc: 'See live GPS positions of lot staff and ETAs on active moves.',
-      badge: () => Object.values(staffLocations).filter(s=>s&&s.lat).length
-    });
-  }
-
   if (perm('tabHistory')) {
     tiles.push({
       name: 'history', tone: 'green', icon: icon.history,
@@ -2771,395 +2660,8 @@ function renderHomeGrid() {
   }).join('');
 }
 
-// ── Staff Locator — Google Maps ───────────────────────
-function staffLocColor(name) {
-  const colors = ['#00095b','#1d4ed8','#7c3aed','#065f46','#9a3412','#155e75','#3f3f46','#7f1d1d'];
-  let h=0; for(let i=0;i<name.length;i++) h=(h*31+name.charCodeAt(i))&0xffff;
-  return colors[h % colors.length];
-}
-function staffLocInitials(name) {
-  return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-}
-function haversineMeters(a, b) {
-  const R=6371000, dLat=(b.lat-a.lat)*Math.PI/180, dLng=(b.lng-a.lng)*Math.PI/180;
-  const aa=Math.sin(dLat/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLng/2)**2;
-  return R*2*Math.atan2(Math.sqrt(aa),Math.sqrt(1-aa));
-}
-function etaMinutesLoc(staffLoc, destLat, destLng) {
-  if (!staffLoc || !destLat) return null;
-  const dist = haversineMeters(staffLoc, {lat:destLat, lng:destLng});
-  return Math.max(1, Math.round(dist / (15*1609.34/60))); // 15 mph
-}
-
-// ── Lot pins (Firebase-backed) ────────────────────────
-let lotPins = {}; // { id: { name, lat, lng, createdBy, ts } }
-let lotPinMarkers = {}; // Google Maps markers keyed by pin id
-let pendingPinCoords = null;
-let editingPinId = null;
-
-// Default pins — only written to Firebase once on first load if empty
-const DEFAULT_PINS = [
-  { name: '323 Bayview', lat: 44.3854, lng: -79.6901 },
-  { name: '700 Bayview', lat: 44.3889, lng: -79.6867 },
-  { name: '55 Mapleview', lat: 44.3549, lng: -79.7185 },
-];
-
-function startLotPinsListener() {
-  onValue(ref(db,'lot_pins'), async snap => {
-    const data = snap.val();
-    if (!data) {
-      // First time — seed defaults
-      for (const p of DEFAULT_PINS) {
-        await push(ref(db,'lot_pins'), { ...p, createdBy: 'system', ts: Date.now() });
-      }
-      return;
-    }
-    lotPins = data;
-    updateGmapLotPins();
-    renderPinList();
-    renderJumpButtons();
-  });
-}
-
-function renderJumpButtons() {
-  const el = document.getElementById('loc-jump-btns');
-  if (!el) return;
-  el.innerHTML = Object.entries(lotPins).map(([id, p]) =>
-    `<button onclick="jumpToPin('${id}')" style="font-size:11px;padding:3px 9px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);cursor:pointer;color:var(--text-muted)">${p.name}</button>`
-  ).join('');
-}
-
-window.jumpToPin = function(id) {
-  const p = lotPins[id];
-  if (p && gmap) { gmap.setCenter({lat:p.lat, lng:p.lng}); gmap.setZoom(19); }
-};
-
-function renderPinList() {
-  const el = document.getElementById('loc-pin-list');
-  if (!el) return;
-  const pins = Object.entries(lotPins);
-  if (!pins.length) {
-    el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:8px 0">No pins yet. Add one below.</div>';
-    return;
-  }
-  el.innerHTML = pins.map(([id,p]) => `
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
-      <div style="width:10px;height:10px;border-radius:50%;background:var(--ford);flex-shrink:0"></div>
-      <div style="flex:1">
-        <div style="font-size:14px;font-weight:600">${p.name}</div>
-        <div style="font-size:11px;color:var(--text-faint);font-family:monospace">${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</div>
-      </div>
-      <button onclick="jumpToPin('${id}')" style="font-size:12px;padding:4px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);cursor:pointer;color:var(--text-muted)">Go</button>
-      <button onclick="openEditPinModal('${id}')" style="font-size:12px;padding:4px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);cursor:pointer;color:var(--text-muted)">✎</button>
-      <button onclick="deletePin('${id}')" style="font-size:12px;padding:4px 10px;border:1px solid #fca5a5;border-radius:var(--radius-sm);background:#fef2f2;cursor:pointer;color:#dc2626">✕</button>
-    </div>
-  `).join('');
-}
-
-window.openAddPinModal = function() {
-  editingPinId = null;
-  pendingPinCoords = null;
-  document.getElementById('pin-modal-title').textContent = 'Add location pin';
-  document.getElementById('pin-name-input').value = '';
-  document.getElementById('pin-coords-display').textContent = 'No location captured yet';
-  document.getElementById('pin-save-btn').disabled = true;
-  document.getElementById('pin-save-btn').style.opacity = '.5';
-  document.getElementById('pin-modal').style.display = 'flex';
-  setTimeout(() => document.getElementById('pin-name-input').focus(), 100);
-};
-
-window.openEditPinModal = function(id) {
-  editingPinId = id;
-  const p = lotPins[id];
-  pendingPinCoords = { lat: p.lat, lng: p.lng };
-  document.getElementById('pin-modal-title').textContent = 'Edit location pin';
-  document.getElementById('pin-name-input').value = p.name;
-  document.getElementById('pin-coords-display').textContent = `${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}`;
-  document.getElementById('pin-save-btn').disabled = false;
-  document.getElementById('pin-save-btn').style.opacity = '1';
-  document.getElementById('pin-modal').style.display = 'flex';
-};
-
-window.closePinModal = function() {
-  document.getElementById('pin-modal').style.display = 'none';
-  editingPinId = null;
-  pendingPinCoords = null;
-};
-
-window.grabPinLocation = function() {
-  if (!navigator.geolocation) { alert('GPS not available.'); return; }
-  const btn = document.getElementById('pin-grab-btn');
-  btn.textContent = 'Getting GPS…'; btn.disabled = true;
-  navigator.geolocation.getCurrentPosition(pos => {
-    pendingPinCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-    document.getElementById('pin-coords-display').textContent =
-      `${pendingPinCoords.lat.toFixed(6)}, ${pendingPinCoords.lng.toFixed(6)} (±${Math.round(pos.coords.accuracy)}m)`;
-    document.getElementById('pin-save-btn').disabled = false;
-    document.getElementById('pin-save-btn').style.opacity = '1';
-    btn.textContent = '📍 Grab my current location'; btn.disabled = false;
-  }, err => {
-    alert('GPS error: '+err.message);
-    btn.textContent = '📍 Grab my current location'; btn.disabled = false;
-  }, { enableHighAccuracy: true, timeout: 10000 });
-};
-
-window.savePin = async function() {
-  const name = document.getElementById('pin-name-input').value.trim();
-  if (!name) { alert('Please enter a pin name.'); return; }
-  if (!pendingPinCoords) { alert('Please grab a GPS location first.'); return; }
-  const btn = document.getElementById('pin-save-btn');
-  btn.textContent = 'Saving…'; btn.disabled = true;
-  try {
-    const data = { name, lat: pendingPinCoords.lat, lng: pendingPinCoords.lng, createdBy: currentUser.name, ts: Date.now() };
-    if (editingPinId) {
-      await update(ref(db,'lot_pins/'+editingPinId), data);
-    } else {
-      await push(ref(db,'lot_pins'), data);
-    }
-    closePinModal();
-  } catch(e) { alert('Error saving — check connection.'); }
-  btn.textContent = 'Save pin'; btn.disabled = false;
-};
-
-window.deletePin = async function(id) {
-  if (!confirm('Remove this pin?')) return;
-  await remove(ref(db,'lot_pins/'+id));
-  if (lotPinMarkers[id]) { lotPinMarkers[id].setMap(null); delete lotPinMarkers[id]; }
-};
-
-// ── Google Maps init ──────────────────────────────────
-let gmap = null;
-let gmapMarkers = {};
-let gmapInitialized = false;
-
-function initGoogleMap() {
-  if (gmapInitialized || !window.google) return;
-  const el = document.getElementById('loc-map');
-  if (!el) return;
-  gmapInitialized = true;
-  gmap = new google.maps.Map(el, {
-    center: { lat: 44.3854, lng: -79.6901 }, // 323 Bayview — will snap to real pins on load
-    zoom: 18,
-    mapTypeId: 'satellite',
-    tilt: 0,
-    mapTypeControl: false,
-    streetViewControl: false,
-    fullscreenControl: true,
-  });
-  updateGmapLotPins();
-  updateGmapStaffMarkers();
-}
-
-function updateGmapLotPins() {
-  if (!gmap || !window.google) return;
-  // Remove old pin markers
-  Object.keys(lotPinMarkers).forEach(id => {
-    if (!lotPins[id]) { lotPinMarkers[id].setMap(null); delete lotPinMarkers[id]; }
-  });
-  // Add/update
-  Object.entries(lotPins).forEach(([id, p]) => {
-    const pos = { lat: p.lat, lng: p.lng };
-    if (lotPinMarkers[id]) {
-      lotPinMarkers[id].setPosition(pos);
-      lotPinMarkers[id].setTitle(p.name);
-    } else {
-      const marker = new google.maps.Marker({
-        position: pos, map: gmap, title: p.name, zIndex: 1,
-        icon: {
-          path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
-          fillColor: '#00095b', fillOpacity: 1,
-          strokeColor: '#fff', strokeWeight: 1,
-          scale: 1.6,
-          anchor: new google.maps.Point(12, 22),
-        },
-      });
-      const iw = new google.maps.InfoWindow({
-        content: `<div style="font-weight:700;font-size:13px;color:#00095b">${p.name}</div><div style="font-size:11px;color:#64748b;font-family:monospace">${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}</div>`
-      });
-      marker.addListener('click', () => iw.open(gmap, marker));
-      lotPinMarkers[id] = marker;
-    }
-  });
-}
-
-function updateGmapStaffMarkers() {
-  if (!gmap || !window.google) return;
-  const locs = Object.values(staffLocations).filter(s => s && s.lat && s.lng);
-  const seen = new Set();
-  locs.forEach(s => {
-    seen.add(s.name);
-    const pos = { lat: s.lat, lng: s.lng };
-    const color = staffLocColor(s.name);
-    if (gmapMarkers[s.name]) {
-      gmapMarkers[s.name].marker.setPosition(pos);
-    } else {
-      const marker = new google.maps.Marker({
-        position: pos, map: gmap, title: s.name, zIndex: 10,
-        icon: { path: google.maps.SymbolPath.CIRCLE, scale: 14, fillColor: color, fillOpacity: 1, strokeColor: '#fff', strokeWeight: 3 },
-        label: { text: staffLocInitials(s.name), color: '#fff', fontSize: '11px', fontWeight: '800' },
-      });
-      const iw = new google.maps.InfoWindow();
-      marker.addListener('click', () => {
-        iw.setContent(`<div style="font-size:13px;line-height:1.6"><strong>${s.name}</strong><br>Updated ${timeAgo(s.ts||0)}<br>±${s.accuracy||'?'}m accuracy</div>`);
-        iw.open(gmap, marker);
-      });
-      gmapMarkers[s.name] = { marker, iw };
-    }
-  });
-  Object.keys(gmapMarkers).forEach(name => {
-    if (!seen.has(name)) { gmapMarkers[name].marker.setMap(null); delete gmapMarkers[name]; }
-  });
-}
-
-function startLocatorListener() {
-  onValue(ref(db,'staff_locations'), snap => {
-    staffLocations = snap.val() || {};
-    const cutoff = Date.now() - 3*60*1000;
-    Object.keys(staffLocations).forEach(k => { if ((staffLocations[k].ts||0) < cutoff) delete staffLocations[k]; });
-    updateLocatorTab();
-    if (document.getElementById('panel-locator')?.classList.contains('active')) renderLocatorPanel();
-  });
-  startLotPinsListener();
-}
-
-function updateLocatorTab() {
-  const el = document.getElementById('tc-locator');
-  if (el) el.textContent = Object.values(staffLocations).filter(s=>s&&s.lat).length;
-}
-
-async function pushMyLocation(pos) {
-  if (!currentUser) return;
-  const key = currentUser.name.replace(/[.#$[\]]/g,'_');
-  await update(ref(db,'staff_locations/'+key), {
-    name: currentUser.name, lat: pos.coords.latitude, lng: pos.coords.longitude,
-    accuracy: Math.round(pos.coords.accuracy), mode: 'vehicle', ts: Date.now()
-  });
-}
-
-async function clearMyLocation() {
-  if (!currentUser) return;
-  await remove(ref(db,'staff_locations/'+currentUser.name.replace(/[.#$[\]]/g,'_')));
-}
-
-window.toggleMyLocation = async function() {
-  const btn = document.getElementById('loc-share-btn');
-  const status = document.getElementById('loc-share-status');
-  if (myLocSharingActive) {
-    if (myLocationWatchId !== null) { navigator.geolocation.clearWatch(myLocationWatchId); myLocationWatchId = null; }
-    myLocSharingActive = false;
-    await clearMyLocation();
-    btn.textContent = 'Start sharing'; btn.style.background = '#1d4ed8';
-    status.textContent = 'Not sharing — tap to start'; status.style.color = '#3b82f6';
-  } else {
-    if (!navigator.geolocation) { alert('GPS not available.'); return; }
-    btn.textContent = 'Starting…'; btn.disabled = true;
-    navigator.geolocation.getCurrentPosition(async pos => {
-      await pushMyLocation(pos);
-      myLocSharingActive = true;
-      btn.textContent = 'Stop sharing'; btn.style.background = '#dc2626'; btn.disabled = false;
-      status.textContent = 'Sharing live · GPS active'; status.style.color = '#15803d';
-      myLocationWatchId = navigator.geolocation.watchPosition(
-        p => pushMyLocation(p),
-        err => { status.textContent = 'GPS error: '+err.message; status.style.color = '#dc2626'; },
-        { enableHighAccuracy: true, maximumAge: 5000 }
-      );
-    }, err => { alert('Could not get GPS: '+err.message); btn.textContent = 'Start sharing'; btn.disabled = false; },
-    { enableHighAccuracy: true, timeout: 10000 });
-  }
-};
-
-window.addEventListener('beforeunload', () => { if (myLocSharingActive) clearMyLocation(); });
-
-function renderLocatorPanel() {
-  const legendEl = document.getElementById('loc-legend');
-  const updEl = document.getElementById('loc-map-updated');
-  const activeListEl = document.getElementById('loc-active-list');
-  const pinMgr = document.getElementById('loc-pin-manager');
-  if (!legendEl) return;
-
-  // Show pin manager for lot/management
-  if (pinMgr) pinMgr.style.display = perm('queueAdmin') ? 'block' : 'none';
-
-  if (window.google && !gmapInitialized) initGoogleMap();
-  if (gmap) { updateGmapStaffMarkers(); updateGmapLotPins(); }
-
-  const locs = Object.values(staffLocations).filter(s => s && s.lat && s.lng);
-  updEl.textContent = locs.length ? 'Updated '+timeAgo(Math.max(...locs.map(s=>s.ts||0))) : '';
-
-  legendEl.innerHTML = locs.length
-    ? locs.map(s => `<div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:50%;background:${staffLocColor(s.name)};flex-shrink:0"></div><span style="font-size:12px;color:var(--text-muted)">${s.name} · ${timeAgo(s.ts||0)}</span></div>`).join('')
-    : '<span style="font-size:12px;color:var(--text-faint)">No staff sharing location right now.</span>';
-
-  const activeMoves = Object.values(entries).filter(e => e.status === 'progress');
-  if (!activeMoves.length) {
-    activeListEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)">No moves in progress right now.</div>';
-    return;
-  }
-  activeListEl.innerHTML = activeMoves.map(e => {
-    const claimerLoc = locs.find(s => s.name === e.claimedBy);
-    const color = e.claimedBy ? staffLocColor(e.claimedBy) : '#94a3b8';
-    const ini = e.claimedBy ? staffLocInitials(e.claimedBy) : '?';
-    const dc = destClass(e.dest);
-    let etaHtml = '';
-    if (claimerLoc && e.destLat) {
-      const eta = etaMinutesLoc(claimerLoc, e.destLat, e.destLng);
-      const cls = eta<=2?'eta-here':eta<=5?'eta-close':'';
-      etaHtml = `<span class="loc-eta-pill ${cls}">~${eta} min away</span>`;
-    } else if (claimerLoc) {
-      etaHtml = `<span class="loc-eta-pill" style="background:#f1f5f9;color:#64748b">📍 Live</span>`;
-    } else if (e.claimedBy) {
-      etaHtml = `<span style="font-size:12px;color:var(--text-faint)">Not sharing GPS</span>`;
-    }
-    const pct = Math.min(100, Math.round(((Date.now()-(e.progressTs||Date.now()))/(MOVE_MINS*60*1000))*100));
-    return `<div class="loc-entry">
-      <div class="loc-entry-badge" style="background:${color}">${ini}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:15px;font-weight:600;margin-bottom:3px">${e.stock}</div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px"><span class="dest-pill ${dc}">${e.dest}</span></div>
-        <div style="font-size:13px;color:#1d4ed8;font-weight:500">${e.claimedBy||'Unassigned'}</div>
-        ${claimerLoc?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">GPS ${timeAgo(claimerLoc.ts)} · ±${claimerLoc.accuracy||'?'}m</div>`:''}
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-        ${etaHtml}
-        <div style="font-size:11px;color:var(--text-faint)">${pct}% elapsed</div>
-        ${perm('queueAdmin')?`<button class="btn-action" onclick="pinEntryDestination('${e.id}')" style="font-size:11px;padding:4px 10px">📍 Pin dest.</button>`:''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-window.pinEntryDestination = function(id) {
-  if (!navigator.geolocation) { alert('GPS not available.'); return; }
-  navigator.geolocation.getCurrentPosition(async pos => {
-    await update(ref(db,'entries/'+id), { destLat: pos.coords.latitude, destLng: pos.coords.longitude, destPinnedBy: currentUser.name, destPinnedAt: Date.now() });
-    alert('✓ Destination pinned. ETAs will now calculate.');
-  }, err => alert('GPS error: '+err.message), { enableHighAccuracy: true, timeout: 8000 });
-};
-
-function maybeShowLocatorTab() {
-  const tab = document.getElementById('tab-locator');
-  if (!tab) return;
-  if (perm('queueAdmin') || currentUser?.role === 'management') tab.style.display = '';
-}
-
-const _origSwitchTab = window.switchTab;
-window.switchTab = function(name, btn) {
-  _origSwitchTab(name, btn);
-  if (name === 'locator') {
-    if (window.google && !gmapInitialized) initGoogleMap();
-    renderLocatorPanel();
-  }
-};
 loadIdentity();
-
-// Refresh locator panel every 15s when it's the active tab
-setInterval(()=>{
-  if (document.getElementById('panel-locator')?.classList.contains('active')) {
-    renderLocatorPanel();
-    updateLocatorTab();
-  }
-}, 15000);
 </script>
-
+-e 
 </body>
 </html>
