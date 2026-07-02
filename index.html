@@ -610,6 +610,35 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   .tv-body{gap:0}
 }
 
+/* ── Compound Map ── */
+.cm-lot-tab{padding:10px 18px;font-size:13px;font-weight:600;color:var(--text-muted);border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+.cm-lot-tab.active{color:var(--ford);border-bottom-color:var(--ford)}
+.cm-spot{width:78px;height:50px;border-radius:var(--radius-sm);border:2px solid #cbd5e1;background:#f1f5f9;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all .15s;position:relative;flex-shrink:0;user-select:none}
+.cm-spot:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.cm-spot.occupied{background:#eff6ff;border-color:#1d4ed8}
+.cm-spot.reserved{background:#fef3c7;border-color:#b45309}
+.cm-spot-num{font-size:10px;font-weight:700;color:#94a3b8;line-height:1}
+.cm-spot.occupied .cm-spot-num{color:#1d4ed8}
+.cm-spot.reserved .cm-spot-num{color:#b45309}
+.cm-spot-stock{font-size:9px;font-weight:700;color:#1d4ed8;line-height:1.3;margin-top:2px;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.cm-spot-veh{font-size:8px;color:#64748b;line-height:1.2;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.cm-spot-del{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:#ef4444;color:#fff;font-size:10px;font-weight:700;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:2;line-height:1}
+.cm-edit-on .cm-spot-del{display:flex}
+.cm-spot-add{width:78px;height:50px;border-radius:var(--radius-sm);border:2px dashed #cbd5e1;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:22px;font-weight:300;flex-shrink:0;transition:all .15s}
+.cm-spot-add:hover{border-color:var(--ford);color:var(--ford);background:#eff6ff}
+.cm-row{display:flex;align-items:center;margin-bottom:0}
+.cm-row-label{width:34px;font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.05em;flex-shrink:0;user-select:none;text-align:center}
+.cm-row-spots{display:flex;gap:4px;padding:4px 0;align-items:center}
+.cm-lane{height:26px;display:flex;align-items:center;padding:0 34px;margin:2px 0}
+.cm-lane-inner{flex:1;border-top:2px dashed #cbd5e1}
+.cm-lane-label{font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:0 10px;background:var(--surface);white-space:nowrap}
+.cm-add-row{display:none;align-items:center;justify-content:center;gap:8px;padding:8px;color:#94a3b8;font-size:13px;font-weight:600;cursor:pointer;border:2px dashed #cbd5e1;border-radius:var(--radius);margin:4px 34px;transition:all .15s}
+.cm-add-row:hover{border-color:var(--ford);color:var(--ford);background:#eff6ff}
+.cm-edit-on .cm-add-row{display:flex}
+.cm-spot.cm-highlight{box-shadow:0 0 0 3px #fbbf24;transform:translateY(-2px)}
+.cm-spot.cm-dim{opacity:.25}
+/* ── /Compound Map ── */
+
 /* iOS zoom prevention + min touch targets */
 @media(max-width:768px){
   input[type=text],input[type=date],input[type=time],input[type=number],
@@ -622,6 +651,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   .setup-row input,.setup-row select{font-size:16px}
 }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -678,6 +708,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     <button class="tab" id="tab-tracker" onclick="switchTab('tracker',this)">Incoming <span class="tab-count" id="tc-tracker">0</span></button>
     <button class="tab" id="tab-getready" onclick="switchTab('getready',this)">Get Ready <span class="tab-count" id="tc-getready">0</span></button>
     <button class="tab" id="tab-tv" onclick="switchTab('tv',this)">TV display <span class="tab-count" id="tc-tv">0</span></button>
+    <button class="tab" id="tab-compound" onclick="switchTab('compound',this)" style="display:none">🅿️ Compound Map</button>
     <button class="tab" id="tab-history" onclick="switchTab('history',this)">History</button>
     <button class="tab" id="tab-settings" onclick="switchTab('settings',this)">Settings</button>
   </nav>
@@ -691,6 +722,92 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div class="home-hero-sub">Pick where you'd like to go.</div>
       </div>
       <div class="home-grid" id="home-grid"></div>
+    </div>
+
+    <!-- COMPOUND MAP -->
+    <div id="panel-compound" class="panel">
+      <!-- Lot tabs -->
+      <div style="display:flex;gap:0;border-bottom:2px solid var(--border);background:var(--surface);margin:-16px -16px 16px;padding:0 16px" id="cm-lot-tabs"></div>
+      <!-- Stats bar -->
+      <div style="display:flex;gap:20px;padding:10px 0;font-size:13px;flex-wrap:wrap" id="cm-stats"></div>
+      <!-- Toolbar -->
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;flex-wrap:wrap;border-bottom:1px solid var(--border);margin-bottom:16px">
+        <div style="position:relative">
+          <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-faint);pointer-events:none;font-size:13px">🔍</span>
+          <input id="cm-search" type="text" placeholder="Find stock #…" oninput="cmHandleSearch(this.value)" style="padding:7px 12px 7px 30px;border-radius:var(--radius-sm);border:1px solid var(--border);font-size:13px;font-family:var(--font);background:var(--bg);color:var(--text);outline:none;width:170px"/>
+        </div>
+        <button class="btn-action" id="cm-edit-btn" onclick="cmToggleEdit()" style="background:#fef9ec;color:#b45309;border:1px solid #fcd34d">✏️ Edit Layout</button>
+        <button class="btn-action" onclick="cmOpenQR()" style="margin-left:auto">🖨 QR Codes</button>
+        <span id="cm-edit-hint" style="font-size:12px;color:#b45309;display:none">Edit mode — use + to add spots, ✕ to remove</span>
+        <!-- Legend -->
+        <div style="display:flex;align-items:center;gap:12px;margin-left:auto;flex-shrink:0">
+          <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted)"><div style="width:10px;height:10px;border-radius:3px;background:#f1f5f9;border:2px solid #cbd5e1"></div>Empty</div>
+          <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted)"><div style="width:10px;height:10px;border-radius:3px;background:#eff6ff;border:2px solid #1d4ed8"></div>Occupied</div>
+          <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted)"><div style="width:10px;height:10px;border-radius:3px;background:#fef3c7;border:2px solid #b45309"></div>Reserved</div>
+        </div>
+      </div>
+      <!-- Map -->
+      <div style="overflow-x:auto;padding-bottom:40px">
+        <div id="cm-map" style="display:inline-flex;flex-direction:column;gap:0;min-width:100%"></div>
+      </div>
+    </div>
+
+    <!-- CM: Spot modal -->
+    <div id="cm-spot-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this)cmCloseSpot()">
+      <div class="modal-card">
+        <div class="modal-title-row"><span id="cm-spot-title">Spot A-1</span><button class="modal-close" onclick="cmCloseSpot()">×</button></div>
+        <div id="cm-spot-current"></div>
+        <div class="field"><label>Stock #</label><input id="cm-f-stock" type="text" placeholder="e.g. P12345" autocomplete="off" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="field"><label>Year</label><input id="cm-f-year" type="text" placeholder="2024" maxlength="4" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/></div>
+          <div class="field"><label>Make</label><input id="cm-f-make" type="text" placeholder="Ford" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/></div>
+        </div>
+        <div class="field"><label>Model</label><input id="cm-f-model" type="text" placeholder="F-150" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/></div>
+        <div class="field">
+          <label>Status</label>
+          <select id="cm-f-status" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none">
+            <option value="occupied">Occupied</option>
+            <option value="reserved">Reserved</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" onclick="cmCloseSpot()">Cancel</button>
+          <button class="btn-action" id="cm-clear-btn" onclick="cmClearSpot()" style="display:none;background:#fef2f2;color:#dc2626;border:1px solid #fca5a5">Clear spot</button>
+          <button class="btn-modal-primary" id="cm-save-btn" onclick="cmSaveSpot()">Assign</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CM: Add row modal -->
+    <div id="cm-row-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this)cmCloseRow()">
+      <div class="modal-card">
+        <div class="modal-title-row"><span>Add to layout</span><button class="modal-close" onclick="cmCloseRow()">×</button></div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+          <button class="btn-action" style="justify-content:flex-start;padding:14px 16px;font-size:14px;text-align:left" onclick="cmPickRowType('spots')">🚗 Parking row <span style="margin-left:auto;font-size:12px;color:var(--text-faint)">Row of spots</span></button>
+          <button class="btn-action" style="justify-content:flex-start;padding:14px 16px;font-size:14px;text-align:left" onclick="cmPickRowType('lane')">🛣 Drive lane <span style="margin-left:auto;font-size:12px;color:var(--text-faint)">Visual separator</span></button>
+        </div>
+        <div id="cm-row-fields" style="display:none">
+          <div class="field"><label>Label</label><input id="cm-row-label" type="text" placeholder="e.g. E, New Arrivals…" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/></div>
+          <div class="field" id="cm-row-count-field"><label>Number of spots</label><input id="cm-row-count" type="number" value="10" min="1" max="40" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/></div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" onclick="cmCloseRow()">Cancel</button>
+          <button class="btn-modal-primary" id="cm-row-confirm" onclick="cmConfirmRow()" style="display:none">Add</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CM: QR modal -->
+    <div id="cm-qr-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this)document.getElementById('cm-qr-modal').style.display='none'">
+      <div class="modal-card" style="max-width:580px">
+        <div class="modal-title-row"><span>QR Codes — <span id="cm-qr-lot-label"></span></span><button class="modal-close" onclick="document.getElementById('cm-qr-modal').style.display='none'">×</button></div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Print and stake at each spot. Staff scan to assign a vehicle from their phone.</div>
+        <div id="cm-qr-grid" style="display:grid;grid-template-columns:repeat(auto-fill,110px);gap:12px;max-height:420px;overflow-y:auto;margin-bottom:16px"></div>
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" onclick="document.getElementById('cm-qr-modal').style.display='none'">Close</button>
+          <button class="btn-modal-primary" onclick="window.print()">🖨 Print</button>
+        </div>
+      </div>
     </div>
 
     <!-- QUEUE + REQUEST FORM -->
@@ -1087,14 +1204,14 @@ const ROLE_LABELS = {lot:'Inventory Control',reception:'Reception',service:'Serv
 
 // Default permission matrix — used until Firebase settings/permissions loads (or if a role/perm is missing there)
 const DEFAULT_PERMISSIONS = {
-  lot:          { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:true, tabTV:false, tabHistory:true, tabSettings:true, trackerAdd:true, trackerEdit:true, trackerDelete:true, cbAcc:true, cbPdi:true, cbPhoto:true, cbIC:true, queueAdmin:true, clearCompleted:true, getReadyEdit:true },
-  reception:    { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:true, tabTV:false, tabHistory:false, tabSettings:false, trackerAdd:true, trackerEdit:true, trackerDelete:true, cbAcc:true, cbPdi:true, cbPhoto:true, cbIC:true, queueAdmin:false, clearCompleted:false, getReadyEdit:true },
-  service:      { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
-  sales:        { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
-  detail:       { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
-  pdi:          { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, trackerAdd:true, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
-  merchandiser: { tabHome:false,tabQueue:false,tabTracker:false,tabGetReady:false,tabTV:true,  tabHistory:false, tabSettings:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true, cbPhoto:true, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
-  management:   { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:true, tabTV:false, tabHistory:true, tabSettings:true, trackerAdd:true, trackerEdit:true, trackerDelete:true, cbAcc:true, cbPdi:true, cbPhoto:true, cbIC:true, queueAdmin:true, clearCompleted:true, getReadyEdit:true },
+  lot:          { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:true, tabTV:false, tabHistory:true, tabSettings:true, tabCompound:true,  trackerAdd:true, trackerEdit:true, trackerDelete:true, cbAcc:true, cbPdi:true, cbPhoto:true, cbIC:true, queueAdmin:true, clearCompleted:true, getReadyEdit:true },
+  reception:    { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:true, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  trackerAdd:true, trackerEdit:true, trackerDelete:true, cbAcc:true, cbPdi:true, cbPhoto:true, cbIC:true, queueAdmin:false, clearCompleted:false, getReadyEdit:true },
+  service:      { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
+  sales:        { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
+  detail:       { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
+  pdi:          { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, trackerAdd:true, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
+  merchandiser: { tabHome:false,tabQueue:false,tabTracker:false,tabGetReady:false,tabTV:true,  tabHistory:false, tabSettings:false, tabCompound:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true, cbPhoto:true, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
+  management:   { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:true, tabTV:false, tabHistory:true, tabSettings:true, tabCompound:true,   trackerAdd:true, trackerEdit:true, trackerDelete:true, cbAcc:true, cbPdi:true, cbPhoto:true, cbIC:true, queueAdmin:true, clearCompleted:true, getReadyEdit:true },
 };
 
 let PERMISSIONS = JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS)); // live copy, overwritten by Firebase
@@ -1108,7 +1225,7 @@ function perm(key) {
 
 function applyPermissions() {
   if (!currentUser) return;
-  const tabMap = { tabHome:'tab-home', tabQueue:'tab-queue', tabTracker:'tab-tracker', tabGetReady:'tab-getready', tabTV:'tab-tv', tabHistory:'tab-history', tabSettings:'tab-settings' };
+  const tabMap = { tabHome:'tab-home', tabQueue:'tab-queue', tabTracker:'tab-tracker', tabGetReady:'tab-getready', tabTV:'tab-tv', tabCompound:'tab-compound', tabHistory:'tab-history', tabSettings:'tab-settings' };
   for (const key in tabMap) {
     const el = document.getElementById(tabMap[key]);
     if (el) el.style.display = perm(key) ? '' : 'none';
@@ -1243,6 +1360,7 @@ function startApp() {
   const role = currentUser.role;
   applyPermissions();
   if (role !== 'merchandiser' && role !== 'display') renderHomeGrid();
+  cmInit();
 
   // Firebase listeners
   onValue(ref(db,'entries'), snap=>{
@@ -2634,6 +2752,15 @@ function renderHomeGrid() {
     });
   }
 
+  if (perm('tabCompound')) {
+    tiles.push({
+      name: 'compound', tone: 'blue',
+      icon: `<path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/>`,
+      title: 'Compound Map',
+      desc: 'See where every vehicle is parked across all lots.'
+    });
+  }
+
   if (perm('tabHistory')) {
     tiles.push({
       name: 'history', tone: 'green', icon: icon.history,
@@ -2659,6 +2786,316 @@ function renderHomeGrid() {
     </div>`;
   }).join('');
 }
+
+// ── Compound Map ──────────────────────────────────────
+const CM_LOTS = [
+  { id: 'bayview323',  label: '323 Bayview' },
+  { id: 'mapleview55', label: '55 Mapleview' },
+];
+const CM_DEFAULT_LAYOUT = [
+  { type:'spots', label:'A', spots: Array(12).fill(null) },
+  { type:'lane',  label:'Drive Lane' },
+  { type:'spots', label:'B', spots: Array(12).fill(null) },
+  { type:'lane',  label:'Drive Lane' },
+  { type:'spots', label:'C', spots: Array(10).fill(null) },
+  { type:'lane',  label:'Drive Lane' },
+  { type:'spots', label:'D', spots: Array(10).fill(null) },
+];
+
+let cmLayouts = {};
+let cmVehicles = {};
+let cmCurrentLot = CM_LOTS[0].id;
+let cmEditMode = false;
+let cmActiveSpotKey = null;
+let cmPendingRowType = null;
+
+function cmStartListeners() {
+  CM_LOTS.forEach(lot => {
+    onValue(ref(db, `compound_layouts/${lot.id}`), snap => {
+      const data = snap.val();
+      if (!data) {
+        set(ref(db, `compound_layouts/${lot.id}`), CM_DEFAULT_LAYOUT);
+      } else {
+        cmLayouts[lot.id] = Array.isArray(data) ? data : Object.values(data);
+      }
+      if (lot.id === cmCurrentLot && document.getElementById('panel-compound')?.classList.contains('active')) cmRender();
+    });
+    onValue(ref(db, `compound_vehicles/${lot.id}`), snap => {
+      cmVehicles[lot.id] = snap.val() || {};
+      if (lot.id === cmCurrentLot && document.getElementById('panel-compound')?.classList.contains('active')) cmRender();
+    });
+  });
+}
+
+function cmRender() {
+  cmRenderLotTabs();
+  cmRenderStats();
+  cmRenderMap();
+}
+
+function cmRenderLotTabs() {
+  const el = document.getElementById('cm-lot-tabs');
+  if (!el) return;
+  el.innerHTML = CM_LOTS.map(l =>
+    `<button class="cm-lot-tab ${l.id===cmCurrentLot?'active':''}" onclick="cmSwitchLot('${l.id}')">${l.label}</button>`
+  ).join('');
+}
+
+function cmRenderStats() {
+  const el = document.getElementById('cm-stats');
+  if (!el) return;
+  const layout = cmLayouts[cmCurrentLot] || [];
+  const v = cmVehicles[cmCurrentLot] || {};
+  let total=0, occupied=0, reserved=0;
+  layout.forEach(row => {
+    if (row.type!=='spots') return;
+    (row.spots||[]).forEach((_,i) => {
+      const key=`${row.label}-${i+1}`; total++;
+      if (v[key]?.status==='occupied') occupied++;
+      else if (v[key]?.status==='reserved') reserved++;
+    });
+  });
+  const empty = total-occupied-reserved;
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:6px"><span style="font-weight:700">${total}</span><span style="color:var(--text-muted)">spots</span></div>
+    <div style="display:flex;align-items:center;gap:6px"><span style="font-weight:700;color:#1d4ed8">${occupied}</span><span style="color:var(--text-muted)">occupied</span></div>
+    <div style="display:flex;align-items:center;gap:6px"><span style="font-weight:700;color:#b45309">${reserved}</span><span style="color:var(--text-muted)">reserved</span></div>
+    <div style="display:flex;align-items:center;gap:6px"><span style="font-weight:700;color:#15803d">${empty}</span><span style="color:var(--text-muted)">empty</span></div>`;
+}
+
+function cmRenderMap() {
+  const mapEl = document.getElementById('cm-map');
+  if (!mapEl) return;
+  const layout = cmLayouts[cmCurrentLot] || [];
+  const v = cmVehicles[cmCurrentLot] || {};
+  mapEl.className = cmEditMode ? 'cm-edit-on' : '';
+
+  if (!layout.length) {
+    mapEl.innerHTML = `<div style="padding:60px 20px;text-align:center;color:var(--text-muted)"><div style="font-size:40px;margin-bottom:12px">🅿️</div><p>No layout yet.</p><button class="btn-action" onclick="cmToggleEdit()" style="margin-top:12px">✏️ Build layout</button></div>`;
+    return;
+  }
+
+  let html = '';
+  layout.forEach((row, rowIdx) => {
+    if (row.type === 'lane') {
+      html += `<div class="cm-lane">
+        <div class="cm-lane-inner"></div>
+        <div class="cm-lane-label">${row.label||'Drive Lane'}</div>
+        <div class="cm-lane-inner"></div>
+        ${cmEditMode ? `<button class="btn-action" onclick="cmDeleteRow(${rowIdx})" style="margin-left:8px;padding:3px 8px;font-size:11px;background:#fef2f2;color:#dc2626;border:1px solid #fca5a5">✕</button>` : ''}
+      </div>`;
+    } else {
+      html += `<div class="cm-row"><div class="cm-row-label">${row.label||''}</div><div class="cm-row-spots">`;
+      (row.spots||[]).forEach((_,si) => {
+        const key=`${row.label}-${si+1}`;
+        const veh=v[key];
+        const cls=veh?veh.status:'';
+        html += `<div class="cm-spot ${cls}" onclick="cmSpotClick('${key}')">
+          ${cmEditMode?`<div class="cm-spot-del" onclick="event.stopPropagation();cmDeleteSpot(${rowIdx},${si})">✕</div>`:''}
+          <div class="cm-spot-num">${row.label}-${si+1}</div>
+          ${veh?`<div class="cm-spot-stock">${veh.stock||''}</div><div class="cm-spot-veh">${[veh.year,veh.make,veh.model].filter(Boolean).join(' ')}</div>`:''}
+        </div>`;
+      });
+      if (cmEditMode) html += `<div class="cm-spot-add" onclick="cmAddSpot(${rowIdx})">+</div>`;
+      html += `</div>${cmEditMode?`<button class="btn-action" onclick="cmDeleteRow(${rowIdx})" style="margin-left:8px;padding:3px 8px;font-size:11px;background:#fef2f2;color:#dc2626;border:1px solid #fca5a5">✕</button>`:''}
+      </div>`;
+    }
+  });
+  html += `<div class="cm-add-row" onclick="cmOpenRow()">+ Add row or drive lane</div>`;
+  mapEl.innerHTML = html;
+}
+
+window.cmSwitchLot = function(id) {
+  cmCurrentLot = id;
+  cmEditMode = false;
+  document.getElementById('cm-edit-btn').textContent='✏️ Edit Layout';
+  document.getElementById('cm-edit-hint').style.display='none';
+  document.getElementById('cm-search').value='';
+  cmRender();
+};
+
+window.cmToggleEdit = function() {
+  cmEditMode = !cmEditMode;
+  const btn = document.getElementById('cm-edit-btn');
+  const hint = document.getElementById('cm-edit-hint');
+  btn.textContent = cmEditMode ? '✅ Done editing' : '✏️ Edit Layout';
+  btn.style.background = cmEditMode ? '#f0fdf4' : '#fef9ec';
+  btn.style.color = cmEditMode ? '#15803d' : '#b45309';
+  btn.style.borderColor = cmEditMode ? '#86efac' : '#fcd34d';
+  hint.style.display = cmEditMode ? '' : 'none';
+  cmRender();
+};
+
+window.cmSpotClick = function(key) {
+  if (cmEditMode) return;
+  cmActiveSpotKey = key;
+  const v = (cmVehicles[cmCurrentLot]||{})[key];
+  document.getElementById('cm-spot-title').textContent = `Spot ${key}`;
+  const clearBtn = document.getElementById('cm-clear-btn');
+  if (v) {
+    document.getElementById('cm-spot-current').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px">
+          <div style="font-size:10px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Stock #</div>
+          <div style="font-size:14px;font-weight:700">${v.stock||'—'}</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px">
+          <div style="font-size:10px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Vehicle</div>
+          <div style="font-size:13px;font-weight:600">${[v.year,v.make,v.model].filter(Boolean).join(' ')||'—'}</div>
+        </div>
+      </div>`;
+    document.getElementById('cm-f-stock').value=v.stock||'';
+    document.getElementById('cm-f-year').value=v.year||'';
+    document.getElementById('cm-f-make').value=v.make||'';
+    document.getElementById('cm-f-model').value=v.model||'';
+    document.getElementById('cm-f-status').value=v.status||'occupied';
+    clearBtn.style.display='';
+    document.getElementById('cm-save-btn').textContent='Update';
+  } else {
+    document.getElementById('cm-spot-current').innerHTML='';
+    document.getElementById('cm-f-stock').value='';
+    document.getElementById('cm-f-year').value='';
+    document.getElementById('cm-f-make').value='';
+    document.getElementById('cm-f-model').value='';
+    document.getElementById('cm-f-status').value='occupied';
+    clearBtn.style.display='none';
+    document.getElementById('cm-save-btn').textContent='Assign';
+  }
+  document.getElementById('cm-spot-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('cm-f-stock').focus(),100);
+};
+
+window.cmSaveSpot = async function() {
+  const stock = document.getElementById('cm-f-stock').value.trim();
+  if (!stock) { alert('Please enter a stock number.'); return; }
+  await set(ref(db,`compound_vehicles/${cmCurrentLot}/${cmActiveSpotKey}`), {
+    stock, year:document.getElementById('cm-f-year').value.trim(),
+    make:document.getElementById('cm-f-make').value.trim(),
+    model:document.getElementById('cm-f-model').value.trim(),
+    status:document.getElementById('cm-f-status').value, ts:Date.now()
+  });
+  cmCloseSpot();
+};
+
+window.cmClearSpot = async function() {
+  if (!confirm('Remove vehicle from this spot?')) return;
+  await remove(ref(db,`compound_vehicles/${cmCurrentLot}/${cmActiveSpotKey}`));
+  cmCloseSpot();
+};
+
+window.cmCloseSpot = function() { document.getElementById('cm-spot-modal').style.display='none'; };
+
+window.cmAddSpot = async function(rowIdx) {
+  const layout = JSON.parse(JSON.stringify(cmLayouts[cmCurrentLot]||[]));
+  layout[rowIdx].spots.push(null);
+  await set(ref(db,`compound_layouts/${cmCurrentLot}`),layout);
+};
+
+window.cmDeleteSpot = async function(rowIdx,spotIdx) {
+  const layout = JSON.parse(JSON.stringify(cmLayouts[cmCurrentLot]||[]));
+  layout[rowIdx].spots.splice(spotIdx,1);
+  await set(ref(db,`compound_layouts/${cmCurrentLot}`),layout);
+};
+
+window.cmDeleteRow = async function(rowIdx) {
+  if (!confirm('Remove this row?')) return;
+  const layout = JSON.parse(JSON.stringify(cmLayouts[cmCurrentLot]||[]));
+  layout.splice(rowIdx,1);
+  await set(ref(db,`compound_layouts/${cmCurrentLot}`),layout);
+};
+
+window.cmOpenRow = function() {
+  cmPendingRowType = null;
+  document.getElementById('cm-row-fields').style.display='none';
+  document.getElementById('cm-row-confirm').style.display='none';
+  document.getElementById('cm-row-modal').style.display='flex';
+};
+
+window.cmPickRowType = function(type) {
+  cmPendingRowType = type;
+  document.getElementById('cm-row-fields').style.display='';
+  document.getElementById('cm-row-confirm').style.display='';
+  document.getElementById('cm-row-count-field').style.display = type==='spots'?'':'none';
+  document.getElementById('cm-row-label').placeholder = type==='spots'?'e.g. E, New Arrivals…':'e.g. Drive Lane, Exit…';
+  document.getElementById('cm-row-label').value='';
+  setTimeout(()=>document.getElementById('cm-row-label').focus(),100);
+};
+
+window.cmConfirmRow = async function() {
+  const name = document.getElementById('cm-row-label').value.trim();
+  if (!name) { alert('Please enter a label.'); return; }
+  const layout = JSON.parse(JSON.stringify(cmLayouts[cmCurrentLot]||[]));
+  if (cmPendingRowType==='spots') {
+    const count = parseInt(document.getElementById('cm-row-count').value)||10;
+    layout.push({ type:'spots', label:name, spots:Array(count).fill(null) });
+  } else {
+    layout.push({ type:'lane', label:name });
+  }
+  await set(ref(db,`compound_layouts/${cmCurrentLot}`),layout);
+  cmCloseRow();
+};
+
+window.cmCloseRow = function() { document.getElementById('cm-row-modal').style.display='none'; };
+
+window.cmHandleSearch = function(q) {
+  q = q.trim().toLowerCase();
+  document.querySelectorAll('.cm-spot').forEach(el => el.classList.remove('cm-highlight','cm-dim'));
+  if (!q) return;
+  const v = cmVehicles[cmCurrentLot]||{};
+  const matched = new Set();
+  Object.entries(v).forEach(([key,veh]) => {
+    if ((veh.stock||'').toLowerCase().includes(q)||(veh.make||'').toLowerCase().includes(q)||(veh.model||'').toLowerCase().includes(q)||(veh.year||'').includes(q)) matched.add(key);
+  });
+  document.querySelectorAll('.cm-spot').forEach(el => {
+    const oc = el.getAttribute('onclick')||'';
+    const m = oc.match(/'([^']+)'/);
+    if (!m) return;
+    el.classList.add(matched.has(m[1]) ? 'cm-highlight' : 'cm-dim');
+  });
+};
+
+window.cmOpenQR = function() {
+  if (typeof QRCode === 'undefined') { alert('QR library not loaded yet, try again in a moment.'); return; }
+  const lot = CM_LOTS.find(l=>l.id===cmCurrentLot);
+  document.getElementById('cm-qr-lot-label').textContent = lot.label;
+  const grid = document.getElementById('cm-qr-grid');
+  grid.innerHTML='';
+  const layout = cmLayouts[cmCurrentLot]||[];
+  const baseURL = window.location.href.split('?')[0];
+  layout.forEach(row => {
+    if (row.type!=='spots') return;
+    (row.spots||[]).forEach((_,i) => {
+      const key=`${row.label}-${i+1}`;
+      const url=`${baseURL}?lot=${cmCurrentLot}&spot=${encodeURIComponent(key)}`;
+      const item=document.createElement('div');
+      item.style.cssText='display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg)';
+      const qrDiv=document.createElement('div');
+      const lbl=document.createElement('div');
+      lbl.style.cssText='font-size:11px;font-weight:700;color:var(--text-muted)';
+      lbl.textContent=key;
+      item.appendChild(qrDiv); item.appendChild(lbl);
+      grid.appendChild(item);
+      new QRCode(qrDiv,{text:url,width:80,height:80,colorDark:'#00095b',colorLight:'#ffffff'});
+    });
+  });
+  document.getElementById('cm-qr-modal').style.display='flex';
+};
+
+// Hook into switchTab to render compound map when tab opens
+const _cmOrigSwitchTab = window.switchTab;
+window.switchTab = function(name, btn) {
+  _cmOrigSwitchTab(name, btn);
+  if (name === 'compound') {
+    if (!Object.keys(cmLayouts).length) cmStartListeners();
+    cmRender();
+  }
+};
+
+// Start compound listeners alongside regular ones
+const _cmOrigStartApp = startApp;
+// Hook into the existing Firebase onValue chain — start listeners when app boots
+function cmInit() { cmStartListeners(); }
+// ── /Compound Map ─────────────────────────────────────
 
 loadIdentity();
 </script>
