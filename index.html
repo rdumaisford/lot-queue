@@ -644,6 +644,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot.appointed .cm-spot-num{color:#7c3aed}
 .cm-spot.appointed .cm-spot-stock{color:#6d28d9}
 .cm-spot-appt{font-size:7px;font-weight:700;color:#7c3aed;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+.cm-spot.cm-selected{box-shadow:0 0 0 2.5px #f59e0b,0 0 0 4px #fef3c7!important;z-index:4;transform:translateY(-1px)}
 .cm-spot.cm-drag-over{border-color:var(--ford)!important;background:#eff6ff!important;box-shadow:0 0 0 2px #93c5fd!important;transform:scale(1.05)}
 .cm-spot[draggable="true"]{cursor:grab}
 .cm-spot[draggable="true"]:active{cursor:grabbing}
@@ -760,6 +761,30 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         </div>
         <button id="cm-edit-btn" onclick="cmToggleEdit()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid #fcd34d;border-radius:var(--radius-sm);background:#fef9ec;color:#b45309;cursor:pointer;display:none">✏️ Edit</button>
         <button onclick="cmOpenQR()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer">🖨 QR</button>
+      </div>
+
+      <!-- Edit mode row — shown only in edit mode -->
+      <div id="cm-edit-bar" style="display:none;align-items:center;gap:8px;padding:8px 16px;background:#fef9ec;border-bottom:1px solid #fcd34d;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:700;color:#b45309">✏️ Edit Mode</span>
+        <div style="display:flex;align-items:center;gap:6px;border-left:1px solid #fcd34d;padding-left:10px">
+          <span style="font-size:12px;color:#b45309">Rows:</span>
+          <button onclick="cmAddRow()" style="padding:4px 10px;font-size:12px;font-weight:600;border:1px solid #fcd34d;border-radius:var(--radius-sm);background:#fff;color:#b45309;cursor:pointer">+ Add row</button>
+          <button onclick="cmRemoveRow()" style="padding:4px 10px;font-size:12px;font-weight:600;border:1px solid #fca5a5;border-radius:var(--radius-sm);background:#fef2f2;color:#dc2626;cursor:pointer">− Remove last</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;border-left:1px solid #fcd34d;padding-left:10px">
+          <span style="font-size:12px;color:#b45309">Cols:</span>
+          <button onclick="cmAddCol()" style="padding:4px 10px;font-size:12px;font-weight:600;border:1px solid #fcd34d;border-radius:var(--radius-sm);background:#fff;color:#b45309;cursor:pointer">+ Add col</button>
+          <button onclick="cmRemoveCol()" style="padding:4px 10px;font-size:12px;font-weight:600;border:1px solid #fca5a5;border-radius:var(--radius-sm);background:#fef2f2;color:#dc2626;cursor:pointer">− Remove last</button>
+        </div>
+        <!-- Multi-select actions — shown when cells are selected -->
+        <div id="cm-select-actions" style="display:none;align-items:center;gap:6px;border-left:1px solid #fcd34d;padding-left:10px">
+          <span id="cm-select-count" style="font-size:12px;color:#b45309;font-weight:700"></span>
+          <button onclick="cmMarkSelected('drive')" style="padding:4px 10px;font-size:12px;font-weight:600;border:1px solid #94a3b8;border-radius:var(--radius-sm);background:#e2e8f0;color:#475569;cursor:pointer">🛣 Drive Lane</button>
+          <button onclick="cmMarkSelected('nopark')" style="padding:4px 10px;font-size:12px;font-weight:600;border:1px solid #fca5a5;border-radius:var(--radius-sm);background:#fef2f2;color:#dc2626;cursor:pointer">🚫 No Parking</button>
+          <button onclick="cmMarkSelected('clear')" style="padding:4px 10px;font-size:12px;font-weight:600;border:1px solid #86efac;border-radius:var(--radius-sm);background:#f0fdf4;color:#15803d;cursor:pointer">✓ Clear spots</button>
+          <button onclick="cmClearSelection()" style="padding:4px 10px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text-muted);cursor:pointer">✕ Deselect</button>
+        </div>
+        <span style="font-size:11px;color:#b45309;margin-left:auto">Click spots to select multiple · drag to move</span>
       </div>
 
       <!-- Legend -->
@@ -3008,6 +3033,8 @@ const CM_BAYVIEW700_SEED = (function(){
 let cmCurrentLot = 'bayview700';
 let cmEditMode = false;
 let cmActiveKey = null;
+let cmSelected = new Set();
+let cmGridSize = {};  // { lotId: { rows, cols } } — loaded from Firebase
 let cmVehicles = {}; // { lotId: { 'R0-C0': {stock,desc,status}, ... } }
 
 // Parse seed data: stock is first token, desc is rest
@@ -3056,8 +3083,8 @@ function cmRenderMap() {
   if (!mapEl) return;
   const v = cmVehicles[cmCurrentLot] || {};
   const seed = cmCurrentLot === 'bayview700' ? CM_BAYVIEW700_SEED : null;
-  const numCols = seed ? Math.max(...seed.map(r=>r.length)) : 52;
-  const numRows = seed ? seed.length : 10;
+  const numCols = cmGridSize[cmCurrentLot]?.cols || (cmCurrentLot === 'bayview700' ? 52 : 30);
+  const numRows = cmGridSize[cmCurrentLot]?.rows || (cmCurrentLot === 'bayview700' ? 13 : 10);
 
   // Build stock# → appointment lookup from live queue entries
   const apptMap = {};
@@ -3107,9 +3134,6 @@ function cmRenderMap() {
   html += `</div>`;
 
   for (let ri=0; ri<numRows; ri++) {
-    if (ri === 6) {
-      html += `<div class="cm-lane-bar"><div class="cm-lane-inner"></div><div class="cm-lane-txt">— Raptor / Special Area —</div><div class="cm-lane-inner"></div></div>`;
-    }
     html += `<div class="cm-parking-row">`;
     html += `<div class="cm-row-label">R${ri+1}</div>`;
     html += `<div class="cm-spots-wrap">`;
@@ -3128,10 +3152,14 @@ function cmRenderMap() {
           <div class="cm-spot-num">${ci+1}</div>
         </div>`;
       } else if (!veh && cmEditMode) {
-        html += `<div class="cm-spot empty"
-          onclick="cmSpotClick('${key}',${ri},${ci})">
+        const sel = cmSelected.has(key);
+        html += `<div class="cm-spot empty${sel?' cm-selected':''}"
+          onclick="cmSelectSpot(event,'${key}',${ri},${ci})"
+          ondragover="cmDragOver(event)"
+          ondragleave="cmDragLeave(event)"
+          ondrop="cmDrop(event,'${key}')">
           <div class="cm-spot-num">${ci+1}</div>
-          <div style="font-size:16px;color:#cbd5e1;margin-top:4px">+</div>
+          ${sel?'<div style="font-size:10px;color:#f59e0b;font-weight:800">✓</div>':'<div style="font-size:14px;color:#cbd5e1;margin-top:2px">+</div>'}
         </div>`;
       } else {
         const stock = (veh.stock||'').substring(0,10);
@@ -3139,18 +3167,20 @@ function cmRenderMap() {
         const isBlocked = veh.status === 'blocked';
         const cls = appt && !isBlocked ? 'appointed' : gr && !isBlocked ? 'getready' : veh.status;
         if (isBlocked) {
-          // Blocked spots — greyed out, no drag
-          html += `<div class="cm-spot blocked" onclick="cmSpotClick('${key}',${ri},${ci})"
+          html += `<div class="cm-spot blocked${cmEditMode&&cmSelected.has(key)?' cm-selected':''}"
+            onclick="${cmEditMode?`cmSelectSpot(event,'${key}',${ri},${ci})`:`cmSpotClick('${key}',${ri},${ci})`}"
             ondragover="cmDragOver(event)" ondragleave="cmDragLeave(event)" ondrop="cmDrop(event,'${key}')">
             ${cmEditMode ? `<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
             <div class="cm-spot-num">${ci+1}</div>
             <div class="cm-spot-stock">${(veh.blockLabel||'').split(' ').slice(0,1).join(' ')}</div>
             <div class="cm-spot-desc" style="font-size:7px">${(veh.blockLabel||'').split(' ').slice(1).join(' ')}</div>
+            ${cmEditMode&&cmSelected.has(key)?'<div style="font-size:10px;color:#f59e0b;font-weight:800;position:absolute;bottom:2px;right:3px">✓</div>':''}
           </div>`;
         } else {
-          html += `<div class="cm-spot ${cls}"
-            onclick="cmSpotClick('${key}',${ri},${ci})"
-            draggable="true"
+          const selCls = cmEditMode && cmSelected.has(key) ? ' cm-selected' : '';
+          html += `<div class="cm-spot ${cls}${selCls}"
+            onclick="${cmEditMode?`cmSelectSpot(event,'${key}',${ri},${ci})`:`cmSpotClick('${key}',${ri},${ci})`}"
+            draggable="${cmEditMode?'false':'true'}"
             ondragstart="cmDragStart(event,'${key}')"
             ondragend="cmDragEnd(event)"
             ondragover="cmDragOver(event)"
@@ -3164,6 +3194,7 @@ function cmRenderMap() {
             ${appt && !cmEditMode ? `<div class="cm-spot-appt">🕐 ${appt.label}</div>` : ''}
             ${gr && !appt && !cmEditMode ? `<div class="cm-spot-gr">${gr.label}</div>` : ''}
             ${veh.note && !cmEditMode ? `<div style="position:absolute;bottom:2px;left:0;right:0;height:3px;background:#f59e0b;border-radius:0 0 4px 4px"></div>` : ''}
+            ${cmEditMode&&cmSelected.has(key)?'<div style="font-size:10px;color:#f59e0b;font-weight:800;position:absolute;bottom:2px;right:3px">✓</div>':''}
           </div>`;
         }
       }
@@ -3178,6 +3209,9 @@ function cmRenderMap() {
 window.cmSwitchLot = function(id) {
   cmCurrentLot = id;
   cmEditMode = false;
+  cmSelected.clear();
+  const editBar = document.getElementById('cm-edit-bar');
+  if (editBar) editBar.style.display = 'none';
   cmUpdateEditBtn();
   document.getElementById('cm-search').value = '';
   cmRender();
@@ -3185,7 +3219,10 @@ window.cmSwitchLot = function(id) {
 
 window.cmToggleEdit = function() {
   cmEditMode = !cmEditMode;
+  cmSelected.clear();
   cmUpdateEditBtn();
+  const editBar = document.getElementById('cm-edit-bar');
+  if (editBar) editBar.style.display = cmEditMode ? 'flex' : 'none';
   cmRender();
 };
 
@@ -3343,7 +3380,92 @@ window.cmOpenQR = function() {
   document.getElementById('cm-qr-modal').style.display='flex';
 };
 
-// Remove old functions that no longer exist
+// ── Multi-select ──────────────────────────────────────
+window.cmSelectSpot = function(e, key, ri, ci) {
+  e.stopPropagation();
+  if (cmSelected.has(key)) {
+    cmSelected.delete(key);
+  } else {
+    cmSelected.add(key);
+  }
+  cmUpdateSelectionUI();
+  cmRenderMap(); // re-render to show selection
+};
+
+function cmUpdateSelectionUI() {
+  const actions = document.getElementById('cm-select-actions');
+  const count = document.getElementById('cm-select-count');
+  if (!actions) return;
+  if (cmSelected.size > 0) {
+    actions.style.display = 'flex';
+    count.textContent = `${cmSelected.size} selected`;
+  } else {
+    actions.style.display = 'none';
+  }
+}
+
+window.cmClearSelection = function() {
+  cmSelected.clear();
+  cmUpdateSelectionUI();
+  cmRenderMap();
+};
+
+window.cmMarkSelected = async function(type) {
+  if (!cmSelected.size) return;
+  const updates = {};
+  for (const key of cmSelected) {
+    if (type === 'clear') {
+      updates[`compound_v2/${cmCurrentLot}/${key}`] = null;
+    } else if (type === 'drive') {
+      updates[`compound_v2/${cmCurrentLot}/${key}`] = { stock: '🛣', blockLabel: '🛣 Drive Lane', status: 'blocked' };
+    } else if (type === 'nopark') {
+      updates[`compound_v2/${cmCurrentLot}/${key}`] = { stock: '🚫', blockLabel: '🚫 No Parking', status: 'blocked' };
+    }
+  }
+  await update(ref(db), updates);
+  cmSelected.clear();
+  cmUpdateSelectionUI();
+};
+
+// ── Row / col resize ──────────────────────────────────
+window.cmAddRow = async function() {
+  const cur = cmGridSize[cmCurrentLot] || { rows: 10, cols: 30 };
+  await update(ref(db, `compound_meta/${cmCurrentLot}`), { rows: cur.rows + 1, cols: cur.cols });
+};
+
+window.cmRemoveRow = async function() {
+  const cur = cmGridSize[cmCurrentLot] || { rows: 10, cols: 30 };
+  if (cur.rows <= 1) return;
+  const lastRow = cur.rows - 1;
+  // Clear any data in the last row first
+  const v = cmVehicles[cmCurrentLot] || {};
+  const delUpdates = {};
+  for (let ci = 0; ci < cur.cols; ci++) {
+    const key = `R${lastRow}-C${ci}`;
+    if (v[key]) delUpdates[`compound_v2/${cmCurrentLot}/${key}`] = null;
+  }
+  if (Object.keys(delUpdates).length) await update(ref(db), delUpdates);
+  await update(ref(db, `compound_meta/${cmCurrentLot}`), { rows: cur.rows - 1, cols: cur.cols });
+};
+
+window.cmAddCol = async function() {
+  const cur = cmGridSize[cmCurrentLot] || { rows: 10, cols: 30 };
+  await update(ref(db, `compound_meta/${cmCurrentLot}`), { rows: cur.rows, cols: cur.cols + 1 });
+};
+
+window.cmRemoveCol = async function() {
+  const cur = cmGridSize[cmCurrentLot] || { rows: 10, cols: 30 };
+  if (cur.cols <= 1) return;
+  const lastCol = cur.cols - 1;
+  const v = cmVehicles[cmCurrentLot] || {};
+  const delUpdates = {};
+  for (let ri = 0; ri < cur.rows; ri++) {
+    const key = `R${ri}-C${lastCol}`;
+    if (v[key]) delUpdates[`compound_v2/${cmCurrentLot}/${key}`] = null;
+  }
+  if (Object.keys(delUpdates).length) await update(ref(db), delUpdates);
+  await update(ref(db, `compound_meta/${cmCurrentLot}`), { rows: cur.rows, cols: cur.cols - 1 });
+};
 window.cmHandleSearch = window.cmSearch;
 window.cmAddSpot = ()=>{};
 window.cmDeleteSpot = ()=>{};
@@ -3402,6 +3524,15 @@ window.cmDrop = async function(e, destKey) {
 
 // Fix cmStartListeners — always store data and render regardless of active tab
 function cmStartListeners() {
+  // Grid size
+  onValue(ref(db, 'compound_meta'), snap => {
+    const meta = snap.val() || {};
+    cmGridSize = {
+      bayview700:  { rows: meta.bayview700?.rows  || 13, cols: meta.bayview700?.cols  || 52 },
+      mapleview55: { rows: meta.mapleview55?.rows || 10, cols: meta.mapleview55?.cols || 30 },
+    };
+    if (document.getElementById('panel-compound')?.classList.contains('active')) cmRender();
+  });
   onValue(ref(db, 'compound_v2/bayview700'), snap => {
     if (!snap.val()) {
       const seed = {};
