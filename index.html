@@ -1024,6 +1024,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <button class="filter-chip active" id="hf-30" onclick="setHistoryFilter(30,this)">30 days</button>
         <button class="filter-chip" id="hf-all" onclick="setHistoryFilter(0,this)">All time</button>
         <span style="margin-left:auto;font-size:12px;color:var(--text-faint)" id="history-range"></span>
+        <button id="btn-clear-history" onclick="clearAllHistory()" style="display:none;padding:6px 14px;font-size:12px;font-weight:600;border:1px solid #fca5a5;border-radius:var(--radius-sm);background:#fef2f2;color:#dc2626;cursor:pointer;margin-left:8px">🗑 Clear all history</button>
       </div>
       <div class="stats-grid" id="history-summary"></div>
       <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em">Attendant performance</div>
@@ -1381,6 +1382,8 @@ function applyPermissions() {
   if (grAddBtn) grAddBtn.style.display = perm('getReadyEdit') ? 'flex' : 'none';
   const cmEditBtn = document.getElementById('cm-edit-btn');
   if (cmEditBtn) cmEditBtn.style.display = perm('compoundEdit') ? '' : 'none';
+  const clearHistBtn = document.getElementById('btn-clear-history');
+  if (clearHistBtn) clearHistBtn.style.display = currentUser?.role === 'management' ? '' : 'none';
 
   // Land on the right tab for roles whose only access is TV
   if (perm('tabTV') && !perm('tabHome')) {
@@ -1750,6 +1753,15 @@ window.cancelRequest = async function(id) {
   await update(ref(db,'entries/'+id),{status:'cancelled',denyReason:'Cancelled by requester'});
 };
 window.deleteEntry = async id=>{ await remove(ref(db,'entries/'+id)); };
+window.clearAllHistory = async function() {
+  const count = Object.keys(historyData).length;
+  if (!count) { alert('No history to clear.'); return; }
+  if (!confirm(`This will permanently delete all ${count} move records and reset every associate's stats. This cannot be undone.\n\nType OK to confirm.`)) return;
+  const answer = prompt('Type DELETE to confirm clearing all history:');
+  if ((answer||'').trim().toUpperCase() !== 'DELETE') { alert('Cancelled — history not cleared.'); return; }
+  await remove(ref(db, 'history'));
+};
+
 window.clearCompleted = async function() {
   await Promise.all(Object.entries(entries).filter(([,e])=>e.status==='done').map(([id])=>remove(ref(db,'entries/'+id))));
 };
