@@ -685,7 +685,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot.blocked .cm-spot-num{color:#94a3b8}
 .cm-spot.blocked .cm-spot-stock{color:#64748b;font-size:8px;font-weight:600}
 .cm-spot.blocked:hover{background:#cbd5e1!important}
-.cm-spot-flag{position:absolute;top:2px;right:3px;font-size:9px;line-height:1;z-index:2}
+.cm-spot-note{position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:3px;background:#f59e0b;display:flex;align-items:center;justify-content:center;z-index:2}
+.cm-spot-note svg{width:9px;height:9px;stroke:#fff;fill:none;stroke-width:2.5}
 .cm-del-spot{position:absolute;top:1px;right:1px;width:13px;height:13px;border-radius:50%;background:#ef4444;color:#fff;font-size:9px;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:3;line-height:1}
 .cm-edit-active .cm-del-spot{display:flex}
 /* ── /Compound Map ── */
@@ -1199,14 +1200,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       </select>
     </div>
     <div class="field">
-      <label style="display:flex;align-items:center;gap:8px">
-        <span>Flag this unit</span>
-        <label style="display:flex;align-items:center;gap:5px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer">
-          <input type="checkbox" id="cm-f-flagged" style="width:16px;height:16px;accent-color:#dc2626;cursor:pointer"/>
-          <span style="font-size:12px;color:var(--text-muted)">Add flag 🚩</span>
-        </label>
-      </label>
-      <textarea id="cm-f-note" placeholder="Note (e.g. needs detailing, hold for customer, key missing…)" rows="2" style="width:100%;padding:10px 12px;font-size:13px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;resize:vertical;box-sizing:border-box;margin-top:6px"></textarea>
+      <label>Note</label>
+      <textarea id="cm-f-note" placeholder="e.g. needs detailing, hold for customer, key missing…" rows="2" style="width:100%;padding:10px 12px;font-size:13px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;resize:vertical;box-sizing:border-box;margin-top:4px"></textarea>
     </div>
     <div class="modal-actions">
       <button class="btn-modal-cancel" onclick="cmCloseSpot()">Cancel</button>
@@ -3416,8 +3411,7 @@ function cmRenderMap() {
           </div>`;
         } else {
           const selCls = cmEditMode && cmSelected.has(key) ? ' cm-selected' : '';
-          const flaggedStyle = veh.flagged && !isBlocked ? 'border-color:#991b1b!important;box-shadow:inset 0 0 0 1px #991b1b;' : '';
-          html += `<div class="cm-spot ${cls}${selCls}" style="${flaggedStyle}"
+          html += `<div class="cm-spot ${cls}${selCls}"
             onclick="${cmEditMode?`cmSelectSpot(event,'${key}',${ri},${ci})`:`cmSpotClick('${key}',${ri},${ci})`}"
             draggable="${cmEditMode?'false':'true'}"
             ondragstart="cmDragStart(event,'${key}')"
@@ -3426,13 +3420,12 @@ function cmRenderMap() {
             ondragleave="cmDragLeave(event)"
             ondrop="cmDrop(event,'${key}')">
             ${cmEditMode ? `<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
-            ${veh.flagged && !cmEditMode ? `<div class="cm-spot-flag">🚩</div>` : ''}
-            <div class="cm-spot-num" style="${veh.flagged?'color:#dc2626':''}">${ci+1}</div>
+            ${veh.note && !cmEditMode ? `<div class="cm-spot-note"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
+            <div class="cm-spot-num">${ci+1}</div>
             <div class="cm-spot-stock">${stock}</div>
             <div class="cm-spot-desc">${typeLine}</div>
             ${appt && !cmEditMode ? `<div class="cm-spot-appt">🕐 ${appt.label}</div>` : ''}
             ${gr && !appt && !cmEditMode ? `<div class="cm-spot-gr">${gr.label}</div>` : ''}
-            ${veh.note && !cmEditMode ? `<div style="position:absolute;bottom:2px;left:0;right:0;height:3px;background:#f59e0b;border-radius:0 0 4px 4px"></div>` : ''}
             ${cmEditMode&&cmSelected.has(key)?'<div style="font-size:10px;color:#f59e0b;font-weight:800;position:absolute;bottom:2px;right:3px">✓</div>':''}
           </div>`;
         }
@@ -3503,7 +3496,6 @@ window.cmSpotClick = function(key, ri, ci) {
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
             <span style="font-size:17px;font-weight:800;color:var(--ford)">${v.stock||'—'}</span>
             ${typeColour ? `<span style="font-size:13px;color:var(--text-muted)">${typeColour}</span>` : ''}
-            ${v.flagged ? `<span style="margin-left:auto;font-size:12px;background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:20px;padding:2px 8px;font-weight:600">🚩 Flagged</span>` : ''}
           </div>
           ${v.note ? `<div style="font-size:12px;color:#b45309;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">📝 ${v.note}</div>` : ''}
         </div>`;
@@ -3513,7 +3505,6 @@ window.cmSpotClick = function(key, ri, ci) {
     document.getElementById('cm-f-type').value = v.type||'';
     document.getElementById('cm-f-colour').value = v.colour||'';
     document.getElementById('cm-f-status').value = v.status||'occupied';
-    document.getElementById('cm-f-flagged').checked = !!v.flagged;
     document.getElementById('cm-f-note').value = v.note||'';
     document.getElementById('cm-f-block-label').value = v.blockLabel||'🏢 Building';
     if (isBlocked) {
@@ -3522,7 +3513,7 @@ window.cmSpotClick = function(key, ri, ci) {
       if (typeRow) typeRow.style.display = 'none';
     }
     clearBtn.style.display = '';
-    document.getElementById('cm-save-btn').textContent = isBlocked ? 'Update' : 'Update';
+    document.getElementById('cm-save-btn').textContent = 'Update';
   } else {
     document.getElementById('cm-spot-current').innerHTML = '';
     document.getElementById('cm-f-stock').value = '';
@@ -3531,7 +3522,6 @@ window.cmSpotClick = function(key, ri, ci) {
     document.getElementById('cm-f-type').value = '';
     document.getElementById('cm-f-colour').value = '';
     document.getElementById('cm-f-status').value = 'occupied';
-    document.getElementById('cm-f-flagged').checked = false;
     document.getElementById('cm-f-note').value = '';
     document.getElementById('cm-f-block-label').value = '🏢 Building';
     clearBtn.style.display = 'none';
@@ -3567,7 +3557,6 @@ window.cmSaveSpot = async function() {
     type:    document.getElementById('cm-f-type').value.trim(),
     colour:  document.getElementById('cm-f-colour').value.trim(),
     status,
-    flagged: document.getElementById('cm-f-flagged').checked,
     note:    document.getElementById('cm-f-note').value.trim(),
   };
   await set(ref(db, `compound_v2/${cmCurrentLot}/${cmActiveKey}`), data);
