@@ -1219,6 +1219,35 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <div class="modal-form-row modal-full"><label>Special instructions</label><textarea id="gr-instructions" placeholder="Accessories to remove, supplier, amount, PO/RO#…"></textarea></div>
       <div class="modal-form-row modal-full"><label>Notes</label><textarea id="gr-notes-field" placeholder="Any additional notes for the Get Ready team…"></textarea></div>
     </div>
+
+    <!-- Trade-ins -->
+    <div style="margin-top:10px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+      <div style="padding:8px 14px;background:var(--bg);border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Trade-ins</div>
+      <!-- Trade 1 -->
+      <div style="padding:10px 14px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;color:var(--ford);margin-bottom:8px">Trade 1</div>
+        <div class="modal-grid" style="gap:8px">
+          <div class="modal-form-row"><label>Stock #</label><input id="gr-t1-stock" type="text" placeholder="e.g. A1402A"/></div>
+          <div class="modal-form-row"><label>Year</label><input id="gr-t1-year" type="text" placeholder="2012" maxlength="4"/></div>
+          <div class="modal-form-row"><label>Make</label><input id="gr-t1-make" type="text" placeholder="Volkswagen"/></div>
+          <div class="modal-form-row"><label>Model</label><input id="gr-t1-model" type="text" placeholder="Passat"/></div>
+          <div class="modal-form-row"><label>Colour</label><input id="gr-t1-colour" type="text" placeholder="White"/></div>
+          <div class="modal-form-row"><label>KMs</label><input id="gr-t1-kms" type="text" placeholder="263312"/></div>
+        </div>
+      </div>
+      <!-- Trade 2 -->
+      <div style="padding:10px 14px">
+        <div style="font-size:11px;font-weight:700;color:var(--ford);margin-bottom:8px">Trade 2</div>
+        <div class="modal-grid" style="gap:8px">
+          <div class="modal-form-row"><label>Stock #</label><input id="gr-t2-stock" type="text" placeholder="e.g. B0123"/></div>
+          <div class="modal-form-row"><label>Year</label><input id="gr-t2-year" type="text" placeholder="2020" maxlength="4"/></div>
+          <div class="modal-form-row"><label>Make</label><input id="gr-t2-make" type="text" placeholder="Honda"/></div>
+          <div class="modal-form-row"><label>Model</label><input id="gr-t2-model" type="text" placeholder="Civic"/></div>
+          <div class="modal-form-row"><label>Colour</label><input id="gr-t2-colour" type="text" placeholder="Blue"/></div>
+          <div class="modal-form-row"><label>KMs</label><input id="gr-t2-kms" type="text" placeholder="80000"/></div>
+        </div>
+      </div>
+    </div>
     <div style="margin-top:10px;padding:12px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:var(--radius-sm)">
       <div class="checkbox-row" style="padding:0">
         <input type="checkbox" id="gr-needs-gas"/><label for="gr-needs-gas" style="font-weight:600;color:#991b1b">Needs Gas</label>
@@ -2392,6 +2421,23 @@ function renderGetReady() {
       </div>
       ${gasBanner}
       ${d.deliveryDate?`<div class="gr-delivery">📅 Delivery: <strong>${fmtGRDate(d.deliveryDate,d.deliveryTime)}</strong>${d.kms?` · ${d.kms} km allowed`:''}</div>`:''}
+      ${(d.trade1?.stock || d.trade2?.stock) ? `<div style="padding:8px 16px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:5px">
+        <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Trade-ins</div>
+        ${d.trade1?.stock ? `<div style="display:flex;align-items:center;gap:8px;font-size:12px">
+          <span style="background:#dbeafe;color:#1d4ed8;font-weight:700;padding:2px 7px;border-radius:4px;font-size:10px">T1</span>
+          <span style="font-weight:700;color:var(--text)">${d.trade1.stock}</span>
+          <span style="color:var(--text-muted)">${[d.trade1.year,d.trade1.make,d.trade1.model].filter(Boolean).join(' ')}</span>
+          ${d.trade1.colour?`<span style="color:var(--text-faint)">· ${d.trade1.colour}</span>`:''}
+          ${d.trade1.kms?`<span style="color:var(--text-faint);margin-left:auto">${Number(d.trade1.kms).toLocaleString()} km</span>`:''}
+        </div>` : ''}
+        ${d.trade2?.stock ? `<div style="display:flex;align-items:center;gap:8px;font-size:12px">
+          <span style="background:#ede9fe;color:#6d28d9;font-weight:700;padding:2px 7px;border-radius:4px;font-size:10px">T2</span>
+          <span style="font-weight:700;color:var(--text)">${d.trade2.stock}</span>
+          <span style="color:var(--text-muted)">${[d.trade2.year,d.trade2.make,d.trade2.model].filter(Boolean).join(' ')}</span>
+          ${d.trade2.colour?`<span style="color:var(--text-faint)">· ${d.trade2.colour}</span>`:''}
+          ${d.trade2.kms?`<span style="color:var(--text-faint);margin-left:auto">${Number(d.trade2.kms).toLocaleString()} km</span>`:''}
+        </div>` : ''}
+      </div>` : ''}
       <div class="gr-checklist">
         ${GR_CHECKLIST.map(([key,label])=>cbBtn(key,label)).join('')}
       </div>
@@ -2433,6 +2479,21 @@ window.openGRModal = function(id) {
   document.getElementById('gr-notes-field').value = d.notes || '';
   document.getElementById('gr-needs-gas').checked = d.needsGas || false;
   GR_CHECKLIST.forEach(([key]) => { document.getElementById('gr-c-'+key).checked = d[key] || false; });
+  // Trade-ins
+  const t1 = d.trade1 || {};
+  const t2 = d.trade2 || {};
+  document.getElementById('gr-t1-stock').value  = t1.stock  || '';
+  document.getElementById('gr-t1-year').value   = t1.year   || '';
+  document.getElementById('gr-t1-make').value   = t1.make   || '';
+  document.getElementById('gr-t1-model').value  = t1.model  || '';
+  document.getElementById('gr-t1-colour').value = t1.colour || '';
+  document.getElementById('gr-t1-kms').value    = t1.kms    || '';
+  document.getElementById('gr-t2-stock').value  = t2.stock  || '';
+  document.getElementById('gr-t2-year').value   = t2.year   || '';
+  document.getElementById('gr-t2-make').value   = t2.make   || '';
+  document.getElementById('gr-t2-model').value  = t2.model  || '';
+  document.getElementById('gr-t2-colour').value = t2.colour || '';
+  document.getElementById('gr-t2-kms').value    = t2.kms    || '';
   document.getElementById('gr-modal').style.display = 'flex';
   setTimeout(()=>document.getElementById('gr-stock').focus(), 100);
 };
@@ -2456,6 +2517,22 @@ window.saveGR = async function() {
     instructions: document.getElementById('gr-instructions').value.trim(),
     notes: document.getElementById('gr-notes-field').value.trim(),
     needsGas: document.getElementById('gr-needs-gas').checked,
+    trade1: {
+      stock:  document.getElementById('gr-t1-stock').value.trim().toUpperCase(),
+      year:   document.getElementById('gr-t1-year').value.trim(),
+      make:   document.getElementById('gr-t1-make').value.trim(),
+      model:  document.getElementById('gr-t1-model').value.trim(),
+      colour: document.getElementById('gr-t1-colour').value.trim(),
+      kms:    document.getElementById('gr-t1-kms').value.trim(),
+    },
+    trade2: {
+      stock:  document.getElementById('gr-t2-stock').value.trim().toUpperCase(),
+      year:   document.getElementById('gr-t2-year').value.trim(),
+      make:   document.getElementById('gr-t2-make').value.trim(),
+      model:  document.getElementById('gr-t2-model').value.trim(),
+      colour: document.getElementById('gr-t2-colour').value.trim(),
+      kms:    document.getElementById('gr-t2-kms').value.trim(),
+    },
     updatedBy: currentUser.name,
     ts: editingGRId ? (getReadyDeals[editingGRId]?.ts || Date.now()) : Date.now()
   };
