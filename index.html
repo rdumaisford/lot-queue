@@ -220,6 +220,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tv-cm-row{display:flex;gap:2px;margin-bottom:2px}
 .tv-cm-spot{width:12px;height:12px;border-radius:2px;flex-shrink:0;background:rgba(255,255,255,.08)}
 .tv-cm-spot.occupied{background:#3b82f6}
+.tv-cm-spot.flag{background:#ef4444}
+.tv-cm-spot.wholesale{background:#8b5cf6}
+.tv-cm-spot.fleet{background:#22c55e}
+.tv-cm-spot.leasereturn{background:#f97316}
 .tv-cm-spot.reserved{background:#f59e0b}
 .tv-cm-spot.blocked{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
 .tv-cm-spot.appointed{background:#a78bfa}
@@ -639,12 +643,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot{width:68px;height:46px;border-radius:5px;border:1.5px solid #cbd5e1;background:#f1f5f9;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;flex-shrink:0;user-select:none;transition:box-shadow .12s,transform .12s;overflow:hidden}
 .cm-spot:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.12)}
 .cm-spot.occupied{background:#eff6ff;border-color:#1d4ed8}
-.cm-spot.reserved{background:#fef3c7;border-color:#b45309}
-.cm-spot.special{background:#fce7f3;border-color:#9d174d}
-.cm-spot.empty{background:#f8fafc;border-color:#e2e8f0}
+.cm-spot.occupied .cm-spot-num{color:#1d4ed8}
+.cm-spot.flag{background:#fef2f2;border-color:#dc2626;border-width:2px}
+.cm-spot.flag .cm-spot-num{color:#dc2626}
+.cm-spot.wholesale{background:#faf5ff;border-color:#7c3aed}
+.cm-spot.wholesale .cm-spot-num{color:#7c3aed}
+.cm-spot.fleet{background:#f0fdf4;border-color:#15803d}
+.cm-spot.fleet .cm-spot-num{color:#15803d}
+.cm-spot.leasereturn{background:#fff7ed;border-color:#c2410c}
+.cm-spot.leasereturn .cm-spot-num{color:#c2410c}.cm-spot.empty{background:#f8fafc;border-color:#e2e8f0}
 .cm-spot-num{font-size:9px;font-weight:700;color:#94a3b8;line-height:1;position:absolute;top:3px;left:4px}
-.cm-spot.occupied .cm-spot-num,.cm-spot.special .cm-spot-num{color:#1d4ed8}
-.cm-spot.reserved .cm-spot-num{color:#b45309}
+.cm-spot.appointed .cm-spot-num{color:#7c3aed}
 .cm-spot-stock{font-size:9px;font-weight:800;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;margin-top:8px}
 .cm-spot-desc{font-size:7.5px;color:#64748b;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
 .cm-spot.cm-hi{box-shadow:0 0 0 2.5px #f59e0b,0 2px 8px rgba(0,0,0,.15)!important;transform:translateY(-2px)!important;z-index:2}
@@ -833,10 +842,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 
       <!-- Legend -->
       <div style="display:flex;align-items:center;gap:14px;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--bg);font-size:11px;color:var(--text-muted);flex-wrap:wrap">
-        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f1f5f9;border:1.5px solid #cbd5e1"></div>Empty</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#eff6ff;border:1.5px solid #1d4ed8"></div>Occupied</div>
-        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fef3c7;border:1.5px solid #b45309"></div>Reserved</div>
-        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fce7f3;border:1.5px solid #9d174d"></div>Special</div>
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fef2f2;border:1.5px solid #dc2626"></div>Flagged</div>
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#faf5ff;border:1.5px solid #7c3aed"></div>Wholesale</div>
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f0fdf4;border:1.5px solid #15803d"></div>Fleet</div>
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fff7ed;border:1.5px solid #c2410c"></div>Lease Return</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f0fdf4;border:1.5px solid #16a34a"></div>Get Ready</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f3e8ff;border:1.5px solid #7c3aed"></div>Appointment</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#e2e8f0;border:1.5px dashed #94a3b8"></div>Blocked</div>
@@ -1163,8 +1173,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <label>Status</label>
       <select id="cm-f-status" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none" onchange="document.getElementById('cm-block-label-field').style.display=this.value==='blocked'?'':'none'">
         <option value="occupied">Occupied</option>
-        <option value="reserved">Reserved</option>
-        <option value="special">Special</option>
+        <option value="flag">🚩 Flagged</option>
+        <option value="wholesale">Wholesale</option>
+        <option value="fleet">Fleet</option>
+        <option value="leasereturn">Lease Return / Return to Ford</option>
         <option value="blocked">Blocked — Building / Fence / Driveway</option>
       </select>
     </div>
@@ -2127,9 +2139,7 @@ function renderTVCompoundMap() {
         if (veh.status === 'blocked') cls = 'blocked';
         else if (apptStocks.has(s)) cls = 'appointed';
         else if (grStocks.has(s)) cls = 'getready';
-        else if (veh.status === 'reserved') cls = 'reserved';
-        else if (veh.status === 'special') cls = 'special';
-        else cls = 'occupied';
+        else cls = veh.status || 'occupied'; // occupied/flag/wholesale/fleet/leasereturn all have their own CSS
       }
       html += `<div class="tv-cm-spot ${cls}" title="${veh?veh.stock:''}"></div>`;
     }
@@ -2137,11 +2147,14 @@ function renderTVCompoundMap() {
   }
 
   // Legend
-  html += `<div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
-    <div style="display:flex;align-items:center;gap:4px;font-size:9px;opacity:.5"><div class="tv-cm-spot occupied" style="flex-shrink:0"></div>Occupied</div>
-    <div style="display:flex;align-items:center;gap:4px;font-size:9px;opacity:.5"><div class="tv-cm-spot appointed" style="flex-shrink:0"></div>Appointment</div>
-    <div style="display:flex;align-items:center;gap:4px;font-size:9px;opacity:.5"><div class="tv-cm-spot getready" style="flex-shrink:0"></div>Get Ready</div>
-    <div style="display:flex;align-items:center;gap:4px;font-size:9px;opacity:.5"><div class="tv-cm-spot reserved" style="flex-shrink:0"></div>Reserved</div>
+  html += `<div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:3px;font-size:9px;opacity:.5"><div class="tv-cm-spot occupied" style="flex-shrink:0"></div>Occupied</div>
+    <div style="display:flex;align-items:center;gap:3px;font-size:9px;opacity:.5"><div class="tv-cm-spot flag" style="flex-shrink:0"></div>Flagged</div>
+    <div style="display:flex;align-items:center;gap:3px;font-size:9px;opacity:.5"><div class="tv-cm-spot wholesale" style="flex-shrink:0"></div>Wholesale</div>
+    <div style="display:flex;align-items:center;gap:3px;font-size:9px;opacity:.5"><div class="tv-cm-spot fleet" style="flex-shrink:0"></div>Fleet</div>
+    <div style="display:flex;align-items:center;gap:3px;font-size:9px;opacity:.5"><div class="tv-cm-spot leasereturn" style="flex-shrink:0"></div>Lease Return</div>
+    <div style="display:flex;align-items:center;gap:3px;font-size:9px;opacity:.5"><div class="tv-cm-spot appointed" style="flex-shrink:0"></div>Appt</div>
+    <div style="display:flex;align-items:center;gap:3px;font-size:9px;opacity:.5"><div class="tv-cm-spot getready" style="flex-shrink:0"></div>Get Ready</div>
   </div>`;
 
   el.innerHTML = html;
