@@ -636,6 +636,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-lane-txt{font-size:9px;font-weight:700;color:#cbd5e1;text-transform:uppercase;letter-spacing:.1em;padding:0 8px;white-space:nowrap}
 .cm-add-spot{width:28px;height:46px;border-radius:5px;border:1.5px dashed #cbd5e1;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:18px;font-weight:300;flex-shrink:0;transition:all .15s;margin-left:3px}
 .cm-add-spot:hover{border-color:var(--ford);color:var(--ford);background:#eff6ff}
+.cm-spot.getready{background:#f0fdf4;border-color:#16a34a;border-width:2px}
+.cm-spot.getready .cm-spot-num{color:#16a34a}
+.cm-spot.getready .cm-spot-stock{color:#15803d}
+.cm-spot-gr{font-size:7px;font-weight:700;color:#15803d;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
 .cm-spot.appointed{background:#f3e8ff;border-color:#7c3aed;border-width:2px}
 .cm-spot.appointed .cm-spot-num{color:#7c3aed}
 .cm-spot.appointed .cm-spot-stock{color:#6d28d9}
@@ -754,7 +758,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-faint);font-size:12px">🔍</span>
           <input id="cm-search" type="text" placeholder="Search stock #…" oninput="cmSearch(this.value)" style="padding:6px 10px 6px 28px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);background:var(--bg);color:var(--text);outline:none;width:160px"/>
         </div>
-        <button id="cm-edit-btn" onclick="cmToggleEdit()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid #fcd34d;border-radius:var(--radius-sm);background:#fef9ec;color:#b45309;cursor:pointer">✏️ Edit</button>
+        <button id="cm-edit-btn" onclick="cmToggleEdit()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid #fcd34d;border-radius:var(--radius-sm);background:#fef9ec;color:#b45309;cursor:pointer;display:none">✏️ Edit</button>
         <button onclick="cmOpenQR()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer">🖨 QR</button>
       </div>
 
@@ -764,6 +768,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#eff6ff;border:1.5px solid #1d4ed8"></div>Occupied</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fef3c7;border:1.5px solid #b45309"></div>Reserved</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fce7f3;border:1.5px solid #9d174d"></div>Special</div>
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f0fdf4;border:1.5px solid #16a34a"></div>Get Ready</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f3e8ff;border:1.5px solid #7c3aed"></div>Appointment</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#e2e8f0;border:1.5px dashed #94a3b8"></div>Blocked</div>
         <span id="cm-edit-hint" style="display:none;color:#b45309;font-weight:600;margin-left:8px">✏️ Edit mode — click any spot to edit</span>
@@ -1297,19 +1302,20 @@ let denyTargetId = null;
 let grFilterStatus = 'ALL', editingGRId = null;
 
 // ── Roles & Permissions (Firebase-backed, editable in Settings) ──
-const ALL_ROLES = ['lot','reception','service','sales','detail','pdi','merchandiser','management'];
-const ROLE_LABELS = {lot:'Inventory Control',reception:'Reception',service:'Service',sales:'Sales',detail:'Detail',pdi:'PDI',merchandiser:'Merchandiser',management:'Management',display:'Display'};
+const ALL_ROLES = ['lot','reception','service','sales','fandi','detail','pdi','merchandiser','management'];
+const ROLE_LABELS = {lot:'Inventory Control',reception:'Reception',service:'Service',sales:'Sales',fandi:'F&I',detail:'Detail',pdi:'PDI',merchandiser:'Merchandiser',management:'Management',display:'Display'};
 
 // Default permission matrix — used until Firebase settings/permissions loads (or if a role/perm is missing there)
 const DEFAULT_PERMISSIONS = {
-  lot:          { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:true, tabTV:false, tabHistory:true, tabSettings:true, tabCompound:true,  trackerAdd:true, trackerEdit:true, trackerDelete:true, cbAcc:true, cbPdi:true, cbPhoto:true, cbIC:true, queueAdmin:true, clearCompleted:true, getReadyEdit:true },
-  reception:    { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:true, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  trackerAdd:true, trackerEdit:true, trackerDelete:true, cbAcc:true, cbPdi:true, cbPhoto:true, cbIC:true, queueAdmin:false, clearCompleted:false, getReadyEdit:true },
-  service:      { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
-  sales:        { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
-  detail:       { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
-  pdi:          { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, trackerAdd:true, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
-  merchandiser: { tabHome:false,tabQueue:false,tabTracker:false,tabGetReady:false,tabTV:true,  tabHistory:false, tabSettings:false, tabCompound:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true, cbPhoto:true, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
-  management:   { tabHome:true, tabQueue:true, tabTracker:true, tabGetReady:true, tabTV:false, tabHistory:true, tabSettings:true, tabCompound:true,   trackerAdd:true, trackerEdit:true, trackerDelete:true, cbAcc:true, cbPdi:true, cbPhoto:true, cbIC:true, queueAdmin:true, clearCompleted:true, getReadyEdit:true },
+  lot:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true  },
+  reception:    { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:false, clearCompleted:false, getReadyEdit:true  },
+  service:      { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
+  sales:        { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
+  fandi:        { tabHome:true,  tabQueue:true,  tabTracker:false, tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:true  },
+  detail:       { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
+  pdi:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:true,  trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
+  merchandiser: { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:true,  tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:true,  cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
+  management:   { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true  },
 };
 
 let PERMISSIONS = JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS)); // live copy, overwritten by Firebase
@@ -1336,6 +1342,8 @@ function applyPermissions() {
   if (clearBtn) clearBtn.style.display = perm('clearCompleted') ? 'block' : 'none';
   const grAddBtn = document.getElementById('btn-add-getready');
   if (grAddBtn) grAddBtn.style.display = perm('getReadyEdit') ? 'flex' : 'none';
+  const cmEditBtn = document.getElementById('cm-edit-btn');
+  if (cmEditBtn) cmEditBtn.style.display = perm('compoundEdit') ? '' : 'none';
 
   // Land on the right tab for roles whose only access is TV
   if (perm('tabTV') && !perm('tabHome')) {
@@ -1347,7 +1355,10 @@ function applyPermissions() {
 const PERM_GROUPS = [
   { label:'Tabs', keys: [
     ['tabHome','Home'], ['tabQueue','Vehicle Appointments'], ['tabTracker','Incoming'], ['tabGetReady','Get Ready'],
-    ['tabTV','TV Display'], ['tabHistory','History'], ['tabSettings','Settings'],
+    ['tabCompound','Compound Map'], ['tabTV','TV Display'], ['tabHistory','History'], ['tabSettings','Settings'],
+  ]},
+  { label:'Compound Map', keys: [
+    ['compoundEdit','Edit layout & spots'],
   ]},
   { label:'Incoming Tracker', keys: [
     ['trackerAdd','Add units'], ['trackerEdit','Edit / change status'], ['trackerDelete','Delete units'],
@@ -1526,6 +1537,7 @@ function startApp() {
     const active = Object.values(getReadyDeals).filter(d=>!d.completedAt);
     document.getElementById('tc-getready').textContent = active.length;
     renderGetReady(); renderGetReadySummary();
+    if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
   });
 
   if (perm('tabHistory')) {
@@ -2306,6 +2318,12 @@ window.setGRFilter = function(status, btn) {
 function getGRFiltered() {
   const q = document.getElementById('gr-search').value.trim().toLowerCase();
   let rows = Object.entries(getReadyDeals).map(([id,d])=>({id,...d}));
+
+  // Sales can only see their own deals (matched by salesperson name)
+  if (currentUser?.role === 'sales') {
+    rows = rows.filter(d => (d.salesperson||'').toLowerCase() === (currentUser.name||'').toLowerCase());
+  }
+
   if (grFilterStatus === 'GAS') rows = rows.filter(d => d.needsGas && !d.gasFilled);
   else if (grFilterStatus !== 'ALL') rows = rows.filter(d => d.type === grFilterStatus);
   if (q) rows = rows.filter(d => [d.stock,d.dealNum,d.vehicle,d.customer,d.salesperson,d.notes].join(' ').toLowerCase().includes(q));
@@ -2378,7 +2396,8 @@ function renderGetReady() {
   const canEdit = perm('getReadyEdit');
   const active = rows.filter(d => !grIsComplete(d));
   const completed = rows.filter(d => grIsComplete(d));
-  document.getElementById('gr-row-count').textContent = rows.length+' deal'+(rows.length!==1?'s':'')+' · '+active.length+' active';
+  const salesFilter = currentUser?.role === 'sales' ? ' · your deals only' : '';
+  document.getElementById('gr-row-count').textContent = rows.length+' deal'+(rows.length!==1?'s':'')+' · '+active.length+' active'+salesFilter;
 
   const body = document.getElementById('gr-body');
   if (!rows.length) {
@@ -2900,6 +2919,16 @@ function renderHomeGrid() {
     });
   }
 
+  if (perm('tabGetReady')) {
+    tiles.push({
+      name: 'getready', tone: 'green',
+      icon: `<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>`,
+      title: 'Get Ready',
+      desc: 'Track deal prep — PDI, detail, delivery dates and trades.',
+      badge: () => Object.values(getReadyDeals).filter(d=>!grIsComplete(d)).length
+    });
+  }
+
   if (perm('tabCompound')) {
     tiles.push({
       name: 'compound', tone: 'blue',
@@ -3054,6 +3083,15 @@ function cmRenderMap() {
     apptMap[stock] = { label, status: e.status };
   });
 
+  // Build stock# → get ready lookup
+  const grMap = {};
+  Object.values(getReadyDeals||{}).forEach(d => {
+    if (!d.stock || grIsComplete(d)) return;
+    grMap[d.stock.toUpperCase().trim()] = {
+      label: d.deliveryDate ? `📋 ${new Date(d.deliveryDate+'T12:00').toLocaleDateString('en-CA',{month:'short',day:'numeric'})}` : '📋 Get Ready',
+    };
+  });
+
   mapEl.className = `cm-grid${cmEditMode?' cm-edit-active':''}`;
 
   let html = '';
@@ -3079,6 +3117,7 @@ function cmRenderMap() {
       const key = `R${ri}-C${ci}`;
       const veh = v[key];
       const appt = veh ? apptMap[(veh.stock||'').toUpperCase().trim()] : null;
+      const gr   = veh ? grMap[(veh.stock||'').toUpperCase().trim()] : null;
 
       if (!veh && !cmEditMode) {
         html += `<div class="cm-spot empty"
@@ -3098,7 +3137,7 @@ function cmRenderMap() {
         const stock = (veh.stock||'').substring(0,10);
         const typeLine = [veh.type, veh.colour].filter(Boolean).join(' ').substring(0,16);
         const isBlocked = veh.status === 'blocked';
-        const cls = appt && !isBlocked ? 'appointed' : veh.status;
+        const cls = appt && !isBlocked ? 'appointed' : gr && !isBlocked ? 'getready' : veh.status;
         if (isBlocked) {
           // Blocked spots — greyed out, no drag
           html += `<div class="cm-spot blocked" onclick="cmSpotClick('${key}',${ri},${ci})"
@@ -3123,6 +3162,7 @@ function cmRenderMap() {
             <div class="cm-spot-stock">${stock}</div>
             <div class="cm-spot-desc">${typeLine}</div>
             ${appt && !cmEditMode ? `<div class="cm-spot-appt">🕐 ${appt.label}</div>` : ''}
+            ${gr && !appt && !cmEditMode ? `<div class="cm-spot-gr">${gr.label}</div>` : ''}
             ${veh.note && !cmEditMode ? `<div style="position:absolute;bottom:2px;left:0;right:0;height:3px;background:#f59e0b;border-radius:0 0 4px 4px"></div>` : ''}
           </div>`;
         }
