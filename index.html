@@ -1148,8 +1148,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <input id="cm-f-year" type="text" placeholder="e.g. 2024" maxlength="4" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/>
       </div>
       <div class="field">
-        <label>Model</label>
-        <input id="cm-f-model" type="text" placeholder="e.g. F-150 XLT" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/>
+        <label>Trim</label>
+        <input id="cm-f-trim" type="text" placeholder="e.g. XLT, Lariat, Sport" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -3339,7 +3339,7 @@ function cmRenderMap() {
         </div>`;
       } else {
         const stock = (veh.stock||'').substring(0,10);
-        const typeLine = [veh.year, veh.type||veh.model, veh.colour].filter(Boolean).join(' ').substring(0,18);
+        const typeLine = [veh.year, veh.type, veh.trim, veh.colour].filter(Boolean).join(' ').substring(0,18);
         const isBlocked = veh.status === 'blocked';
         const cls = appt && !isBlocked ? 'appointed' : gr && !isBlocked ? 'getready' : veh.status;
         if (isBlocked) {
@@ -3433,7 +3433,7 @@ window.cmSpotClick = function(key, ri, ci) {
 
   if (v) {
     const isBlocked = v.status === 'blocked';
-    const typeColour = [v.year, v.type||v.model, v.colour].filter(Boolean).join(' · ');
+    const typeColour = [v.year, v.type, v.trim, v.colour].filter(Boolean).join(' · ');
     document.getElementById('cm-spot-current').innerHTML = isBlocked
       ? `<div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px"><span style="font-size:18px">${(v.blockLabel||'').split(' ')[0]||'🚧'}</span><span style="font-size:13px;font-weight:600;color:#64748b">${v.blockLabel||'Blocked area'}</span></div>`
       : `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px">
@@ -3446,7 +3446,7 @@ window.cmSpotClick = function(key, ri, ci) {
         </div>`;
     document.getElementById('cm-f-stock').value = v.stock||'';
     document.getElementById('cm-f-year').value = v.year||'';
-    document.getElementById('cm-f-model').value = v.model||'';
+    document.getElementById('cm-f-trim').value = v.trim||'';
     document.getElementById('cm-f-type').value = v.type||'';
     document.getElementById('cm-f-colour').value = v.colour||'';
     document.getElementById('cm-f-status').value = v.status||'occupied';
@@ -3464,7 +3464,7 @@ window.cmSpotClick = function(key, ri, ci) {
     document.getElementById('cm-spot-current').innerHTML = '';
     document.getElementById('cm-f-stock').value = '';
     document.getElementById('cm-f-year').value = '';
-    document.getElementById('cm-f-model').value = '';
+    document.getElementById('cm-f-trim').value = '';
     document.getElementById('cm-f-type').value = '';
     document.getElementById('cm-f-colour').value = '';
     document.getElementById('cm-f-status').value = 'occupied';
@@ -3495,7 +3495,7 @@ window.cmSaveSpot = async function() {
   const data = {
     stock,
     year:    document.getElementById('cm-f-year').value.trim(),
-    model:   document.getElementById('cm-f-model').value.trim(),
+    trim:    document.getElementById('cm-f-trim').value.trim(),
     type:    document.getElementById('cm-f-type').value.trim(),
     colour:  document.getElementById('cm-f-colour').value.trim(),
     status,
