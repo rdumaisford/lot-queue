@@ -840,6 +840,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <span id="cm-select-count" style="font-size:12px;color:#b45309;font-weight:700"></span>
           <button onclick="cmMarkSelected('drive')" style="padding:4px 10px;font-size:12px;font-weight:600;border:1px solid #94a3b8;border-radius:var(--radius-sm);background:#e2e8f0;color:#475569;cursor:pointer">🛣 Drive Lane</button>
           <button onclick="cmMarkSelected('nopark')" style="padding:4px 10px;font-size:12px;font-weight:600;border:1px solid #fca5a5;border-radius:var(--radius-sm);background:#fef2f2;color:#dc2626;cursor:pointer">🚫 No Parking</button>
+          <button onclick="cmMarkSelected('void')" style="padding:4px 10px;font-size:12px;font-weight:600;border:1px solid #d1d5db;border-radius:var(--radius-sm);background:#d1d5db;color:#6b7280;cursor:pointer">⬛ Grey out</button>
           <button onclick="cmMarkSelected('clear')" style="padding:4px 10px;font-size:12px;font-weight:600;border:1px solid #86efac;border-radius:var(--radius-sm);background:#f0fdf4;color:#15803d;cursor:pointer">✓ Clear spots</button>
           <button onclick="cmClearSelection()" style="padding:4px 10px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text-muted);cursor:pointer">✕ Deselect</button>
         </div>
@@ -3659,6 +3660,8 @@ window.cmMarkSelected = async function(type) {
       updates[`compound_v2/${cmCurrentLot}/${key}`] = { stock: '🛣', blockLabel: '🛣 Drive Lane', status: 'blocked' };
     } else if (type === 'nopark') {
       updates[`compound_v2/${cmCurrentLot}/${key}`] = { stock: '🚫', blockLabel: '🚫 No Parking', status: 'blocked' };
+    } else if (type === 'void') {
+      updates[`compound_v2/${cmCurrentLot}/${key}`] = { stock: '', status: 'void' };
     }
   }
   await update(ref(db), updates);
