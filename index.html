@@ -220,11 +220,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tv-cm-row{display:flex;gap:2px;margin-bottom:2px}
 .tv-cm-spot{width:12px;height:12px;border-radius:2px;flex-shrink:0;background:rgba(255,255,255,.08)}
 .tv-cm-spot.occupied{background:#3b82f6}
-.tv-cm-spot.flag{background:#ef4444}
+.tv-cm-spot.flag{background:#7f1d1d}
 .tv-cm-spot.wholesale{background:#eab308}
 .tv-cm-spot.fleet{background:#22c55e}
 .tv-cm-spot.leasereturn{background:#3b82f6;border:2px solid #fff}
 .tv-cm-spot.reserved{background:#f59e0b}
+.tv-cm-spot.void{background:rgba(255,255,255,.15)}
 .tv-cm-spot.blocked{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
 .tv-cm-spot.appointed{background:#a78bfa}
 .tv-cm-spot.getready{background:#34d399}
@@ -328,8 +329,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .gr-type-pill.wholesale{background:#fef3c7;color:#92400e}
 .gr-card-vehicle{font-size:13px;color:var(--text-muted);margin-top:3px;font-weight:500}
 .gr-card-customer{font-size:12px;color:var(--text-faint);margin-top:2px}
-.gr-gas-banner{display:flex;align-items:center;gap:8px;padding:8px 16px;background:#fef2f2;border-bottom:1px solid #fecaca;font-size:13px;font-weight:600;color:#991b1b}
-.gr-gas-banner.no-gas-needed{background:#f0fdf4;border-bottom-color:#bbf7d0;color:#15803d}
+.gr-gas-banner{display:flex;align-items:center;gap:8px;padding:10px 16px;background:#fef2f2;border-bottom:2px solid #fecaca;font-size:13px;font-weight:600;color:#991b1b}
+.gr-gas-banner.no-gas-needed{background:#f0fdf4;border-bottom-color:#86efac;color:#15803d}
 .gr-delivery{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-muted);flex-wrap:wrap}
 .gr-delivery strong{color:var(--text)}
 .gr-checklist{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:12px 16px;border-bottom:1px solid var(--border)}
@@ -644,14 +645,18 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.12)}
 .cm-spot.occupied{background:#eff6ff;border-color:#1d4ed8}
 .cm-spot.occupied .cm-spot-num{color:#1d4ed8}
-.cm-spot.flag{background:#fef2f2;border-color:#dc2626;border-width:2px}
-.cm-spot.flag .cm-spot-num{color:#dc2626}
+.cm-spot.flag{background:#7f1d1d;border-color:#991b1b;border-width:2px}
+.cm-spot.flag .cm-spot-num{color:#fca5a5}
+.cm-spot.flag .cm-spot-stock{color:#fecaca}
+.cm-spot.flag .cm-spot-desc{color:#fca5a5}
 .cm-spot.wholesale{background:#fefce8;border-color:#ca8a04}
 .cm-spot.wholesale .cm-spot-num{color:#a16207}
 .cm-spot.fleet{background:#f0fdf4;border-color:#15803d}
 .cm-spot.fleet .cm-spot-num{color:#15803d}
 .cm-spot.leasereturn{background:#eff6ff;border-color:#1d4ed8;border-width:2px}
-.cm-spot.leasereturn .cm-spot-num{color:#1d4ed8}.cm-spot.empty{background:#f8fafc;border-color:#e2e8f0}
+.cm-spot.leasereturn .cm-spot-num{color:#1d4ed8}
+.cm-spot.void{background:#d1d5db;border-color:#d1d5db;cursor:default}
+.cm-spot.void *{display:none!important}.cm-spot.empty{background:#f8fafc;border-color:#e2e8f0}
 .cm-spot-num{font-size:9px;font-weight:700;color:#94a3b8;line-height:1;position:absolute;top:3px;left:4px}
 .cm-spot.appointed .cm-spot-num{color:#7c3aed}
 .cm-spot-stock{font-size:9px;font-weight:800;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;margin-top:8px}
@@ -843,7 +848,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <!-- Legend -->
       <div style="display:flex;align-items:center;gap:14px;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--bg);font-size:11px;color:var(--text-muted);flex-wrap:wrap">
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#eff6ff;border:1.5px solid #1d4ed8"></div>Occupied</div>
-        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fef2f2;border:1.5px solid #dc2626"></div>Flagged</div>
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#7f1d1d;border:1.5px solid #991b1b"></div>Flagged</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fefce8;border:1.5px solid #ca8a04"></div>Wholesale</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f0fdf4;border:1.5px solid #15803d"></div>Fleet</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#eff6ff;border:2px solid #1d4ed8"></div>Lease Return</div>
@@ -1177,6 +1182,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <option value="wholesale">Wholesale</option>
         <option value="fleet">Fleet</option>
         <option value="leasereturn">Lease Return / Return to Ford</option>
+        <option value="void">⬛ Grey out (no text)</option>
         <option value="blocked">Blocked — Building / Fence / Driveway</option>
       </select>
     </div>
@@ -1331,20 +1337,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         </div>
       </div>
     </div>
-    <div style="margin-top:10px;padding:12px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:var(--radius-sm)">
-      <div class="checkbox-row" style="padding:0">
-        <input type="checkbox" id="gr-needs-gas"/><label for="gr-needs-gas" style="font-weight:600;color:#991b1b">Needs Gas</label>
-      </div>
-    </div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:10px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+      <div class="checkbox-row" style="border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:#fef2f2"><input type="checkbox" id="gr-needs-gas"/><label for="gr-needs-gas" style="font-weight:700;color:#991b1b">⛽ Gas</label></div>
       <div class="checkbox-row" style="border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-pdi"/><label for="gr-c-pdi">PDI</label></div>
       <div class="checkbox-row" style="border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-lof"/><label for="gr-c-lof">LOF</label></div>
-      <div class="checkbox-row" style="border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-detail"/><label for="gr-c-detail">Detail</label></div>
-      <div class="checkbox-row" style="border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-paint"/><label for="gr-c-paint">Paint</label></div>
+      <div class="checkbox-row" style="border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-detail"/><label for="gr-c-detail">Detail</label></div>
+      <div class="checkbox-row" style="border-right:1px solid var(--border)"><input type="checkbox" id="gr-c-paint"/><label for="gr-c-paint">Paint</label></div>
       <div class="checkbox-row" style="border-right:1px solid var(--border)"><input type="checkbox" id="gr-c-safety"/><label for="gr-c-safety">Safety</label></div>
       <div class="checkbox-row" style="border-right:1px solid var(--border)"><input type="checkbox" id="gr-c-leather"/><label for="gr-c-leather">Leather</label></div>
-      <div class="checkbox-row" style="border-right:1px solid var(--border)"><input type="checkbox" id="gr-c-fabric"/><label for="gr-c-fabric">Fabric</label></div>
-      <div class="checkbox-row"><input type="checkbox" id="gr-c-module"/><label for="gr-c-module">Module</label></div>
+      <div class="checkbox-row"><input type="checkbox" id="gr-c-fabric"/><label for="gr-c-fabric">Fabric</label></div>
+      <div class="checkbox-row" style="border-right:1px solid var(--border);border-top:1px solid var(--border)"><input type="checkbox" id="gr-c-module"/><label for="gr-c-module">Module</label></div>
     </div>
     <div class="modal-actions">
       <button class="btn-modal-cancel" onclick="closeGRModal()">Cancel</button>
@@ -2089,12 +2091,13 @@ function renderTVGetReady() {
       else if (new Date(d.deliveryDate+'T12:00') < now) urgencyCls = 'gr-urgent';
     }
 
-    // Checklist progress
-    const checks = GR_CHECKLIST || [];
-    const done = checks.filter(([k]) => d[k]).length;
-    const total = checks.length;
-    const pct = total ? Math.round((done/total)*100) : 0;
-    const flagsHtml = checks.map(([k, label]) =>
+    // Checklist progress — only required services
+    const checks = GR_CHECKLIST.filter(([key]) => d['req_'+key]);
+    const checksFallback = checks.length > 0 ? checks : GR_CHECKLIST;
+    const done = checksFallback.filter(([k]) => d[k]).length;
+    const total = checksFallback.length;
+    const pct = total ? Math.round((done/total)*100) : 100;
+    const flagsHtml = checksFallback.map(([k, label]) =>
       `<span class="tv-gr-flag ${d[k]?'done':'pend'}">${label.substring(0,3)}</span>`
     ).join('');
 
@@ -2108,6 +2111,9 @@ function renderTVGetReady() {
         <div style="margin-left:auto;font-size:10px;font-weight:700;opacity:.5">${pct}%</div>
       </div>
       <div class="tv-gr-customer">${d.customer||''} ${d.salesperson?'· '+d.salesperson:''}</div>
+      <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;margin-bottom:4px;border-radius:6px;background:${d.needsGas?(d.gasFilled?'rgba(22,163,74,.2)':'rgba(220,38,38,.2)'):'rgba(22,163,74,.15)'};font-size:11px;font-weight:700;color:${d.needsGas?(d.gasFilled?'#86efac':'#fca5a5'):'#86efac'}">
+        <span>⛽</span>${d.needsGas?(d.gasFilled?'Gas Filled':'Needs Gas'):'No Gas Needed'}
+      </div>
       <div class="tv-gr-delivery">📅 ${delivLabel}</div>
       <div style="background:rgba(255,255,255,.1);border-radius:99px;height:3px;margin-bottom:6px">
         <div style="height:100%;border-radius:99px;width:${pct}%;background:${pct===100?'#34d399':pct>60?'#fbbf24':'#60a5fa'}"></div>
@@ -2504,7 +2510,11 @@ const GR_CHECKLIST = [
 ];
 
 function grIsComplete(d) {
-  return GR_CHECKLIST.every(([key]) => d[key]) && (!d.needsGas || d.gasFilled);
+  // Only check services that were flagged as required when the deal was created
+  const required = GR_CHECKLIST.filter(([key]) => d['req_'+key]);
+  // If no services were marked required, fall back to checking all (legacy deals)
+  const toCheck = required.length > 0 ? required : GR_CHECKLIST;
+  return toCheck.every(([key]) => d[key]) && (!d.needsGas || d.gasFilled);
 }
 
 window.setGRFilter = function(status, btn) {
@@ -2610,22 +2620,54 @@ function renderGetReady() {
     const typePillClass = {'AS-IS':'as-is','RETAIL':'retail','WHOLESALE':'wholesale'}[d.type]||'as-is';
     const completeBadge = isComplete ? `<span class="gr-complete-badge">✓ Ready</span>` : '';
 
-    const cbBtn = (field, label) => `<div class="gr-check-item">
-      <div class="gr-tap ${d[field]?'on':''}" onclick="${canEdit?`toggleGRField('${d.id}','${field}',${!d[field]})`:''}" style="${canEdit?'':'pointer-events:none;opacity:.6'}">
-        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-      </div>
-      <span class="gr-check-label">${label}</span>
-    </div>`;
+    const cbBtn = (field, label) => {
+      const required = d['req_'+field];
+      const done = d[field];
+      // If not required and not done, hide entirely
+      if (!required && !done) return '';
+      // If not required but somehow done, show greyed out
+      const dimmed = !required;
+      return `<div class="gr-check-item${dimmed?' gr-check-na':''}">
+        <div class="gr-tap ${done?'on':''}" onclick="${canEdit&&required?`toggleGRField('${d.id}','${field}',${!done})`:''}" style="${(!canEdit||!required)?'pointer-events:none;':''} ${dimmed?'opacity:.4':''}">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <span class="gr-check-label" style="${dimmed?'opacity:.4':''}">${label}</span>
+      </div>`;
+    };
+
+    // For legacy deals with no req_ flags, show all
+    const hasReqFlags = GR_CHECKLIST.some(([key]) => d['req_'+key] !== undefined);
+    const renderChecklist = hasReqFlags
+      ? GR_CHECKLIST.map(([key,label]) => cbBtn(key, label)).join('')
+      : GR_CHECKLIST.map(([key,label]) => {
+          const done = d[key];
+          return `<div class="gr-check-item">
+            <div class="gr-tap ${done?'on':''}" onclick="${canEdit?`toggleGRField('${d.id}','${key}',${!done})`:''}" style="${canEdit?'':'pointer-events:none;opacity:.6'}">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <span class="gr-check-label">${label}</span>
+          </div>`;
+        }).join('');
 
     const gasBanner = d.needsGas
-      ? `<div class="gr-gas-banner ${d.gasFilled?'no-gas-needed':''}">
-          <span>⛽</span>
-          <span style="flex:1">${d.gasFilled?'Gas filled':'Needs Gas'}</span>
-          ${canEdit?`<div class="gr-tap" style="width:auto;height:28px;padding:0 10px;${d.gasFilled?'background:#dcfce7;border-color:#86efac':''}" onclick="toggleGRField('${d.id}','gasFilled',${!d.gasFilled})">
-            <span style="font-size:11px;font-weight:700;color:${d.gasFilled?'#15803d':'#991b1b'}">${d.gasFilled?'✓ Done':'Mark filled'}</span>
-          </div>`:''}
+      ? `<div class="gr-gas-banner ${d.gasFilled?'no-gas-needed':''}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:20px">⛽</span>
+          <div style="flex:1">
+            <div style="font-weight:700">${d.gasFilled?'Gas Filled':'Needs Gas'}</div>
+            <div style="font-size:11px;font-weight:400;opacity:.7">${d.gasFilled?'Tank topped up and ready':'Fuel before delivery'}</div>
+          </div>
+          ${canEdit?`<div class="gr-tap" style="width:auto;height:32px;padding:0 14px;border-radius:20px;${d.gasFilled?'background:#dcfce7;border-color:#86efac':''}" onclick="toggleGRField('${d.id}','gasFilled',${!d.gasFilled})">
+            <span style="font-size:12px;font-weight:700;color:${d.gasFilled?'#15803d':'#991b1b'}">${d.gasFilled?'✓ Done':'Mark filled'}</span>
+          </div>`:'<span style="font-size:12px;font-weight:700;color:'+(d.gasFilled?'#15803d':'#991b1b')+'">'+(d.gasFilled?'✓ Filled':'Pending')+'</span>'}
         </div>`
-      : '';
+      : `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:#f0fdf4;border-bottom:2px solid #86efac;font-size:14px;font-weight:700;color:#15803d">
+          <span style="font-size:20px">⛽</span>
+          <div style="flex:1">
+            <div>No Gas Needed</div>
+            <div style="font-size:11px;font-weight:400;opacity:.7">Full tank confirmed</div>
+          </div>
+          <span style="font-size:18px">✓</span>
+        </div>`;
 
     return `<div class="gr-card${isComplete?' is-complete':' '+typeClass}" id="gr-${d.id}">
       <div class="gr-card-header">
@@ -2657,7 +2699,7 @@ function renderGetReady() {
         </div>` : ''}
       </div>` : ''}
       <div class="gr-checklist">
-        ${GR_CHECKLIST.map(([key,label])=>cbBtn(key,label)).join('')}
+        ${renderChecklist}
       </div>
       ${d.instructions?`<div style="padding:8px 16px;font-size:12px;color:#92400e;background:#fffbeb;border-bottom:1px solid var(--border)">⚠ ${d.instructions}</div>`:''}
       <div class="gr-notes">
@@ -2754,7 +2796,18 @@ window.saveGR = async function() {
     updatedBy: currentUser.name,
     ts: editingGRId ? (getReadyDeals[editingGRId]?.ts || Date.now()) : Date.now()
   };
-  GR_CHECKLIST.forEach(([key]) => { deal[key] = document.getElementById('gr-c-'+key).checked; });
+  GR_CHECKLIST.forEach(([key]) => {
+    const checked = document.getElementById('gr-c-'+key).checked;
+    deal[key] = checked;
+    // On new deals, mark which services are required based on what's checked
+    // On edits, preserve existing req_ flags unless the checkbox was just turned on
+    if (!editingGRId) {
+      deal['req_'+key] = checked;
+    } else {
+      // Keep existing req flag, but if newly checked add it as required
+      deal['req_'+key] = getReadyDeals[editingGRId]?.['req_'+key] || checked;
+    }
+  });
   if (editingGRId) deal.gasFilled = getReadyDeals[editingGRId]?.gasFilled || false;
   else deal.gasFilled = false;
 
@@ -3341,8 +3394,17 @@ function cmRenderMap() {
         const stock = (veh.stock||'').substring(0,10);
         const typeLine = [veh.year, veh.type, veh.trim, veh.colour].filter(Boolean).join(' ').substring(0,18);
         const isBlocked = veh.status === 'blocked';
-        const cls = appt && !isBlocked ? 'appointed' : gr && !isBlocked ? 'getready' : veh.status;
-        if (isBlocked) {
+        const isVoid = veh.status === 'void';
+        const cls = appt && !isBlocked && !isVoid ? 'appointed' : gr && !isBlocked && !isVoid ? 'getready' : veh.status;
+
+        if (isVoid) {
+          html += `<div class="cm-spot void"
+            onclick="${cmEditMode ? `cmSpotClick('${key}',${ri},${ci})` : ''}"
+            ondragover="${cmEditMode ? `cmDragOver(event)` : ''}"
+            ondrop="${cmEditMode ? `cmDrop(event,'${key}')` : ''}">
+            ${cmEditMode ? `<div class="cm-del-spot" style="display:flex" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
+          </div>`;
+        } else if (isBlocked) {
           html += `<div class="cm-spot blocked${cmEditMode&&cmSelected.has(key)?' cm-selected':''}"
             onclick="${cmEditMode?`cmSelectSpot(event,'${key}',${ri},${ci})`:`cmSpotClick('${key}',${ri},${ci})`}"
             ondragover="cmDragOver(event)" ondragleave="cmDragLeave(event)" ondrop="cmDrop(event,'${key}')">
@@ -3354,7 +3416,8 @@ function cmRenderMap() {
           </div>`;
         } else {
           const selCls = cmEditMode && cmSelected.has(key) ? ' cm-selected' : '';
-          html += `<div class="cm-spot ${cls}${selCls}"
+          const flaggedStyle = veh.flagged && !isBlocked ? 'border-color:#991b1b!important;box-shadow:inset 0 0 0 1px #991b1b;' : '';
+          html += `<div class="cm-spot ${cls}${selCls}" style="${flaggedStyle}"
             onclick="${cmEditMode?`cmSelectSpot(event,'${key}',${ri},${ci})`:`cmSpotClick('${key}',${ri},${ci})`}"
             draggable="${cmEditMode?'false':'true'}"
             ondragstart="cmDragStart(event,'${key}')"
@@ -3364,7 +3427,7 @@ function cmRenderMap() {
             ondrop="cmDrop(event,'${key}')">
             ${cmEditMode ? `<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
             ${veh.flagged && !cmEditMode ? `<div class="cm-spot-flag">🚩</div>` : ''}
-            <div class="cm-spot-num">${ci+1}</div>
+            <div class="cm-spot-num" style="${veh.flagged?'color:#dc2626':''}">${ci+1}</div>
             <div class="cm-spot-stock">${stock}</div>
             <div class="cm-spot-desc">${typeLine}</div>
             ${appt && !cmEditMode ? `<div class="cm-spot-appt">🕐 ${appt.label}</div>` : ''}
@@ -3487,6 +3550,11 @@ window.cmSaveSpot = async function() {
       status: 'blocked',
     };
     await set(ref(db, `compound_v2/${cmCurrentLot}/${cmActiveKey}`), data);
+    cmCloseSpot();
+    return;
+  }
+  if (status === 'void') {
+    await set(ref(db, `compound_v2/${cmCurrentLot}/${cmActiveKey}`), { stock: '', status: 'void' });
     cmCloseSpot();
     return;
   }
