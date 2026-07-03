@@ -206,6 +206,25 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tv-progress-track{height:5px;background:#dbeafe;border-radius:99px;overflow:hidden}
 .tv-progress-fill{height:100%;background:#1d4ed8;border-radius:99px}
 .tv-deny-reason{font-size:13px;color:#92400e;font-weight:600;margin-top:5px;background:#fef3c7;border-radius:4px;padding:3px 8px;display:inline-block}
+.tv-gr-card{background:rgba(255,255,255,.07);border-radius:10px;padding:10px 12px;flex-shrink:0}
+.tv-gr-card.gr-urgent{background:rgba(239,68,68,.15);border-left:3px solid #ef4444}
+.tv-gr-card.gr-today{background:rgba(234,179,8,.1);border-left:3px solid #eab308}
+.tv-gr-stock{font-size:18px;font-weight:800;letter-spacing:-.02em;margin-bottom:3px}
+.tv-gr-customer{font-size:11px;opacity:.55;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tv-gr-delivery{font-size:11px;font-weight:700;opacity:.7;margin-bottom:6px}
+.tv-gr-flags{display:flex;gap:4px;flex-wrap:wrap}
+.tv-gr-flag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em}
+.tv-gr-flag.done{background:rgba(22,163,74,.3);color:#86efac}
+.tv-gr-flag.pend{background:rgba(255,255,255,.08);color:rgba(255,255,255,.35)}
+/* Mini compound map */
+.tv-cm-row{display:flex;gap:2px;margin-bottom:2px}
+.tv-cm-spot{width:12px;height:12px;border-radius:2px;flex-shrink:0;background:rgba(255,255,255,.08)}
+.tv-cm-spot.occupied{background:#3b82f6}
+.tv-cm-spot.reserved{background:#f59e0b}
+.tv-cm-spot.blocked{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
+.tv-cm-spot.appointed{background:#a78bfa}
+.tv-cm-spot.getready{background:#34d399}
+.tv-cm-spot.special{background:#f472b6}
 .tv-empty{text-align:center;padding:60px 24px;opacity:.2;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .tv-empty p{font-size:24px;margin-top:16px}
 
@@ -1006,10 +1025,19 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div class="tv-sub" id="tv-count">Connecting…</div>
         <div class="tv-body">
           <div class="tv-col-queue" id="tv-list"></div>
-          <div class="tv-col-incoming">
+          <div class="tv-col-getready" style="flex:1.1;overflow:hidden;display:flex;flex-direction:column;min-width:0;border-left:1px solid rgba(255,255,255,.12);padding-left:20px">
+            <div class="tv-col-title">Get Ready</div>
+            <div id="tv-gr-list" style="display:flex;flex-direction:column;gap:7px;overflow-y:auto;flex:1"></div>
+          </div>
+          <div class="tv-col-incoming" style="flex:1.4">
             <div class="tv-col-title">Incoming Units</div>
             <div class="tv-incoming-summary" id="tv-inc-summary"></div>
             <div class="tv-inc-grid" id="tv-inc-list"></div>
+            <!-- Mini compound map -->
+            <div style="margin-top:12px;flex-shrink:0">
+              <div class="tv-col-title" style="margin-bottom:6px">Compound — 700 Bayview</div>
+              <div id="tv-compound-map" style="overflow:auto;max-height:220px"></div>
+            </div>
           </div>
         </div>
         <div id="tv-hint" style="position:absolute;bottom:14px;right:18px;font-size:10px;opacity:.15;color:white;user-select:none">Hold to show controls</div>
@@ -1578,6 +1606,7 @@ function startApp() {
     document.getElementById('tc-getready').textContent = active.length;
     renderGetReady(); renderGetReadySummary();
     if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
+    if (document.getElementById('panel-tv')?.classList.contains('active')) { renderTVGetReady(); renderTVCompoundMap(); }
   });
 
   if (perm('tabHistory')) {
@@ -1941,6 +1970,8 @@ function renderTV() {
   }
   tvList.innerHTML=tvHtml;
   renderTVIncoming();
+  renderTVGetReady();
+  renderTVCompoundMap();
 }
 
 function renderTVIncoming() {
@@ -2016,6 +2047,104 @@ function renderTVIncoming() {
   }).join('');
 
   listEl.innerHTML = html || '<div style="opacity:.3;font-size:13px;text-align:center;padding:20px;grid-column:1/-1">No incoming units</div>';
+}
+
+function renderTVGetReady() {
+  const el = document.getElementById('tv-gr-list');
+  if (!el) return;
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
+
+  let deals = Object.values(getReadyDeals||{})
+    .filter(d => !grIsComplete(d))
+    .sort((a,b) => {
+      const at = a.deliveryDate ? new Date(a.deliveryDate).getTime() : Infinity;
+      const bt = b.deliveryDate ? new Date(b.deliveryDate).getTime() : Infinity;
+      return at - bt;
+    });
+
+  if (!deals.length) {
+    el.innerHTML = '<div style="opacity:.3;font-size:13px;text-align:center;padding:20px">No active deals</div>';
+    return;
+  }
+
+  el.innerHTML = deals.slice(0, 12).map(d => {
+    // Card urgency
+    let urgencyCls = '';
+    if (d.deliveryDate) {
+      const delivStr = `${new Date(d.deliveryDate+'T12:00').getFullYear()}-${new Date(d.deliveryDate+'T12:00').getMonth()}-${new Date(d.deliveryDate+'T12:00').getDate()}`;
+      if (delivStr === todayStr) urgencyCls = 'gr-today';
+      else if (new Date(d.deliveryDate+'T12:00') < now) urgencyCls = 'gr-urgent';
+    }
+
+    // Checklist progress
+    const checks = GR_CHECKLIST || [];
+    const done = checks.filter(([k]) => d[k]).length;
+    const total = checks.length;
+    const pct = total ? Math.round((done/total)*100) : 0;
+    const flagsHtml = checks.map(([k, label]) =>
+      `<span class="tv-gr-flag ${d[k]?'done':'pend'}">${label.substring(0,3)}</span>`
+    ).join('');
+
+    const delivLabel = d.deliveryDate
+      ? new Date(d.deliveryDate+'T12:00').toLocaleDateString('en-CA',{month:'short',day:'numeric'})+(d.deliveryTime?` @ ${d.deliveryTime}`:'')
+      : 'No delivery date';
+
+    return `<div class="tv-gr-card ${urgencyCls}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+        <div class="tv-gr-stock">${d.stock||'—'}</div>
+        <div style="margin-left:auto;font-size:10px;font-weight:700;opacity:.5">${pct}%</div>
+      </div>
+      <div class="tv-gr-customer">${d.customer||''} ${d.salesperson?'· '+d.salesperson:''}</div>
+      <div class="tv-gr-delivery">📅 ${delivLabel}</div>
+      <div style="background:rgba(255,255,255,.1);border-radius:99px;height:3px;margin-bottom:6px">
+        <div style="height:100%;border-radius:99px;width:${pct}%;background:${pct===100?'#34d399':pct>60?'#fbbf24':'#60a5fa'}"></div>
+      </div>
+      <div class="tv-gr-flags">${flagsHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTVCompoundMap() {
+  const el = document.getElementById('tv-compound-map');
+  if (!el) return;
+  const v = cmVehicles['bayview700'] || {};
+  const size = cmGridSize['bayview700'] || { rows: 13, cols: 52 };
+
+  // Build appointment + GR lookup for colour coding
+  const apptStocks = new Set(Object.values(entries||{}).filter(e=>e.stock&&e.status!=='done').map(e=>e.stock.toUpperCase()));
+  const grStocks = new Set(Object.values(getReadyDeals||{}).filter(d=>d.stock&&!grIsComplete(d)).map(d=>d.stock.toUpperCase()));
+
+  let html = '';
+  for (let ri = 0; ri < size.rows; ri++) {
+    html += '<div class="tv-cm-row">';
+    for (let ci = 0; ci < size.cols; ci++) {
+      const key = `R${ri}-C${ci}`;
+      const veh = v[key];
+      let cls = '';
+      if (veh) {
+        const s = (veh.stock||'').toUpperCase();
+        if (veh.status === 'blocked') cls = 'blocked';
+        else if (apptStocks.has(s)) cls = 'appointed';
+        else if (grStocks.has(s)) cls = 'getready';
+        else if (veh.status === 'reserved') cls = 'reserved';
+        else if (veh.status === 'special') cls = 'special';
+        else cls = 'occupied';
+      }
+      html += `<div class="tv-cm-spot ${cls}" title="${veh?veh.stock:''}"></div>`;
+    }
+    html += '</div>';
+  }
+
+  // Legend
+  html += `<div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:4px;font-size:9px;opacity:.5"><div class="tv-cm-spot occupied" style="flex-shrink:0"></div>Occupied</div>
+    <div style="display:flex;align-items:center;gap:4px;font-size:9px;opacity:.5"><div class="tv-cm-spot appointed" style="flex-shrink:0"></div>Appointment</div>
+    <div style="display:flex;align-items:center;gap:4px;font-size:9px;opacity:.5"><div class="tv-cm-spot getready" style="flex-shrink:0"></div>Get Ready</div>
+    <div style="display:flex;align-items:center;gap:4px;font-size:9px;opacity:.5"><div class="tv-cm-spot reserved" style="flex-shrink:0"></div>Reserved</div>
+  </div>`;
+
+  el.innerHTML = html;
 }
 let selectedUnits = new Set();
 
