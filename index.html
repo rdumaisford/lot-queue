@@ -221,9 +221,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tv-cm-spot{width:12px;height:12px;border-radius:2px;flex-shrink:0;background:rgba(255,255,255,.08)}
 .tv-cm-spot.occupied{background:#3b82f6}
 .tv-cm-spot.flag{background:#ef4444}
-.tv-cm-spot.wholesale{background:#8b5cf6}
+.tv-cm-spot.wholesale{background:#eab308}
 .tv-cm-spot.fleet{background:#22c55e}
-.tv-cm-spot.leasereturn{background:#f97316}
+.tv-cm-spot.leasereturn{background:#3b82f6;border:2px solid #fff}
 .tv-cm-spot.reserved{background:#f59e0b}
 .tv-cm-spot.blocked{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
 .tv-cm-spot.appointed{background:#a78bfa}
@@ -646,12 +646,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot.occupied .cm-spot-num{color:#1d4ed8}
 .cm-spot.flag{background:#fef2f2;border-color:#dc2626;border-width:2px}
 .cm-spot.flag .cm-spot-num{color:#dc2626}
-.cm-spot.wholesale{background:#faf5ff;border-color:#7c3aed}
-.cm-spot.wholesale .cm-spot-num{color:#7c3aed}
+.cm-spot.wholesale{background:#fefce8;border-color:#ca8a04}
+.cm-spot.wholesale .cm-spot-num{color:#a16207}
 .cm-spot.fleet{background:#f0fdf4;border-color:#15803d}
 .cm-spot.fleet .cm-spot-num{color:#15803d}
-.cm-spot.leasereturn{background:#fff7ed;border-color:#c2410c}
-.cm-spot.leasereturn .cm-spot-num{color:#c2410c}.cm-spot.empty{background:#f8fafc;border-color:#e2e8f0}
+.cm-spot.leasereturn{background:#eff6ff;border-color:#1d4ed8;border-width:2px}
+.cm-spot.leasereturn .cm-spot-num{color:#1d4ed8}.cm-spot.empty{background:#f8fafc;border-color:#e2e8f0}
 .cm-spot-num{font-size:9px;font-weight:700;color:#94a3b8;line-height:1;position:absolute;top:3px;left:4px}
 .cm-spot.appointed .cm-spot-num{color:#7c3aed}
 .cm-spot-stock{font-size:9px;font-weight:800;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;margin-top:8px}
@@ -844,9 +844,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <div style="display:flex;align-items:center;gap:14px;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--bg);font-size:11px;color:var(--text-muted);flex-wrap:wrap">
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#eff6ff;border:1.5px solid #1d4ed8"></div>Occupied</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fef2f2;border:1.5px solid #dc2626"></div>Flagged</div>
-        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#faf5ff;border:1.5px solid #7c3aed"></div>Wholesale</div>
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fefce8;border:1.5px solid #ca8a04"></div>Wholesale</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f0fdf4;border:1.5px solid #15803d"></div>Fleet</div>
-        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fff7ed;border:1.5px solid #c2410c"></div>Lease Return</div>
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#eff6ff;border:2px solid #1d4ed8"></div>Lease Return</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f0fdf4;border:1.5px solid #16a34a"></div>Get Ready</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f3e8ff;border:1.5px solid #7c3aed"></div>Appointment</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#e2e8f0;border:1.5px dashed #94a3b8"></div>Blocked</div>
