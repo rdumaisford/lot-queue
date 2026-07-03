@@ -656,7 +656,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot.leasereturn{background:#eff6ff;border-color:#1d4ed8;border-width:2px}
 .cm-spot.leasereturn .cm-spot-num{color:#1d4ed8}
 .cm-spot.void{background:#d1d5db;border-color:#d1d5db;cursor:default}
-.cm-spot.void *{display:none!important}.cm-spot.empty{background:#f8fafc;border-color:#e2e8f0}
+.cm-spot.void *{display:none!important}
+.cm-spot.blocked{background:#e2e8f0;border-color:#94a3b8;border-style:dashed;cursor:default}.cm-spot.empty{background:#f8fafc;border-color:#e2e8f0}
 .cm-spot-num{font-size:9px;font-weight:700;color:#94a3b8;line-height:1;position:absolute;top:3px;left:4px}
 .cm-spot.appointed .cm-spot-num{color:#7c3aed}
 .cm-spot-stock{font-size:9px;font-weight:800;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;margin-top:8px}
@@ -681,7 +682,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot.cm-drag-over{border-color:var(--ford)!important;background:#eff6ff!important;box-shadow:0 0 0 2px #93c5fd!important;transform:scale(1.05)}
 .cm-spot[draggable="true"]{cursor:grab}
 .cm-spot[draggable="true"]:active{cursor:grabbing}
-.cm-spot.blocked{background:#e2e8f0;border-color:#94a3b8;border-style:dashed;cursor:pointer}
 .cm-spot.blocked .cm-spot-num{color:#94a3b8}
 .cm-spot.blocked .cm-spot-stock{color:#64748b;font-size:8px;font-weight:600}
 .cm-spot.blocked:hover{background:#cbd5e1!important}
@@ -3394,18 +3394,20 @@ function cmRenderMap() {
         const cls = appt && !isBlocked && !isVoid ? 'appointed' : gr && !isBlocked && !isVoid ? 'getready' : veh.status;
 
         if (isVoid) {
-          html += `<div class="cm-spot void"
-            onclick="${cmEditMode ? `cmSpotClick('${key}',${ri},${ci})` : ''}"
-            ondragover="${cmEditMode ? `cmDragOver(event)` : ''}"
-            ondrop="${cmEditMode ? `cmDrop(event,'${key}')` : ''}">
+          // Void — completely inert in normal mode, selectable/deletable in edit mode only
+          html += `<div class="cm-spot void${cmEditMode&&cmSelected.has(key)?' cm-selected':''}"
+            style="cursor:${cmEditMode?'pointer':'default'}"
+            ${cmEditMode?`onclick="cmSelectSpot(event,'${key}',${ri},${ci})" ondragover="cmDragOver(event)" ondragleave="cmDragLeave(event)" ondrop="cmDrop(event,'${key}')"`:''}>
             ${cmEditMode ? `<div class="cm-del-spot" style="display:flex" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
+            ${cmEditMode&&cmSelected.has(key)?'<div style="font-size:10px;color:#f59e0b;font-weight:800;position:absolute;inset:0;display:flex;align-items:center;justify-content:center">✓</div>':''}
           </div>`;
         } else if (isBlocked) {
+          // Blocked (drive lane, no parking, gatehouse etc) — inert in normal mode
           html += `<div class="cm-spot blocked${cmEditMode&&cmSelected.has(key)?' cm-selected':''}"
-            onclick="${cmEditMode?`cmSelectSpot(event,'${key}',${ri},${ci})`:`cmSpotClick('${key}',${ri},${ci})`}"
-            ondragover="cmDragOver(event)" ondragleave="cmDragLeave(event)" ondrop="cmDrop(event,'${key}')">
+            style="cursor:${cmEditMode?'pointer':'default'}"
+            ${cmEditMode?`onclick="cmSelectSpot(event,'${key}',${ri},${ci})" ondragover="cmDragOver(event)" ondragleave="cmDragLeave(event)" ondrop="cmDrop(event,'${key}')"`:''}>
             ${cmEditMode ? `<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
-            <div class="cm-spot-num">${ci+1}</div>
+            <div class="cm-spot-num" style="${cmEditMode?'':'opacity:.5'}">${cmEditMode?ci+1:''}</div>
             <div class="cm-spot-stock">${(veh.blockLabel||'').split(' ').slice(0,1).join(' ')}</div>
             <div class="cm-spot-desc" style="font-size:7px">${(veh.blockLabel||'').split(' ').slice(1).join(' ')}</div>
             ${cmEditMode&&cmSelected.has(key)?'<div style="font-size:10px;color:#f59e0b;font-weight:800;position:absolute;bottom:2px;right:3px">✓</div>':''}
