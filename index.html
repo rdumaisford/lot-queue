@@ -774,6 +774,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <!-- Lot switcher -->
         <div style="display:flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
           <button id="cm-lot-btn-bayview700" onclick="cmSwitchLot('bayview700')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--ford);color:#fff">700 Bayview</button>
+          <button id="cm-lot-btn-bayview323" onclick="cmSwitchLot('bayview323')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">323 Bayview</button>
           <button id="cm-lot-btn-mapleview55" onclick="cmSwitchLot('mapleview55')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">55 Mapleview</button>
         </div>
         <!-- Stats -->
@@ -3012,6 +3013,7 @@ function renderHomeGrid() {
 // ── Compound Map ──────────────────────────────────────
 const CM_LOTS = {
   bayview700:  { label: '700 Bayview' },
+  bayview323:  { label: '323 Bayview' },
   mapleview55: { label: '55 Mapleview' },
 };
 
@@ -3555,6 +3557,7 @@ function cmStartListeners() {
     const meta = snap.val() || {};
     cmGridSize = {
       bayview700:  { rows: meta.bayview700?.rows  || 13, cols: meta.bayview700?.cols  || 52 },
+      bayview323:  { rows: meta.bayview323?.rows  || 10, cols: meta.bayview323?.cols  || 30 },
       mapleview55: { rows: meta.mapleview55?.rows || 10, cols: meta.mapleview55?.cols || 30 },
     };
     if (document.getElementById('panel-compound')?.classList.contains('active')) cmRender();
@@ -3577,6 +3580,10 @@ function cmStartListeners() {
   onValue(ref(db, 'compound_v2/mapleview55'), snap => {
     cmVehicles['mapleview55'] = snap.val() || {};
     if (cmCurrentLot === 'mapleview55') cmRender();
+  });
+  onValue(ref(db, 'compound_v2/bayview323'), snap => {
+    cmVehicles['bayview323'] = snap.val() || {};
+    if (cmCurrentLot === 'bayview323') cmRender();
   });
 }
 
