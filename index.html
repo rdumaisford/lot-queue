@@ -2288,18 +2288,19 @@ function renderTVCompoundMap() {
     for (let ci = 0; ci < numCols; ci++) {
       const key = `R${ri}-C${ci}`;
       const veh = v[key];
-      let bg = 'rgba(255,255,255,.08)';
+      let bg = 'rgba(255,255,255,.06)'; // empty
       if (veh) {
         const s = (veh.stock||'').toUpperCase();
-        if (veh.status==='void') bg='rgba(255,255,255,.03)';
-        else if (veh.status==='blocked') bg='rgba(255,255,255,.06)';
-        else if (apptStocks.has(s)) bg='#a78bfa';
-        else if (grStocks.has(s)) bg='#34d399';
-        else if (veh.status==='flag') bg='#7f1d1d';
-        else if (veh.status==='wholesale') bg='#eab308';
-        else if (veh.status==='fleet') bg='#22c55e';
-        else if (veh.status==='leasereturn') bg='#3b82f6';
-        else bg='rgba(255,255,255,.35)';
+        const st = veh.status || 'occupied';
+        if (st === 'void') bg = 'rgba(255,255,255,.03)';
+        else if (st === 'blocked') bg = 'rgba(255,255,255,.1)';
+        else if (apptStocks.has(s)) bg = '#a78bfa';        // purple — appointment
+        else if (grStocks.has(s))   bg = '#34d399';        // green — get ready
+        else if (st === 'flag')       bg = '#7f1d1d';      // dark red — flagged
+        else if (st === 'wholesale')  bg = '#eab308';      // yellow
+        else if (st === 'fleet')      bg = '#22c55e';      // green
+        else if (st === 'leasereturn')bg = '#3b82f6';      // blue
+        else                          bg = '#94a3b8';      // solid grey-blue — occupied
       }
       html += `<div style="flex:1;min-width:0;aspect-ratio:1;background:${bg};border-radius:1px" title="${veh?veh.stock:''}"></div>`;
     }
@@ -2307,15 +2308,14 @@ function renderTVCompoundMap() {
   }
   html += `</div>`;
 
-  // Legend
-  html += `<div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
-    <div style="display:flex;align-items:center;gap:3px;font-size:9px;opacity:.5"><div class="tv-cm-spot occupied" style="flex-shrink:0"></div>Occupied</div>
-    <div style="display:flex;align-items:center;gap:3px;font-size:9px;opacity:.5"><div class="tv-cm-spot flag" style="flex-shrink:0"></div>Flagged</div>
-    <div style="display:flex;align-items:center;gap:3px;font-size:9px;opacity:.5"><div class="tv-cm-spot wholesale" style="flex-shrink:0"></div>Wholesale</div>
-    <div style="display:flex;align-items:center;gap:3px;font-size:9px;opacity:.5"><div class="tv-cm-spot fleet" style="flex-shrink:0"></div>Fleet</div>
-    <div style="display:flex;align-items:center;gap:3px;font-size:9px;opacity:.5"><div class="tv-cm-spot leasereturn" style="flex-shrink:0"></div>Lease Return</div>
-    <div style="display:flex;align-items:center;gap:3px;font-size:9px;opacity:.5"><div class="tv-cm-spot appointed" style="flex-shrink:0"></div>Appt</div>
-    <div style="display:flex;align-items:center;gap:3px;font-size:9px;opacity:.5"><div class="tv-cm-spot getready" style="flex-shrink:0"></div>Get Ready</div>
+  html += `<div style="display:flex;gap:8px;margin-top:5px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:3px;font-size:9px;color:rgba(255,255,255,.5)"><div style="width:10px;height:10px;border-radius:2px;background:#94a3b8;flex-shrink:0"></div>Occupied</div>
+    <div style="display:flex;align-items:center;gap:3px;font-size:9px;color:rgba(255,255,255,.5)"><div style="width:10px;height:10px;border-radius:2px;background:#7f1d1d;flex-shrink:0"></div>Flagged</div>
+    <div style="display:flex;align-items:center;gap:3px;font-size:9px;color:rgba(255,255,255,.5)"><div style="width:10px;height:10px;border-radius:2px;background:#eab308;flex-shrink:0"></div>Wholesale</div>
+    <div style="display:flex;align-items:center;gap:3px;font-size:9px;color:rgba(255,255,255,.5)"><div style="width:10px;height:10px;border-radius:2px;background:#22c55e;flex-shrink:0"></div>Fleet</div>
+    <div style="display:flex;align-items:center;gap:3px;font-size:9px;color:rgba(255,255,255,.5)"><div style="width:10px;height:10px;border-radius:2px;background:#3b82f6;flex-shrink:0"></div>Lease Return</div>
+    <div style="display:flex;align-items:center;gap:3px;font-size:9px;color:rgba(255,255,255,.5)"><div style="width:10px;height:10px;border-radius:2px;background:#a78bfa;flex-shrink:0"></div>Appt</div>
+    <div style="display:flex;align-items:center;gap:3px;font-size:9px;color:rgba(255,255,255,.5)"><div style="width:10px;height:10px;border-radius:2px;background:#34d399;flex-shrink:0"></div>Get Ready</div>
   </div>`;
 
   el.innerHTML = html;
