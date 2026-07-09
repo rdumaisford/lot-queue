@@ -1145,7 +1145,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         </div>
         <div class="tv-sub" id="tv-count">Connecting…</div>
         <div class="tv-body">
-          <div class="tv-col-queue" id="tv-list"></div>
+          <div class="tv-col-queue" style="display:flex;flex-direction:column;flex:1.4;overflow:hidden;min-width:0">
+            <div class="tv-col-title" id="tv-title-queue">Vehicle Appointments</div>
+            <div style="overflow-y:auto;flex:1" id="tv-list"></div>
+          </div>
           <div class="tv-col-getready" style="flex:1.1;overflow:hidden;display:flex;flex-direction:column;min-width:0;border-left:1px solid rgba(255,255,255,.12);padding-left:20px">
             <div class="tv-col-title" id="tv-title-getready">Get Ready</div>
             <div id="tv-gr-list" style="display:flex;flex-direction:column;gap:0;overflow-y:auto;flex:1"></div>
@@ -2062,16 +2065,8 @@ function renderTV() {
   }
   if(!total&&!done.length&&!onholdEntries.length){tvCount.textContent='No active moves';tvList.innerHTML='<div class="tv-empty"><div style="font-size:48px">✓</div><p>All clear — no pending moves</p></div>';return;}
   tvCount.textContent=(active.length?active.length+' active · ':'')+( upcoming.length?upcoming.length+' upcoming · ':'')+( done.length?done.length+' completed':'');
-  // Queue column title with count
-  const queueTitleEl = tvList.previousElementSibling;
-  if(queueTitleEl&&queueTitleEl.classList.contains('tv-col-title')) {
-    queueTitleEl.textContent=`Vehicle Appointments (${active.length+upcoming.length})`;
-  } else {
-    // Insert title if missing
-    const t=document.createElement('div');t.className='tv-col-title';t.style.marginBottom='10px';t.style.flexShrink='0';
-    t.textContent=`Vehicle Appointments (${active.length+upcoming.length})`;
-    tvList.parentElement.insertBefore(t,tvList);
-  }
+  const qTitle = document.getElementById('tv-title-queue');
+  if (qTitle) qTitle.textContent = `Vehicle Appointments (${active.length+upcoming.length})`;
   let tvHtml='';
   if(active.length){
     tvHtml+=`<div class="tv-section-label">Now — ${active.length} active</div><div class="tv-grid">`;
