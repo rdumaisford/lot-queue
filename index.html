@@ -1143,7 +1143,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <div class="tv-col-queue" id="tv-list"></div>
           <div class="tv-col-getready" style="flex:1.1;overflow:hidden;display:flex;flex-direction:column;min-width:0;border-left:1px solid rgba(255,255,255,.12);padding-left:20px">
             <div class="tv-col-title">Get Ready</div>
-            <div id="tv-gr-list" style="display:flex;flex-direction:column;gap:7px;overflow-y:auto;flex:1"></div>
+            <div id="tv-gr-list" style="display:flex;flex-direction:column;gap:0;overflow-y:auto;flex:1"></div>
           </div>
           <div class="tv-col-incoming" style="flex:1.4">
             <div class="tv-col-title">Incoming Units</div>
@@ -1442,6 +1442,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <div class="checkbox-row" style="border-right:1px solid var(--border)"><input type="checkbox" id="gr-c-leather"/><label for="gr-c-leather">Leather</label></div>
       <div class="checkbox-row"><input type="checkbox" id="gr-c-fabric"/><label for="gr-c-fabric">Fabric</label></div>
       <div class="checkbox-row" style="border-right:1px solid var(--border);border-top:1px solid var(--border)"><input type="checkbox" id="gr-c-module"/><label for="gr-c-module">Module</label></div>
+    </div>
+
+    <!-- Custom / Other fields -->
+    <div style="margin-top:10px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:6px">Other / Custom</div>
+      <div id="gr-custom-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+      <button type="button" onclick="grAddCustomField()" style="padding:7px 14px;font-size:13px;font-weight:600;border:1px dashed var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text-muted);cursor:pointer;width:100%">+ Add custom item</button>
     </div>
     <div class="modal-actions">
       <button class="btn-modal-cancel" onclick="closeGRModal()">Cancel</button>
@@ -1747,9 +1754,9 @@ function upcomingScheduled() {
 function calcWaitMins() { return activeQueue().filter(e=>e.status!=='done').length*MOVE_MINS; }
 function estimatedReadyTime(mins) {
   const d=new Date(); d.setMinutes(d.getMinutes()+mins);
-  return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  return d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',hour12:true});
 }
-function fmtHour(h) { const d=new Date(); d.setHours(h,0,0,0); return d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}); }
+function fmtHour(h) { const d=new Date(); d.setHours(h,0,0,0); return d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',hour12:true}); }
 function fmtCountdown(ms) {
   if(ms<=0) return 'Starting now';
   const s=Math.floor(ms/1000), d=Math.floor(s/86400), h=Math.floor((s%86400)/3600), m=Math.floor((s%3600)/60), sec=s%60;
@@ -1758,10 +1765,11 @@ function fmtCountdown(ms) {
   if(m>0) return m+'m '+sec+'s';
   return sec+'s';
 }
-function fmtTime(ts){return new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
+function fmtTime(ts){return new Date(ts).toLocaleTimeString([],{hour:'numeric',minute:'2-digit',hour12:true});}
+function fmtTimeStr(str){if(!str)return str;const [h,m]=str.split(':').map(Number);const d=new Date();d.setHours(h,m,0,0);return d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',hour12:true});}
 function fmtDateTime(ts){
   const d=new Date(ts);
-  return d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'})+' · '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  return d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'})+' · '+d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',hour12:true});
 }
 function timeAgo(ts) {
   const diff=Math.floor((Date.now()-ts)/60000);
@@ -2169,6 +2177,8 @@ function renderTVGetReady() {
   let deals = Object.values(getReadyDeals||{})
     .filter(d => !grIsComplete(d))
     .sort((a,b) => {
+      const ag = (a.needsGas && a.gasFilled)?1:0, bg = (b.needsGas && b.gasFilled)?1:0;
+      if (ag!==bg) return ag-bg;
       const at = a.deliveryDate ? new Date(a.deliveryDate).getTime() : Infinity;
       const bt = b.deliveryDate ? new Date(b.deliveryDate).getTime() : Infinity;
       return at - bt;
@@ -2179,43 +2189,48 @@ function renderTVGetReady() {
     return;
   }
 
-  el.innerHTML = deals.slice(0, 12).map(d => {
-    // Card urgency
-    let urgencyCls = '';
+  el.innerHTML = deals.slice(0, 10).map(d => {
+    // Border colour matches urgency
+    let borderColor = '#f59e0b';
     if (d.deliveryDate) {
-      const delivStr = `${new Date(d.deliveryDate+'T12:00').getFullYear()}-${new Date(d.deliveryDate+'T12:00').getMonth()}-${new Date(d.deliveryDate+'T12:00').getDate()}`;
-      if (delivStr === todayStr) urgencyCls = 'gr-today';
-      else if (new Date(d.deliveryDate+'T12:00') < now) urgencyCls = 'gr-urgent';
+      const delivDate = new Date(d.deliveryDate+'T12:00');
+      const delivStr = `${delivDate.getFullYear()}-${delivDate.getMonth()}-${delivDate.getDate()}`;
+      if (delivDate < now && delivStr !== todayStr) borderColor = '#dc2626';
+      else if (delivStr === todayStr) borderColor = '#f97316';
     }
 
-    // Checklist progress — only required services
-    const checks = GR_CHECKLIST.filter(([key]) => d['req_'+key]);
-    const checksFallback = checks.length > 0 ? checks : GR_CHECKLIST;
-    const done = checksFallback.filter(([k]) => d[k]).length;
-    const total = checksFallback.length;
+    // Checklist progress
+    const reqChecks = GR_CHECKLIST.filter(([k]) => d['req_'+k]);
+    const toCheck = reqChecks.length > 0 ? reqChecks : GR_CHECKLIST;
+    const done = toCheck.filter(([k]) => d[k]).length;
+    const total = toCheck.length;
     const pct = total ? Math.round((done/total)*100) : 100;
-    const flagsHtml = checksFallback.map(([k, label]) =>
-      `<span class="tv-gr-flag ${d[k]?'done':'pend'}">${label.substring(0,3)}</span>`
-    ).join('');
 
     const delivLabel = d.deliveryDate
-      ? new Date(d.deliveryDate+'T12:00').toLocaleDateString('en-CA',{month:'short',day:'numeric'})+(d.deliveryTime?` @ ${d.deliveryTime}`:'')
-      : 'No delivery date';
+      ? new Date(d.deliveryDate+'T12:00').toLocaleDateString('en-CA',{month:'short',day:'numeric'})+(d.deliveryTime?` @ ${fmtTimeStr(d.deliveryTime)}`:'')
+      : null;
 
-    return `<div class="tv-gr-card ${urgencyCls}">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
-        <div class="tv-gr-stock">${d.stock||'—'}</div>
-        <div style="margin-left:auto;font-size:10px;font-weight:700;opacity:.5">${pct}%</div>
-      </div>
-      <div class="tv-gr-customer">${d.customer||''} ${d.salesperson?'· '+d.salesperson:''}</div>
-      <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;margin-bottom:4px;border-radius:6px;background:${d.needsGas?(d.gasFilled?'rgba(22,163,74,.2)':'rgba(220,38,38,.2)'):'rgba(22,163,74,.15)'};font-size:11px;font-weight:700;color:${d.needsGas?(d.gasFilled?'#86efac':'#fca5a5'):'#86efac'}">
-        <span>⛽</span>${d.needsGas?(d.gasFilled?'Gas Filled':'Needs Gas'):'No Gas Needed'}
-      </div>
-      <div class="tv-gr-delivery">📅 ${delivLabel}</div>
-      <div style="background:rgba(255,255,255,.1);border-radius:99px;height:3px;margin-bottom:6px">
-        <div style="height:100%;border-radius:99px;width:${pct}%;background:${pct===100?'#34d399':pct>60?'#fbbf24':'#60a5fa'}"></div>
-      </div>
-      <div class="tv-gr-flags">${flagsHtml}</div>
+    const gasHtml = d.needsGas
+      ? `<div style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;margin:5px 0;background:${d.gasFilled?'#16a34a':'#dc2626'};color:#fff">⛽ ${d.gasFilled?'Gas Filled':'Needs Gas'}</div>`
+      : `<div style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;margin:5px 0;background:#16a34a;color:#fff">⛽ No Gas Needed</div>`;
+
+    const progressHtml = `<div style="background:#e2e8f0;border-radius:99px;height:4px;margin:6px 0"><div style="height:100%;border-radius:99px;width:${pct}%;background:${pct===100?'#16a34a':pct>60?'#f59e0b':'#3b82f6'}"></div></div>`;
+
+    const flagsHtml = `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">${toCheck.map(([k,label]) =>
+      `<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase;background:${d[k]?'#dcfce7':'#f1f5f9'};color:${d[k]?'#15803d':'#94a3b8'}">${label}</span>`
+    ).join('')}</div>`;
+
+    return `<div class="tv-card" style="border-left:5px solid ${borderColor};margin-bottom:8px;flex-shrink:0">
+      <div class="tv-stock" style="font-size:22px">${d.stock||'—'}</div>
+      <div class="tv-by">${d.vehicle||''}${d.customer?' · '+d.customer:''}</div>
+      ${delivLabel?`<div class="tv-scheduled-time">📅 ${delivLabel}</div>`:''}
+      ${(d.trade1?.stock||d.trade2?.stock)?`<div style="margin:5px 0;display:flex;flex-direction:column;gap:3px">
+        ${d.trade1?.stock?`<div style="display:flex;align-items:center;gap:5px;font-size:11px"><span style="background:#dbeafe;color:#1d4ed8;font-weight:700;padding:1px 5px;border-radius:3px;font-size:9px">T1</span><span style="font-weight:700;color:#0f172a">${d.trade1.stock}</span><span style="color:#64748b">${[d.trade1.year,d.trade1.make,d.trade1.model].filter(Boolean).join(' ')}</span>${d.trade1.kms?`<span style="margin-left:auto;color:#64748b">${Number(d.trade1.kms).toLocaleString()} km</span>`:''}</div>`:''}
+        ${d.trade2?.stock?`<div style="display:flex;align-items:center;gap:5px;font-size:11px"><span style="background:#ede9fe;color:#6d28d9;font-weight:700;padding:1px 5px;border-radius:3px;font-size:9px">T2</span><span style="font-weight:700;color:#0f172a">${d.trade2.stock}</span><span style="color:#64748b">${[d.trade2.year,d.trade2.make,d.trade2.model].filter(Boolean).join(' ')}</span>${d.trade2.kms?`<span style="margin-left:auto;color:#64748b">${Number(d.trade2.kms).toLocaleString()} km</span>`:''}</div>`:''}
+      </div>`:''}      ${gasHtml}
+      ${progressHtml}
+      ${flagsHtml}
+      ${d.salesperson?`<div class="tv-ago" style="margin-top:4px">${d.salesperson}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -2607,11 +2622,11 @@ const GR_CHECKLIST = [
 ];
 
 function grIsComplete(d) {
-  // Only check services that were flagged as required when the deal was created
   const required = GR_CHECKLIST.filter(([key]) => d['req_'+key]);
-  // If no services were marked required, fall back to checking all (legacy deals)
   const toCheck = required.length > 0 ? required : GR_CHECKLIST;
-  return toCheck.every(([key]) => d[key]) && (!d.needsGas || d.gasFilled);
+  const checklistDone = toCheck.every(([key]) => d[key]);
+  const customDone = (d.customFields||[]).filter(f=>f.label).every(f=>f.done);
+  return checklistDone && customDone && (!d.needsGas || d.gasFilled);
 }
 
 window.setGRFilter = function(status, btn) {
@@ -2634,14 +2649,35 @@ function getGRFiltered() {
   else if (grFilterStatus !== 'ALL') rows = rows.filter(d => d.type === grFilterStatus);
   if (q) rows = rows.filter(d => [d.stock,d.dealNum,d.vehicle,d.customer,d.salesperson,d.notes].join(' ').toLowerCase().includes(q));
   rows.sort((a,b) => {
-    const ac = grIsComplete(a)?1:0, bc = grIsComplete(b)?1:0;
+    // Fully complete → very bottom
+    const ac = grIsComplete(a)?2:0, bc = grIsComplete(b)?2:0;
     if (ac!==bc) return ac-bc;
+    // Gas filled (but not fully complete) → below incomplete
+    const ag = (!grIsComplete(a) && a.needsGas && a.gasFilled)?1:0;
+    const bg = (!grIsComplete(b) && b.needsGas && b.gasFilled)?1:0;
+    if (ag!==bg) return ag-bg;
     const at = a.deliveryDate ? new Date(a.deliveryDate).getTime() : Infinity;
     const bt = b.deliveryDate ? new Date(b.deliveryDate).getTime() : Infinity;
     return at - bt;
   });
   return rows;
 }
+
+window.grToggleCustom = async function(id, idx, value) {
+  const d = getReadyDeals[id];
+  if (!d) return;
+  const customFields = (d.customFields||[]).map((f,i) => i===idx ? {...f, done: value} : f);
+  const updates = { customFields };
+  const updated = { ...d, customFields };
+  if (grIsComplete(updated) && !d.completedAt) {
+    updates.completedAt = Date.now();
+    updates.completedBy = currentUser.name;
+  } else if (!grIsComplete(updated) && d.completedAt) {
+    updates.completedAt = null;
+    updates.completedBy = null;
+  }
+  await update(ref(db,'getready/'+id), updates);
+};
 
 window.toggleGRField = async function(id, field, value) {
   const updates = { [field]: value };
@@ -2673,7 +2709,7 @@ function fmtGRDate(dateStr, timeStr) {
   if (timeStr) {
     const [h,m] = timeStr.split(':').map(Number);
     const t = new Date(); t.setHours(h,m,0,0);
-    out += ' · ' + t.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    out += ' · ' + t.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',hour12:true});
   }
   return out;
 }
@@ -2778,26 +2814,39 @@ function renderGetReady() {
       </div>
       ${gasBanner}
       ${d.deliveryDate?`<div class="gr-delivery">📅 Delivery: <strong>${fmtGRDate(d.deliveryDate,d.deliveryTime)}</strong>${d.kms?` · ${d.kms} km allowed`:''}</div>`:''}
-      ${(d.trade1?.stock || d.trade2?.stock) ? `<div style="padding:8px 16px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:5px">
+      ${(d.trade1?.stock || d.trade2?.stock) ? `<div style="padding:8px 16px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px">
         <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Trade-ins</div>
-        ${d.trade1?.stock ? `<div style="display:flex;align-items:center;gap:8px;font-size:12px">
-          <span style="background:#dbeafe;color:#1d4ed8;font-weight:700;padding:2px 7px;border-radius:4px;font-size:10px">T1</span>
-          <span style="font-weight:700;color:var(--text)">${d.trade1.stock}</span>
-          <span style="color:var(--text-muted)">${[d.trade1.year,d.trade1.make,d.trade1.model].filter(Boolean).join(' ')}</span>
-          ${d.trade1.colour?`<span style="color:var(--text-faint)">· ${d.trade1.colour}</span>`:''}
-          ${d.trade1.kms?`<span style="color:var(--text-faint);margin-left:auto">${Number(d.trade1.kms).toLocaleString()} km</span>`:''}
+        ${d.trade1?.stock ? `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+            <span style="background:#dbeafe;color:#1d4ed8;font-weight:700;padding:1px 6px;border-radius:3px;font-size:9px;flex-shrink:0">T1</span>
+            <span style="font-weight:700;color:var(--text);font-size:13px">${d.trade1.stock}</span>
+            ${d.trade1.kms?`<span style="font-size:11px;color:var(--text-faint);margin-left:auto">${Number(d.trade1.kms).toLocaleString()} km</span>`:''}
+          </div>
+          <div style="font-size:11px;color:var(--text-muted)">${[d.trade1.year,d.trade1.make,d.trade1.model,d.trade1.colour].filter(Boolean).join(' · ')}</div>
         </div>` : ''}
-        ${d.trade2?.stock ? `<div style="display:flex;align-items:center;gap:8px;font-size:12px">
-          <span style="background:#ede9fe;color:#6d28d9;font-weight:700;padding:2px 7px;border-radius:4px;font-size:10px">T2</span>
-          <span style="font-weight:700;color:var(--text)">${d.trade2.stock}</span>
-          <span style="color:var(--text-muted)">${[d.trade2.year,d.trade2.make,d.trade2.model].filter(Boolean).join(' ')}</span>
-          ${d.trade2.colour?`<span style="color:var(--text-faint)">· ${d.trade2.colour}</span>`:''}
-          ${d.trade2.kms?`<span style="color:var(--text-faint);margin-left:auto">${Number(d.trade2.kms).toLocaleString()} km</span>`:''}
+        ${d.trade2?.stock ? `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+            <span style="background:#ede9fe;color:#6d28d9;font-weight:700;padding:1px 6px;border-radius:3px;font-size:9px;flex-shrink:0">T2</span>
+            <span style="font-weight:700;color:var(--text);font-size:13px">${d.trade2.stock}</span>
+            ${d.trade2.kms?`<span style="font-size:11px;color:var(--text-faint);margin-left:auto">${Number(d.trade2.kms).toLocaleString()} km</span>`:''}
+          </div>
+          <div style="font-size:11px;color:var(--text-muted)">${[d.trade2.year,d.trade2.make,d.trade2.model,d.trade2.colour].filter(Boolean).join(' · ')}</div>
         </div>` : ''}
       </div>` : ''}
       <div class="gr-checklist">
         ${renderChecklist}
       </div>
+      ${(d.customFields||[]).filter(f=>f.label).length ? `
+      <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:2px">Other</div>
+        ${(d.customFields||[]).filter(f=>f.label).map((f,i)=>`
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="gr-tap ${f.done?'on':''}" onclick="${canEdit?`grToggleCustom('${d.id}',${i},${!f.done})`:''}">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <span style="font-size:13px;color:var(--text);${f.done?'text-decoration:line-through;opacity:.5':''}">${f.label}</span>
+          </div>`).join('')}
+      </div>` : ''}
       ${d.instructions?`<div style="padding:8px 16px;font-size:12px;color:#92400e;background:#fffbeb;border-bottom:1px solid var(--border)">⚠ ${d.instructions}</div>`:''}
       <div class="gr-notes">
         <textarea placeholder="Add notes…" ${canEdit?'':'readonly'} onchange="grNotes('${d.id}',this.value)" onblur="grNotes('${d.id}',this.value)">${d.notes||''}</textarea>
@@ -2818,6 +2867,27 @@ function renderGetReady() {
   body.innerHTML = html;
 }
 
+// Custom GR fields
+let grCustomFields = []; // [{ label, done }]
+
+window.grAddCustomField = function(label='', done=false) {
+  grCustomFields.push({ label, done });
+  grRenderCustomFields();
+};
+
+function grRenderCustomFields() {
+  const el = document.getElementById('gr-custom-list');
+  if (!el) return;
+  el.innerHTML = grCustomFields.map((f, i) => `
+    <div style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="gr-custom-done-${i}" ${f.done?'checked':''} onchange="grCustomFields[${i}].done=this.checked" style="width:16px;height:16px;accent-color:var(--ford);cursor:pointer;flex-shrink:0"/>
+      <input type="text" value="${f.label.replace(/"/g,'&quot;')}" placeholder="e.g. Tint removed, Winter tires off…"
+        oninput="grCustomFields[${i}].label=this.value"
+        style="flex:1;padding:7px 10px;font-size:13px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none"/>
+      <button onclick="grCustomFields.splice(${i},1);grRenderCustomFields()" style="padding:4px 8px;font-size:12px;border:1px solid #fca5a5;border-radius:var(--radius-sm);background:#fef2f2;color:#dc2626;cursor:pointer;flex-shrink:0">✕</button>
+    </div>`).join('');
+}
+
 window.openGRModal = function(id) {
   editingGRId = id || null;
   const d = id ? getReadyDeals[id] : {};
@@ -2835,7 +2905,8 @@ window.openGRModal = function(id) {
   document.getElementById('gr-instructions').value = d.instructions || '';
   document.getElementById('gr-notes-field').value = d.notes || '';
   document.getElementById('gr-needs-gas').checked = d.needsGas || false;
-  GR_CHECKLIST.forEach(([key]) => { document.getElementById('gr-c-'+key).checked = d[key] || false; });
+  // Checkboxes — always unchecked on new deals, restored on edit
+  GR_CHECKLIST.forEach(([key]) => { document.getElementById('gr-c-'+key).checked = id ? (d[key] || false) : false; });
   // Trade-ins
   const t1 = d.trade1 || {};
   const t2 = d.trade2 || {};
@@ -2851,6 +2922,9 @@ window.openGRModal = function(id) {
   document.getElementById('gr-t2-model').value  = t2.model  || '';
   document.getElementById('gr-t2-colour').value = t2.colour || '';
   document.getElementById('gr-t2-kms').value    = t2.kms    || '';
+  // Custom fields
+  grCustomFields = Array.isArray(d.customFields) ? d.customFields.map(f=>({...f})) : [];
+  grRenderCustomFields();
   document.getElementById('gr-modal').style.display = 'flex';
   setTimeout(()=>document.getElementById('gr-stock').focus(), 100);
 };
@@ -2891,7 +2965,8 @@ window.saveGR = async function() {
       kms:    document.getElementById('gr-t2-kms').value.trim(),
     },
     updatedBy: currentUser.name,
-    ts: editingGRId ? (getReadyDeals[editingGRId]?.ts || Date.now()) : Date.now()
+    ts: editingGRId ? (getReadyDeals[editingGRId]?.ts || Date.now()) : Date.now(),
+    customFields: grCustomFields.filter(f => f.label.trim()),
   };
   GR_CHECKLIST.forEach(([key]) => {
     const checked = document.getElementById('gr-c-'+key).checked;
@@ -3043,7 +3118,7 @@ document.addEventListener('touchstart',()=>{try{getAudioCtx().resume();}catch(e)
 // ── Clock ─────────────────────────────────────────────
 function updateClock(){
   const now=new Date();
-  const t=now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const t=now.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',hour12:true});
   const d=now.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
   const h=document.getElementById('header-time'),tv=document.getElementById('tv-clock');
   if(h)h.textContent=d+' · '+t;if(tv)tv.textContent=t;
@@ -3094,7 +3169,7 @@ function updateSchedulePreview(){
   const d=new Date(yr,mo-1,dy,h,m,0,0);
   const diffMs=d.getTime()-Date.now();
   if(diffMs<0){preview.textContent='⚠ That time is in the past';preview.style.color='#e24b4a';return;}
-  const friendly=d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'})+' at '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const friendly=d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'})+' at '+d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',hour12:true});
   preview.textContent='📅 '+friendly+' — '+fmtCountdown(diffMs)+' away';
   preview.style.color='var(--text-muted)';
 }
@@ -3200,7 +3275,7 @@ window.printTodaysDrops = function() {
     </div>
     <div class="header-right">
       <div class="date">Today's Drops — ${todayFriendly} <span class="count-badge">${drops.length} unit${drops.length!==1?'s':''}</span></div>
-      <div class="sub">Printed ${now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})} by ${currentUser?.name||'—'}</div>
+      <div class="sub">Printed ${now.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',hour12:true})} by ${currentUser?.name||'—'}</div>
     </div>
   </div>
 
@@ -3225,7 +3300,7 @@ window.printTodaysDrops = function() {
 
   <div class="footer">
     <span>Barrie Ford — Incoming Vehicle Tracker</span>
-    <span>Generated ${now.toLocaleDateString([],{weekday:'long',year:'numeric',month:'long',day:'numeric'})} at ${now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span>
+    <span>Generated ${now.toLocaleDateString([],{weekday:'long',year:'numeric',month:'long',day:'numeric'})} at ${now.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',hour12:true})}</span>
   </div>
 </body>
 </html>`;
@@ -4003,7 +4078,7 @@ function auditRenderBar() {
 
   const lotLabel = (auditState.lots||[]).map(id => CM_LOTS[id]?.label).join(', ');
   document.getElementById('audit-bar-title').textContent = `Audit in progress — ${lotLabel}`;
-  document.getElementById('audit-bar-sub').textContent = `Started by ${auditState.startedBy} · ${new Date(auditState.startedAt).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'})}`;
+  document.getElementById('audit-bar-sub').textContent = `Started by ${auditState.startedBy} · ${new Date(auditState.startedAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit',hour12:true})}`;
   document.getElementById('audit-bar-fill').style.width = pct + '%';
   document.getElementById('audit-bar-stats').innerHTML = `
     <div class="audit-stat"><div class="audit-stat-dot" style="background:#16a34a"></div>${confirmed} confirmed</div>
@@ -4072,7 +4147,7 @@ function auditRenderHistory() {
       const confirmed = Object.values(a.results||{}).filter(r=>r.status==='confirmed').length;
       const missing = Object.values(a.results||{}).filter(r=>r.status==='missing').length;
       const lots = (a.lots||[]).map(id => CM_LOTS[id]?.label).join(', ');
-      const dt = new Date(a.completedAt).toLocaleDateString('en-CA',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      const dt = new Date(a.completedAt).toLocaleDateString('en-CA',{month:'short',day:'numeric'})+' '+new Date(a.completedAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit',hour12:true});
       return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <div>
           <div style="font-size:14px;font-weight:700">${lots}</div>
