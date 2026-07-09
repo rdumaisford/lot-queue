@@ -2201,15 +2201,19 @@ function renderTVGetReady() {
   }
 
   el.innerHTML = deals.map(d => {
-    // Urgency border
-    let border = '#e2e8f0';
-    if (d.deliveryDate) {
+    // Type colour
+    const typeBorder = d.type==='RETAIL' ? '#8b5cf6' : d.type==='WHOLESALE' ? '#eab308' : '#3b82f6';
+    const typeLabel  = d.type==='RETAIL' ? 'Retail'  : d.type==='WHOLESALE' ? 'Wholesale' : 'As-Is';
+    const typeBg     = d.type==='RETAIL' ? '#ede9fe' : d.type==='WHOLESALE' ? '#fef9c3'   : '#dbeafe';
+    const typeColor  = d.type==='RETAIL' ? '#6d28d9' : d.type==='WHOLESALE' ? '#92400e'   : '#1d4ed8';
+
+    // Urgency border overrides type border only when overdue/today
+    const border = (d.deliveryDate && (() => {
       const dd = new Date(d.deliveryDate+'T12:00');
       const ds = `${dd.getFullYear()}-${dd.getMonth()}-${dd.getDate()}`;
-      if (dd < now && ds !== todayStr) border = '#ef4444';
-      else if (ds === todayStr) border = '#f97316';
-      else border = '#f59e0b';
-    }
+      if (dd < now && ds !== todayStr) return true; // overdue
+      return false;
+    })()) ? '#ef4444' : typeBorder;
 
     // Progress
     const reqChecks = GR_CHECKLIST.filter(([k]) => d['req_'+k]);
@@ -2232,7 +2236,10 @@ function renderTVGetReady() {
     ).join('');
 
     return `<div style="background:#fff;border-radius:10px;padding:12px 14px;border-left:5px solid ${border}">
-      <div style="font-size:20px;font-weight:800;color:#00095b;line-height:1;margin-bottom:3px">${d.stock||'—'}</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+        <div style="font-size:20px;font-weight:800;color:#00095b;line-height:1">${d.stock||'—'}</div>
+        <span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:${typeBg};color:${typeColor};text-transform:uppercase;letter-spacing:.04em;margin-left:auto;white-space:nowrap">${typeLabel}</span>
+      </div>
       ${d.vehicle?`<div style="font-size:10px;color:#64748b;margin-bottom:4px">${d.vehicle}</div>`:''}
       ${delivLabel?`<div style="font-size:11px;font-weight:700;color:#6d28d9;margin-bottom:4px">📅 ${delivLabel}</div>`:''}
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
