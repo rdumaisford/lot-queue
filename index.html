@@ -1144,20 +1144,23 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         </div>
         <div class="tv-sub" id="tv-count">Connecting…</div>
         <div class="tv-body">
+          <!-- Col 1: Appointments -->
           <div class="tv-col-queue">
             <div class="tv-col-title" id="tv-title-queue">Vehicle Appointments</div>
-            <div style="overflow-y:auto;flex:1" id="tv-list"></div>
+            <div id="tv-list" style="overflow-y:auto;flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-content:start"></div>
           </div>
-          <div class="tv-col-getready" style="flex:1.1;overflow:hidden;display:flex;flex-direction:column;min-width:0;border-left:1px solid rgba(255,255,255,.15);padding-left:18px">
+          <!-- Col 2: Get Ready -->
+          <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0;border-left:1px solid rgba(255,255,255,.15);padding-left:16px">
             <div class="tv-col-title" id="tv-title-getready">Get Ready</div>
-            <div id="tv-gr-list" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:0"></div>
+            <div id="tv-gr-list" style="overflow-y:auto;flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-content:start"></div>
           </div>
-          <div class="tv-col-incoming">
+          <!-- Col 3: Incoming + Compound -->
+          <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0;border-left:1px solid rgba(255,255,255,.15);padding-left:16px">
             <div class="tv-col-title" id="tv-title-incoming">Incoming Units</div>
             <div class="tv-incoming-summary" id="tv-inc-summary"></div>
-            <div class="tv-inc-grid" id="tv-inc-list"></div>
-            <div style="margin-top:12px;flex-shrink:0">
-              <div class="tv-col-title" style="margin-bottom:6px;font-size:11px;letter-spacing:.08em" id="tv-title-compound">Compound — 700 Bayview</div>
+            <div id="tv-inc-list" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;align-content:start;overflow-y:auto;flex:1"></div>
+            <div style="margin-top:10px;flex-shrink:0">
+              <div class="tv-col-title" style="margin-bottom:5px;font-size:10px" id="tv-title-compound">Compound — 700 Bayview</div>
               <div id="tv-compound-map" style="width:100%"></div>
             </div>
           </div>
@@ -2039,63 +2042,56 @@ function renderTV() {
   const tvList=document.getElementById('tv-list');
   const tvCount=document.getElementById('tv-count');
   const total=active.length+upcoming.length;
-  function tvBar(e){
-    if(e.status==='progress'&&e.progressTs){
-      const el=Math.floor((Date.now()-e.progressTs)/1000);
-      const pct=Math.min(100,Math.round((el/(MOVE_MINS*60))*100));
-      const elMin=Math.floor(el/60), elSec=el%60;
-      const elLabel = elMin>0 ? `${elMin}m ${elSec}s` : `${elSec}s`;
-      const overdue2 = el > MOVE_MINS*60;
-      const tvBarColor = overdue2 ? '#dc2626' : '#1d4ed8';
-      const tvLabel = overdue2 ? `⚠ ${elLabel}` : elLabel;
-      return `<div class="tv-progress-wrap"><div style="font-size:13px;color:${tvBarColor};margin-bottom:4px;display:flex;justify-content:space-between;font-weight:600"><span>In transit</span><span>${tvLabel}</span></div><div class="tv-progress-track"><div class="tv-progress-fill" style="width:${pct}%;background:${tvBarColor}"></div></div></div>`;
+
+  if(!total&&!done.length&&!onholdEntries.length){
+    tvCount.textContent='No active moves';
+    tvList.innerHTML='<div class="tv-empty" style="grid-column:1/-1"><div style="font-size:48px">✓</div><p>All clear</p></div>';
+    document.getElementById('tv-title-queue').textContent='Vehicle Appointments (0)';
+    renderTVGetReady(); renderTVCompoundMap(); renderTVIncoming();
+    return;
+  }
+  tvCount.textContent=(active.length?active.length+' active ':'')+( upcoming.length?'· '+upcoming.length+' upcoming ':'')+( done.length?'· '+done.length+' done':'');
+  document.getElementById('tv-title-queue').textContent=`Vehicle Appointments (${active.length+upcoming.length})`;
+
+  // Build compact tiles for every entry
+  const allEntries = [...active, ...upcoming, ...done, ...onholdEntries];
+  tvList.innerHTML = allEntries.map(e => {
+    const dc = destClass(e.dest);
+    const isProgress = e.status === 'progress';
+    const isDone = e.status === 'done';
+    const isHold = e.status === 'onhold';
+    const isScheduled = e.bookingType === 'scheduled' && e.status === 'pending';
+
+    // Border colour
+    const border = isHold ? '#f59e0b' : isDone ? '#16a34a' : isProgress ? '#3b82f6' : isScheduled ? '#8b5cf6' : '#e2e8f0';
+
+    // Progress/countdown bar
+    let barHtml = '';
+    if (isProgress && e.progressTs) {
+      const el = Math.floor((Date.now()-e.progressTs)/1000);
+      const pct = Math.min(100, Math.round((el/(MOVE_MINS*60))*100));
+      const overdue = el > MOVE_MINS*60;
+      const elLabel = Math.floor(el/60)+'m '+(el%60)+'s';
+      const bc = overdue ? '#dc2626' : '#3b82f6';
+      barHtml = `<div style="margin-top:6px"><div style="font-size:10px;color:${bc};font-weight:700;margin-bottom:2px;display:flex;justify-content:space-between"><span>${overdue?'⚠ Overdue':'In transit'}</span><span>${elLabel}</span></div><div style="height:4px;background:#e2e8f0;border-radius:99px"><div style="height:100%;width:${pct}%;background:${bc};border-radius:99px"></div></div></div>`;
+    } else if (isScheduled && e.scheduledTs) {
+      const msUntil = Math.max(0, e.scheduledTs - Date.now());
+      const pct = Math.min(100, Math.round(((CONVERT_MINS*60*1000-msUntil)/(CONVERT_MINS*60*1000))*100));
+      const bc = msUntil<=300000?'#dc2626':msUntil<=600000?'#d97706':'#8b5cf6';
+      barHtml = `<div style="margin-top:6px"><div style="font-size:10px;color:${bc};font-weight:700;margin-bottom:2px;display:flex;justify-content:space-between"><span>Appt</span><span>${fmtCountdown(msUntil)}</span></div><div style="height:4px;background:#ede9fe;border-radius:99px"><div style="height:100%;width:${pct}%;background:${bc};border-radius:99px"></div></div></div>`;
     }
-    if(e.bookingType==='scheduled'&&e.scheduledTs&&e.status==='pending'){
-      const msUntil=Math.max(0,e.scheduledTs-Date.now());
-      const totalWindow=CONVERT_MINS*60*1000, elapsed=Math.max(0,totalWindow-msUntil);
-      const pct=Math.min(100,Math.round((elapsed/totalWindow)*100));
-      const minsUntil=Math.floor(msUntil/60000);
-      const bc=minsUntil<=5?'#dc2626':minsUntil<=10?'#d97706':'#4f46e5';
-      const tc=minsUntil<=5?'#fee2e2':minsUntil<=10?'#fef3c7':'#ede9fe';
-      return `<div class="tv-progress-wrap"><div style="font-size:13px;color:${bc};margin-bottom:4px;display:flex;justify-content:space-between;font-weight:600"><span>Countdown</span><span>${fmtCountdown(msUntil)}</span></div><div class="tv-progress-track" style="background:${tc}"><div class="tv-progress-fill" style="width:${pct}%;background:${bc}"></div></div></div>`;
-    }
-    return '';
-  }
-  if(!total&&!done.length&&!onholdEntries.length){tvCount.textContent='No active moves';tvList.innerHTML='<div class="tv-empty"><div style="font-size:48px">✓</div><p>All clear — no pending moves</p></div>';return;}
-  tvCount.textContent=(active.length?active.length+' active · ':'')+( upcoming.length?upcoming.length+' upcoming · ':'')+( done.length?done.length+' completed':'');
-  const qTitle = document.getElementById('tv-title-queue');
-  if (qTitle) qTitle.textContent = `Vehicle Appointments (${active.length+upcoming.length})`;
-  let tvHtml='';
-  if(active.length){
-    tvHtml+=`<div class="tv-section-label">Now — ${active.length} active</div><div class="tv-grid">`;
-    tvHtml+=active.map(e=>{
-      const dc=destClass(e.dest),prog=e.status==='progress'?' in-progress':'',wait=calcWaitMins();
-      return `<div class="tv-card${prog}"><div class="tv-stock">${e.stock}</div><div class="tv-by">By ${e.requestedBy||'—'}</div><div class="tv-dest"><span class="dest-pill ${dc}">${e.dest}</span></div>${e.status==='pending'&&e.bookingType==='asap'?`<div class="tv-wait">~${wait} min wait</div>`:''}${e.bookingType==='scheduled'&&e.status==='pending'?`<div class="tv-scheduled-time">Appointment ${fmtDateTime(e.scheduledTs)}</div>`:''}${e.claimedBy?`<div class="tv-claimed">🔧 ${e.claimedBy}</div>`:''}${tvBar(e)}${e.notes?`<div class="tv-notes">${e.notes}</div>`:''}<div class="tv-ago">${timeAgo(e.ts)}</div></div>`;
-    }).join('')+'</div>';
-  }
-  if(upcoming.length){
-    tvHtml+=`<div class="tv-section-label">Upcoming</div><div class="tv-grid">`;
-    tvHtml+=upcoming.map(e=>{const dc=destClass(e.dest);return `<div class="tv-card type-scheduled"><div class="tv-stock">${e.stock}</div><div class="tv-by">By ${e.requestedBy||'—'}</div><div class="tv-dest"><span class="dest-pill ${dc}">${e.dest}</span></div><div class="tv-scheduled-time">Appointment ${fmtDateTime(e.scheduledTs)}</div>${tvBar(e)}${e.notes?`<div class="tv-notes">${e.notes}</div>`:''}</div>`;}).join('')+'</div>';
-  }
-  if(done.length){
-    tvHtml+=`<div class="tv-section-label">Completed</div><div class="tv-grid-4">`;
-    tvHtml+=done.map(e=>{const dc=destClass(e.dest);return `<div class="tv-card is-done"><div class="tv-stock done-stock">${e.stock}</div><div class="tv-by">By ${e.requestedBy||'—'}</div><div class="tv-dest"><span class="dest-pill ${dc}">${e.dest}</span></div>${e.claimedBy?`<div class="tv-done-by">✓ ${e.claimedBy}</div>`:''}<div class="tv-ago">${timeAgo(e.ts)}</div></div>`;}).join('')+'</div>';
-  }
-  if(onholdEntries.length){
-    tvHtml+=`<div class="tv-section-label">On Hold</div><div class="tv-grid-4">`;
-    tvHtml+=onholdEntries.map(e=>{
-      const dc=destClass(e.dest);
-      let holdTimer='';
-      if(e.holdTs){
-        const es=Math.floor((Date.now()-e.holdTs)/1000),d2=Math.floor(es/86400),h2=Math.floor((es%86400)/3600),m2=Math.floor((es%3600)/60),s2=es%60;
-        let elapsed='';if(d2>0)elapsed=d2+'d '+h2+'h '+m2+'m';else if(h2>0)elapsed=h2+'h '+m2+'m '+s2+'s';else if(m2>0)elapsed=m2+'m '+s2+'s';else elapsed=s2+'s';
-        const pct=Math.min(100,Math.round((es/3600)*100)),bc=pct>=100?'#dc2626':pct>=50?'#f97316':'#d97706';
-        holdTimer=`<div class="tv-progress-wrap"><div style="font-size:13px;color:${bc};margin-bottom:3px;display:flex;justify-content:space-between;font-weight:600"><span>On hold for</span><span>${elapsed}</span></div><div class="tv-progress-track" style="background:#fef3c7"><div class="tv-progress-fill" style="width:${pct}%;background:${bc}"></div></div></div>`;
-      }
-      return `<div class="tv-card" style="border-left:5px solid #d97706"><div class="tv-stock">${e.stock}</div><div class="tv-by">By ${e.requestedBy||'—'}</div><div class="tv-dest"><span class="dest-pill ${dc}">${e.dest}</span></div><div style="display:inline-block;background:#d97706;color:white;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;margin:5px 0">VEHICLE ON HOLD</div>${e.denyReason?`<div class="tv-deny-reason">⚠ ${e.denyReason}</div>`:''}${holdTimer}${e.deniedBy?`<div class="tv-by">— ${e.deniedBy}</div>`:''}</div>`;
-    }).join('')+'</div>';
-  }
-  tvList.innerHTML=tvHtml;
+
+    return `<div style="background:#fff;border-radius:10px;padding:12px 14px;border-left:5px solid ${border};${isDone?'opacity:.6':''}">
+      <div style="font-size:20px;font-weight:800;color:#00095b;line-height:1;margin-bottom:3px${isDone?';text-decoration:line-through;opacity:.5':''}">${e.stock}</div>
+      <div style="margin-bottom:4px"><span class="dest-pill ${dc}" style="font-size:11px;padding:2px 8px;font-weight:700;white-space:nowrap">${e.dest}</span></div>
+      ${e.claimedBy?`<div style="font-size:11px;color:#1d4ed8;font-weight:700">🔧 ${e.claimedBy}</div>`:''}
+      ${isDone&&e.claimedBy?`<div style="font-size:11px;color:#15803d;font-weight:700">✓ ${e.claimedBy}</div>`:''}
+      ${isHold?`<div style="font-size:10px;color:#92400e;font-weight:700;background:#fef3c7;border-radius:4px;padding:2px 6px;display:inline-block;margin-top:3px">ON HOLD</div>`:''}
+      ${e.requestedBy?`<div style="font-size:10px;color:#64748b;margin-top:3px">${e.requestedBy}</div>`:''}
+      ${barHtml}
+    </div>`;
+  }).join('');
+
   renderTVIncoming();
   renderTVGetReady();
   renderTVCompoundMap();
@@ -2182,71 +2178,70 @@ function renderTVIncoming() {
 
 function renderTVGetReady() {
   const el = document.getElementById('tv-gr-list');
+  const titleEl = document.getElementById('tv-title-getready');
   if (!el) return;
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
 
-  let deals = Object.values(getReadyDeals||{})
+  const deals = Object.values(getReadyDeals||{})
     .filter(d => !grIsComplete(d))
     .sort((a,b) => {
       const ag = (a.needsGas && a.gasFilled)?1:0, bg = (b.needsGas && b.gasFilled)?1:0;
       if (ag!==bg) return ag-bg;
       const at = a.deliveryDate ? new Date(a.deliveryDate).getTime() : Infinity;
       const bt = b.deliveryDate ? new Date(b.deliveryDate).getTime() : Infinity;
-      return at - bt;
+      return at-bt;
     });
 
+  if (titleEl) titleEl.textContent = `Get Ready (${deals.length})`;
+
   if (!deals.length) {
-    el.innerHTML = '<div style="opacity:.3;font-size:13px;text-align:center;padding:20px">No active deals</div>';
-    const t=document.getElementById('tv-title-getready');
-    if(t) t.textContent='Get Ready (0)';
+    el.innerHTML = '<div style="grid-column:1/-1;opacity:.3;font-size:13px;text-align:center;padding:20px">No active deals</div>';
     return;
   }
-  const t=document.getElementById('tv-title-getready');
-  if(t) t.textContent=`Get Ready (${deals.length})`;
 
-  el.innerHTML = deals.slice(0, 10).map(d => {
-    // Border colour matches urgency
-    let borderColor = '#f59e0b';
+  el.innerHTML = deals.map(d => {
+    // Urgency border
+    let border = '#e2e8f0';
     if (d.deliveryDate) {
-      const delivDate = new Date(d.deliveryDate+'T12:00');
-      const delivStr = `${delivDate.getFullYear()}-${delivDate.getMonth()}-${delivDate.getDate()}`;
-      if (delivDate < now && delivStr !== todayStr) borderColor = '#dc2626';
-      else if (delivStr === todayStr) borderColor = '#f97316';
+      const dd = new Date(d.deliveryDate+'T12:00');
+      const ds = `${dd.getFullYear()}-${dd.getMonth()}-${dd.getDate()}`;
+      if (dd < now && ds !== todayStr) border = '#ef4444';
+      else if (ds === todayStr) border = '#f97316';
+      else border = '#f59e0b';
     }
 
-    // Checklist progress
+    // Progress
     const reqChecks = GR_CHECKLIST.filter(([k]) => d['req_'+k]);
     const toCheck = reqChecks.length > 0 ? reqChecks : GR_CHECKLIST;
     const done = toCheck.filter(([k]) => d[k]).length;
-    const total = toCheck.length;
-    const pct = total ? Math.round((done/total)*100) : 100;
+    const pct = toCheck.length ? Math.round((done/toCheck.length)*100) : 100;
+    const barColor = pct===100?'#16a34a':pct>60?'#f59e0b':'#1d4ed8';
+
+    // Gas
+    const gasColor = d.needsGas ? (d.gasFilled ? '#16a34a' : '#dc2626') : '#16a34a';
+    const gasLabel = d.needsGas ? (d.gasFilled ? '✓ Gas' : '⛽ Gas') : '✓ Gas';
 
     const delivLabel = d.deliveryDate
-      ? new Date(d.deliveryDate+'T12:00').toLocaleDateString('en-CA',{month:'short',day:'numeric'})+(d.deliveryTime?` @ ${fmtTimeStr(d.deliveryTime)}`:'')
-      : null;
+      ? new Date(d.deliveryDate+'T12:00').toLocaleDateString('en-CA',{month:'short',day:'numeric'})
+      : '';
 
-    const gasHtml = d.needsGas
-      ? `<div style="display:inline-block;font-size:12px;font-weight:800;padding:3px 10px;border-radius:20px;margin:5px 0;background:${d.gasFilled?'#dcfce7':'#fef2f2'};color:${d.gasFilled?'#15803d':'#dc2626'}">⛽ ${d.gasFilled?'Gas Filled':'Needs Gas'}</div>`
-      : `<div style="display:inline-block;font-size:12px;font-weight:800;padding:3px 10px;border-radius:20px;margin:5px 0;background:#dcfce7;color:#15803d">⛽ No Gas Needed</div>`;
+    // Checklist dots
+    const dots = toCheck.map(([k]) =>
+      `<div style="width:8px;height:8px;border-radius:50%;background:${d[k]?'#16a34a':'#e2e8f0'}"></div>`
+    ).join('');
 
-    const progressHtml = `<div style="background:#e2e8f0;border-radius:99px;height:5px;margin:6px 0"><div style="height:100%;border-radius:99px;width:${pct}%;background:${pct===100?'#16a34a':pct>60?'#f59e0b':'#1d4ed8'}"></div></div>`;
-
-    const flagsHtml = `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">${toCheck.map(([k,label]) =>
-      `<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase;background:${d[k]?'#dcfce7':'#f1f5f9'};color:${d[k]?'#15803d':'#94a3b8'}">${label}</span>`
-    ).join('')}</div>`;
-
-    return `<div class="tv-card" style="border-left:5px solid ${borderColor};margin-bottom:8px;flex-shrink:0">
-      <div class="tv-stock" style="font-size:22px">${d.stock||'—'}</div>
-      <div class="tv-by">${d.vehicle||''}${d.customer?' · '+d.customer:''}</div>
-      ${delivLabel?`<div class="tv-scheduled-time">📅 ${delivLabel}</div>`:''}
-      ${(d.trade1?.stock||d.trade2?.stock)?`<div style="margin:6px 0;display:flex;flex-direction:column;gap:3px">
-        ${d.trade1?.stock?`<div style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="background:#dbeafe;color:#1d4ed8;font-weight:800;padding:1px 5px;border-radius:3px;font-size:9px">T1</span><span style="font-weight:800;color:var(--ford)">${d.trade1.stock}</span><span style="color:#64748b">${[d.trade1.year,d.trade1.make,d.trade1.model].filter(Boolean).join(' ')}</span>${d.trade1.kms?`<span style="margin-left:auto;color:#94a3b8">${Number(d.trade1.kms).toLocaleString()} km</span>`:''}</div>`:''}
-        ${d.trade2?.stock?`<div style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="background:#ede9fe;color:#6d28d9;font-weight:800;padding:1px 5px;border-radius:3px;font-size:9px">T2</span><span style="font-weight:800;color:var(--ford)">${d.trade2.stock}</span><span style="color:#64748b">${[d.trade2.year,d.trade2.make,d.trade2.model].filter(Boolean).join(' ')}</span>${d.trade2.kms?`<span style="margin-left:auto;color:#94a3b8">${Number(d.trade2.kms).toLocaleString()} km</span>`:''}</div>`:''}
-      </div>`:''}      ${gasHtml}
-      ${progressHtml}
-      ${flagsHtml}
-      ${d.salesperson?`<div class="tv-ago" style="margin-top:4px">${d.salesperson}</div>`:''}
+    return `<div style="background:#fff;border-radius:10px;padding:12px 14px;border-left:5px solid ${border}">
+      <div style="font-size:20px;font-weight:800;color:#00095b;line-height:1;margin-bottom:3px">${d.stock||'—'}</div>
+      ${d.vehicle?`<div style="font-size:10px;color:#64748b;margin-bottom:4px">${d.vehicle}</div>`:''}
+      ${delivLabel?`<div style="font-size:11px;font-weight:700;color:#6d28d9;margin-bottom:4px">📅 ${delivLabel}</div>`:''}
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+        <span style="font-size:10px;font-weight:700;color:${gasColor}">${gasLabel}</span>
+        <span style="font-size:10px;color:#94a3b8;margin-left:auto">${pct}%</span>
+      </div>
+      <div style="height:3px;background:#e2e8f0;border-radius:99px;margin-bottom:5px"><div style="height:100%;width:${pct}%;background:${barColor};border-radius:99px"></div></div>
+      <div style="display:flex;gap:3px;flex-wrap:wrap">${dots}</div>
+      ${d.salesperson?`<div style="font-size:10px;color:#94a3b8;margin-top:4px">${d.salesperson}</div>`:''}
     </div>`;
   }).join('');
 }
