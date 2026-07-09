@@ -1145,19 +1145,18 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         </div>
         <div class="tv-sub" id="tv-count">Connecting…</div>
         <div class="tv-body">
-          <div class="tv-col-queue" style="display:flex;flex-direction:column;flex:1.4;overflow:hidden;min-width:0">
+          <div class="tv-col-queue">
             <div class="tv-col-title" id="tv-title-queue">Vehicle Appointments</div>
             <div style="overflow-y:auto;flex:1" id="tv-list"></div>
           </div>
-          <div class="tv-col-getready" style="flex:1.1;overflow:hidden;display:flex;flex-direction:column;min-width:0;border-left:1px solid rgba(255,255,255,.12);padding-left:20px">
+          <div class="tv-col-getready" style="flex:1.1;overflow:hidden;display:flex;flex-direction:column;min-width:0;border-left:1px solid rgba(255,255,255,.15);padding-left:18px">
             <div class="tv-col-title" id="tv-title-getready">Get Ready</div>
-            <div id="tv-gr-list" style="display:flex;flex-direction:column;gap:0;overflow-y:auto;flex:1"></div>
+            <div id="tv-gr-list" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:0"></div>
           </div>
-          <div class="tv-col-incoming" style="flex:1.4">
+          <div class="tv-col-incoming">
             <div class="tv-col-title" id="tv-title-incoming">Incoming Units</div>
             <div class="tv-incoming-summary" id="tv-inc-summary"></div>
             <div class="tv-inc-grid" id="tv-inc-list"></div>
-            <!-- Mini compound map -->
             <div style="margin-top:12px;flex-shrink:0">
               <div class="tv-col-title" style="margin-bottom:6px;font-size:11px;letter-spacing:.08em" id="tv-title-compound">Compound — 700 Bayview</div>
               <div id="tv-compound-map" style="overflow:auto;max-height:220px"></div>
