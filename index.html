@@ -98,6 +98,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .section-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin:20px 0 8px}
 .entry{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:8px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
 .entry.status-progress{border-left:3px solid #3b82f6}
+.entry.status-onroute{border-left:3px solid #f97316}
+.entry.status-bringing{border-left:3px solid #16a34a}
 .entry.status-done{opacity:.5}
 .entry.type-scheduled{border-left:3px solid #8b5cf6}
 .entry.type-scheduled.status-progress{border-left:3px solid #3b82f6}
@@ -112,6 +114,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .status-pill{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em}
 .status-pill.pending{background:#fef9ec;color:#7c5a0a}
 .status-pill.progress{background:#eff6ff;color:#1d4ed8}
+.status-pill.onroute{background:#fff7ed;color:#c2410c;font-weight:700}
+.status-pill.bringing{background:#f0fdf4;color:#15803d;font-weight:700}
 .status-pill.done{background:#f0faf4;color:#1a6640}
 .status-pill.cancelled{background:#dc2626;color:#fff}
 .status-pill.onhold{background:#d97706;color:#fff}
@@ -1678,7 +1682,7 @@ function startApp() {
           if (prev.status!==curr.status) {
             if(perm('queueAdmin')&&curr.status==='done') chime('complete');
             if(!perm('queueAdmin')&&curr.requestedBy===currentUser.name) {
-              if(curr.status==='progress') chime('claimed');
+              if(curr.status==='onroute'||curr.status==='progress') chime('claimed');
               if(curr.status==='done') chime('complete');
             }
           }
@@ -1884,14 +1888,26 @@ window.submitRequest = async function() {
 // ── Queue actions ─────────────────────────────────────
 window.setStatus = async function(id,status) {
   const updates={status};
+  if(status==='onroute'){
+    updates.onrouteTs=Date.now();
+    updates.bringingTs=null;
+    updates.progressTs=Date.now(); // keep for legacy compatibility
+    updates.claimedBy=currentUser.name;
+  }
+  if(status==='bringing'){
+    updates.bringingTs=Date.now();
+    updates.claimedBy=currentUser.name;
+  }
   if(status==='progress'){updates.progressTs=Date.now();updates.claimedBy=currentUser.name;}
+  if(status==='pending'){updates.onrouteTs=null;updates.bringingTs=null;updates.claimedBy=null;updates.progressTs=null;}
   if(status==='done') {
     const completedTs=Date.now();
     updates.completedTs=completedTs;updates.claimedBy=currentUser.name;
     const e=entries[id];
-    if(e&&e.progressTs) {
-      const durationMins=Math.round((completedTs-e.progressTs)/60000);
-      await push(ref(db,'history'),{stock:e.stock,dest:e.dest,requestedBy:e.requestedBy||'—',claimedBy:currentUser.name,progressTs:e.progressTs,completedTs,durationMins,ts:completedTs});
+    const startTs = e?.onrouteTs || e?.progressTs;
+    if(e && startTs) {
+      const durationMins=Math.round((completedTs-startTs)/60000);
+      await push(ref(db,'history'),{stock:e.stock,dest:e.dest,requestedBy:e.requestedBy||'—',claimedBy:currentUser.name,progressTs:startTs,completedTs,durationMins,ts:completedTs});
       const cutoff=Date.now()-30*24*60*60*1000;
       const histSnap=await get(ref(db,'history'));
       const hist=histSnap.val()||{};
@@ -1942,25 +1958,30 @@ document.getElementById('deny-custom').addEventListener('keydown',e=>{if(e.key==
 // ── Entry HTML ────────────────────────────────────────
 function entryHTML(e) {
   const dc=destClass(e.dest);
-  const statusMap={pending:'pending',progress:'progress',done:'done',cancelled:'cancelled',onhold:'onhold'};
-  const labelMap={pending:'Pending',progress:'In progress',done:'Done',cancelled:'Cancelled',onhold:'Vehicle On Hold'};
+  const statusMap={pending:'pending',onroute:'onroute',bringing:'bringing',progress:'progress',done:'done',cancelled:'cancelled',onhold:'onhold'};
+  const labelMap={pending:'Pending',onroute:'🚶 On Route',bringing:'🚗 Bringing Back',progress:'In progress',done:'Done',cancelled:'Cancelled',onhold:'Vehicle On Hold'};
   const sc=statusMap[e.status]||'pending', sl=labelMap[e.status]||e.status;
   const typePill=e.bookingType==='scheduled'?`<span class="type-pill-scheduled">Scheduled ${fmtTime(e.scheduledTs)}</span>`:`<span class="type-pill-asap">ASAP</span>`;
   const isLot=currentUser&&perm('queueAdmin');
   const isMine=currentUser&&e.requestedBy===currentUser.name;
   let actions='';
   if(e.status==='pending') {
-    if(isLot) actions=`<button class="btn-action" onclick="setStatus('${e.id}','progress')">Start move</button><button class="btn-action" onclick="openHoldModal('${e.id}')" style="color:#92400e;border-color:#fcd34d;background:#fffbeb">On Hold</button>`;
+    if(isLot) actions=`<button class="btn-action" onclick="setStatus('${e.id}','onroute')" style="background:#fff7ed;color:#c2410c;border-color:#fed7aa;font-weight:700">🚶 On Route</button><button class="btn-action" onclick="openHoldModal('${e.id}')" style="color:#92400e;border-color:#fcd34d;background:#fffbeb">On Hold</button>`;
     else if(isMine) actions=`<button class="btn-action" onclick="cancelRequest('${e.id}')" style="color:#991b1b;border-color:#fca5a5">Cancel</button>`;
+  } else if(e.status==='onroute') {
+    if(isLot) actions=`
+      <button class="btn-action" onclick="setStatus('${e.id}','bringing')" style="background:#f0fdf4;color:#15803d;border-color:#86efac;font-weight:700">🚗 Got it — Bringing Back</button>
+      <button class="btn-action" onclick="setStatus('${e.id}','pending')" style="color:#b45309;border-color:#fde68a;font-size:11px">↩ Back to pending</button>`;
+  } else if(e.status==='bringing') {
+    if(isLot) actions=`
+      <button class="btn-action complete" onclick="setStatus('${e.id}','done')">✓ Arrived — Complete</button>
+      <button class="btn-action" onclick="setStatus('${e.id}','onroute')" style="color:#c2410c;border-color:#fed7aa;font-size:11px">↩ Back to On Route</button>
+      <button class="btn-action" onclick="openHoldModal('${e.id}')" style="color:#92400e;border-color:#fcd34d;background:#fffbeb;font-size:11px">On Hold</button>`;
   } else if(e.status==='progress') {
+    // Legacy progress status — keep working
     if(isLot) actions=`
       <button class="btn-action complete" onclick="setStatus('${e.id}','done')">Complete</button>
-      <button class="btn-action" onclick="unassign('${e.id}')" style="color:#b45309;border-color:#fde68a">Unassign</button>
-      <button class="btn-action" onclick="openHoldModal('${e.id}')" style="color:#92400e;border-color:#fcd34d;background:#fffbeb">On Hold</button>
-      <div style="display:flex;gap:4px;margin-top:2px">
-        <button class="btn-action" onclick="adjustETA('${e.id}',-1)" style="font-size:11px;padding:3px 8px">−1m</button>
-        <button class="btn-action" onclick="adjustETA('${e.id}',1)" style="font-size:11px;padding:3px 8px">+1m</button>
-      </div>`;
+      <button class="btn-action" onclick="unassign('${e.id}')" style="color:#b45309;border-color:#fde68a">Unassign</button>`;
   } else if(['done','cancelled','onhold'].includes(e.status)) {
     if(e.status==='onhold'&&isLot) actions=`<button class="btn-action" onclick="releaseHold('${e.id}')" style="color:#065f46;border-color:#6ee7b7;background:#ecfdf5;font-weight:600">✓ Release Hold</button><button class="btn-action" onclick="deleteEntry('${e.id}')" style="font-size:11px">Remove</button>`;
     else if(isLot) actions=`<button class="btn-action" onclick="deleteEntry('${e.id}')">Remove</button>`;
@@ -1970,7 +1991,25 @@ function entryHTML(e) {
   const fadedClass=(e.status==='cancelled')?' status-done':'';
   const reasonBanner=e.denyReason?`<div class="deny-reason">⚠ ${e.denyReason}</div>`:'';
   let progressBar='';
-  if(e.status==='progress'&&e.progressTs) {
+  if(e.status==='onroute' && e.onrouteTs) {
+    const elapsed=Math.floor((Date.now()-e.onrouteTs)/1000);
+    const pct=Math.min(100,Math.round((elapsed/(MOVE_MINS*60))*100));
+    const remaining=Math.max(0,(MOVE_MINS*60)-elapsed);
+    const remMins=Math.floor(remaining/60), remSecs=remaining%60;
+    const overdue=elapsed>MOVE_MINS*60;
+    const bc=overdue?'#dc2626':'#f97316';
+    const label=overdue?`⚠ Overdue by ${Math.floor((elapsed-MOVE_MINS*60)/60)}m`:`${remMins}m ${remSecs}s to pick up`;
+    progressBar=`<div class="progress-bar-wrap"><div class="progress-bar-label"><span style="color:#c2410c;font-weight:700">🚶 On Route</span><span style="color:${bc};font-weight:600">${label}</span></div><div class="progress-bar-track" style="background:#fff7ed"><div class="progress-bar-fill" style="width:${pct}%;background:${bc}"></div></div></div>`;
+  } else if(e.status==='bringing' && e.bringingTs) {
+    const elapsed=Math.floor((Date.now()-e.bringingTs)/1000);
+    const pct=Math.min(100,Math.round((elapsed/(MOVE_MINS*60))*100));
+    const remaining=Math.max(0,(MOVE_MINS*60)-elapsed);
+    const remMins=Math.floor(remaining/60), remSecs=remaining%60;
+    const overdue=elapsed>MOVE_MINS*60;
+    const bc=overdue?'#dc2626':'#16a34a';
+    const label=overdue?`⚠ Overdue by ${Math.floor((elapsed-MOVE_MINS*60)/60)}m`:`${remMins}m ${remSecs}s to arrive`;
+    progressBar=`<div class="progress-bar-wrap"><div class="progress-bar-label"><span style="color:#15803d;font-weight:700">🚗 Bringing Back</span><span style="color:${bc};font-weight:600">${label}</span></div><div class="progress-bar-track" style="background:#f0fdf4"><div class="progress-bar-fill" style="width:${pct}%;background:${bc}"></div></div></div>`;
+  } else if(e.status==='progress'&&e.progressTs) {
     const elapsed=Math.floor((Date.now()-e.progressTs)/1000);
     const pct=Math.min(100,Math.round((elapsed/(MOVE_MINS*60))*100));
     const elapsedMins=Math.floor(elapsed/60), elapsedSecs=elapsed%60;
@@ -2058,16 +2097,29 @@ function renderTV() {
   tvList.innerHTML = allEntries.map(e => {
     const dc = destClass(e.dest);
     const isProgress = e.status === 'progress';
+    const isOnRoute  = e.status === 'onroute';
+    const isBringing = e.status === 'bringing';
     const isDone = e.status === 'done';
     const isHold = e.status === 'onhold';
     const isScheduled = e.bookingType === 'scheduled' && e.status === 'pending';
 
-    // Border colour
-    const border = isHold ? '#f59e0b' : isDone ? '#16a34a' : isProgress ? '#3b82f6' : isScheduled ? '#8b5cf6' : '#e2e8f0';
+    const border = isHold ? '#f59e0b' : isDone ? '#16a34a' : isBringing ? '#16a34a' : isOnRoute ? '#f97316' : isProgress ? '#3b82f6' : isScheduled ? '#8b5cf6' : '#e2e8f0';
 
     // Progress/countdown bar
     let barHtml = '';
-    if (isProgress && e.progressTs) {
+    if (isOnRoute && e.onrouteTs) {
+      const el = Math.floor((Date.now()-e.onrouteTs)/1000);
+      const rem = Math.max(0,(MOVE_MINS*60)-el);
+      const pct = Math.min(100,Math.round((el/(MOVE_MINS*60))*100));
+      const bc = el>MOVE_MINS*60 ? '#dc2626' : '#f97316';
+      barHtml = `<div style="margin-top:6px"><div style="font-size:10px;color:#c2410c;font-weight:700;margin-bottom:2px;display:flex;justify-content:space-between"><span>🚶 On Route</span><span style="color:${bc}">${Math.floor(rem/60)}m ${rem%60}s</span></div><div style="height:4px;background:#fff7ed;border-radius:99px"><div style="height:100%;width:${pct}%;background:${bc};border-radius:99px"></div></div></div>`;
+    } else if (isBringing && e.bringingTs) {
+      const el = Math.floor((Date.now()-e.bringingTs)/1000);
+      const rem = Math.max(0,(MOVE_MINS*60)-el);
+      const pct = Math.min(100,Math.round((el/(MOVE_MINS*60))*100));
+      const bc = el>MOVE_MINS*60 ? '#dc2626' : '#16a34a';
+      barHtml = `<div style="margin-top:6px"><div style="font-size:10px;color:#15803d;font-weight:700;margin-bottom:2px;display:flex;justify-content:space-between"><span>🚗 Bringing Back</span><span style="color:${bc}">${Math.floor(rem/60)}m ${rem%60}s</span></div><div style="height:4px;background:#f0fdf4;border-radius:99px"><div style="height:100%;width:${pct}%;background:${bc};border-radius:99px"></div></div></div>`;
+    } else if (isProgress && e.progressTs) {
       const el = Math.floor((Date.now()-e.progressTs)/1000);
       const pct = Math.min(100, Math.round((el/(MOVE_MINS*60))*100));
       const overdue = el > MOVE_MINS*60;
