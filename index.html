@@ -1158,7 +1158,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
             <div class="tv-inc-grid" id="tv-inc-list"></div>
             <div style="margin-top:12px;flex-shrink:0">
               <div class="tv-col-title" style="margin-bottom:6px;font-size:11px;letter-spacing:.08em" id="tv-title-compound">Compound — 700 Bayview</div>
-              <div id="tv-compound-map" style="overflow:auto;max-height:220px"></div>
+              <div id="tv-compound-map" style="width:100%"></div>
             </div>
           </div>
         </div>
@@ -2277,9 +2277,15 @@ function renderTVCompoundMap() {
   }
 
   let html = '';
-  for (let ri = 0; ri < size.rows; ri++) {
-    html += '<div class="tv-cm-row">';
-    for (let ci = 0; ci < size.cols; ci++) {
+  const numCols = size.cols || 52;
+  const numRows = size.rows || 13;
+  // Use percentage width so dots always fit the container — no horizontal scroll
+  const dotPct = (100 / numCols).toFixed(3);
+
+  html += `<div style="width:100%">`;
+  for (let ri = 0; ri < numRows; ri++) {
+    html += `<div style="display:flex;width:100%;margin-bottom:1px">`;
+    for (let ci = 0; ci < numCols; ci++) {
       const key = `R${ri}-C${ci}`;
       const veh = v[key];
       let cls = '';
@@ -2288,12 +2294,13 @@ function renderTVCompoundMap() {
         if (veh.status === 'blocked') cls = 'blocked';
         else if (apptStocks.has(s)) cls = 'appointed';
         else if (grStocks.has(s)) cls = 'getready';
-        else cls = veh.status || 'occupied'; // occupied/flag/wholesale/fleet/leasereturn all have their own CSS
+        else cls = veh.status || 'occupied';
       }
-      html += `<div class="tv-cm-spot ${cls}" title="${veh?veh.stock:''}"></div>`;
+      html += `<div class="tv-cm-spot ${cls}" style="width:${dotPct}%;height:8px;min-width:0;border-radius:1px;margin:0 0.5px;flex-shrink:0" title="${veh?veh.stock:''}"></div>`;
     }
-    html += '</div>';
+    html += `</div>`;
   }
+  html += `</div>`;
 
   // Legend
   html += `<div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
