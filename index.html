@@ -2274,24 +2274,27 @@ function renderTVCompoundMap() {
   let html = '';
   const numCols = size.cols || 52;
   const numRows = size.rows || 13;
-  // Use percentage width so dots always fit the container — no horizontal scroll
-  const dotPct = (100 / numCols).toFixed(3);
 
-  html += `<div style="width:100%">`;
+  html += `<div style="width:100%;display:flex;flex-direction:column;gap:1px">`;
   for (let ri = 0; ri < numRows; ri++) {
-    html += `<div style="display:flex;width:100%;margin-bottom:1px">`;
+    html += `<div style="display:flex;width:100%;gap:1px">`;
     for (let ci = 0; ci < numCols; ci++) {
       const key = `R${ri}-C${ci}`;
       const veh = v[key];
-      let cls = '';
+      let bg = 'rgba(255,255,255,.08)';
       if (veh) {
         const s = (veh.stock||'').toUpperCase();
-        if (veh.status === 'blocked') cls = 'blocked';
-        else if (apptStocks.has(s)) cls = 'appointed';
-        else if (grStocks.has(s)) cls = 'getready';
-        else cls = veh.status || 'occupied';
+        if (veh.status==='void') bg='rgba(255,255,255,.03)';
+        else if (veh.status==='blocked') bg='rgba(255,255,255,.06)';
+        else if (apptStocks.has(s)) bg='#a78bfa';
+        else if (grStocks.has(s)) bg='#34d399';
+        else if (veh.status==='flag') bg='#7f1d1d';
+        else if (veh.status==='wholesale') bg='#eab308';
+        else if (veh.status==='fleet') bg='#22c55e';
+        else if (veh.status==='leasereturn') bg='#3b82f6';
+        else bg='rgba(255,255,255,.35)';
       }
-      html += `<div class="tv-cm-spot ${cls}" style="width:${dotPct}%;height:8px;min-width:0;border-radius:1px;margin:0 0.5px;flex-shrink:0" title="${veh?veh.stock:''}"></div>`;
+      html += `<div style="flex:1;min-width:0;aspect-ratio:1;background:${bg};border-radius:1px" title="${veh?veh.stock:''}"></div>`;
     }
     html += `</div>`;
   }
