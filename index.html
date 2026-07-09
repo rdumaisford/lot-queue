@@ -141,19 +141,19 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tv-panel{background:#00095b;width:100vw;height:100vh;position:fixed;top:0;left:0;padding:28px 36px 20px;color:white;display:flex;flex-direction:column;overflow:hidden;z-index:100}
 .tv-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,#3b82f6 0%,#6366f1 50%,rgba(110,180,255,.2) 100%)}
 .tv-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-shrink:0}
-.tv-title{font-size:30px;font-weight:800;letter-spacing:-.02em;display:flex;align-items:center;gap:14px;color:#fff}
+.tv-title{font-size:32px;font-weight:800;letter-spacing:-.02em;display:flex;align-items:center;gap:14px;color:#fff}
 .tv-title-icon{width:36px;height:36px;background:white;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .tv-title-icon svg{width:22px;height:22px;fill:none;stroke:var(--ford);stroke-width:2}
-.tv-clock{font-size:34px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
-.tv-sub{font-size:12px;opacity:.3;margin-bottom:14px;text-transform:uppercase;letter-spacing:.1em;flex-shrink:0}
+.tv-clock{font-size:36px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums}
+.tv-sub{font-size:12px;color:rgba(255,255,255,.45);font-weight:700;margin-bottom:14px;text-transform:uppercase;letter-spacing:.1em;flex-shrink:0}
 .tv-body{flex:1;overflow:hidden;display:flex;flex-direction:row;gap:16px}
 .tv-col-queue{flex:1.4;overflow:hidden;display:flex;flex-direction:column;min-width:0}
 .tv-col-incoming{flex:1.2;overflow:hidden;display:flex;flex-direction:column;min-width:0;border-left:1px solid rgba(255,255,255,.15);padding-left:18px}
-.tv-col-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.5);margin-bottom:10px;flex-shrink:0}
+.tv-col-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#fff;margin-bottom:10px;flex-shrink:0}
 .tv-incoming-summary{display:flex;gap:6px;margin-bottom:10px;flex-shrink:0}
-.tv-inc-stat{flex:1;background:rgba(255,255,255,.08);border-radius:8px;padding:8px;text-align:center}
-.tv-inc-stat-num{font-size:20px;font-weight:800;letter-spacing:-.02em}
-.tv-inc-stat-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.45;margin-top:1px}
+.tv-inc-stat{flex:1;background:rgba(255,255,255,.12);border-radius:8px;padding:8px;text-align:center}
+.tv-inc-stat-num{font-size:20px;font-weight:800;letter-spacing:-.02em;color:#fff}
+.tv-inc-stat-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.5);margin-top:1px}
 
 /* Tile grid */
 .tv-inc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;overflow-y:auto;flex:1;align-content:start}
@@ -161,66 +161,66 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tv-inc-grid::-webkit-scrollbar-track{background:transparent}
 .tv-inc-grid::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:99px}
 
-/* Each tile */
-.tv-inc-tile{background:rgba(255,255,255,.09);border-radius:10px;overflow:hidden;color:#fff;display:flex;flex-direction:column;border:1px solid rgba(255,255,255,.1)}
-.tv-inc-tile.status-sold    {border-top:4px solid #ef4444}
-.tv-inc-tile.status-turnover{border-top:4px solid #f59e0b}
-.tv-inc-tile.status-stock   {border-top:4px solid #60a5fa}
-.tv-inc-tile.is-done        {border-top:4px solid #34d399;opacity:.6}
+/* Each tile — white bg */
+.tv-inc-tile{background:#fff;border-radius:10px;overflow:hidden;color:var(--ford);display:flex;flex-direction:column}
+.tv-inc-tile.status-sold    {border-top:4px solid #dc2626}
+.tv-inc-tile.status-turnover{border-top:4px solid #d97706}
+.tv-inc-tile.status-stock   {border-top:4px solid #1d4ed8}
+.tv-inc-tile.is-done        {border-top:4px solid #15803d;opacity:.7}
 .tv-inc-tile-body{padding:8px 10px 6px;flex:1}
 .tv-inc-tile-top{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:2px}
-.tv-inc-tile-stock{font-size:17px;font-weight:800;color:#fff;letter-spacing:-.01em}
+.tv-inc-tile-stock{font-size:17px;font-weight:800;color:var(--ford);letter-spacing:-.01em}
 .tv-inc-tile-status{font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em;flex-shrink:0}
-.tv-inc-tile-vehicle{font-size:10px;color:rgba(255,255,255,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px}
+.tv-inc-tile-vehicle{font-size:10px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px}
 
 /* Flag grid */
 .tv-inc-tile-flags{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
 .tv-inc-tile-flag{border-radius:4px;padding:5px 2px;display:flex;flex-direction:column;align-items:center;gap:2px}
 .tv-inc-tile-flag .ff-icon{font-size:13px;font-weight:700;line-height:1}
 .tv-inc-tile-flag .ff-label{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;line-height:1}
-.ff-done-acc  {background:rgba(34,197,94,.25);color:#86efac}
-.ff-done-pdi  {background:rgba(255,255,255,.18);color:#fff}
-.ff-done-photo{background:rgba(139,92,246,.35);color:#c4b5fd}
-.ff-done-ic   {background:rgba(249,115,22,.25);color:#fdba74}
-.ff-pend      {background:rgba(255,255,255,.05);color:rgba(255,255,255,.2)}
-.ff-na        {background:rgba(255,255,255,.03);color:rgba(255,255,255,.1)}
+.ff-done-acc  {background:#dcfce7;color:#15803d}
+.ff-done-pdi  {background:#1f2937;color:#fff}
+.ff-done-photo{background:#7c3aed;color:#fff}
+.ff-done-ic   {background:#c2410c;color:#fff}
+.ff-pend      {background:#f1f5f9;color:#cbd5e1}
+.ff-na        {background:#f8fafc;color:#cbd5e1}
 
-.tv-section-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.4);margin:12px 0 8px;flex-shrink:0}
+.tv-section-label{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#fff;margin:12px 0 8px;flex-shrink:0}
 .tv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .tv-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 
-/* Queue cards — dark glass style */
-.tv-card{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:16px 18px;position:relative;color:#fff;margin-bottom:8px;flex-shrink:0}
-.tv-card.in-progress{border-left:5px solid #60a5fa;background:rgba(96,165,250,.12)}
-.tv-card.type-scheduled{border-left:5px solid #a78bfa;background:rgba(167,139,250,.1)}
-.tv-card.is-done{border-left:5px solid #34d399;background:rgba(52,211,153,.08);opacity:.7}
-.tv-stock{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-bottom:4px;color:#fff;line-height:1}
+/* Queue cards — white bg */
+.tv-card{background:#fff;border:none;border-radius:14px;padding:16px 18px;position:relative;color:var(--ford);margin-bottom:8px;flex-shrink:0}
+.tv-card.in-progress{border-left:6px solid #3b82f6}
+.tv-card.type-scheduled{border-left:6px solid #8b5cf6}
+.tv-card.is-done{border-left:6px solid #16a34a;opacity:.6}
+.tv-stock{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-bottom:4px;color:var(--ford);line-height:1}
 .tv-stock.done-stock{text-decoration:line-through;opacity:.5}
 .tv-dest{margin-bottom:6px}
-.tv-dest .dest-pill{font-size:14px;padding:4px 12px;white-space:nowrap;display:inline-block;font-weight:700}
-.tv-scheduled-time{font-size:15px;color:#c4b5fd;font-weight:700;margin-bottom:5px}
-.tv-wait{font-size:15px;color:#fcd34d;font-weight:700;margin-bottom:5px}
-.tv-claimed{font-size:15px;color:#93c5fd;margin-bottom:4px;font-weight:700}
-.tv-done-by{font-size:15px;color:#86efac;margin-bottom:4px;font-weight:700}
-.tv-by{font-size:14px;color:rgba(255,255,255,.55);font-weight:600;margin-bottom:4px}
-.tv-notes{font-size:13px;color:rgba(255,255,255,.4);margin-top:4px;font-style:italic}
-.tv-ago{font-size:12px;color:rgba(255,255,255,.3);margin-top:6px}
+.tv-dest .dest-pill{font-size:14px;padding:4px 14px;white-space:nowrap;display:inline-block;font-weight:700}
+.tv-scheduled-time{font-size:15px;color:#6d28d9;font-weight:700;margin-bottom:5px}
+.tv-wait{font-size:15px;color:#b45309;font-weight:700;margin-bottom:5px}
+.tv-claimed{font-size:15px;color:#1d4ed8;margin-bottom:4px;font-weight:800}
+.tv-done-by{font-size:15px;color:#15803d;margin-bottom:4px;font-weight:800}
+.tv-by{font-size:14px;color:var(--ford);font-weight:700;opacity:.5;margin-bottom:4px}
+.tv-notes{font-size:13px;color:var(--ford);opacity:.4;margin-top:4px;font-style:italic}
+.tv-ago{font-size:12px;color:var(--ford);opacity:.3;margin-top:6px}
 .tv-progress-wrap{margin-top:10px}
-.tv-progress-track{height:6px;background:rgba(255,255,255,.12);border-radius:99px;overflow:hidden}
-.tv-progress-fill{height:100%;background:#60a5fa;border-radius:99px}
-.tv-deny-reason{font-size:13px;color:#fcd34d;font-weight:700;margin-top:5px;background:rgba(251,191,36,.15);border-radius:4px;padding:3px 8px;display:inline-block}
+.tv-progress-track{height:6px;background:#dbeafe;border-radius:99px;overflow:hidden}
+.tv-progress-fill{height:100%;background:#1d4ed8;border-radius:99px}
+.tv-deny-reason{font-size:13px;color:#92400e;font-weight:700;margin-top:5px;background:#fef3c7;border-radius:4px;padding:3px 8px;display:inline-block}
 
-/* Get Ready cards — same glass style */
-.tv-gr-card{background:rgba(255,255,255,.08);border-radius:10px;padding:10px 12px;flex-shrink:0}
-.tv-gr-card.gr-urgent{background:rgba(239,68,68,.15);border-left:3px solid #ef4444}
-.tv-gr-card.gr-today{background:rgba(251,191,36,.1);border-left:3px solid #fbbf24}
-.tv-gr-stock{font-size:20px;font-weight:800;letter-spacing:-.02em;margin-bottom:2px;color:#fff}
-.tv-gr-customer{font-size:12px;color:rgba(255,255,255,.5);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tv-gr-delivery{font-size:12px;font-weight:700;color:rgba(255,255,255,.65);margin-bottom:5px}
+/* Get Ready cards — white bg matching queue */
+.tv-gr-card{background:#fff;border-radius:14px;padding:16px 18px;flex-shrink:0;margin-bottom:8px;color:var(--ford)}
+.tv-gr-card.gr-urgent{border-left:6px solid #ef4444}
+.tv-gr-card.gr-today{border-left:6px solid #f97316}
+.tv-gr-stock{font-size:26px;font-weight:800;letter-spacing:-.02em;margin-bottom:4px;color:var(--ford);line-height:1}
+.tv-gr-customer{font-size:13px;color:var(--ford);font-weight:600;opacity:.45;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tv-gr-delivery{font-size:14px;font-weight:700;color:#6d28d9;margin-bottom:5px}
 .tv-gr-flags{display:flex;gap:4px;flex-wrap:wrap}
 .tv-gr-flag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em}
-.tv-gr-flag.done{background:rgba(52,211,153,.25);color:#86efac}
-.tv-gr-flag.pend{background:rgba(255,255,255,.07);color:rgba(255,255,255,.3)}
+.tv-gr-flag.done{background:#dcfce7;color:#15803d}
+.tv-gr-flag.pend{background:#f1f5f9;color:#cbd5e1}
 /* Mini compound map */
 .tv-cm-row{display:flex;gap:2px;margin-bottom:2px}
 .tv-cm-spot{width:12px;height:12px;border-radius:2px;flex-shrink:0;background:rgba(255,255,255,.08)}
@@ -1147,16 +1147,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div class="tv-body">
           <div class="tv-col-queue" id="tv-list"></div>
           <div class="tv-col-getready" style="flex:1.1;overflow:hidden;display:flex;flex-direction:column;min-width:0;border-left:1px solid rgba(255,255,255,.12);padding-left:20px">
-            <div class="tv-col-title">Get Ready</div>
+            <div class="tv-col-title" id="tv-title-getready">Get Ready</div>
             <div id="tv-gr-list" style="display:flex;flex-direction:column;gap:0;overflow-y:auto;flex:1"></div>
           </div>
           <div class="tv-col-incoming" style="flex:1.4">
-            <div class="tv-col-title">Incoming Units</div>
+            <div class="tv-col-title" id="tv-title-incoming">Incoming Units</div>
             <div class="tv-incoming-summary" id="tv-inc-summary"></div>
             <div class="tv-inc-grid" id="tv-inc-list"></div>
             <!-- Mini compound map -->
             <div style="margin-top:12px;flex-shrink:0">
-              <div class="tv-col-title" style="margin-bottom:6px">Compound — 700 Bayview</div>
+              <div class="tv-col-title" style="margin-bottom:6px;font-size:11px;letter-spacing:.08em" id="tv-title-compound">Compound — 700 Bayview</div>
               <div id="tv-compound-map" style="overflow:auto;max-height:220px"></div>
             </div>
           </div>
@@ -1495,13 +1495,13 @@ const ROLE_LABELS = {lot:'Inventory Control',reception:'Reception',service:'Serv
 // Default permission matrix — used until Firebase settings/permissions loads (or if a role/perm is missing there)
 const DEFAULT_PERMISSIONS = {
   lot:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true  },
-  reception:    { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:false, clearCompleted:false, getReadyEdit:true  },
+  reception:    { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:false, clearCompleted:false, getReadyEdit:true  },
   service:      { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
   sales:        { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
   fandi:        { tabHome:true,  tabQueue:true,  tabTracker:false, tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:true  },
   detail:       { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
   pdi:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:true,  trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
-  merchandiser: { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:true,  tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:true,  cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
+  merchandiser: { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:true,  tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:true,  trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:true,  cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
   management:   { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true  },
 };
 
@@ -2062,6 +2062,16 @@ function renderTV() {
   }
   if(!total&&!done.length&&!onholdEntries.length){tvCount.textContent='No active moves';tvList.innerHTML='<div class="tv-empty"><div style="font-size:48px">✓</div><p>All clear — no pending moves</p></div>';return;}
   tvCount.textContent=(active.length?active.length+' active · ':'')+( upcoming.length?upcoming.length+' upcoming · ':'')+( done.length?done.length+' completed':'');
+  // Queue column title with count
+  const queueTitleEl = tvList.previousElementSibling;
+  if(queueTitleEl&&queueTitleEl.classList.contains('tv-col-title')) {
+    queueTitleEl.textContent=`Vehicle Appointments (${active.length+upcoming.length})`;
+  } else {
+    // Insert title if missing
+    const t=document.createElement('div');t.className='tv-col-title';t.style.marginBottom='10px';t.style.flexShrink='0';
+    t.textContent=`Vehicle Appointments (${active.length+upcoming.length})`;
+    tvList.parentElement.insertBefore(t,tvList);
+  }
   let tvHtml='';
   if(active.length){
     tvHtml+=`<div class="tv-section-label">Now — ${active.length} active</div><div class="tv-grid">`;
@@ -2109,6 +2119,10 @@ function renderTVIncoming() {
   const sold     = all.filter(u=>u.status==='SOLD').length;
   const turnover = all.filter(u=>u.status==='TURNOVER').length;
   const pdiLeft  = active.filter(u=>!u.pdi).length;
+
+  // Update column title with count
+  const incTitle = document.getElementById('tv-title-incoming');
+  if (incTitle) incTitle.textContent = `Incoming Units (${all.length})`;
 
   sumEl.innerHTML = `
     <div class="tv-inc-stat"><div class="tv-inc-stat-num">${all.length}</div><div class="tv-inc-stat-label">Total</div></div>
@@ -2191,8 +2205,12 @@ function renderTVGetReady() {
 
   if (!deals.length) {
     el.innerHTML = '<div style="opacity:.3;font-size:13px;text-align:center;padding:20px">No active deals</div>';
+    const t=document.getElementById('tv-title-getready');
+    if(t) t.textContent='Get Ready (0)';
     return;
   }
+  const t=document.getElementById('tv-title-getready');
+  if(t) t.textContent=`Get Ready (${deals.length})`;
 
   el.innerHTML = deals.slice(0, 10).map(d => {
     // Border colour matches urgency
@@ -2216,10 +2234,10 @@ function renderTVGetReady() {
       : null;
 
     const gasHtml = d.needsGas
-      ? `<div style="display:inline-block;font-size:12px;font-weight:800;padding:3px 10px;border-radius:20px;margin:5px 0;background:${d.gasFilled?'rgba(52,211,153,.25)':'rgba(239,68,68,.3)'};color:${d.gasFilled?'#86efac':'#fca5a5'}">⛽ ${d.gasFilled?'Gas Filled':'Needs Gas'}</div>`
-      : `<div style="display:inline-block;font-size:12px;font-weight:800;padding:3px 10px;border-radius:20px;margin:5px 0;background:rgba(52,211,153,.2);color:#86efac">⛽ No Gas Needed</div>`;
+      ? `<div style="display:inline-block;font-size:12px;font-weight:800;padding:3px 10px;border-radius:20px;margin:5px 0;background:${d.gasFilled?'#dcfce7':'#fef2f2'};color:${d.gasFilled?'#15803d':'#dc2626'}">⛽ ${d.gasFilled?'Gas Filled':'Needs Gas'}</div>`
+      : `<div style="display:inline-block;font-size:12px;font-weight:800;padding:3px 10px;border-radius:20px;margin:5px 0;background:#dcfce7;color:#15803d">⛽ No Gas Needed</div>`;
 
-    const progressHtml = `<div style="background:#e2e8f0;border-radius:99px;height:4px;margin:6px 0"><div style="height:100%;border-radius:99px;width:${pct}%;background:${pct===100?'#16a34a':pct>60?'#f59e0b':'#3b82f6'}"></div></div>`;
+    const progressHtml = `<div style="background:#e2e8f0;border-radius:99px;height:5px;margin:6px 0"><div style="height:100%;border-radius:99px;width:${pct}%;background:${pct===100?'#16a34a':pct>60?'#f59e0b':'#1d4ed8'}"></div></div>`;
 
     const flagsHtml = `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">${toCheck.map(([k,label]) =>
       `<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase;background:${d[k]?'#dcfce7':'#f1f5f9'};color:${d[k]?'#15803d':'#94a3b8'}">${label}</span>`
@@ -2230,8 +2248,8 @@ function renderTVGetReady() {
       <div class="tv-by">${d.vehicle||''}${d.customer?' · '+d.customer:''}</div>
       ${delivLabel?`<div class="tv-scheduled-time">📅 ${delivLabel}</div>`:''}
       ${(d.trade1?.stock||d.trade2?.stock)?`<div style="margin:6px 0;display:flex;flex-direction:column;gap:3px">
-        ${d.trade1?.stock?`<div style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="background:rgba(96,165,250,.3);color:#93c5fd;font-weight:800;padding:1px 5px;border-radius:3px;font-size:9px">T1</span><span style="font-weight:800;color:#fff">${d.trade1.stock}</span><span style="color:rgba(255,255,255,.5)">${[d.trade1.year,d.trade1.make,d.trade1.model].filter(Boolean).join(' ')}</span>${d.trade1.kms?`<span style="margin-left:auto;color:rgba(255,255,255,.4)">${Number(d.trade1.kms).toLocaleString()} km</span>`:''}</div>`:''}
-        ${d.trade2?.stock?`<div style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="background:rgba(167,139,250,.3);color:#c4b5fd;font-weight:800;padding:1px 5px;border-radius:3px;font-size:9px">T2</span><span style="font-weight:800;color:#fff">${d.trade2.stock}</span><span style="color:rgba(255,255,255,.5)">${[d.trade2.year,d.trade2.make,d.trade2.model].filter(Boolean).join(' ')}</span>${d.trade2.kms?`<span style="margin-left:auto;color:rgba(255,255,255,.4)">${Number(d.trade2.kms).toLocaleString()} km</span>`:''}</div>`:''}
+        ${d.trade1?.stock?`<div style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="background:#dbeafe;color:#1d4ed8;font-weight:800;padding:1px 5px;border-radius:3px;font-size:9px">T1</span><span style="font-weight:800;color:var(--ford)">${d.trade1.stock}</span><span style="color:#64748b">${[d.trade1.year,d.trade1.make,d.trade1.model].filter(Boolean).join(' ')}</span>${d.trade1.kms?`<span style="margin-left:auto;color:#94a3b8">${Number(d.trade1.kms).toLocaleString()} km</span>`:''}</div>`:''}
+        ${d.trade2?.stock?`<div style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="background:#ede9fe;color:#6d28d9;font-weight:800;padding:1px 5px;border-radius:3px;font-size:9px">T2</span><span style="font-weight:800;color:var(--ford)">${d.trade2.stock}</span><span style="color:#64748b">${[d.trade2.year,d.trade2.make,d.trade2.model].filter(Boolean).join(' ')}</span>${d.trade2.kms?`<span style="margin-left:auto;color:#94a3b8">${Number(d.trade2.kms).toLocaleString()} km</span>`:''}</div>`:''}
       </div>`:''}      ${gasHtml}
       ${progressHtml}
       ${flagsHtml}
@@ -2249,6 +2267,21 @@ function renderTVCompoundMap() {
   // Build appointment + GR lookup for colour coding
   const apptStocks = new Set(Object.values(entries||{}).filter(e=>e.stock&&e.status!=='done').map(e=>e.stock.toUpperCase()));
   const grStocks = new Set(Object.values(getReadyDeals||{}).filter(d=>d.stock&&!grIsComplete(d)).map(d=>d.stock.toUpperCase()));
+
+  // Compute stats for title
+  const allVehs = Object.values(v).filter(veh => veh && veh.stock && veh.status !== 'void' && veh.status !== 'blocked');
+  const total     = allVehs.length;
+  const flagged   = allVehs.filter(veh => veh.status === 'flag').length;
+  const wholesale = allVehs.filter(veh => veh.status === 'wholesale').length;
+  const fleet     = allVehs.filter(veh => veh.status === 'fleet').length;
+  const lease     = allVehs.filter(veh => veh.status === 'leasereturn').length;
+  const appts     = allVehs.filter(veh => apptStocks.has((veh.stock||'').toUpperCase())).length;
+  const gr        = allVehs.filter(veh => grStocks.has((veh.stock||'').toUpperCase())).length;
+
+  const titleEl = document.getElementById('tv-title-compound');
+  if (titleEl) {
+    titleEl.innerHTML = `Compound — 700 Bayview<br><span style="font-size:9px;font-weight:600;letter-spacing:.04em;opacity:.7;text-transform:none">${total} cars &nbsp;·&nbsp; ${flagged} flagged &nbsp;·&nbsp; ${wholesale} wholesale &nbsp;·&nbsp; ${fleet} fleet &nbsp;·&nbsp; ${lease} lease return &nbsp;·&nbsp; ${appts} appts &nbsp;·&nbsp; ${gr} get ready</span>`;
+  }
 
   let html = '';
   for (let ri = 0; ri < size.rows; ri++) {
