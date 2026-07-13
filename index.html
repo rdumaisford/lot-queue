@@ -739,28 +739,35 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 <!-- Setup -->
 <div id="setup-screen">
   <div class="setup-wrap">
-    <div class="setup-card">
+    <div class="setup-card" id="setup-signin">
       <div class="setup-logo">
         <div class="setup-icon"><svg viewBox="0 0 24 24"><path d="M5 11l1.5-4.5h11L19 11M19 11v5H5v-5M5 11H3v2h2M19 11h2v2h-2M7.5 16v1.5M16.5 16v1.5M7 13.5h2M15 13.5h2"/></svg></div>
         <span class="setup-title">Vehicle Manager — Barrie Ford</span>
       </div>
-      <div class="setup-sub">Enter your name and role. Saved to this device — won't be asked again.</div>
-      <div class="setup-row"><label>Your name</label><input id="s-name" type="text" placeholder="e.g. Ryan Dumais" autocomplete="name"/></div>
-      <div class="setup-row">
-        <label>Your role</label>
-        <select id="s-role">
-          <option value="sales">Sales</option>
-          <option value="service">Service</option>
-          <option value="detail">Detail</option>
-          <option value="reception">Reception</option>
-          <option value="lot">Inventory Control</option>
-          <option value="pdi">PDI</option>
-          <option value="merchandiser">Merchandiser</option>
-          <option value="shuttle">Shuttle Driver</option>
-          <option value="management">Management</option>
-        </select>
+      <div class="setup-sub">Sign in with your Outlook account to continue.</div>
+      <button class="btn-setup" onclick="signInWithMicrosoft()" style="display:flex;align-items:center;justify-content:center;gap:10px;background:#2f2f2f">
+        <svg width="18" height="18" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+        Sign in with Microsoft
+      </button>
+      <div id="signin-error" class="toast error" style="display:none;margin-top:14px"></div>
+    </div>
+
+    <div class="setup-card" id="setup-pending" style="display:none">
+      <div class="setup-logo">
+        <div class="setup-icon"><svg viewBox="0 0 24 24"><path d="M5 11l1.5-4.5h11L19 11M19 11v5H5v-5M5 11H3v2h2M19 11h2v2h-2M7.5 16v1.5M16.5 16v1.5M7 13.5h2M15 13.5h2"/></svg></div>
+        <span class="setup-title">Vehicle Manager — Barrie Ford</span>
       </div>
-      <button class="btn-setup" onclick="saveIdentity()">Get started</button>
+      <div class="setup-sub">Hi <strong id="pending-name">there</strong> — your account is waiting for approval from management. This screen will move on automatically once you're approved, no need to refresh.</div>
+      <button class="btn-setup" onclick="signOutUser()" style="background:var(--surface);color:var(--text-muted);border:1px solid var(--border)">Sign out</button>
+    </div>
+
+    <div class="setup-card" id="setup-denied" style="display:none">
+      <div class="setup-logo">
+        <div class="setup-icon"><svg viewBox="0 0 24 24"><path d="M5 11l1.5-4.5h11L19 11M19 11v5H5v-5M5 11H3v2h2M19 11h2v2h-2M7.5 16v1.5M16.5 16v1.5M7 13.5h2M15 13.5h2"/></svg></div>
+        <span class="setup-title">Vehicle Manager — Barrie Ford</span>
+      </div>
+      <div class="setup-sub">Your access request was declined. If you think this is a mistake, contact management.</div>
+      <button class="btn-setup" onclick="signOutUser()">Sign out</button>
     </div>
   </div>
 </div>
@@ -1303,6 +1310,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         </div>
       </div>
 
+      <!-- Staff Sign-ins (Outlook approvals) — management only -->
+      <div id="user-mgmt-wrap" style="display:none;margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;max-width:100%">
+        <div style="font-size:16px;font-weight:600;margin-bottom:4px">Staff Sign-ins</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Approve new Outlook sign-ins and assign their role. Changes apply live — the person is let into the app automatically once approved.</div>
+        <div id="user-mgmt-pending"></div>
+        <div id="user-mgmt-approved" style="margin-top:20px"></div>
+      </div>
+
       <!-- Roles & Permissions -->
       <div style="margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;max-width:100%;overflow-x:auto">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:10px">
@@ -1559,7 +1574,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getDatabase, ref, push, get, set, onValue, update, remove, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
-import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getAuth, signInAnonymously, OAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDYj9RC-cmfcfZ6sPo_9TmF67mWeEkxkwo",
@@ -1574,10 +1589,9 @@ const firebaseConfig = {
 const appFB = initializeApp(firebaseConfig);
 const db = getDatabase(appFB);
 const auth = getAuth(appFB);
-// Silent, invisible sign-in — no login screen for staff. This satisfies the
-// database security rule (auth != null) so the app keeps working after Test
-// Mode's 30-day open-access window expires.
-signInAnonymously(auth).catch(err => console.error('Firebase auth error:', err));
+// Human staff authenticate via Microsoft sign-in (see loadIdentity/watchUserApproval below).
+// TV/display kiosk screens (?display=true) use a silent anonymous session instead —
+// that's handled inside loadIdentity() since there's no person present to sign in.
 
 // ── State ─────────────────────────────────────────────
 let entries = {}, historyData = {}, units = {}, getReadyDeals = {}, hitchhikers = {};
@@ -1728,31 +1742,160 @@ window.resetPermissionsToDefault = async function() {
   } catch(e) { alert('Error resetting — check connection.'); }
 };
 
-// ── Identity ──────────────────────────────────────────
+// ── Identity (Microsoft sign-in + management approval) ─
+let allUsers = {};
+let userApprovalUnsub = null;
+
 function loadIdentity() {
   const isDisplay = new URLSearchParams(window.location.search).get('display') === 'true';
-  if (isDisplay) { currentUser = {name:'Display',role:'display'}; startApp(); return; }
-  const saved = localStorage.getItem('lq-identity');
-  if (saved) { currentUser = JSON.parse(saved); startApp(); }
-  else {
-    document.getElementById('setup-screen').style.display = 'block';
-    document.getElementById('app').style.display = 'none';
-    setTimeout(()=>document.getElementById('s-name').focus(),100);
+  if (isDisplay) {
+    // TV kiosk screens have no person present to sign in — use a silent anonymous session.
+    currentUser = {name:'Display', role:'display'};
+    signInAnonymously(auth).catch(err=>console.error('Firebase auth error:', err));
+    startApp();
+    return;
   }
+  // Firebase persists the session in the browser, so returning staff are signed
+  // back in automatically — this fires immediately with the cached session if any.
+  onAuthStateChanged(auth, (user) => {
+    if (!user || user.isAnonymous) { showSetupState('signin'); return; }
+    watchUserApproval(user);
+  });
 }
-window.saveIdentity = function() {
-  const name = document.getElementById('s-name').value.trim();
-  const role = document.getElementById('s-role').value;
-  if (!name) { alert('Please enter your name.'); return; }
-  currentUser = {name, role};
-  localStorage.setItem('lq-identity', JSON.stringify(currentUser));
-  startApp();
+
+function showSetupState(state) {
+  document.getElementById('setup-screen').style.display = 'block';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('setup-signin').style.display = state==='signin' ? '' : 'none';
+  document.getElementById('setup-pending').style.display = state==='pending' ? '' : 'none';
+  document.getElementById('setup-denied').style.display = state==='denied' ? '' : 'none';
+}
+
+window.signInWithMicrosoft = async function() {
+  const provider = new OAuthProvider('microsoft.com');
+  const errEl = document.getElementById('signin-error');
+  if (errEl) errEl.style.display = 'none';
+  try {
+    await signInWithPopup(auth, provider);
+    // onAuthStateChanged (registered in loadIdentity) picks up the new session from here.
+  } catch (e) {
+    if (errEl) { errEl.textContent = 'Sign-in failed: ' + (e.message||e.code||'unknown error'); errEl.style.display = 'block'; }
+  }
 };
+
+window.signOutUser = function() {
+  if (userApprovalUnsub) { userApprovalUnsub(); userApprovalUnsub = null; }
+  signOut(auth).then(()=>location.reload());
+};
+// Existing "Change role" / "Change driver" buttons still call resetIdentity() — now signs out.
 window.resetIdentity = function() {
-  if (!confirm('Change your name/role on this device?')) return;
-  localStorage.removeItem('lq-identity'); location.reload();
+  if (!confirm('Sign out of this device?')) return;
+  window.signOutUser();
 };
-document.getElementById('s-name').addEventListener('keydown', e=>{ if(e.key==='Enter') window.saveIdentity(); });
+
+async function watchUserApproval(fbUser) {
+  const uid = fbUser.uid;
+  if (userApprovalUnsub) userApprovalUnsub();
+  const userRef = ref(db,'users/'+uid);
+  userApprovalUnsub = onValue(userRef, async (snap) => {
+    let u = snap.val();
+    if (!u) {
+      // First-ever account on a fresh project becomes management automatically,
+      // so there's always someone able to approve everyone else.
+      const existingSnap = await get(ref(db,'users'));
+      const isFirstEver = !existingSnap.val();
+      u = {
+        name: fbUser.displayName || fbUser.email || 'Unknown',
+        email: fbUser.email || '',
+        role: isFirstEver ? 'management' : null,
+        status: isFirstEver ? 'approved' : 'pending',
+        requestedAt: Date.now(),
+      };
+      await set(userRef, u);
+      return; // onValue fires again once the write lands
+    }
+    if (u.status === 'approved' && u.role) {
+      currentUser = { name: u.name, role: u.role, uid, email: u.email };
+      document.getElementById('setup-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      startApp();
+    } else if (u.status === 'denied') {
+      showSetupState('denied');
+    } else {
+      const nameEl = document.getElementById('pending-name');
+      if (nameEl) nameEl.textContent = u.name;
+      showSetupState('pending');
+    }
+  });
+}
+
+// ── Staff Sign-ins admin panel (management only) ───────
+function renderUserManagementSection() {
+  const pendingEl = document.getElementById('user-mgmt-pending');
+  const approvedEl = document.getElementById('user-mgmt-approved');
+  if (!pendingEl || !approvedEl) return;
+  const list = Object.entries(allUsers).map(([uid,u])=>({uid,...u}));
+  const pending = list.filter(u=>u.status==='pending');
+  const others = list.filter(u=>u.status!=='pending').sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  const roleOptions = ALL_ROLES.map(r=>`<option value="${r}">${ROLE_LABELS[r]}</option>`).join('');
+
+  pendingEl.innerHTML = pending.length ? `
+    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#b45309;margin-bottom:10px">⏳ Waiting for approval (${pending.length})</div>
+    ${pending.map(u=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:var(--radius-sm);margin-bottom:8px;flex-wrap:wrap">
+        <div style="flex:1;min-width:160px">
+          <div style="font-weight:600;font-size:14px">${u.name||'—'}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${u.email||''}</div>
+        </div>
+        <select id="role-pick-${u.uid}" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;background:var(--bg)">
+          <option value="">Select role…</option>
+          ${roleOptions}
+        </select>
+        <button onclick="approveUser('${u.uid}')" style="padding:7px 14px;font-size:13px;font-weight:600;background:#15803d;color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer">Approve</button>
+        <button onclick="denyUser('${u.uid}')" style="padding:7px 14px;font-size:13px;font-weight:600;background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:var(--radius-sm);cursor:pointer">Deny</button>
+      </div>
+    `).join('')}
+  ` : `<div style="font-size:13px;color:var(--text-faint)">No pending sign-ins.</div>`;
+
+  approvedEl.innerHTML = others.length ? `
+    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:10px">All accounts (${others.length})</div>
+    ${others.map(u=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap">
+        <div style="flex:1;min-width:160px">
+          <div style="font-weight:600;font-size:14px">${u.name||'—'} ${u.status==='denied'?'<span style="color:#dc2626;font-size:11px;font-weight:700;margin-left:6px">DENIED</span>':''}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${u.email||''}</div>
+        </div>
+        <select onchange="changeUserRole('${u.uid}',this.value)" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;background:var(--bg)">
+          ${ALL_ROLES.map(r=>`<option value="${r}" ${u.role===r?'selected':''}>${ROLE_LABELS[r]}</option>`).join('')}
+        </select>
+        ${u.status==='denied'
+          ? `<button onclick="reapproveUser('${u.uid}')" style="padding:7px 14px;font-size:13px;font-weight:600;background:#15803d;color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer">Re-approve</button>`
+          : `<button onclick="revokeUser('${u.uid}')" style="padding:7px 14px;font-size:13px;font-weight:600;background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:var(--radius-sm);cursor:pointer">Revoke</button>`}
+      </div>
+    `).join('')}
+  ` : '';
+}
+
+window.approveUser = async function(uid) {
+  const sel = document.getElementById('role-pick-'+uid);
+  const role = sel?.value;
+  if (!role) { alert('Please choose a role first.'); return; }
+  await update(ref(db,'users/'+uid), { role, status:'approved', approvedBy: currentUser.name, approvedAt: Date.now() });
+};
+window.denyUser = async function(uid) {
+  if (!confirm('Deny access for this account?')) return;
+  await update(ref(db,'users/'+uid), { status:'denied' });
+};
+window.reapproveUser = async function(uid) {
+  await update(ref(db,'users/'+uid), { status:'approved' });
+};
+window.revokeUser = async function(uid) {
+  if (!confirm('Revoke access? They will be signed out and need re-approval to get back in.')) return;
+  await update(ref(db,'users/'+uid), { status:'pending' });
+};
+window.changeUserRole = async function(uid, role) {
+  await update(ref(db,'users/'+uid), { role });
+};
 
 // ── Start app ─────────────────────────────────────────
 function startApp() {
@@ -1770,6 +1913,15 @@ function startApp() {
   if (role !== 'merchandiser' && role !== 'display') renderHomeGrid();
   cmInit();
   auditStartListener();
+
+  const userMgmtWrap = document.getElementById('user-mgmt-wrap');
+  if (userMgmtWrap) userMgmtWrap.style.display = (role === 'management') ? '' : 'none';
+  if (role === 'management') {
+    onValue(ref(db,'users'), snap=>{
+      allUsers = snap.val()||{};
+      renderUserManagementSection();
+    });
+  }
 
   // Firebase listeners
   onValue(ref(db,'entries'), snap=>{
