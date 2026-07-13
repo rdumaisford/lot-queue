@@ -1058,6 +1058,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     <!-- QUEUE + REQUEST FORM -->
     <div id="panel-queue" class="panel">
 
+      <!-- Your Requests — status at a glance, no scrolling needed -->
+      <div id="my-requests-bar" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:8px">Your Requests</div>
+        <div id="my-requests-list" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+      </div>
+
       <!-- Slide-down unified request form -->
       <div class="request-form-wrap" id="request-form-wrap">
         <div class="request-form-inner">
@@ -1745,7 +1751,7 @@ const PERM_GROUPS = [
   ]},
   { label:'Moves', keys: [
     ['queueAdmin','Start/Complete/Hold moves'], ['clearCompleted','Clear completed button'],
-    ['hitchhikerAdmin','Claim / manage hitchhiker rides'],
+    ['hitchhikerAdmin','Remove finished/cancelled hitchhiker requests'],
   ]},
   { label:'Get Ready', keys: [
     ['getReadyEdit','Add / edit / complete deals'],
@@ -2526,23 +2532,26 @@ function hhStatusBubble(h) {
 }
 
 function hitchhikerHTML(h, big) {
-  const canManage = big ? perm('shuttleAdmin') : perm('hitchhikerAdmin');
+  // Claiming and progressing a ride is only ever available from the Shuttle Dashboard —
+  // the Moves tab is view-only for hitchhikers (plus the requester's own Cancel button).
+  const canProgress = big && perm('shuttleAdmin');
+  const canCleanup = perm('hitchhikerAdmin') || perm('shuttleAdmin');
   const isMine = currentUser && h.requestedBy === currentUser.name;
   const bubble = hhStatusBubble(h);
   let actions = '';
   const btnCls = big ? 'shuttle-btn' : 'btn-action';
   if (h.status === 'pending') {
-    if (canManage) actions += `<button class="${btnCls}" style="background:#eff6ff;color:#1d4ed8;font-weight:700" onclick="claimHitchhiker('${h.id}')">Claim ride</button>`;
+    if (canProgress) actions += `<button class="${btnCls}" style="background:#eff6ff;color:#1d4ed8;font-weight:700" onclick="claimHitchhiker('${h.id}')">Claim ride</button>`;
     else if (isMine) actions += `<button class="${btnCls}" onclick="cancelHitchhiker('${h.id}')" style="color:#991b1b">Cancel</button>`;
   } else if (h.status === 'claimed') {
-    if (canManage) actions += `<button class="${btnCls}" style="background:#fff7ed;color:#c2410c;font-weight:700" onclick="setHHStatus('${h.id}','enroute')">🚐 Picked up — En Route</button>`;
+    if (canProgress) actions += `<button class="${btnCls}" style="background:#fff7ed;color:#c2410c;font-weight:700" onclick="setHHStatus('${h.id}','enroute')">🚐 Picked up — En Route</button>`;
   } else if (h.status === 'enroute') {
-    if (canManage) actions += `<button class="${btnCls}" style="background:#f0fdf4;color:#15803d;font-weight:700" onclick="setHHStatus('${h.id}','done')">✓ Dropped off</button>`;
+    if (canProgress) actions += `<button class="${btnCls}" style="background:#f0fdf4;color:#15803d;font-weight:700" onclick="setHHStatus('${h.id}','done')">✓ Dropped off</button>`;
   } else if (['done','cancelled'].includes(h.status)) {
-    if (canManage || isMine) actions += `<button class="${btnCls}" onclick="deleteHitchhiker('${h.id}')">${big?'Remove':'Dismiss'}</button>`;
+    if (canCleanup || isMine) actions += `<button class="${btnCls}" onclick="deleteHitchhiker('${h.id}')">${big?'Remove':'Dismiss'}</button>`;
   }
   // Only the driver, only on the shuttle dashboard, only while a timer is actually running.
-  const etaAdjust = (big && canManage && (h.status==='claimed'||h.status==='enroute'))
+  const etaAdjust = (canProgress && (h.status==='claimed'||h.status==='enroute'))
     ? `<div class="hh-eta-adjust">
         <button onclick="adjustHHEta('${h.id}',-1)">−1m</button>
         <button onclick="adjustHHEta('${h.id}',1)">+1m</button>
@@ -2583,6 +2592,7 @@ function renderHitchhikers() {
   }
   renderShuttleDashboard();
   renderTVShuttle();
+  renderMyRequests();
 }
 
 // Compact shuttle-status chips for the TV display — same countdown math as the
@@ -2759,7 +2769,43 @@ function entryHTML(e) {
 }
 
 // ── Queue render ──────────────────────────────────────
+// Compact "at a glance" bar for the current user's own requests — both vehicle
+// moves and hitchhiker rides — so they don't have to scroll the full queue to
+// find their own status.
+function renderMyRequests() {
+  const wrap = document.getElementById('my-requests-bar');
+  const list = document.getElementById('my-requests-list');
+  if (!wrap || !list || !currentUser) return;
+
+  const myVeh = Object.entries(entries||{}).map(([id,e])=>({id,...e}))
+    .filter(e => e.requestedBy === currentUser.name && !['done','cancelled'].includes(e.status));
+  const myHH = Object.entries(hitchhikers||{}).map(([id,h])=>({id,...h}))
+    .filter(h => h.requestedBy === currentUser.name && !['done','cancelled'].includes(h.status));
+
+  if (!myVeh.length && !myHH.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+
+  const vehLabel = {pending:'Pending',onroute:'🚶 On Route',bringing:'🚗 Bringing Back',progress:'In progress',onhold:'On Hold'};
+  const vehCls = {pending:'pending',onroute:'onroute',bringing:'bringing',progress:'progress',onhold:'onhold'};
+  const vehPills = myVeh.map(e => `
+    <div style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:5px 12px 5px 10px;font-size:13px">
+      <span style="font-weight:700">${e.stock}</span>
+      <span class="status-pill ${vehCls[e.status]||'pending'}" style="font-size:10px">${vehLabel[e.status]||e.status}</span>
+    </div>`).join('');
+
+  const hhLabel = {pending:'Waiting for driver',claimed:'Heading to pickup',enroute:'Heading to drop-off'};
+  const hhCls = {pending:'hh-pending',claimed:'hh-claimed',enroute:'hh-enroute'};
+  const hhPills = myHH.map(h => `
+    <div style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:5px 12px 5px 10px;font-size:13px">
+      <span style="font-weight:700">🚐 ${h.name}</span>
+      <span class="hh-pill ${hhCls[h.status]||'hh-pending'}" style="font-size:10px">${hhLabel[h.status]||h.status}</span>
+    </div>`).join('');
+
+  list.innerHTML = vehPills + hhPills;
+}
+
 function render() {
+  renderMyRequests();
   const all=allSorted(), active=activeQueue(), upcoming=upcomingScheduled();
   const done=all.filter(e=>e.status==='done'), onhold=all.filter(e=>e.status==='onhold');
   const closed=all.filter(e=>['cancelled'].includes(e.status));
