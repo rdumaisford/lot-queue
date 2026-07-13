@@ -242,6 +242,18 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tv-empty{text-align:center;padding:60px 24px;opacity:.2;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .tv-empty p{font-size:24px;margin-top:16px}
 
+/* ── Shuttle Dashboard ── */
+.shuttle-card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+.shuttle-card-title{font-size:20px;font-weight:800;color:var(--ford);margin-bottom:4px}
+.shuttle-card-route{font-size:15px;font-weight:600;color:var(--text-muted);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.shuttle-card-meta{font-size:13px;color:var(--text-faint);margin-bottom:10px}
+.shuttle-btn{width:100%;min-height:56px;border-radius:10px;font-size:16px;font-weight:700;border:none;cursor:pointer;margin-top:6px}
+.hh-pill{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em}
+.hh-pending{background:#fef9ec;color:#7c5a0a}
+.hh-claimed{background:#eff6ff;color:#1d4ed8}
+.hh-enroute{background:#fff7ed;color:#c2410c}
+.hh-done{background:#f0faf4;color:#1a6640}
+
 /* ── Slide-down request form ── */
 .request-form-wrap{overflow:hidden;transition:max-height .35s cubic-bezier(.4,0,.2,1),opacity .25s;max-height:0;opacity:0}
 .request-form-wrap.open{max-height:900px;opacity:1}
@@ -744,6 +756,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <option value="lot">Inventory Control</option>
           <option value="pdi">PDI</option>
           <option value="merchandiser">Merchandiser</option>
+          <option value="shuttle">Shuttle Driver</option>
           <option value="management">Management</option>
         </select>
       </div>
@@ -791,6 +804,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     <button class="tab" id="tab-tv" onclick="switchTab('tv',this)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
       TV display <span class="tab-count" id="tc-tv">0</span>
+    </button>
+    <button class="tab" id="tab-shuttle" onclick="switchTab('shuttle',this)" style="display:none">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17h13l3-6h-2l-2-5H8L5 11H3z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="15.5" cy="17.5" r="1.5"/></svg>
+      Shuttle <span class="tab-count" id="tc-shuttle">0</span>
     </button>
     <button class="tab" id="tab-compound" onclick="switchTab('compound',this)" style="display:none">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="17" width="18" height="4" rx="1"/></svg>
@@ -976,6 +993,49 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     <!-- QUEUE + REQUEST FORM -->
     <div id="panel-queue" class="panel">
 
+      <!-- Slide-down hitchhiker form -->
+      <div class="request-form-wrap" id="hitchhiker-form-wrap">
+        <div class="request-form-inner">
+          <div style="font-size:16px;font-weight:600;margin-bottom:6px">Request a hitchhiker ride</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">For a person or a vehicle that needs to move between 700 Bayview, 323 Bayview, or 55 Mapleview.</div>
+          <div id="hh-form-toast" class="toast"></div>
+          <div class="requester-banner">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            Requesting as <strong id="hh-requester-name-display">—</strong>
+          </div>
+          <div class="booking-toggle">
+            <button class="toggle-btn active" id="hh-btn-person" onclick="setHHKind('person')"><span class="toggle-btn-label">🧑 Person</span><span class="toggle-btn-sub">Needs a ride</span></button>
+            <button class="toggle-btn" id="hh-btn-vehicle" onclick="setHHKind('vehicle')"><span class="toggle-btn-label">🚗 Vehicle</span><span class="toggle-btn-sub">Needs a move</span></button>
+          </div>
+          <div class="form-row"><label id="hh-name-label">Name <span style="color:#e24b4a">*</span></label><input id="hh-name" type="text" placeholder="e.g. Mike Prince" autocomplete="off"/></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+            <div class="form-row" style="margin-bottom:0">
+              <label>Pickup at <span style="color:#e24b4a">*</span></label>
+              <select id="hh-pickup">
+                <option value="">Select location…</option>
+                <option value="700 Bayview">700 Bayview</option>
+                <option value="323 Bayview">323 Bayview</option>
+                <option value="55 Mapleview">55 Mapleview</option>
+              </select>
+            </div>
+            <div class="form-row" style="margin-bottom:0">
+              <label>Drop off at <span style="color:#e24b4a">*</span></label>
+              <select id="hh-dropoff">
+                <option value="">Select location…</option>
+                <option value="700 Bayview">700 Bayview</option>
+                <option value="323 Bayview">323 Bayview</option>
+                <option value="55 Mapleview">55 Mapleview</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row"><label>Notes <span style="color:var(--text-faint);font-weight:400;text-transform:none;letter-spacing:0">optional</span></label><textarea id="hh-notes" placeholder="e.g. waiting at front desk, keys in dash…" style="min-height:60px"></textarea></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-submit" id="hh-btn-submit" onclick="submitHitchhiker()" style="margin-top:0">Submit request</button>
+            <button onclick="toggleHitchhikerForm()" style="padding:11px 18px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);font-size:14px;cursor:pointer;color:var(--text-muted);margin-top:0">Cancel</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Slide-down request form -->
       <div class="request-form-wrap" id="request-form-wrap">
         <div class="request-form-inner">
@@ -1040,6 +1100,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
             New request
           </button>
+          <button class="btn-new-request" id="btn-new-hitchhiker" onclick="toggleHitchhikerForm()" style="background:#0c447c">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            New hitchhiker
+          </button>
           <div class="stats" style="margin-bottom:0;display:flex;gap:10px;flex-wrap:wrap">
             <div class="stat" style="padding:8px 14px;min-width:0"><div class="stat-num" id="s-pending" style="font-size:20px">0</div><div class="stat-label">Pending</div></div>
             <div class="stat" style="padding:8px 14px;min-width:0"><div class="stat-num" id="s-progress" style="font-size:20px">0</div><div class="stat-label">In progress</div></div>
@@ -1050,6 +1114,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <button class="btn-ghost" id="btn-clear" onclick="clearCompleted()">Clear completed</button>
       </div>
       <div id="queue-list"><div style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</div></div>
+
+      <div class="section-label" style="margin-top:28px">🚐 Hitchhikers</div>
+      <div id="hitchhiker-list"><div style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</div></div>
     </div>
 
     <!-- INCOMING TRACKER -->
@@ -1170,6 +1237,25 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           </div>
         </div>
         <div id="tv-hint" style="position:absolute;bottom:14px;right:18px;font-size:10px;opacity:.15;color:white;user-select:none">Hold to show controls</div>
+      </div>
+    </div>
+
+    <!-- SHUTTLE DRIVER DASHBOARD -->
+    <div id="panel-shuttle" class="panel" style="padding:0">
+      <div style="background:var(--ford);color:#fff;padding:18px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <div style="font-size:22px;font-weight:800;letter-spacing:-.02em;flex:1">🚐 Shuttle Dashboard — <span id="shuttle-driver-name"></span></div>
+        <div style="font-size:15px;opacity:.7" id="shuttle-clock"></div>
+        <button onclick="resetIdentity()" style="font-size:13px;padding:10px 18px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;cursor:pointer;min-height:44px">Change driver</button>
+      </div>
+      <div style="display:flex;gap:16px;padding:16px;height:calc(100vh - 150px);overflow:hidden">
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden">
+          <div style="padding:14px 18px;background:var(--bg);border-bottom:1px solid var(--border);font-size:16px;font-weight:800;color:var(--ford)">🚗 Vehicle Moves <span id="shuttle-veh-count" style="font-weight:600;color:var(--text-muted);font-size:13px"></span></div>
+          <div id="shuttle-veh-list" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px"></div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden">
+          <div style="padding:14px 18px;background:var(--bg);border-bottom:1px solid var(--border);font-size:16px;font-weight:800;color:var(--ford)">🧑‍🤝‍🧑 Hitchhikers <span id="shuttle-hh-count" style="font-weight:600;color:var(--text-muted);font-size:13px"></span></div>
+          <div id="shuttle-hh-list" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px"></div>
+        </div>
       </div>
     </div>
 
@@ -1472,7 +1558,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getDatabase, ref, push, get, set, onValue, update, remove } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+import { getDatabase, ref, push, get, set, onValue, update, remove, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDYj9RC-cmfcfZ6sPo_9TmF67mWeEkxkwo",
@@ -1486,9 +1573,14 @@ const firebaseConfig = {
 
 const appFB = initializeApp(firebaseConfig);
 const db = getDatabase(appFB);
+const auth = getAuth(appFB);
+// Silent, invisible sign-in — no login screen for staff. This satisfies the
+// database security rule (auth != null) so the app keeps working after Test
+// Mode's 30-day open-access window expires.
+signInAnonymously(auth).catch(err => console.error('Firebase auth error:', err));
 
 // ── State ─────────────────────────────────────────────
-let entries = {}, historyData = {}, units = {}, getReadyDeals = {};
+let entries = {}, historyData = {}, units = {}, getReadyDeals = {}, hitchhikers = {};
 let currentUser = null, bookingType = 'asap';
 let MOVE_MINS = 15, CONVERT_MINS = 45, LOT_OPEN = 7, LOT_CLOSE = 21;
 let historyDays = 30, soundEnabled = localStorage.getItem('lq-sound') !== 'false';
@@ -1497,20 +1589,21 @@ let denyTargetId = null;
 let grFilterStatus = 'ALL', editingGRId = null;
 
 // ── Roles & Permissions (Firebase-backed, editable in Settings) ──
-const ALL_ROLES = ['lot','reception','service','sales','fandi','detail','pdi','merchandiser','management'];
-const ROLE_LABELS = {lot:'Inventory Control',reception:'Reception',service:'Service',sales:'Sales',fandi:'F&I',detail:'Detail',pdi:'PDI',merchandiser:'Merchandiser',management:'Management',display:'Display'};
+const ALL_ROLES = ['lot','reception','service','sales','fandi','detail','pdi','merchandiser','management','shuttle'];
+const ROLE_LABELS = {lot:'Inventory Control',reception:'Reception',service:'Service',sales:'Sales',fandi:'F&I',detail:'Detail',pdi:'PDI',merchandiser:'Merchandiser',management:'Management',display:'Display',shuttle:'Shuttle Driver'};
 
 // Default permission matrix — used until Firebase settings/permissions loads (or if a role/perm is missing there)
 const DEFAULT_PERMISSIONS = {
-  lot:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true  },
-  reception:    { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:false, clearCompleted:false, getReadyEdit:true  },
-  service:      { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
-  sales:        { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
-  fandi:        { tabHome:true,  tabQueue:true,  tabTracker:false, tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:true  },
-  detail:       { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
-  pdi:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:true,  trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
-  merchandiser: { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:true,  tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:true,  trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:true,  cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false },
-  management:   { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true  },
+  lot:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  hitchhikerAdmin:true, tabShuttle:false, shuttleAdmin:false },
+  reception:    { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:false, clearCompleted:false, getReadyEdit:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false },
+  service:      { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false },
+  sales:        { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false },
+  fandi:        { tabHome:true,  tabQueue:true,  tabTracker:false, tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false },
+  detail:       { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false },
+  pdi:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:true,  trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false },
+  merchandiser: { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:true,  tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:true,  trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:true,  cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false },
+  management:   { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true  },
+  shuttle:      { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true  },
 };
 
 let PERMISSIONS = JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS)); // live copy, overwritten by Firebase
@@ -1524,7 +1617,7 @@ function perm(key) {
 
 function applyPermissions() {
   if (!currentUser) return;
-  const tabMap = { tabHome:'tab-home', tabQueue:'tab-queue', tabTracker:'tab-tracker', tabGetReady:'tab-getready', tabTV:'tab-tv', tabCompound:'tab-compound', tabAudit:'tab-audit', tabHistory:'tab-history', tabSettings:'tab-settings' };
+  const tabMap = { tabHome:'tab-home', tabQueue:'tab-queue', tabTracker:'tab-tracker', tabGetReady:'tab-getready', tabTV:'tab-tv', tabShuttle:'tab-shuttle', tabCompound:'tab-compound', tabAudit:'tab-audit', tabHistory:'tab-history', tabSettings:'tab-settings' };
   for (const key in tabMap) {
     const el = document.getElementById(tabMap[key]);
     if (el) el.style.display = perm(key) ? '' : 'none';
@@ -1547,13 +1640,20 @@ function applyPermissions() {
   if (perm('tabTV') && !perm('tabHome')) {
     switchTab('tv', document.getElementById('tab-tv'));
   }
+  // Land shuttle drivers directly on their touch dashboard — no home screen detour
+  if (perm('tabShuttle') && !perm('tabHome')) {
+    switchTab('shuttle', document.getElementById('tab-shuttle'));
+  }
 }
 
 // ── Permissions matrix editor (Settings tab) ──────────
 const PERM_GROUPS = [
   { label:'Tabs', keys: [
     ['tabHome','Home'], ['tabQueue','Vehicle Appointments'], ['tabTracker','Incoming'], ['tabGetReady','Get Ready'],
-    ['tabCompound','Compound Map'], ['tabTV','TV Display'], ['tabHistory','History'], ['tabSettings','Settings'],
+    ['tabCompound','Compound Map'], ['tabTV','TV Display'], ['tabShuttle','Shuttle Dashboard'], ['tabHistory','History'], ['tabSettings','Settings'],
+  ]},
+  { label:'Shuttle Dashboard', keys: [
+    ['shuttleAdmin','Claim / progress / complete rides from the dashboard'],
   ]},
   { label:'Compound Map', keys: [
     ['compoundEdit','Edit layout & spots'],
@@ -1566,6 +1666,7 @@ const PERM_GROUPS = [
   ]},
   { label:'Vehicle Appointments', keys: [
     ['queueAdmin','Start/Complete/Hold moves'], ['clearCompleted','Clear completed button'],
+    ['hitchhikerAdmin','Claim / manage hitchhiker rides'],
   ]},
   { label:'Get Ready', keys: [
     ['getReadyEdit','Add / edit / complete deals'],
@@ -1676,15 +1777,17 @@ function startApp() {
     const isFirst = Object.keys(entries).length===0 && Object.keys(newEntries).length>0;
     if (!isFirst) {
       for (const id in newEntries) {
+        // "New pending job" still chimes for everyone who can claim it — otherwise nobody
+        // would know to go pick it up. Status-change chimes below are scoped to just the
+        // requester and whoever actually did the work.
         if (!entries[id]) { if(perm('queueAdmin')) chime('new'); }
         else {
           const prev=entries[id], curr=newEntries[id];
-          if (prev.status!==curr.status) {
-            if(perm('queueAdmin')&&curr.status==='done') chime('complete');
-            if(!perm('queueAdmin')&&curr.requestedBy===currentUser.name) {
-              if(curr.status==='onroute'||curr.status==='progress') chime('claimed');
-              if(curr.status==='done') chime('complete');
-            }
+          if (prev.status!==curr.status && currentUser) {
+            const isRequester = curr.requestedBy===currentUser.name;
+            const isClaimer = curr.claimedBy===currentUser.name;
+            if((curr.status==='onroute'||curr.status==='bringing'||curr.status==='progress') && isRequester) chime('claimed');
+            if(curr.status==='done' && (isRequester||isClaimer)) chime('complete');
           }
         }
       }
@@ -1738,6 +1841,32 @@ function startApp() {
     renderGetReady(); renderGetReadySummary();
     if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
     if (document.getElementById('panel-tv')?.classList.contains('active')) { renderTVGetReady(); renderTVCompoundMap(); }
+  });
+
+  onValue(ref(db,'hitchhikers'), snap=>{
+    const newHH = snap.val()||{};
+    const isFirst = Object.keys(hitchhikers).length===0 && Object.keys(newHH).length>0;
+    if (!isFirst) {
+      for (const id in newHH) {
+        if (!hitchhikers[id]) {
+          if (perm('shuttleAdmin') || perm('hitchhikerAdmin')) chime('new');
+        } else {
+          const prev = hitchhikers[id], curr = newHH[id];
+          if (prev.status !== curr.status && currentUser) {
+            const isRequester = curr.requestedBy === currentUser.name;
+            const isDriver = curr.claimedBy === currentUser.name;
+            if ((curr.status==='claimed'||curr.status==='enroute') && isRequester) chime('claimed');
+            if (curr.status==='done' && (isRequester || isDriver)) chime('complete');
+          }
+        }
+      }
+    }
+    hitchhikers = newHH;
+    const activeHHCount = Object.values(hitchhikers).filter(h=>!['done','cancelled'].includes(h.status)).length;
+    const activeVehCount = Object.values(entries).filter(e=>['pending','onroute','bringing','progress'].includes(e.status)).length;
+    const shuttleTc = document.getElementById('tc-shuttle');
+    if (shuttleTc) shuttleTc.textContent = activeHHCount + activeVehCount;
+    renderHitchhikers();
   });
 
   if (perm('tabHistory')) {
@@ -1887,13 +2016,24 @@ window.submitRequest = async function() {
 
 // ── Queue actions ─────────────────────────────────────
 window.setStatus = async function(id,status) {
-  const updates={status};
-  if(status==='onroute'){
-    updates.onrouteTs=Date.now();
-    updates.bringingTs=null;
-    updates.progressTs=Date.now(); // keep for legacy compatibility
-    updates.claimedBy=currentUser.name;
+  // Claiming a pending job is guarded by a transaction — if two people tap "On Route"
+  // at the same instant, only the first write commits; the second gets a clear message
+  // instead of silently overwriting the first person's claim.
+  if (status === 'onroute') {
+    const result = await runTransaction(ref(db,'entries/'+id), (curr) => {
+      if (!curr) return curr;
+      if (curr.status !== 'pending') return; // abort transaction — already claimed
+      curr.status = 'onroute';
+      curr.onrouteTs = Date.now();
+      curr.bringingTs = null;
+      curr.progressTs = Date.now();
+      curr.claimedBy = currentUser.name;
+      return curr;
+    });
+    if (!result.committed) alert('Someone else just claimed this vehicle.');
+    return;
   }
+  const updates={status};
   if(status==='bringing'){
     updates.bringingTs=Date.now();
     updates.claimedBy=currentUser.name;
@@ -1938,6 +2078,175 @@ window.clearAllHistory = async function() {
 window.clearCompleted = async function() {
   await Promise.all(Object.entries(entries).filter(([,e])=>e.status==='done').map(([id])=>remove(ref(db,'entries/'+id))));
 };
+
+// ── Hitchhikers ───────────────────────────────────────
+let hhKind = 'person';
+
+window.toggleHitchhikerForm = function() {
+  const wrap = document.getElementById('hitchhiker-form-wrap');
+  const isOpen = wrap.classList.contains('open');
+  wrap.classList.toggle('open', !isOpen);
+  const nameEl = document.getElementById('hh-requester-name-display');
+  if (nameEl) nameEl.textContent = currentUser.name;
+  if (!isOpen) setTimeout(()=>document.getElementById('hh-name').focus(), 350);
+};
+
+window.setHHKind = function(kind) {
+  hhKind = kind;
+  document.getElementById('hh-btn-person').classList.toggle('active', kind==='person');
+  document.getElementById('hh-btn-vehicle').classList.toggle('active', kind==='vehicle');
+  document.getElementById('hh-name-label').innerHTML = kind==='person'
+    ? 'Name <span style="color:#e24b4a">*</span>'
+    : 'Stock # <span style="color:#e24b4a">*</span>';
+  document.getElementById('hh-name').placeholder = kind==='person' ? 'e.g. Mike Prince' : 'e.g. B0394';
+};
+
+function hhToast(msg, type) {
+  const t = document.getElementById('hh-form-toast');
+  if (!t) return;
+  t.textContent = msg; t.className = 'toast ' + type; t.style.display = 'block';
+  setTimeout(()=>{ t.style.display = 'none'; }, 4500);
+}
+
+window.submitHitchhiker = async function() {
+  const name = document.getElementById('hh-name').value.trim();
+  const pickup = document.getElementById('hh-pickup').value;
+  const dropoff = document.getElementById('hh-dropoff').value;
+  const notes = document.getElementById('hh-notes').value.trim();
+  if (!name) { hhToast(`Please enter a ${hhKind==='person'?'name':'stock #'}.`, 'error'); return; }
+  if (!pickup || !dropoff) { hhToast('Please select pickup and drop-off locations.', 'error'); return; }
+  if (pickup === dropoff) { hhToast("Pickup and drop-off can't be the same location.", 'error'); return; }
+  const btn = document.getElementById('hh-btn-submit');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+  try {
+    await push(ref(db,'hitchhikers'), {
+      kind: hhKind,
+      name: hhKind === 'vehicle' ? name.toUpperCase() : name,
+      pickup, dropoff, notes,
+      requestedBy: currentUser.name,
+      status: 'pending',
+      ts: Date.now(),
+    });
+    document.getElementById('hh-name').value = '';
+    document.getElementById('hh-pickup').value = '';
+    document.getElementById('hh-dropoff').value = '';
+    document.getElementById('hh-notes').value = '';
+    hhToast('✓ Hitchhiker request added', 'success');
+    window.toggleHitchhikerForm();
+  } catch(e) { hhToast('Error submitting — check connection.', 'error'); }
+  btn.disabled = false; btn.textContent = 'Submit request';
+};
+
+// Transaction-guarded claim — same protection as vehicle moves, prevents two
+// drivers claiming the same ride at once.
+window.claimHitchhiker = async function(id) {
+  const result = await runTransaction(ref(db,'hitchhikers/'+id), (curr) => {
+    if (!curr) return curr;
+    if (curr.status !== 'pending') return; // abort — already claimed
+    curr.status = 'claimed';
+    curr.claimedBy = currentUser.name;
+    curr.claimedTs = Date.now();
+    return curr;
+  });
+  if (!result.committed) alert('Someone else just claimed this ride.');
+};
+
+window.setHHStatus = async function(id, status) {
+  const updates = { status };
+  if (status === 'enroute') updates.pickedUpTs = Date.now();
+  if (status === 'done') updates.completedTs = Date.now();
+  await update(ref(db,'hitchhikers/'+id), updates);
+};
+
+window.cancelHitchhiker = async function(id) {
+  if (!confirm('Cancel this hitchhiker request?')) return;
+  await update(ref(db,'hitchhikers/'+id), { status:'cancelled' });
+};
+
+window.deleteHitchhiker = async function(id) {
+  await remove(ref(db,'hitchhikers/'+id));
+};
+
+function hhKindIcon(k) { return k === 'vehicle' ? '🚗' : '🧑'; }
+
+function hitchhikerHTML(h, big) {
+  const statusLabel = {pending:'Pending',claimed:'Claimed',enroute:'En Route',done:'Done',cancelled:'Cancelled'}[h.status]||h.status;
+  const statusCls = {pending:'hh-pending',claimed:'hh-claimed',enroute:'hh-enroute',done:'hh-done',cancelled:'hh-done'}[h.status]||'hh-pending';
+  const canManage = big ? perm('shuttleAdmin') : perm('hitchhikerAdmin');
+  const isMine = currentUser && h.requestedBy === currentUser.name;
+  let actions = '';
+  const btnCls = big ? 'shuttle-btn' : 'btn-action';
+  if (h.status === 'pending') {
+    if (canManage) actions += `<button class="${btnCls}" style="background:#eff6ff;color:#1d4ed8;font-weight:700" onclick="claimHitchhiker('${h.id}')">Claim ride</button>`;
+    else if (isMine) actions += `<button class="${btnCls}" onclick="cancelHitchhiker('${h.id}')" style="color:#991b1b">Cancel</button>`;
+  } else if (h.status === 'claimed') {
+    if (canManage) actions += `<button class="${btnCls}" style="background:#fff7ed;color:#c2410c;font-weight:700" onclick="setHHStatus('${h.id}','enroute')">🚐 Picked up — En Route</button>`;
+  } else if (h.status === 'enroute') {
+    if (canManage) actions += `<button class="${btnCls}" style="background:#f0fdf4;color:#15803d;font-weight:700" onclick="setHHStatus('${h.id}','done')">✓ Dropped off</button>`;
+  } else if (['done','cancelled'].includes(h.status)) {
+    if (canManage || isMine) actions += `<button class="${btnCls}" onclick="deleteHitchhiker('${h.id}')">${big?'Remove':'Dismiss'}</button>`;
+  }
+  if (big) {
+    return `<div class="shuttle-card">
+      <div class="shuttle-card-title">${hhKindIcon(h.kind)} ${h.name}</div>
+      <div class="shuttle-card-route">📍 ${h.pickup} → ${h.dropoff}</div>
+      <div class="shuttle-card-meta">${statusLabel}${h.claimedBy?' · '+h.claimedBy:''} · requested by ${h.requestedBy||'—'}${h.notes?' · '+h.notes:''}</div>
+      ${actions}
+    </div>`;
+  }
+  return `<div class="entry">
+    <div style="flex:1">
+      <div class="entry-stock">${hhKindIcon(h.kind)} ${h.name}</div>
+      <div class="entry-meta" style="margin-bottom:5px">Requested by ${h.requestedBy||'—'}</div>
+      <div class="entry-row"><span class="dest-pill dest-testdrive">${h.pickup} → ${h.dropoff}</span><span class="hh-pill ${statusCls}">${statusLabel}</span></div>
+      ${h.claimedBy?`<div class="entry-meta" style="color:#1d4ed8;font-weight:500;margin-top:3px">🚐 ${h.claimedBy}</div>`:''}
+      ${h.notes?`<div class="entry-notes">${h.notes}</div>`:''}
+    </div>
+    <div class="entry-actions">${actions}<div class="entry-time">${timeAgo(h.ts)}</div></div>
+  </div>`;
+}
+
+function renderHitchhikers() {
+  const list = Object.entries(hitchhikers||{}).map(([id,h])=>({id,...h})).sort((a,b)=>a.ts-b.ts);
+  const active = list.filter(h=>!['done','cancelled'].includes(h.status));
+  const closed = list.filter(h=>['done','cancelled'].includes(h.status));
+  const el = document.getElementById('hitchhiker-list');
+  if (el) {
+    if (!list.length) el.innerHTML = '<div class="empty-state"><div class="empty-icon">🚐</div><p>No hitchhiker requests yet.</p></div>';
+    else el.innerHTML = active.map(h=>hitchhikerHTML(h,false)).join('') + (closed.length?closed.map(h=>hitchhikerHTML(h,false)).join(''):'');
+  }
+  renderShuttleDashboard();
+}
+
+function renderShuttleDashboard() {
+  const vehList = document.getElementById('shuttle-veh-list');
+  const hhList = document.getElementById('shuttle-hh-list');
+  if (!vehList || !hhList) return;
+  const nameEl = document.getElementById('shuttle-driver-name');
+  if (nameEl && currentUser) nameEl.textContent = currentUser.name;
+  const activeVeh = activeQueue().filter(e=>e.status!=='done');
+  document.getElementById('shuttle-veh-count').textContent = activeVeh.length + ' active';
+  vehList.innerHTML = activeVeh.length
+    ? activeVeh.map(e=>{
+        let actionBtn = '';
+        if (e.status==='pending') actionBtn = `<button class="shuttle-btn" style="background:#fff7ed;color:#c2410c" onclick="setStatus('${e.id}','onroute')">🚶 On Route</button>`;
+        else if (e.status==='onroute') actionBtn = `<button class="shuttle-btn" style="background:#f0fdf4;color:#15803d" onclick="setStatus('${e.id}','bringing')">🚗 Got it — Bringing Back</button>`;
+        else if (e.status==='bringing') actionBtn = `<button class="shuttle-btn" style="background:#dcfce7;color:#15803d" onclick="setStatus('${e.id}','done')">✓ Arrived — Complete</button>`;
+        return `<div class="shuttle-card">
+          <div class="shuttle-card-title">${e.stock}</div>
+          <div class="shuttle-card-route">📍 → ${e.dest}</div>
+          <div class="shuttle-card-meta">${e.requestedBy?'Requested by '+e.requestedBy:''}${e.notes?' · '+e.notes:''}</div>
+          ${actionBtn}
+        </div>`;
+      }).join('')
+    : '<div style="text-align:center;padding:40px;color:var(--text-muted)">No active vehicle moves</div>';
+
+  const activeHH = Object.entries(hitchhikers||{}).map(([id,h])=>({id,...h})).filter(h=>!['done','cancelled'].includes(h.status)).sort((a,b)=>a.ts-b.ts);
+  document.getElementById('shuttle-hh-count').textContent = activeHH.length + ' active';
+  hhList.innerHTML = activeHH.length
+    ? activeHH.map(h=>hitchhikerHTML(h,true)).join('')
+    : '<div style="text-align:center;padding:40px;color:var(--text-muted)">No active hitchhiker requests</div>';
+}
 window.releaseHold = async id=>{ await update(ref(db,'entries/'+id),{status:'pending',denyReason:null,deniedBy:null,holdTs:null}); };
 let denyTimer=null;
 window.openHoldModal = function(id) {
@@ -3225,7 +3534,7 @@ window.switchTab=function(name,btn){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('panel-'+name).classList.add('active');
-  const isTV=name==='tv';
+  const isTV=name==='tv'||name==='shuttle';
   document.querySelector('.header').style.display=isTV?'none':'flex';
   document.querySelector('.tabs').style.display=isTV?'none':'flex';
   document.getElementById('main-wrap').style.padding=isTV?'0':'24px';
@@ -3234,6 +3543,7 @@ window.switchTab=function(name,btn){
   if(name==='settings'){const sc=document.getElementById('s-sound');if(sc)sc.checked=soundEnabled;renderPermissionsEditor();}
   if(name==='history') renderHistory();
   if(name==='tracker'){renderTracker();renderTrackerSummary();}
+  if(name==='shuttle') renderShuttleDashboard();
 };
 window.exitTV=function(){
   const target='queue';
@@ -3289,6 +3599,7 @@ setInterval(()=>{
   }
   const homePanel = document.getElementById('panel-home');
   if (homePanel && homePanel.classList.contains('active')) renderHomeGrid();
+  if (document.getElementById('panel-shuttle')?.classList.contains('active')) renderShuttleDashboard();
 },1000);
 
 // ── Today's Drops PDF print ───────────────────────────
@@ -3455,6 +3766,15 @@ function renderHomeGrid() {
       icon: `<rect x="3" y="3" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="17" width="18" height="4" rx="1"/>`,
       title: 'Compound Map',
       desc: 'See where every vehicle is parked across all lots.'
+    });
+  }
+
+  if (perm('tabShuttle')) {
+    tiles.push({
+      name: 'shuttle', tone: 'amber',
+      icon: `<path d="M3 17h13l3-6h-2l-2-5H8L5 11H3z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="15.5" cy="17.5" r="1.5"/>`,
+      title: 'Shuttle Dashboard',
+      desc: 'Big-button view of vehicle moves and hitchhiker rides.'
     });
   }
 
@@ -3720,12 +4040,14 @@ function cmRenderMap() {
   }
 
   mapEl.innerHTML = html;
+  cmApplySearchHighlight();
 }
 
 window.cmSwitchLot = function(id) {
   cmCurrentLot = id;
   cmEditMode = false;
   cmSelected.clear();
+  cmSearchQuery = '';
   const editBar = document.getElementById('cm-edit-bar');
   if (editBar) editBar.style.display = 'none';
   cmUpdateEditBtn();
@@ -3858,18 +4180,19 @@ window.cmClearKey = async function(key) {
 
 window.cmCloseSpot = function() { document.getElementById('cm-spot-modal').style.display = 'none'; };
 
-window.cmSearch = function(q) {
-  q = q.trim().toLowerCase();
+let cmSearchQuery = '';
+
+function cmApplySearchHighlight() {
   document.querySelectorAll('.cm-spot').forEach(el => el.classList.remove('cm-hi','cm-dim'));
-  if (!q) return;
+  if (!cmSearchQuery) return;
   const v = cmVehicles[cmCurrentLot]||{};
   const matched = new Set();
   Object.entries(v).forEach(([key,veh]) => {
-    if ((veh.stock||'').toLowerCase().includes(q)||
-        (veh.type||'').toLowerCase().includes(q)||
-        (veh.colour||'').toLowerCase().includes(q)||
-        (veh.note||'').toLowerCase().includes(q)||
-        (veh.desc||'').toLowerCase().includes(q)) matched.add(key);
+    if ((veh.stock||'').toLowerCase().includes(cmSearchQuery)||
+        (veh.type||'').toLowerCase().includes(cmSearchQuery)||
+        (veh.colour||'').toLowerCase().includes(cmSearchQuery)||
+        (veh.note||'').toLowerCase().includes(cmSearchQuery)||
+        (veh.desc||'').toLowerCase().includes(cmSearchQuery)) matched.add(key);
   });
   document.querySelectorAll('.cm-spot').forEach(el => {
     const oc = el.getAttribute('onclick')||'';
@@ -3877,6 +4200,13 @@ window.cmSearch = function(q) {
     if (!m) return;
     el.classList.add(matched.has(m[1]) ? 'cm-hi' : 'cm-dim');
   });
+}
+
+window.cmSearch = function(q) {
+  // Persisted so the highlight survives the map's automatic re-renders
+  // (it repaints every second to keep appointment/get-ready timers live).
+  cmSearchQuery = q.trim().toLowerCase();
+  cmApplySearchHighlight();
 };
 
 window.cmOpenQR = function() {
@@ -4095,9 +4425,9 @@ window.switchTab = function(name, btn) {
   } else if (name === 'audit') {
     auditRender();
   } else {
-    // Restore normal padding when leaving compound tab
+    // Restore normal padding when leaving compound tab (but not for TV/shuttle kiosk views)
     const wasCompound = document.getElementById('panel-compound')?.classList.contains('active');
-    if (wasCompound || name !== 'tv') {
+    if (wasCompound || (name !== 'tv' && name !== 'shuttle')) {
       document.getElementById('main-wrap').style.padding = '';
       document.getElementById('main-wrap').style.maxWidth = '';
     }
