@@ -3803,6 +3803,7 @@ document.getElementById('f-time')?.addEventListener('change',updateSchedulePrevi
 updateClock();
 setInterval(updateClock,10000);
 setInterval(()=>{
+  if (!currentUser) return; // nobody signed in yet — nothing to refresh
   render();
   // Don't re-render tracker if user is actively using an inline field inside a card
   const active = document.activeElement;
@@ -3940,7 +3941,7 @@ window.printTodaysDrops = function() {
 // ── Home portal ───────────────────────────────────────
 function renderHomeGrid() {
   const grid = document.getElementById('home-grid');
-  if (!grid) return;
+  if (!grid || !currentUser) return;
   const role = currentUser.role;
 
   const icon = {
