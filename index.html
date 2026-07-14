@@ -743,6 +743,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot.appointed .cm-spot-num{color:#7c3aed}
 .cm-spot.appointed .cm-spot-stock{color:#6d28d9}
 .cm-spot-appt{font-size:7px;font-weight:700;color:#7c3aed;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+.cm-spot.ontestdrive{background:#fff7ed;border-color:#ea580c;border-width:2px}
+.cm-spot.ontestdrive .cm-spot-num{color:#ea580c}
+.cm-spot.ontestdrive .cm-spot-stock{color:#c2410c}
+.cm-spot-td{font-size:7px;font-weight:700;color:#c2410c;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
 .cm-spot.cm-selected{box-shadow:0 0 0 2.5px #f59e0b,0 0 0 4px #fef3c7!important;z-index:4;transform:translateY(-1px)}
 .cm-spot.cm-drag-over{border-color:var(--ford)!important;background:#eff6ff!important;box-shadow:0 0 0 2px #93c5fd!important;transform:scale(1.05)}
 .cm-spot[draggable="true"]{cursor:grab}
@@ -866,6 +870,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
       Get Ready <span class="tab-count" id="tc-getready">0</span>
     </button>
+    <button class="tab" id="tab-testdrive" onclick="switchTab('testdrive',this)" style="display:none">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg>
+      Test Drives <span class="tab-count" id="tc-testdrive">0</span>
+    </button>
     <button class="tab" id="tab-tv" onclick="switchTab('tv',this)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
       TV display <span class="tab-count" id="tc-tv">0</span>
@@ -959,6 +967,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#eff6ff;border:2px solid #1d4ed8"></div>Lease Return</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f0fdf4;border:1.5px solid #16a34a"></div>Get Ready</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f3e8ff;border:1.5px solid #7c3aed"></div>Appointment</div>
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fff7ed;border:1.5px solid #ea580c"></div>Out — Test Drive</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#e2e8f0;border:1.5px dashed #94a3b8"></div>Blocked</div>
         <span id="cm-edit-hint" style="display:none;color:#b45309;font-weight:600;margin-left:8px">✏️ Edit mode — click any spot to edit</span>
       </div>
@@ -1257,6 +1266,70 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <div class="table-wrap">
         <div id="gr-body" class="tracker-card-grid"></div>
       </div>
+    </div>
+
+    <!-- TEST DRIVES -->
+    <div id="panel-testdrive" class="panel">
+      <div class="queue-toolbar">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <button class="btn-new-request" id="btn-new-testdrive" onclick="toggleTestDriveForm()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            New Test Drive
+          </button>
+          <div class="stats" style="margin-bottom:0;display:flex;gap:10px;flex-wrap:wrap">
+            <div class="stat" style="padding:8px 14px;min-width:0"><div class="stat-num" id="td-out-count" style="font-size:20px">0</div><div class="stat-label">Out now</div></div>
+            <div class="stat" style="padding:8px 14px;min-width:0"><div class="stat-num" id="td-overdue-count" style="font-size:20px;color:#dc2626">0</div><div class="stat-label">Overdue</div></div>
+            <div class="stat" style="padding:8px 14px;min-width:0"><div class="stat-num" id="td-gas-count" style="font-size:20px;color:#b45309">0</div><div class="stat-label">Low / no gas</div></div>
+            <div class="stat" style="padding:8px 14px;min-width:0"><div class="stat-num" id="td-today-count" style="font-size:20px">0</div><div class="stat-label">Returned today</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide-down new test drive form -->
+      <div class="request-form-wrap" id="testdrive-form-wrap">
+        <div class="request-form-inner">
+          <div style="font-size:16px;font-weight:600;margin-bottom:6px">Start a test drive</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">Logs the vehicle as out — tracks time out, gas level, and expected return.</div>
+          <div id="td-form-toast" class="toast"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+            <div class="form-row" style="margin-bottom:0"><label>Stock # <span style="color:#e24b4a">*</span></label><input id="td-stock" type="text" placeholder="e.g. B0394" autocomplete="off"/></div>
+            <div class="form-row" style="margin-bottom:0"><label>Customer <span style="color:#e24b4a">*</span></label><input id="td-customer" type="text" placeholder="e.g. John Smith" autocomplete="off"/></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+            <div class="form-row" style="margin-bottom:0">
+              <label>Gas level</label>
+              <select id="td-gas">
+                <option value="Full">Full</option>
+                <option value="3/4">3/4</option>
+                <option value="1/2">1/2</option>
+                <option value="1/4">1/4</option>
+                <option value="Empty">Empty</option>
+              </select>
+            </div>
+            <div class="form-row" style="margin-bottom:0">
+              <label>Expected back in</label>
+              <select id="td-duration">
+                <option value="15">15 min</option>
+                <option value="30" selected>30 min</option>
+                <option value="45">45 min</option>
+                <option value="60">1 hour</option>
+                <option value="90">1.5 hours</option>
+                <option value="120">2 hours</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row"><label>Notes <span style="color:var(--text-faint);font-weight:400;text-transform:none;letter-spacing:0">optional</span></label><textarea id="td-notes" placeholder="Trade-in, financing questions, route taken…" style="min-height:60px"></textarea></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-submit" id="td-btn-submit" onclick="submitTestDrive()" style="margin-top:0">Start test drive</button>
+            <button onclick="toggleTestDriveForm()" style="padding:11px 18px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);font-size:14px;cursor:pointer;color:var(--text-muted);margin-top:0">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-label">Out now</div>
+      <div id="testdrive-active-list" class="tracker-card-grid"></div>
+      <div class="section-label" style="margin-top:24px">Returned today</div>
+      <div id="testdrive-history-list" class="tracker-card-grid"></div>
     </div>
 
     <!-- TV DISPLAY -->
@@ -1664,7 +1737,7 @@ const auth = getAuth(appFB);
 // that's handled inside loadIdentity() since there's no person present to sign in.
 
 // ── State ─────────────────────────────────────────────
-let entries = {}, historyData = {}, units = {}, getReadyDeals = {}, hitchhikers = {};
+let entries = {}, historyData = {}, units = {}, getReadyDeals = {}, hitchhikers = {}, testDrives = {};
 let currentUser = null, bookingType = 'asap';
 let MOVE_MINS = 15, CONVERT_MINS = 45, LOT_OPEN = 7, LOT_CLOSE = 21;
 let historyDays = 30, soundEnabled = localStorage.getItem('lq-sound') !== 'false';
@@ -1678,16 +1751,16 @@ const ROLE_LABELS = {lot:'Inventory Control',reception:'Reception',service:'Serv
 
 // Default permission matrix — used until Firebase settings/permissions loads (or if a role/perm is missing there)
 const DEFAULT_PERMISSIONS = {
-  lot:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true  },
-  reception:    { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:false, clearCompleted:false, getReadyEdit:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false },
-  service:      { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false },
-  sales:        { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false },
-  fandi:        { tabHome:true,  tabQueue:true,  tabTracker:false, tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false },
-  detail:       { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false },
-  pdi:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:true,  trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false },
-  merchandiser: { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:true,  tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:true,  trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:true,  cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false },
-  management:   { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true  },
-  shuttle:      { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true  },
+  lot:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:true,  testDriveAdmin:true  },
+  reception:    { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:false, clearCompleted:false, getReadyEdit:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  service:      { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  sales:        { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:true,  testDriveAdmin:false },
+  fandi:        { tabHome:true,  tabQueue:true,  tabTracker:false, tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  detail:       { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  pdi:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:true,  trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  merchandiser: { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:true,  tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:true,  trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:true,  cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  management:   { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:true,  testDriveAdmin:true  },
+  shuttle:      { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false },
 };
 
 let PERMISSIONS = JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS)); // live copy, overwritten by Firebase
@@ -1701,7 +1774,7 @@ function perm(key) {
 
 function applyPermissions() {
   if (!currentUser) return;
-  const tabMap = { tabHome:'tab-home', tabQueue:'tab-queue', tabTracker:'tab-tracker', tabGetReady:'tab-getready', tabTV:'tab-tv', tabShuttle:'tab-shuttle', tabCompound:'tab-compound', tabAudit:'tab-audit', tabHistory:'tab-history', tabSettings:'tab-settings' };
+  const tabMap = { tabHome:'tab-home', tabQueue:'tab-queue', tabTracker:'tab-tracker', tabGetReady:'tab-getready', tabTestDrive:'tab-testdrive', tabTV:'tab-tv', tabShuttle:'tab-shuttle', tabCompound:'tab-compound', tabAudit:'tab-audit', tabHistory:'tab-history', tabSettings:'tab-settings' };
   for (const key in tabMap) {
     const el = document.getElementById(tabMap[key]);
     if (el) el.style.display = perm(key) ? '' : 'none';
@@ -1733,7 +1806,7 @@ function applyPermissions() {
 // ── Permissions matrix editor (Settings tab) ──────────
 const PERM_GROUPS = [
   { label:'Tabs', keys: [
-    ['tabHome','Home'], ['tabQueue','Moves + Rides'], ['tabTracker','Incoming'], ['tabGetReady','Get Ready'],
+    ['tabHome','Home'], ['tabQueue','Moves + Rides'], ['tabTracker','Incoming'], ['tabGetReady','Get Ready'], ['tabTestDrive','Test Drives'],
     ['tabCompound','Compound Map'], ['tabTV','TV Display'], ['tabShuttle','Shuttle Dashboard'], ['tabHistory','History'], ['tabSettings','Settings'],
   ]},
   { label:'Shuttle Dashboard', keys: [
@@ -1754,6 +1827,9 @@ const PERM_GROUPS = [
   ]},
   { label:'Get Ready', keys: [
     ['getReadyEdit','Add / edit / complete deals'],
+  ]},
+  { label:'Test Drives', keys: [
+    ['testDriveAdmin',"Mark returned / remove anyone's test drive (not just your own)"],
   ]},
 ];
 
@@ -2165,6 +2241,13 @@ function startApp() {
     const shuttleTc = document.getElementById('tc-shuttle');
     if (shuttleTc) shuttleTc.textContent = activeHHCount + activeVehCount;
     renderHitchhikers();
+  });
+
+  onValue(ref(db,'testdrives'), snap=>{
+    testDrives = snap.val()||{};
+    renderTestDrives();
+    if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
+    if (document.getElementById('panel-tv')?.classList.contains('active')) renderTVCompoundMap();
   });
 
   if (perm('tabHistory')) {
@@ -2641,6 +2724,146 @@ function renderShuttleDashboard() {
     ? activeHH.map(h=>hitchhikerHTML(h,true)).join('')
     : '<div style="text-align:center;padding:40px;color:var(--text-muted)">No active hitchhiker requests</div>';
 }
+
+// ── Test Drives ─────────────────────────────────────────
+function todayStartTs() { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); }
+
+function fmtElapsed(ms) {
+  const s = Math.floor(ms/1000);
+  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+  if (h>0) return h+'h '+m+'m';
+  if (m>0) return m+'m '+sec+'s';
+  return sec+'s';
+}
+
+function testDriveGasPill(gas) {
+  const colors = {
+    'Full': {bg:'#f0fdf4', fg:'#15803d'},
+    '3/4':  {bg:'#f0fdf4', fg:'#15803d'},
+    '1/2':  {bg:'#fffbeb', fg:'#b45309'},
+    '1/4':  {bg:'#fef2f2', fg:'#dc2626'},
+    'Empty':{bg:'#fef2f2', fg:'#dc2626'},
+  };
+  const c = colors[gas] || {bg:'#f1f5f9', fg:'#64748b'};
+  return `<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:${c.bg};color:${c.fg};text-transform:uppercase;letter-spacing:.04em;white-space:nowrap">⛽ ${gas}</span>`;
+}
+
+window.toggleTestDriveForm = function() {
+  const wrap = document.getElementById('testdrive-form-wrap');
+  const isOpen = wrap.classList.contains('open');
+  wrap.classList.toggle('open', !isOpen);
+  if (!isOpen) setTimeout(()=>document.getElementById('td-stock').focus(), 350);
+};
+
+function tdToast(msg, type) {
+  const t = document.getElementById('td-form-toast');
+  if (!t) return;
+  t.textContent = msg; t.className = 'toast ' + type; t.style.display = 'block';
+  setTimeout(()=>{ t.style.display = 'none'; }, 4500);
+}
+
+window.submitTestDrive = async function() {
+  const stock = document.getElementById('td-stock').value.trim().toUpperCase();
+  const customer = document.getElementById('td-customer').value.trim();
+  const gasLevel = document.getElementById('td-gas').value;
+  const durationMins = parseInt(document.getElementById('td-duration').value);
+  const notes = document.getElementById('td-notes').value.trim();
+  if (!stock) { tdToast('Please enter a stock #.', 'error'); return; }
+  if (!customer) { tdToast('Please enter the customer name.', 'error'); return; }
+  const btn = document.getElementById('td-btn-submit');
+  btn.disabled = true; btn.textContent = 'Starting…';
+  try {
+    await push(ref(db,'testdrives'), {
+      stock, customer, gasLevel, durationMins, notes,
+      salesperson: currentUser.name,
+      status: 'out',
+      startedAt: Date.now(),
+    });
+    document.getElementById('td-stock').value = '';
+    document.getElementById('td-customer').value = '';
+    document.getElementById('td-notes').value = '';
+    document.getElementById('td-gas').value = 'Full';
+    document.getElementById('td-duration').value = '30';
+    tdToast('✓ Test drive started', 'success');
+    toggleTestDriveForm();
+  } catch(e) { tdToast('Error starting — check connection.', 'error'); }
+  btn.disabled = false; btn.textContent = 'Start test drive';
+};
+
+window.markTestDriveReturned = async function(id) {
+  await update(ref(db,'testdrives/'+id), { status:'returned', returnedAt: Date.now() });
+};
+
+window.updateTestDriveGas = async function(id, gasLevel) {
+  await update(ref(db,'testdrives/'+id), { gasLevel });
+};
+
+window.deleteTestDrive = async function(id) {
+  if (!confirm('Remove this test drive record?')) return;
+  await remove(ref(db,'testdrives/'+id));
+};
+
+function testDriveHTML(t) {
+  const isMine = currentUser && t.salesperson === currentUser.name;
+  const canManage = perm('testDriveAdmin') || isMine;
+  const elapsed = fmtElapsed(Date.now() - t.startedAt);
+  const eta = t.status === 'out' ? computeCountdown(t.startedAt, t.durationMins) : null;
+  const overdue = eta && eta.overdue;
+  const gasOptions = ['Full','3/4','1/2','1/4','Empty'].map(g=>`<option value="${g}" ${t.gasLevel===g?'selected':''}>${g}</option>`).join('');
+
+  return `<div class="tracker-card${t.status==='returned'?' is-complete':''}" style="${overdue?'border-left:4px solid #dc2626':''}">
+    <div class="tracker-card-header">
+      <div class="tracker-card-stock">
+        <span>${t.stock}</span>
+        ${t.status==='returned'?'<span class="complete-badge">✓ Returned</span>':''}
+      </div>
+      <div class="tracker-card-vehicle">👤 ${t.customer}</div>
+    </div>
+    <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      ${canManage && t.status==='out'
+        ? `<select onchange="updateTestDriveGas('${t.id}',this.value)" style="padding:4px 8px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:20px;background:var(--bg)">${gasOptions}</select>`
+        : testDriveGasPill(t.gasLevel)}
+      <span style="font-size:12px;color:var(--text-muted)">${t.status==='out'?'Out':'Was out'}: ${elapsed}</span>
+      ${eta ? `<span style="font-size:12px;font-weight:700;color:${overdue?'#dc2626':'#1d4ed8'}">${overdue?'⚠ Overdue '+eta.text:'ETA '+eta.text}</span>` : ''}
+    </div>
+    ${t.notes?`<div style="padding:8px 16px;font-size:12px;color:var(--text-muted);border-bottom:1px solid var(--border);font-style:italic">${t.notes}</div>`:''}
+    <div class="tracker-card-meta">
+      <span style="font-size:12px;color:var(--text-faint)">Salesperson: ${t.salesperson}</span>
+    </div>
+    <div class="tracker-card-actions">
+      ${(t.status==='out' && canManage)?`<button class="btn-tedit" onclick="markTestDriveReturned('${t.id}')" style="background:#f0fdf4;color:#15803d;border-color:#86efac;font-weight:600">✓ Mark Returned</button>`:''}
+      ${canManage?`<button class="btn-tdel" onclick="deleteTestDrive('${t.id}')">✕</button>`:''}
+    </div>
+  </div>`;
+}
+
+function renderTestDrives() {
+  const list = Object.entries(testDrives||{}).map(([id,t])=>({id,...t}));
+  const active = list.filter(t=>t.status==='out').sort((a,b)=>a.startedAt-b.startedAt);
+  const returnedToday = list.filter(t=>t.status==='returned' && t.returnedAt && t.returnedAt >= todayStartTs()).sort((a,b)=>b.returnedAt-a.returnedAt);
+
+  const activeEl = document.getElementById('testdrive-active-list');
+  const historyEl = document.getElementById('testdrive-history-list');
+  if (activeEl) activeEl.innerHTML = active.length
+    ? active.map(testDriveHTML).join('')
+    : '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)">No vehicles out right now.</div>';
+  if (historyEl) historyEl.innerHTML = returnedToday.length
+    ? returnedToday.map(testDriveHTML).join('')
+    : '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-faint);font-size:13px">None returned yet today.</div>';
+
+  const needsGasCount = active.filter(t=>t.gasLevel==='1/4'||t.gasLevel==='Empty').length;
+  const overdueCount = active.filter(t=>computeCountdown(t.startedAt,t.durationMins).overdue).length;
+  const outEl = document.getElementById('td-out-count');
+  if (outEl) outEl.textContent = active.length;
+  const gasEl = document.getElementById('td-gas-count');
+  if (gasEl) gasEl.textContent = needsGasCount;
+  const overdueEl = document.getElementById('td-overdue-count');
+  if (overdueEl) overdueEl.textContent = overdueCount;
+  const todayEl = document.getElementById('td-today-count');
+  if (todayEl) todayEl.textContent = returnedToday.length;
+  const tcEl = document.getElementById('tc-testdrive');
+  if (tcEl) tcEl.textContent = active.length;
+}
 window.releaseHold = async id=>{ await update(ref(db,'entries/'+id),{status:'pending',denyReason:null,deniedBy:null,holdTs:null}); };
 let denyTimer=null;
 window.openHoldModal = function(id) {
@@ -3073,9 +3296,10 @@ function renderTVCompoundMap() {
   const v = cmVehicles['bayview700'] || {};
   const size = cmGridSize['bayview700'] || { rows: 13, cols: 52 };
 
-  // Build appointment + GR lookup for colour coding
+  // Build appointment + GR + test-drive lookup for colour coding
   const apptStocks = new Set(Object.values(entries||{}).filter(e=>e.stock&&e.status!=='done').map(e=>e.stock.toUpperCase()));
   const grStocks = new Set(Object.values(getReadyDeals||{}).filter(d=>d.stock&&!grIsComplete(d)).map(d=>d.stock.toUpperCase()));
+  const tdStocks = new Set(Object.values(testDrives||{}).filter(t=>t.stock&&t.status==='out').map(t=>t.stock.toUpperCase()));
 
   // Compute stats for title
   const allVehs = Object.values(v).filter(veh => veh && veh.stock && veh.status !== 'void' && veh.status !== 'blocked');
@@ -3086,10 +3310,11 @@ function renderTVCompoundMap() {
   const lease     = allVehs.filter(veh => veh.status === 'leasereturn').length;
   const appts     = allVehs.filter(veh => apptStocks.has((veh.stock||'').toUpperCase())).length;
   const gr        = allVehs.filter(veh => grStocks.has((veh.stock||'').toUpperCase())).length;
+  const outTd     = allVehs.filter(veh => tdStocks.has((veh.stock||'').toUpperCase())).length;
 
   const titleEl = document.getElementById('tv-title-compound');
   if (titleEl) {
-    titleEl.innerHTML = `Compound — 700 Bayview<br><span style="font-size:9px;font-weight:600;letter-spacing:.04em;opacity:.7;text-transform:none">${total} cars &nbsp;·&nbsp; ${flagged} flagged &nbsp;·&nbsp; ${wholesale} wholesale &nbsp;·&nbsp; ${fleet} fleet &nbsp;·&nbsp; ${lease} lease return &nbsp;·&nbsp; ${appts} appts &nbsp;·&nbsp; ${gr} get ready</span>`;
+    titleEl.innerHTML = `Compound — 700 Bayview<br><span style="font-size:9px;font-weight:600;letter-spacing:.04em;opacity:.7;text-transform:none">${total} cars &nbsp;·&nbsp; ${flagged} flagged &nbsp;·&nbsp; ${wholesale} wholesale &nbsp;·&nbsp; ${fleet} fleet &nbsp;·&nbsp; ${lease} lease return &nbsp;·&nbsp; ${appts} appts &nbsp;·&nbsp; ${gr} get ready &nbsp;·&nbsp; ${outTd} on test drive</span>`;
   }
 
   let html = '';
@@ -3108,6 +3333,7 @@ function renderTVCompoundMap() {
         const st = veh.status || 'occupied';
         if (st === 'void') bg = 'rgba(255,255,255,.03)';
         else if (st === 'blocked') bg = 'rgba(255,255,255,.1)';
+        else if (tdStocks.has(s))    bg = '#fb923c';        // orange — out on test drive
         else if (apptStocks.has(s)) bg = '#a78bfa';        // purple — appointment
         else if (grStocks.has(s))   bg = '#34d399';        // green — get ready
         else if (st === 'flag')       bg = '#7f1d1d';      // dark red — flagged
@@ -4050,6 +4276,7 @@ setInterval(()=>{
   if (!isTrackerFocused) {
     renderTracker();
     renderTrackerSummary();
+    renderTestDrives();
   }
   const homePanel = document.getElementById('panel-home');
   if (homePanel && homePanel.classList.contains('active')) renderHomeGrid();
@@ -4211,6 +4438,16 @@ function renderHomeGrid() {
       title: 'Get Ready',
       desc: 'Track deal prep — PDI, detail, delivery dates and trades.',
       badge: () => Object.values(getReadyDeals).filter(d=>!grIsComplete(d)).length
+    });
+  }
+
+  if (perm('tabTestDrive')) {
+    tiles.push({
+      name: 'testdrive', tone: 'amber',
+      icon: `<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/>`,
+      title: 'Test Drives',
+      desc: "See who's out on a test drive, gas level, and expected return.",
+      badge: () => Object.values(testDrives).filter(t=>t.status==='out').length
     });
   }
 
@@ -4391,6 +4628,14 @@ function cmRenderMap() {
     };
   });
 
+  // Build stock# → active test drive lookup — the spot is just a placeholder
+  // while the car is actually out with a customer.
+  const tdMap = {};
+  Object.values(testDrives||{}).forEach(t => {
+    if (!t.stock || t.status !== 'out') return;
+    tdMap[t.stock.toUpperCase().trim()] = true;
+  });
+
   mapEl.className = `cm-grid${cmEditMode?' cm-edit-active':''}`;
 
   let html = '';
@@ -4414,6 +4659,7 @@ function cmRenderMap() {
       const veh = v[key];
       const appt = veh ? apptMap[(veh.stock||'').toUpperCase().trim()] : null;
       const gr   = veh ? grMap[(veh.stock||'').toUpperCase().trim()] : null;
+      const onTd = veh ? tdMap[(veh.stock||'').toUpperCase().trim()] : null;
 
       if (!veh && !cmEditMode) {
         html += `<div class="cm-spot empty" data-cm-key="${key}"
@@ -4432,7 +4678,7 @@ function cmRenderMap() {
         const typeLine = [veh.year, veh.type, veh.trim, veh.colour].filter(Boolean).join(' ').substring(0,18);
         const isBlocked = veh.status === 'blocked';
         const isVoid = veh.status === 'void';
-        const cls = appt && !isBlocked && !isVoid ? 'appointed' : gr && !isBlocked && !isVoid ? 'getready' : veh.status;
+        const cls = onTd && !isBlocked && !isVoid ? 'ontestdrive' : appt && !isBlocked && !isVoid ? 'appointed' : gr && !isBlocked && !isVoid ? 'getready' : veh.status;
 
         if (isVoid) {
           // Void — completely inert in normal mode, selectable/deletable in edit mode only
@@ -4464,8 +4710,9 @@ function cmRenderMap() {
             <div class="cm-spot-num">${ci+1}</div>
             <div class="cm-spot-stock">${stock}</div>
             <div class="cm-spot-desc">${typeLine}</div>
-            ${appt && !cmEditMode ? `<div class="cm-spot-appt">🕐 ${appt.label}</div>` : ''}
-            ${gr && !appt && !cmEditMode ? `<div class="cm-spot-gr">${gr.label}</div>` : ''}
+            ${onTd && !cmEditMode ? `<div class="cm-spot-td">🚗 Out — Test Drive</div>` : ''}
+            ${appt && !onTd && !cmEditMode ? `<div class="cm-spot-appt">🕐 ${appt.label}</div>` : ''}
+            ${gr && !appt && !onTd && !cmEditMode ? `<div class="cm-spot-gr">${gr.label}</div>` : ''}
             ${cmEditMode&&cmSelected.has(key)?'<div style="font-size:10px;color:#f59e0b;font-weight:800;position:absolute;bottom:2px;right:3px">✓</div>':''}
           </div>`;
         }
