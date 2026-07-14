@@ -856,7 +856,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     </button>
     <button class="tab" id="tab-queue" onclick="switchTab('queue',this)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11l1.5-4.5h11L19 11M19 11v5H5v-5M5 11H3v2h2M19 11h2v2h-2M7.5 16v1.5M16.5 16v1.5"/></svg>
-      Moves <span class="tab-count" id="tc-queue">0</span>
+      Moves + Rides <span class="tab-count" id="tc-queue">0</span>
     </button>
     <button class="tab" id="tab-tracker" onclick="switchTab('tracker',this)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
@@ -1123,13 +1123,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
             <div class="form-row"><label>Notes <span style="color:var(--text-faint);font-weight:400;text-transform:none;letter-spacing:0">optional</span></label><textarea id="f-notes" placeholder="Special instructions, key location…" style="min-height:60px"></textarea></div>
           </div>
 
-          <!-- HITCHHIKER FIELDS -->
+          <!-- HITCHHIKER FIELDS (person rides only — vehicles use the Vehicle Move tab instead) -->
           <div id="reqtype-hitchhiker-fields" style="display:none">
-            <div class="booking-toggle">
-              <button class="toggle-btn active" id="hh-btn-person" onclick="setHHKind('person')"><span class="toggle-btn-label">🧑 Person</span><span class="toggle-btn-sub">Needs a ride</span></button>
-              <button class="toggle-btn" id="hh-btn-vehicle" onclick="setHHKind('vehicle')"><span class="toggle-btn-label">🚗 Vehicle</span><span class="toggle-btn-sub">Needs a move</span></button>
+            <div class="requester-banner" style="margin-bottom:16px">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+              🧑 A ride for you, between lots — for vehicles, use <strong>Vehicle Move</strong> above instead.
             </div>
-            <div class="form-row" id="hh-name-row" style="display:none"><label id="hh-name-label">Stock # <span style="color:#e24b4a">*</span></label><input id="hh-name" type="text" placeholder="e.g. B0394" autocomplete="off"/></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
               <div class="form-row" style="margin-bottom:0">
                 <label>Pickup at <span style="color:#e24b4a">*</span></label>
@@ -1284,7 +1283,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div class="tv-body">
           <!-- Col 1: Appointments -->
           <div class="tv-col-queue">
-            <div class="tv-col-title" id="tv-title-queue">Moves</div>
+            <div class="tv-col-title" id="tv-title-queue">Moves + Rides</div>
             <div id="tv-list" style="overflow-y:auto;flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-content:start"></div>
           </div>
           <!-- Col 2: Get Ready -->
@@ -1734,7 +1733,7 @@ function applyPermissions() {
 // ── Permissions matrix editor (Settings tab) ──────────
 const PERM_GROUPS = [
   { label:'Tabs', keys: [
-    ['tabHome','Home'], ['tabQueue','Moves'], ['tabTracker','Incoming'], ['tabGetReady','Get Ready'],
+    ['tabHome','Home'], ['tabQueue','Moves + Rides'], ['tabTracker','Incoming'], ['tabGetReady','Get Ready'],
     ['tabCompound','Compound Map'], ['tabTV','TV Display'], ['tabShuttle','Shuttle Dashboard'], ['tabHistory','History'], ['tabSettings','Settings'],
   ]},
   { label:'Shuttle Dashboard', keys: [
@@ -1749,7 +1748,7 @@ const PERM_GROUPS = [
   { label:'Tracker Checkboxes', keys: [
     ['cbAcc','Accessories'], ['cbPdi','PDI'], ['cbPhoto','Photo/Video'], ['cbIC','IC Moved'],
   ]},
-  { label:'Moves', keys: [
+  { label:'Moves + Rides', keys: [
     ['queueAdmin','Start/Complete/Hold moves'], ['clearCompleted','Clear completed button'],
     ['hitchhikerAdmin','Remove finished/cancelled hitchhiker requests'],
   ]},
@@ -2250,7 +2249,6 @@ window.toggleRequestForm = function() {
   if (nameEl && currentUser) nameEl.textContent = currentUser.name;
   if (!isOpen) {
     window.setRequestType('vehicle'); // always open fresh on the vehicle-move tab
-    window.setHHKind('person'); // and fresh on person mode if they switch to hitchhiker
     setTimeout(()=>document.getElementById('f-stock').focus(), 350);
   }
 };
@@ -2401,43 +2399,25 @@ window.clearCompleted = async function() {
   await Promise.all(Object.entries(entries).filter(([,e])=>e.status==='done').map(([id])=>remove(ref(db,'entries/'+id))));
 };
 
-// ── Hitchhikers ───────────────────────────────────────
-let hhKind = 'person';
-
-window.setHHKind = function(kind) {
-  hhKind = kind;
-  document.getElementById('hh-btn-person').classList.toggle('active', kind==='person');
-  document.getElementById('hh-btn-vehicle').classList.toggle('active', kind==='vehicle');
-  // Person rides use the logged-in account's name — no need to type it again.
-  // Only vehicle rides need a stock # to identify which vehicle needs the ride.
-  document.getElementById('hh-name-row').style.display = kind==='vehicle' ? '' : 'none';
-};
-
+// ── Hitchhikers (people only — vehicles use the Vehicle Move tab) ──
 window.submitHitchhiker = async function() {
   const pickup = document.getElementById('hh-pickup').value;
   const dropoff = document.getElementById('hh-dropoff').value;
   const notes = document.getElementById('hh-notes').value.trim();
-  let name;
-  if (hhKind === 'vehicle') {
-    name = document.getElementById('hh-name').value.trim().toUpperCase();
-    if (!name) { showToast('Please enter a stock #.', 'error'); return; }
-  } else {
-    name = currentUser.name; // the requester is who needs the ride — username is enough
-  }
+  const name = currentUser.name; // the requester is who needs the ride — username is enough
   if (!pickup || !dropoff) { showToast('Please select pickup and drop-off locations.', 'error'); return; }
   if (pickup === dropoff) { showToast("Pickup and drop-off can't be the same location.", 'error'); return; }
   const btn = document.getElementById('btn-submit-unified');
   btn.disabled = true; btn.textContent = 'Submitting…';
   try {
     await push(ref(db,'hitchhikers'), {
-      kind: hhKind,
+      kind: 'person',
       name,
       pickup, dropoff, notes,
       requestedBy: currentUser.name,
       status: 'pending',
       ts: Date.now(),
     });
-    document.getElementById('hh-name').value = '';
     document.getElementById('hh-pickup').value = '';
     document.getElementById('hh-dropoff').value = '';
     document.getElementById('hh-notes').value = '';
@@ -2772,11 +2752,23 @@ function entryHTML(e) {
 // Compact "at a glance" bar for the current user's own requests — both vehicle
 // moves and hitchhiker rides — so they don't have to scroll the full queue to
 // find their own status.
+// Shared mm:ss countdown math — used by both the "Your Requests" pills and
+// anywhere else that needs a live ETA against a target number of minutes.
+function computeCountdown(stageTs, targetMins) {
+  const elapsed = Math.floor((Date.now()-stageTs)/1000);
+  const remaining = targetMins*60 - elapsed;
+  const overdue = remaining < 0;
+  const abs = Math.abs(remaining);
+  const mm = Math.floor(abs/60), ss = abs%60;
+  return { text: (overdue?'+':'')+mm+':'+String(ss).padStart(2,'0'), overdue };
+}
+
 function renderMyRequests() {
   const wrap = document.getElementById('my-requests-bar');
   const list = document.getElementById('my-requests-list');
   if (!wrap || !list || !currentUser) return;
 
+  // Rides/moves disappear from here the moment they're done or cancelled.
   const myVeh = Object.entries(entries||{}).map(([id,e])=>({id,...e}))
     .filter(e => e.requestedBy === currentUser.name && !['done','cancelled'].includes(e.status));
   const myHH = Object.entries(hitchhikers||{}).map(([id,h])=>({id,...h}))
@@ -2785,21 +2777,32 @@ function renderMyRequests() {
   if (!myVeh.length && !myHH.length) { wrap.style.display = 'none'; return; }
   wrap.style.display = '';
 
-  const vehLabel = {pending:'Pending',onroute:'🚶 On Route',bringing:'🚗 Bringing Back',progress:'In progress',onhold:'On Hold'};
-  const vehCls = {pending:'pending',onroute:'onroute',bringing:'bringing',progress:'progress',onhold:'onhold'};
-  const vehPills = myVeh.map(e => `
-    <div style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:5px 12px 5px 10px;font-size:13px">
-      <span style="font-weight:700">${e.stock}</span>
-      <span class="status-pill ${vehCls[e.status]||'pending'}" style="font-size:10px">${vehLabel[e.status]||e.status}</span>
-    </div>`).join('');
+  function pillHTML(icon, title, driver, countdown) {
+    const overdue = countdown && countdown.overdue;
+    return `<div style="display:flex;align-items:center;gap:12px;background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:10px 16px;min-width:180px">
+      <span style="font-size:22px">${icon}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:800;font-size:14px;color:var(--ford);white-space:nowrap">${title}</div>
+        ${driver ? `<div style="font-size:12px;color:var(--text-muted);margin-top:1px">Driver: ${driver}</div>` : ''}
+      </div>
+      ${countdown ? `<div style="font-size:19px;font-weight:800;color:${overdue?'#dc2626':'#00095b'};font-variant-numeric:tabular-nums;white-space:nowrap">${countdown.text}</div>` : ''}
+    </div>`;
+  }
 
-  const hhLabel = {pending:'Waiting for driver',claimed:'Heading to pickup',enroute:'Heading to drop-off'};
-  const hhCls = {pending:'hh-pending',claimed:'hh-claimed',enroute:'hh-enroute'};
-  const hhPills = myHH.map(h => `
-    <div style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:5px 12px 5px 10px;font-size:13px">
-      <span style="font-weight:700">🚐 ${h.name}</span>
-      <span class="hh-pill ${hhCls[h.status]||'hh-pending'}" style="font-size:10px">${hhLabel[h.status]||h.status}</span>
-    </div>`).join('');
+  const vehPills = myVeh.map(e => {
+    if (e.status === 'onroute' && e.onrouteTs) return pillHTML('🚗', `${e.stock} · On the way`, e.claimedBy, computeCountdown(e.onrouteTs, MOVE_MINS));
+    if (e.status === 'bringing' && e.bringingTs) return pillHTML('🚗', `${e.stock} · Bringing it back`, e.claimedBy, computeCountdown(e.bringingTs, MOVE_MINS));
+    if (e.status === 'progress' && e.progressTs) return pillHTML('🚗', `${e.stock} · In progress`, e.claimedBy, computeCountdown(e.progressTs, MOVE_MINS));
+    if (e.status === 'onhold') return pillHTML('🚗', `${e.stock} · On Hold`, '', null);
+    return pillHTML('🚗', `${e.stock} · Pending`, '', null);
+  }).join('');
+
+  const hhPills = myHH.map(h => {
+    const adj = h.etaAdjustMins || 0;
+    if (h.status === 'claimed' && h.claimedTs) return pillHTML('🚐', 'Waiting for Pickup', h.claimedBy, computeCountdown(h.claimedTs, MOVE_MINS+adj));
+    if (h.status === 'enroute' && h.pickedUpTs) return pillHTML('🚐', 'Heading to Drop-off', h.claimedBy, computeCountdown(h.pickedUpTs, MOVE_MINS+adj));
+    return pillHTML('🚐', 'Waiting for driver', '', null);
+  }).join('');
 
   list.innerHTML = vehPills + hhPills;
 }
@@ -2844,12 +2847,12 @@ function renderTV() {
   if(!total&&!done.length&&!onholdEntries.length){
     tvCount.textContent='No active moves';
     tvList.innerHTML='<div class="tv-empty" style="grid-column:1/-1"><div style="font-size:48px">✓</div><p>All clear</p></div>';
-    document.getElementById('tv-title-queue').textContent='Moves (0)';
+    document.getElementById('tv-title-queue').textContent='Moves + Rides (0)';
     renderTVGetReady(); renderTVCompoundMap(); renderTVIncoming();
     return;
   }
   tvCount.textContent=(active.length?active.length+' active ':'')+( upcoming.length?'· '+upcoming.length+' upcoming ':'')+( done.length?'· '+done.length+' done':'');
-  document.getElementById('tv-title-queue').textContent=`Moves (${active.length+upcoming.length})`;
+  document.getElementById('tv-title-queue').textContent=`Moves + Rides (${active.length+upcoming.length})`;
 
   // Build compact tiles for every entry
   const allEntries = [...active, ...upcoming, ...done, ...onholdEntries];
@@ -4187,7 +4190,7 @@ function renderHomeGrid() {
 
   tiles.push({
     name: 'queue', tone: 'navy', icon: icon.queue,
-    title: 'Moves',
+    title: 'Moves + Rides',
     desc: 'Submit a move request or view the live lot queue.',
     badge: () => Object.values(entries).filter(e=>['pending','progress'].includes(e.status)).length
   });
@@ -4229,15 +4232,7 @@ function renderHomeGrid() {
     });
   }
 
-  if (perm('queueAdmin') || currentUser?.role === 'management') {
-    tiles.push({
-      name: 'audit', tone: 'amber',
-      icon: `<path d="M9 11l3 3L22 4"/><rect x="3" y="3" width="18" height="18" rx="2"/>`,
-      title: 'Lot Audit',
-      desc: 'Walk the lot, confirm vehicles, flag issues.',
-      badge: () => auditState ? Object.values(auditState.results||{}).filter(r=>r.status==='pending').length : null
-    });
-  }
+  // Lot Audit tile intentionally removed — feature parked for now (see auditShowTab).
 
   if (perm('tabHistory')) {
     tiles.push({
@@ -4421,20 +4416,14 @@ function cmRenderMap() {
       const gr   = veh ? grMap[(veh.stock||'').toUpperCase().trim()] : null;
 
       if (!veh && !cmEditMode) {
-        html += `<div class="cm-spot empty"
-          onclick="cmSpotClick('${key}',${ri},${ci})"
-          ondragover="cmDragOver(event)"
-          ondragleave="cmDragLeave(event)"
-          ondrop="cmDrop(event,'${key}')">
+        html += `<div class="cm-spot empty" data-cm-key="${key}"
+          onclick="cmSpotClick('${key}',${ri},${ci})">
           <div class="cm-spot-num">${ci+1}</div>
         </div>`;
       } else if (!veh && cmEditMode) {
         const sel = cmSelected.has(key);
-        html += `<div class="cm-spot empty${sel?' cm-selected':''}"
-          onclick="cmSelectSpot(event,'${key}',${ri},${ci})"
-          ondragover="cmDragOver(event)"
-          ondragleave="cmDragLeave(event)"
-          ondrop="cmDrop(event,'${key}')">
+        html += `<div class="cm-spot empty${sel?' cm-selected':''}" data-cm-key="${key}"
+          onclick="cmSelectSpot(event,'${key}',${ri},${ci})">
           <div class="cm-spot-num">${ci+1}</div>
           ${sel?'<div style="font-size:10px;color:#f59e0b;font-weight:800">✓</div>':'<div style="font-size:14px;color:#cbd5e1;margin-top:2px">+</div>'}
         </div>`;
@@ -4447,17 +4436,17 @@ function cmRenderMap() {
 
         if (isVoid) {
           // Void — completely inert in normal mode, selectable/deletable in edit mode only
-          html += `<div class="cm-spot void${cmEditMode&&cmSelected.has(key)?' cm-selected':''}"
+          html += `<div class="cm-spot void${cmEditMode&&cmSelected.has(key)?' cm-selected':''}" data-cm-key="${key}"
             style="cursor:${cmEditMode?'pointer':'default'}"
-            ${cmEditMode?`onclick="cmSelectSpot(event,'${key}',${ri},${ci})" ondragover="cmDragOver(event)" ondragleave="cmDragLeave(event)" ondrop="cmDrop(event,'${key}')"`:''}>
+            ${cmEditMode?`onclick="cmSelectSpot(event,'${key}',${ri},${ci})"`:''}>
             ${cmEditMode ? `<div class="cm-del-spot" style="display:flex" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
             ${cmEditMode&&cmSelected.has(key)?'<div style="font-size:10px;color:#f59e0b;font-weight:800;position:absolute;inset:0;display:flex;align-items:center;justify-content:center">✓</div>':''}
           </div>`;
         } else if (isBlocked) {
           // Blocked (drive lane, no parking, gatehouse etc) — inert in normal mode
-          html += `<div class="cm-spot blocked${cmEditMode&&cmSelected.has(key)?' cm-selected':''}"
+          html += `<div class="cm-spot blocked${cmEditMode&&cmSelected.has(key)?' cm-selected':''}" data-cm-key="${key}"
             style="cursor:${cmEditMode?'pointer':'default'}"
-            ${cmEditMode?`onclick="cmSelectSpot(event,'${key}',${ri},${ci})" ondragover="cmDragOver(event)" ondragleave="cmDragLeave(event)" ondrop="cmDrop(event,'${key}')"`:''}>
+            ${cmEditMode?`onclick="cmSelectSpot(event,'${key}',${ri},${ci})"`:''}>
             ${cmEditMode ? `<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
             <div class="cm-spot-num" style="${cmEditMode?'':'opacity:.5'}">${cmEditMode?ci+1:''}</div>
             <div class="cm-spot-stock">${(veh.blockLabel||'').split(' ').slice(0,1).join(' ')}</div>
@@ -4466,14 +4455,10 @@ function cmRenderMap() {
           </div>`;
         } else {
           const selCls = cmEditMode && cmSelected.has(key) ? ' cm-selected' : '';
-          html += `<div class="cm-spot ${cls}${selCls}"
+          const canDrag = !cmEditMode && perm('compoundEdit');
+          html += `<div class="cm-spot ${cls}${selCls}" data-cm-key="${key}"
             onclick="${cmEditMode?`cmSelectSpot(event,'${key}',${ri},${ci})`:`cmSpotClick('${key}',${ri},${ci})`}"
-            draggable="${(!cmEditMode && perm('compoundEdit'))?'true':'false'}"
-            ondragstart="cmDragStart(event,'${key}')"
-            ondragend="cmDragEnd(event)"
-            ondragover="cmDragOver(event)"
-            ondragleave="cmDragLeave(event)"
-            ondrop="cmDrop(event,'${key}')">
+            ${canDrag?`onpointerdown="cmSpotPointerDown(event,'${key}')" style="touch-action:none"`:''}>
             ${cmEditMode ? `<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
             ${veh.note && !cmEditMode ? `<div class="cm-spot-note"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
             <div class="cm-spot-num">${ci+1}</div>
@@ -4793,53 +4778,61 @@ window.cmConfirmRow = ()=>{};
 window.cmCloseRow = ()=>{};
 window.cmRenderLotTabs = ()=>{};
 
-// ── Drag and drop state ───────────────────────────────
+// ── Drag and drop (Pointer Events — works with mouse, touch, and pen alike) ──
 let cmDragKey = null;
 let cmDragData = null;
+let cmDragEl = null;
+let cmDragOverEl = null;
 
-window.cmDragStart = function(e, key) {
-  if (!perm('compoundEdit')) { e.preventDefault(); return; }
+window.cmSpotPointerDown = function(e, key) {
+  if (!perm('compoundEdit') || cmEditMode) return;
+  const veh = (cmVehicles[cmCurrentLot]||{})[key];
+  if (!veh) return;
+  e.preventDefault();
   cmDragKey = key;
-  cmDragData = (cmVehicles[cmCurrentLot]||{})[key];
-  e.dataTransfer.effectAllowed = 'move';
-  e.currentTarget.style.opacity = '0.4';
+  cmDragData = veh;
+  cmDragEl = e.currentTarget;
+  try { cmDragEl.setPointerCapture(e.pointerId); } catch(err) {}
+  cmDragEl.style.opacity = '0.4';
+  cmDragEl.style.zIndex = '5';
+  document.addEventListener('pointermove', cmPointerMove);
+  document.addEventListener('pointerup', cmPointerUp, { once: true });
+  document.addEventListener('pointercancel', cmPointerUp, { once: true });
 };
 
-window.cmDragEnd = function(e) {
-  e.currentTarget.style.opacity = '';
-  cmDragKey = null;
-  cmDragData = null;
-};
+function cmPointerMove(e) {
+  if (!cmDragKey) return;
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const spotEl = el ? el.closest('.cm-spot') : null;
+  if (cmDragOverEl && cmDragOverEl !== spotEl) cmDragOverEl.classList.remove('cm-drag-over');
+  if (spotEl && spotEl !== cmDragEl) {
+    spotEl.classList.add('cm-drag-over');
+    cmDragOverEl = spotEl;
+  } else {
+    cmDragOverEl = null;
+  }
+}
 
-window.cmDragOver = function(e) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  e.currentTarget.classList.add('cm-drag-over');
-};
+async function cmPointerUp(e) {
+  document.removeEventListener('pointermove', cmPointerMove);
+  if (cmDragEl) { cmDragEl.style.opacity = ''; cmDragEl.style.zIndex = ''; }
+  if (cmDragOverEl) cmDragOverEl.classList.remove('cm-drag-over');
 
-window.cmDragLeave = function(e) {
-  e.currentTarget.classList.remove('cm-drag-over');
-};
-
-window.cmDrop = async function(e, destKey) {
-  e.preventDefault();
-  e.currentTarget.classList.remove('cm-drag-over');
-  if (!perm('compoundEdit')) return;
-  if (!cmDragKey || cmDragKey === destKey || !cmDragData) return;
-
+  const destKey = cmDragOverEl ? cmDragOverEl.dataset.cmKey : null;
   const srcKey = cmDragKey;
   const srcData = cmDragData;
-  cmDragKey = null;
-  cmDragData = null;
+  cmDragKey = null; cmDragData = null; cmDragEl = null; cmDragOverEl = null;
+
+  if (!destKey || destKey === srcKey || !srcData) return;
+  if (!perm('compoundEdit')) return;
 
   const destVeh = (cmVehicles[cmCurrentLot]||{})[destKey];
-
   // Single atomic update — both keys written in one call to prevent double-render duplication
   const updates = {};
   updates[`compound_v2/${cmCurrentLot}/${destKey}`] = srcData;
   updates[`compound_v2/${cmCurrentLot}/${srcKey}`] = destVeh || null;
   await update(ref(db), updates);
-};
+}
 
 // Fix cmStartListeners — always store data and render regardless of active tab
 function cmStartListeners() {
@@ -4908,11 +4901,9 @@ let auditState = null; // { id, lots, requirements, lotIdx, results:{key:{status
 let auditActiveKey = null;
 
 function auditShowTab() {
-  const tab = document.getElementById('tab-audit');
-  if (tab && (perm('queueAdmin') || currentUser?.role === 'management')) tab.style.display = '';
-  // Also show start button
-  const btn = document.getElementById('btn-start-audit');
-  if (btn && (perm('queueAdmin') || currentUser?.role === 'management')) btn.style.display = '';
+  // Feature parked for now — intentionally left disabled. Flip the condition
+  // below back to what it was to re-enable (tab/button stay in the DOM either way).
+  return;
 }
 
 // Load active audit from Firebase
