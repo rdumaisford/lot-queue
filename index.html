@@ -759,6 +759,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot.blocked:hover{background:#cbd5e1!important}
 .cm-spot-note{position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:3px;background:#f59e0b;display:flex;align-items:center;justify-content:center;z-index:2}
 .cm-spot-note svg{width:9px;height:9px;stroke:#fff;fill:none;stroke-width:2.5}
+.cm-spot-flags{position:absolute;top:2px;left:2px;display:flex;flex-direction:column;gap:1px;z-index:2}
+.cm-spot-flag{font-size:8px;line-height:1;background:rgba(255,255,255,.85);border-radius:2px;padding:1px 2px}
 .cm-del-spot{position:absolute;top:1px;right:1px;width:13px;height:13px;border-radius:50%;background:#ef4444;color:#fff;font-size:9px;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:3;line-height:1}
 .cm-edit-active .cm-del-spot{display:flex}
 /* ── /Compound Map ── */
@@ -973,6 +975,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fff7ed;border:1.5px solid #ea580c"></div>Out — Test Drive</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#e2e8f0;border:1.5px dashed #94a3b8"></div>Blocked</div>
         <span style="color:var(--text-faint);margin-left:8px">🖐 Hold a car ~3s to move it</span>
+        <span style="color:var(--text-faint)">· Tap a car for gas / wash / test drive</span>
         <span id="cm-edit-hint" style="display:none;color:#b45309;font-weight:600;margin-left:8px">✏️ Edit mode — click any spot to edit</span>
       </div>
 
@@ -1415,13 +1418,25 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <div class="stats-grid" id="history-summary"></div>
       <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em">Attendant performance</div>
       <div class="attendant-grid" id="attendant-cards"></div>
-      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em">Move log</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+        <div style="font-size:13px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em">Move log</div>
+        <div class="search-wrap" style="max-width:260px;margin-left:auto">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input class="search-input" id="history-search" type="text" placeholder="Search stock, destination, name…" oninput="renderHistory()"/>
+        </div>
+      </div>
       <div class="history-table">
         <div class="history-table-header"><div>Stock #</div><div>Destination</div><div>Moved by</div><div>Requested by</div><div>Duration</div><div>Date</div></div>
         <div id="history-log"></div>
       </div>
 
-      <div style="font-size:13px;font-weight:600;margin:24px 0 10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em">Vehicle Locator activity <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-faint)">— who moved/edited what on the map</span></div>
+      <div style="display:flex;align-items:center;gap:10px;margin:24px 0 10px;flex-wrap:wrap">
+        <div style="font-size:13px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em">Vehicle Locator activity <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-faint)">— who moved/edited what on the map</span></div>
+        <div class="search-wrap" style="max-width:260px;margin-left:auto">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input class="search-input" id="compound-history-search" type="text" placeholder="Search stock, spot, name, lot…" oninput="renderCompoundHistory()"/>
+        </div>
+      </div>
       <div class="history-table" style="grid-template-columns:none">
         <div style="display:grid;grid-template-columns:110px 1fr 130px;gap:0;background:var(--bg);border-bottom:1px solid var(--border);padding:8px 16px;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em">
           <div>Lot</div><div>What happened</div><div>Who / When</div>
@@ -1506,6 +1521,29 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 </div>
 
 <!-- CM Spot Modal -->
+<!-- CM Quick Actions Modal — available to everyone, no editing permission required -->
+<div id="cm-quick-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this)cmCloseQuickActions()">
+  <div class="modal-card" style="max-width:380px">
+    <div class="modal-title-row">
+      <span id="cm-quick-title" style="font-size:16px;font-weight:700"></span>
+      <button class="modal-close" onclick="cmCloseQuickActions()">×</button>
+    </div>
+    <div id="cm-quick-vehicle-desc" style="font-size:13px;color:var(--text-muted);margin-bottom:16px"></div>
+    <div style="display:flex;gap:10px;margin-bottom:16px">
+      <button id="cm-quick-gas" onclick="cmQuickToggleFlag('needsGas')" style="flex:1;height:60px;border-radius:10px;border:2px solid var(--border);background:var(--bg);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+        <span style="font-size:20px">⛽</span><span style="font-size:11px;font-weight:700">Needs Gas</span>
+      </button>
+      <button id="cm-quick-wash" onclick="cmQuickToggleFlag('needsWash')" style="flex:1;height:60px;border-radius:10px;border:2px solid var(--border);background:var(--bg);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+        <span style="font-size:20px">🧼</span><span style="font-size:11px;font-weight:700">Needs Wash</span>
+      </button>
+    </div>
+    <div id="cm-quick-td-section" style="margin-bottom:12px"></div>
+    <div id="cm-quick-edit-row" style="display:none;border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
+      <button onclick="cmOpenFullEditFromQuick()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text-muted);font-size:13px;cursor:pointer">✏️ Edit vehicle details</button>
+    </div>
+  </div>
+</div>
+
 <div id="cm-spot-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this)cmCloseSpot()">
   <div class="modal-card" style="max-width:420px">
     <div class="modal-title-row">
@@ -4113,9 +4151,16 @@ const CM_LOT_LABELS = { bayview700:'700 Bayview', bayview323:'323 Bayview', mapl
 
 function filteredCompoundHistory() {
   const all = Object.values(compoundHistoryData);
-  if (!historyDays) return all.sort((a,b)=>b.ts-a.ts);
-  const cutoff = Date.now() - historyDays*24*60*60*1000;
-  return all.filter(h=>h.ts>=cutoff).sort((a,b)=>b.ts-a.ts);
+  let list = all;
+  if (historyDays) {
+    const cutoff = Date.now() - historyDays*24*60*60*1000;
+    list = list.filter(h=>h.ts>=cutoff);
+  }
+  const q = document.getElementById('compound-history-search')?.value.trim().toLowerCase();
+  if (q) {
+    list = list.filter(h => [CM_LOT_LABELS[h.lot]||h.lot, h.detail, h.action, h.by].join(' ').toLowerCase().includes(q));
+  }
+  return list.sort((a,b)=>b.ts-a.ts);
 }
 
 function renderCompoundHistory() {
@@ -4136,9 +4181,16 @@ function renderCompoundHistory() {
 
 function filteredHistory() {
   const all=Object.values(historyData);
-  if(!historyDays) return all.sort((a,b)=>b.ts-a.ts);
-  const cutoff=Date.now()-historyDays*24*60*60*1000;
-  return all.filter(h=>h.ts>=cutoff).sort((a,b)=>b.ts-a.ts);
+  let list = all;
+  if (historyDays) {
+    const cutoff=Date.now()-historyDays*24*60*60*1000;
+    list = list.filter(h=>h.ts>=cutoff);
+  }
+  const q = document.getElementById('history-search')?.value.trim().toLowerCase();
+  if (q) {
+    list = list.filter(h => [h.stock, h.dest, h.claimedBy, h.requestedBy].join(' ').toLowerCase().includes(q));
+  }
+  return list.sort((a,b)=>b.ts-a.ts);
 }
 function renderHistory() {
   const hist=filteredHistory();
@@ -4753,10 +4805,11 @@ function cmRenderMap() {
           const selCls = cmEditMode && cmSelected.has(key) ? ' cm-selected' : '';
           const canDrag = !cmEditMode && perm('compoundEdit');
           html += `<div class="cm-spot ${cls}${selCls}" data-cm-key="${key}"
-            onclick="${cmEditMode?`cmSelectSpot(event,'${key}',${ri},${ci})`:`cmSpotClick('${key}',${ri},${ci})`}"
+            onclick="${cmEditMode?`cmSelectSpot(event,'${key}',${ri},${ci})`:`cmOpenQuickActions('${key}',${ri},${ci})`}"
             ${canDrag?`onpointerdown="cmSpotPointerDown(event,'${key}')" oncontextmenu="return false" style="touch-action:none"`:''}>
             ${cmEditMode ? `<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
             ${veh.note && !cmEditMode ? `<div class="cm-spot-note"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
+            ${!cmEditMode && (veh.needsGas || veh.needsWash) ? `<div class="cm-spot-flags">${veh.needsGas?'<span class="cm-spot-flag" title="Needs gas">⛽</span>':''}${veh.needsWash?'<span class="cm-spot-flag" title="Needs wash">🧼</span>':''}</div>` : ''}
             <div class="cm-spot-num">${ci+1}</div>
             <div class="cm-spot-stock">${stock}</div>
             <div class="cm-spot-desc">${typeLine}</div>
@@ -4812,6 +4865,93 @@ function cmUpdateEditBtn() {
     if (hint) hint.style.display = 'none';
   }
 }
+
+// ── Quick Actions (gas/wash flags + test drive shortcut) — available to
+// EVERYONE who can see the Vehicle Locator tab, no editing permission needed.
+let cmQuickKey = null;
+
+window.cmOpenQuickActions = function(key, ri, ci) {
+  const veh = (cmVehicles[cmCurrentLot]||{})[key];
+  if (!veh || !veh.stock) return;
+  cmQuickKey = key;
+
+  document.getElementById('cm-quick-title').textContent = veh.stock;
+  document.getElementById('cm-quick-vehicle-desc').textContent = [veh.year, veh.type, veh.trim, veh.colour].filter(Boolean).join(' ') || `Spot R${ri+1}-${ci+1}`;
+
+  const gasBtn = document.getElementById('cm-quick-gas');
+  const washBtn = document.getElementById('cm-quick-wash');
+  gasBtn.style.background = veh.needsGas ? '#fef2f2' : 'var(--bg)';
+  gasBtn.style.borderColor = veh.needsGas ? '#fca5a5' : 'var(--border)';
+  gasBtn.style.color = veh.needsGas ? '#dc2626' : 'var(--text)';
+  washBtn.style.background = veh.needsWash ? '#eff6ff' : 'var(--bg)';
+  washBtn.style.borderColor = veh.needsWash ? '#93c5fd' : 'var(--border)';
+  washBtn.style.color = veh.needsWash ? '#1d4ed8' : 'var(--text)';
+
+  const stockUpper = (veh.stock||'').toUpperCase().trim();
+  const activeTdEntry = Object.entries(testDrives||{}).find(([id,t]) => t.status==='out' && (t.stock||'').toUpperCase().trim()===stockUpper);
+  const tdSection = document.getElementById('cm-quick-td-section');
+  if (activeTdEntry) {
+    const [tdId, td] = activeTdEntry;
+    tdSection.innerHTML = `
+      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:8px;font-size:13px;color:#9a3412">🚗 Out on test drive — ${td.customer}</div>
+      <button onclick="cmQuickMarkReturned('${tdId}')" style="width:100%;padding:10px;border:none;border-radius:var(--radius-sm);background:#15803d;color:#fff;font-size:14px;font-weight:600;cursor:pointer">✓ Mark Returned</button>`;
+  } else {
+    tdSection.innerHTML = `<button onclick="cmQuickStartTestDrive()" style="width:100%;padding:10px;border:none;border-radius:var(--radius-sm);background:var(--ford);color:#fff;font-size:14px;font-weight:600;cursor:pointer">🚗 Start Test Drive</button>`;
+  }
+
+  document.getElementById('cm-quick-edit-row').style.display = perm('compoundEdit') ? '' : 'none';
+  document.getElementById('cm-quick-modal').style.display = 'flex';
+};
+
+window.cmCloseQuickActions = function() {
+  document.getElementById('cm-quick-modal').style.display = 'none';
+  cmQuickKey = null;
+};
+
+window.cmQuickToggleFlag = async function(field) {
+  const veh = (cmVehicles[cmCurrentLot]||{})[cmQuickKey];
+  if (!veh) return;
+  const newVal = !veh[field];
+  await update(ref(db, `compound_v2/${cmCurrentLot}/${cmQuickKey}`), { [field]: newVal });
+  const label = field === 'needsGas' ? 'gas' : 'a wash';
+  logCompoundChange(cmCurrentLot, 'flag', `${veh.stock} ${newVal?'flagged as needing':'un-flagged for'} ${label}`);
+  cmOpenQuickActions(cmQuickKey, 0, 0); // refresh the modal's button states
+};
+
+window.cmQuickStartTestDrive = async function() {
+  const veh = (cmVehicles[cmCurrentLot]||{})[cmQuickKey];
+  if (!veh) return;
+  const customer = prompt(`Customer name for ${veh.stock}'s test drive?`);
+  if (!customer || !customer.trim()) return;
+  await push(ref(db,'testdrives'), {
+    stock: veh.stock,
+    customer: customer.trim(),
+    gasLevel: veh.needsGas ? '1/4' : 'Full',
+    durationMins: 30,
+    notes: 'Started from Vehicle Locator map',
+    salesperson: currentUser.name,
+    status: 'out',
+    startedAt: Date.now(),
+  });
+  logCompoundChange(cmCurrentLot, 'testdrive', `Started test drive for ${veh.stock} (${customer.trim()}) from the map`);
+  cmCloseQuickActions();
+};
+
+window.cmQuickMarkReturned = async function(tdId) {
+  await update(ref(db,'testdrives/'+tdId), { status:'returned', returnedAt: Date.now() });
+  const veh = (cmVehicles[cmCurrentLot]||{})[cmQuickKey];
+  if (veh) logCompoundChange(cmCurrentLot, 'testdrive', `Marked ${veh.stock}'s test drive returned from the map`);
+  cmCloseQuickActions();
+};
+
+window.cmOpenFullEditFromQuick = function() {
+  if (!perm('compoundEdit') || !cmQuickKey) return;
+  const key = cmQuickKey;
+  const m = key.match(/R(\d+)-C(\d+)/);
+  const ri = m ? parseInt(m[1]) : 0, ci = m ? parseInt(m[2]) : 0;
+  cmCloseQuickActions();
+  cmSpotClick(key, ri, ci);
+};
 
 window.cmSpotClick = function(key, ri, ci) {
   if (!perm('compoundEdit')) return; // view-only roles can already see stock # / info directly on the map
@@ -4905,6 +5045,12 @@ window.cmSaveSpot = async function() {
     status,
     note:    document.getElementById('cm-f-note').value.trim(),
   };
+  // Carry over the quick-flag gas/wash markers when it's the same vehicle —
+  // a full edit shouldn't silently clear flags someone set from the map.
+  if (prevVeh && prevVeh.stock === stock) {
+    if (prevVeh.needsGas) data.needsGas = true;
+    if (prevVeh.needsWash) data.needsWash = true;
+  }
   await set(ref(db, `compound_v2/${cmCurrentLot}/${key}`), data);
   const desc = !prevVeh?.stock
     ? `Assigned ${stock} to ${key}`
