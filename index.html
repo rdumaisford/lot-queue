@@ -749,6 +749,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot-td{font-size:7px;font-weight:700;color:#c2410c;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
 .cm-spot.cm-selected{box-shadow:0 0 0 2.5px #f59e0b,0 0 0 4px #fef3c7!important;z-index:4;transform:translateY(-1px)}
 .cm-spot.cm-drag-over{border-color:var(--ford)!important;background:#eff6ff!important;box-shadow:0 0 0 2px #93c5fd!important;transform:scale(1.05)}
+@keyframes cmHoldPulse{0%{box-shadow:0 0 0 0 rgba(245,158,11,.7)}100%{box-shadow:0 0 0 6px rgba(245,158,11,0)}}
+.cm-spot.cm-holding{animation:cmHoldPulse 3s ease-out forwards;z-index:3}
+.cm-spot.cm-armed{box-shadow:0 0 0 3px #f59e0b!important;z-index:5}
 .cm-spot[draggable="true"]{cursor:grab}
 .cm-spot[draggable="true"]:active{cursor:grabbing}
 .cm-spot.blocked .cm-spot-num{color:#94a3b8}
@@ -969,6 +972,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f3e8ff;border:1.5px solid #7c3aed"></div>Appointment</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fff7ed;border:1.5px solid #ea580c"></div>Out — Test Drive</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#e2e8f0;border:1.5px dashed #94a3b8"></div>Blocked</div>
+        <span style="color:var(--text-faint);margin-left:8px">🖐 Hold a car ~3s to move it</span>
         <span id="cm-edit-hint" style="display:none;color:#b45309;font-weight:600;margin-left:8px">✏️ Edit mode — click any spot to edit</span>
       </div>
 
@@ -5026,26 +5030,89 @@ window.cmCloseRow = ()=>{};
 window.cmRenderLotTabs = ()=>{};
 
 // ── Drag and drop (Pointer Events — works with mouse, touch, and pen alike) ──
+// A vehicle must be held still for 3 seconds before it becomes draggable. This
+// stops normal scrolling on the map from accidentally moving cars — if the
+// finger/mouse moves more than a few pixels during the hold, we treat it as a
+// scroll attempt instead and manually scroll the map (since touch-action:none
+// on the spot blocks the browser's own native scroll while a hold is pending).
+const CM_HOLD_MS = 3000;
+const CM_MOVE_CANCEL_PX = 8;
 let cmDragKey = null;
 let cmDragData = null;
 let cmDragEl = null;
 let cmDragOverEl = null;
+let cmHoldTimer = null;
+let cmHoldKey = null;
+let cmHoldEl = null;
+let cmHoldStartX = 0, cmHoldStartY = 0;
+let cmLastX = 0, cmLastY = 0;
+let cmGestureMode = null; // 'holding' | 'scrolling' | 'armed'
 
 window.cmSpotPointerDown = function(e, key) {
   if (!perm('compoundEdit') || cmEditMode) return;
   const veh = (cmVehicles[cmCurrentLot]||{})[key];
   if (!veh) return;
-  e.preventDefault();
+  cmHoldKey = key;
+  cmHoldEl = e.currentTarget;
+  cmHoldStartX = cmLastX = e.clientX;
+  cmHoldStartY = cmLastY = e.clientY;
+  cmGestureMode = 'holding';
+  cmHoldEl.classList.add('cm-holding');
+  cmHoldTimer = setTimeout(() => cmArmDrag(key), CM_HOLD_MS);
+  document.addEventListener('pointermove', cmHoldPointerMove);
+  document.addEventListener('pointerup', cmHoldPointerUp, { once: true });
+  document.addEventListener('pointercancel', cmHoldPointerUp, { once: true });
+};
+
+function cmHoldPointerMove(e) {
+  if (cmGestureMode === 'holding') {
+    const dx = e.clientX - cmHoldStartX, dy = e.clientY - cmHoldStartY;
+    if (Math.sqrt(dx*dx + dy*dy) > CM_MOVE_CANCEL_PX) {
+      // Moved too much, too soon — this is a scroll, not a hold. Cancel the
+      // arm timer and start manually panning the map for the rest of this touch.
+      if (cmHoldTimer) { clearTimeout(cmHoldTimer); cmHoldTimer = null; }
+      if (cmHoldEl) cmHoldEl.classList.remove('cm-holding');
+      cmGestureMode = 'scrolling';
+    }
+  }
+  if (cmGestureMode === 'scrolling') {
+    const mapEl = cmHoldEl ? cmHoldEl.closest('#cm-map') : null;
+    const scrollWrap = mapEl ? mapEl.parentElement : null; // #cm-map's parent is the overflow:auto wrapper
+    if (scrollWrap) {
+      scrollWrap.scrollLeft -= (e.clientX - cmLastX);
+      scrollWrap.scrollTop -= (e.clientY - cmLastY);
+    }
+  }
+  cmLastX = e.clientX; cmLastY = e.clientY;
+}
+
+function cmHoldPointerUp() {
+  if (cmHoldTimer) { clearTimeout(cmHoldTimer); cmHoldTimer = null; }
+  if (cmHoldEl) cmHoldEl.classList.remove('cm-holding');
+  document.removeEventListener('pointermove', cmHoldPointerMove);
+  cmGestureMode = null;
+  cmHoldKey = null; cmHoldEl = null;
+}
+
+function cmArmDrag(key) {
+  cmHoldTimer = null;
+  document.removeEventListener('pointermove', cmHoldPointerMove);
+  document.removeEventListener('pointerup', cmHoldPointerUp);
+  if (cmHoldEl) cmHoldEl.classList.remove('cm-holding');
+  cmGestureMode = 'armed';
+
+  const veh = (cmVehicles[cmCurrentLot]||{})[key];
+  if (!veh || !cmHoldEl) return;
   cmDragKey = key;
   cmDragData = veh;
-  cmDragEl = e.currentTarget;
-  try { cmDragEl.setPointerCapture(e.pointerId); } catch(err) {}
+  cmDragEl = cmHoldEl;
   cmDragEl.style.opacity = '0.4';
   cmDragEl.style.zIndex = '5';
+  cmDragEl.classList.add('cm-armed');
   document.addEventListener('pointermove', cmPointerMove);
   document.addEventListener('pointerup', cmPointerUp, { once: true });
   document.addEventListener('pointercancel', cmPointerUp, { once: true });
-};
+}
 
 function cmPointerMove(e) {
   if (!cmDragKey) return;
@@ -5062,13 +5129,13 @@ function cmPointerMove(e) {
 
 async function cmPointerUp(e) {
   document.removeEventListener('pointermove', cmPointerMove);
-  if (cmDragEl) { cmDragEl.style.opacity = ''; cmDragEl.style.zIndex = ''; }
+  if (cmDragEl) { cmDragEl.style.opacity = ''; cmDragEl.style.zIndex = ''; cmDragEl.classList.remove('cm-armed'); }
   if (cmDragOverEl) cmDragOverEl.classList.remove('cm-drag-over');
 
   const destKey = cmDragOverEl ? cmDragOverEl.dataset.cmKey : null;
   const srcKey = cmDragKey;
   const srcData = cmDragData;
-  cmDragKey = null; cmDragData = null; cmDragEl = null; cmDragOverEl = null;
+  cmDragKey = null; cmDragData = null; cmDragEl = null; cmDragOverEl = null; cmGestureMode = null;
 
   if (!destKey || destKey === srcKey || !srcData) return;
   if (!perm('compoundEdit')) return;
