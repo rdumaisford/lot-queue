@@ -884,7 +884,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     </button>
     <button class="tab" id="tab-compound" onclick="switchTab('compound',this)" style="display:none">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="17" width="18" height="4" rx="1"/></svg>
-      Compound Map
+      Vehicle Locator
     </button>
     <button class="tab" id="tab-audit" onclick="switchTab('audit',this)" style="display:none">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
@@ -1807,12 +1807,12 @@ function applyPermissions() {
 const PERM_GROUPS = [
   { label:'Tabs', keys: [
     ['tabHome','Home'], ['tabQueue','Moves + Rides'], ['tabTracker','Incoming'], ['tabGetReady','Get Ready'], ['tabTestDrive','Test Drives'],
-    ['tabCompound','Compound Map'], ['tabTV','TV Display'], ['tabShuttle','Shuttle Dashboard'], ['tabHistory','History'], ['tabSettings','Settings'],
+    ['tabCompound','Vehicle Locator'], ['tabTV','TV Display'], ['tabShuttle','Shuttle Dashboard'], ['tabHistory','History'], ['tabSettings','Settings'],
   ]},
   { label:'Shuttle Dashboard', keys: [
     ['shuttleAdmin','Claim / progress / complete rides from the dashboard'],
   ]},
-  { label:'Compound Map', keys: [
+  { label:'Vehicle Locator', keys: [
     ['compoundEdit','Edit layout & spots'],
   ]},
   { label:'Incoming Tracker', keys: [
@@ -4455,7 +4455,7 @@ function renderHomeGrid() {
     tiles.push({
       name: 'compound', tone: 'blue',
       icon: `<rect x="3" y="3" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="17" width="18" height="4" rx="1"/>`,
-      title: 'Compound Map',
+      title: 'Vehicle Locator',
       desc: 'See where every vehicle is parked across all lots.'
     });
   }
