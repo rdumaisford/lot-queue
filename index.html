@@ -1420,6 +1420,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div class="history-table-header"><div>Stock #</div><div>Destination</div><div>Moved by</div><div>Requested by</div><div>Duration</div><div>Date</div></div>
         <div id="history-log"></div>
       </div>
+
+      <div style="font-size:13px;font-weight:600;margin:24px 0 10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em">Vehicle Locator activity <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-faint)">— who moved/edited what on the map</span></div>
+      <div class="history-table" style="grid-template-columns:none">
+        <div style="display:grid;grid-template-columns:110px 1fr 130px;gap:0;background:var(--bg);border-bottom:1px solid var(--border);padding:8px 16px;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em">
+          <div>Lot</div><div>What happened</div><div>Who / When</div>
+        </div>
+        <div id="compound-history-log"></div>
+      </div>
     </div>
 
     <!-- SETTINGS -->
@@ -1741,7 +1749,7 @@ const auth = getAuth(appFB);
 // that's handled inside loadIdentity() since there's no person present to sign in.
 
 // ── State ─────────────────────────────────────────────
-let entries = {}, historyData = {}, units = {}, getReadyDeals = {}, hitchhikers = {}, testDrives = {};
+let entries = {}, historyData = {}, units = {}, getReadyDeals = {}, hitchhikers = {}, testDrives = {}, compoundHistoryData = {};
 let currentUser = null, bookingType = 'asap';
 let MOVE_MINS = 15, CONVERT_MINS = 45, LOT_OPEN = 7, LOT_CLOSE = 21;
 let historyDays = 30, soundEnabled = localStorage.getItem('lq-sound') !== 'false';
@@ -2256,6 +2264,7 @@ function startApp() {
 
   if (perm('tabHistory')) {
     onValue(ref(db,'history'), snap=>{ historyData=snap.val()||{}; renderHistory(); });
+    onValue(ref(db,'compound_history'), snap=>{ compoundHistoryData=snap.val()||{}; renderCompoundHistory(); });
   }
 
   updateWaitBanner();
@@ -4087,7 +4096,44 @@ window.setHistoryFilter = function(days,btn) {
   document.querySelectorAll('.filter-chip').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderHistory();
+  renderCompoundHistory();
 };
+// ── Vehicle Locator (compound map) activity log ────────
+async function logCompoundChange(lot, action, detail) {
+  try {
+    await push(ref(db,'compound_history'), {
+      lot, action, detail,
+      by: currentUser?.name || 'Unknown',
+      ts: Date.now(),
+    });
+  } catch(e) { /* logging failures shouldn't block the actual map edit */ }
+}
+
+const CM_LOT_LABELS = { bayview700:'700 Bayview', bayview323:'323 Bayview', mapleview55:'55 Mapleview' };
+
+function filteredCompoundHistory() {
+  const all = Object.values(compoundHistoryData);
+  if (!historyDays) return all.sort((a,b)=>b.ts-a.ts);
+  const cutoff = Date.now() - historyDays*24*60*60*1000;
+  return all.filter(h=>h.ts>=cutoff).sort((a,b)=>b.ts-a.ts);
+}
+
+function renderCompoundHistory() {
+  const logEl = document.getElementById('compound-history-log');
+  if (!logEl) return;
+  const log = filteredCompoundHistory().slice(0,150);
+  if (!log.length) { logEl.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:14px">No map activity recorded yet.</div>'; return; }
+  logEl.innerHTML = log.map(h => {
+    const dt = new Date(h.ts);
+    const when = dt.toLocaleDateString([],{month:'short',day:'numeric'}) + ' · ' + dt.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',hour12:true});
+    return `<div style="display:grid;grid-template-columns:110px 1fr 130px;gap:0;padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px;align-items:center">
+      <div style="color:var(--text-muted)">${CM_LOT_LABELS[h.lot]||h.lot||'—'}</div>
+      <div>${h.detail||h.action||'—'}</div>
+      <div style="text-align:right"><div style="font-weight:600">${h.by||'—'}</div><div style="font-size:11px;color:var(--text-faint)">${when}</div></div>
+    </div>`;
+  }).join('');
+}
+
 function filteredHistory() {
   const all=Object.values(historyData);
   if(!historyDays) return all.sort((a,b)=>b.ts-a.ts);
@@ -4224,7 +4270,7 @@ window.switchTab=function(name,btn){
   document.getElementById('main-wrap').style.maxWidth=isTV?'none':'1100px';
   if(!isTV){const c=document.getElementById('tv-controls');if(c)c.style.display='none';}
   if(name==='settings'){const sc=document.getElementById('s-sound');if(sc)sc.checked=soundEnabled;renderPermissionsEditor();}
-  if(name==='history') renderHistory();
+  if(name==='history') { renderHistory(); renderCompoundHistory(); }
   if(name==='tracker'){renderTracker();renderTrackerSummary();}
   if(name==='shuttle') renderShuttleDashboard();
 };
@@ -4828,6 +4874,8 @@ window.cmSpotClick = function(key, ri, ci) {
 
 window.cmSaveSpot = async function() {
   if (!perm('compoundEdit')) return;
+  const key = cmActiveKey;
+  const prevVeh = (cmVehicles[cmCurrentLot]||{})[key];
   const status = document.getElementById('cm-f-status').value;
   if (status === 'blocked') {
     const data = {
@@ -4835,12 +4883,14 @@ window.cmSaveSpot = async function() {
       blockLabel: document.getElementById('cm-f-block-label').value,
       status: 'blocked',
     };
-    await set(ref(db, `compound_v2/${cmCurrentLot}/${cmActiveKey}`), data);
+    await set(ref(db, `compound_v2/${cmCurrentLot}/${key}`), data);
+    logCompoundChange(cmCurrentLot, 'blocked', `Marked ${key} as ${data.blockLabel}${prevVeh?.stock?` (was ${prevVeh.stock})`:''}`);
     cmCloseSpot();
     return;
   }
   if (status === 'void') {
-    await set(ref(db, `compound_v2/${cmCurrentLot}/${cmActiveKey}`), { stock: '', status: 'void' });
+    await set(ref(db, `compound_v2/${cmCurrentLot}/${key}`), { stock: '', status: 'void' });
+    logCompoundChange(cmCurrentLot, 'void', `Marked ${key} as void/grey${prevVeh?.stock?` (was ${prevVeh.stock})`:''}`);
     cmCloseSpot();
     return;
   }
@@ -4855,7 +4905,13 @@ window.cmSaveSpot = async function() {
     status,
     note:    document.getElementById('cm-f-note').value.trim(),
   };
-  await set(ref(db, `compound_v2/${cmCurrentLot}/${cmActiveKey}`), data);
+  await set(ref(db, `compound_v2/${cmCurrentLot}/${key}`), data);
+  const desc = !prevVeh?.stock
+    ? `Assigned ${stock} to ${key}`
+    : prevVeh.stock === stock
+      ? `Updated ${stock} at ${key}`
+      : `Changed ${key} from ${prevVeh.stock} to ${stock}`;
+  logCompoundChange(cmCurrentLot, 'assign', desc);
   cmCloseSpot();
 };
 
@@ -4867,7 +4923,9 @@ window.cmClearSpot = async function() {
 
 window.cmClearKey = async function(key) {
   if (!perm('compoundEdit')) return;
+  const prevVeh = (cmVehicles[cmCurrentLot]||{})[key];
   await remove(ref(db, `compound_v2/${cmCurrentLot}/${key}`));
+  logCompoundChange(cmCurrentLot, 'clear', `Cleared ${key}${prevVeh?.stock?` (removed ${prevVeh.stock})`:''}`);
 };
 
 window.cmCloseSpot = function() { document.getElementById('cm-spot-modal').style.display = 'none'; };
@@ -4960,6 +5018,7 @@ window.cmMarkSelected = async function(type) {
   if (!perm('compoundEdit')) return;
   if (!cmSelected.size) return;
   const updates = {};
+  const count = cmSelected.size;
   for (const key of cmSelected) {
     if (type === 'clear') {
       updates[`compound_v2/${cmCurrentLot}/${key}`] = null;
@@ -4972,6 +5031,8 @@ window.cmMarkSelected = async function(type) {
     }
   }
   await update(ref(db), updates);
+  const typeLabel = {clear:'Cleared',drive:'Marked as Drive Lane',nopark:'Marked as No Parking',void:'Marked as void/grey'}[type]||type;
+  logCompoundChange(cmCurrentLot, 'bulk', `${typeLabel}: ${count} spot${count!==1?'s':''}`);
   cmSelected.clear();
   cmUpdateSelectionUI();
 };
@@ -4981,6 +5042,7 @@ window.cmAddRow = async function() {
   if (!perm('compoundEdit')) return;
   const cur = cmGridSize[cmCurrentLot] || { rows: 10, cols: 30 };
   await update(ref(db, `compound_meta/${cmCurrentLot}`), { rows: cur.rows + 1, cols: cur.cols });
+  logCompoundChange(cmCurrentLot, 'resize', `Added a row (now ${cur.rows + 1} rows)`);
 };
 
 window.cmRemoveRow = async function() {
@@ -4997,12 +5059,14 @@ window.cmRemoveRow = async function() {
   }
   if (Object.keys(delUpdates).length) await update(ref(db), delUpdates);
   await update(ref(db, `compound_meta/${cmCurrentLot}`), { rows: cur.rows - 1, cols: cur.cols });
+  logCompoundChange(cmCurrentLot, 'resize', `Removed last row (now ${cur.rows - 1} rows)`);
 };
 
 window.cmAddCol = async function() {
   if (!perm('compoundEdit')) return;
   const cur = cmGridSize[cmCurrentLot] || { rows: 10, cols: 30 };
   await update(ref(db, `compound_meta/${cmCurrentLot}`), { rows: cur.rows, cols: cur.cols + 1 });
+  logCompoundChange(cmCurrentLot, 'resize', `Added a column (now ${cur.cols + 1} cols)`);
 };
 
 window.cmRemoveCol = async function() {
@@ -5018,6 +5082,7 @@ window.cmRemoveCol = async function() {
   }
   if (Object.keys(delUpdates).length) await update(ref(db), delUpdates);
   await update(ref(db, `compound_meta/${cmCurrentLot}`), { rows: cur.rows, cols: cur.cols - 1 });
+  logCompoundChange(cmCurrentLot, 'resize', `Removed last column (now ${cur.cols - 1} cols)`);
 };
 window.cmHandleSearch = window.cmSearch;
 window.cmAddSpot = ()=>{};
@@ -5146,6 +5211,10 @@ async function cmPointerUp(e) {
   updates[`compound_v2/${cmCurrentLot}/${destKey}`] = srcData;
   updates[`compound_v2/${cmCurrentLot}/${srcKey}`] = destVeh || null;
   await update(ref(db), updates);
+  const desc = destVeh?.stock
+    ? `Swapped ${srcData.stock} (${srcKey}) with ${destVeh.stock} (${destKey})`
+    : `Moved ${srcData.stock} from ${srcKey} to ${destKey}`;
+  logCompoundChange(cmCurrentLot, 'drag', desc);
 }
 
 // Fix cmStartListeners — always store data and render regardless of active tab
