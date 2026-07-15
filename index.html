@@ -5182,11 +5182,19 @@ function cmApplySearchHighlight() {
         (veh.desc||'').toLowerCase().includes(cmSearchQuery)) matched.add(key);
   });
   document.querySelectorAll('.cm-spot').forEach(el => {
-    const oc = el.getAttribute('onclick')||'';
-    const m = oc.match(/'(R\d+-C\d+)'/);
-    if (!m) return;
-    el.classList.add(matched.has(m[1]) ? 'cm-hi' : 'cm-dim');
+    const key = el.dataset.cmKey;
+    if (!key) return;
+    el.classList.add(matched.has(key) ? 'cm-hi' : 'cm-dim');
   });
+}
+
+// Scrolls the map to bring the first matching spot into view, Excel "Find"
+// style. Only called when the user actually types a new search — not from
+// the map's automatic once-a-second re-render, or it'd keep yanking the
+// viewport back even after someone manually scrolled away to look around.
+function cmScrollToFirstMatch() {
+  const el = document.querySelector('.cm-spot.cm-hi');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
 }
 
 window.cmSearch = function(q) {
@@ -5194,6 +5202,7 @@ window.cmSearch = function(q) {
   // (it repaints every second to keep appointment/get-ready timers live).
   cmSearchQuery = q.trim().toLowerCase();
   cmApplySearchHighlight();
+  if (cmSearchQuery) cmScrollToFirstMatch();
 };
 
 window.cmOpenQR = function() {
