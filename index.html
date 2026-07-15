@@ -1550,6 +1550,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <span id="cm-spot-title" style="font-size:16px;font-weight:700"></span>
       <button class="modal-close" onclick="cmCloseSpot()">×</button>
     </div>
+    <div id="cm-lock-banner" style="display:none;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;margin-bottom:12px"></div>
     <div id="cm-spot-current" style="margin-bottom:12px"></div>
     <div class="field">
       <label>Stock #</label>
@@ -1648,6 +1649,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 <div id="unit-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this)closeUnitModal()">
   <div class="modal-card">
     <div class="modal-title-row"><span id="unit-modal-title">Add unit</span><button class="modal-close" onclick="closeUnitModal()">×</button></div>
+    <div id="unit-lock-banner" style="display:none;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;margin-bottom:12px"></div>
     <div class="modal-grid">
       <div class="modal-form-row"><label>Arrived date</label><input id="m-arrived" type="date"/></div>
       <div class="modal-form-row"><label>Stock #</label><input id="m-stock" type="text" placeholder="e.g. B1234"/></div>
@@ -1691,6 +1693,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 <div id="gr-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this)closeGRModal()">
   <div class="modal-card">
     <div class="modal-title-row"><span id="gr-modal-title">Add Get Ready deal</span><button class="modal-close" onclick="closeGRModal()">×</button></div>
+    <div id="gr-lock-banner" style="display:none;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;margin-bottom:12px"></div>
     <div class="modal-grid">
       <div class="modal-form-row"><label>Stock #</label><input id="gr-stock" type="text" placeholder="e.g. A1402"/></div>
       <div class="modal-form-row"><label>Deal #</label><input id="gr-deal" type="text" placeholder="e.g. 6463159"/></div>
@@ -3028,6 +3031,69 @@ function entryHTML(e) {
 // find their own status.
 // Shared mm:ss countdown math — used by both the "Your Requests" pills and
 // anywhere else that needs a live ETA against a target number of minutes.
+// ── Soft edit-locks ─────────────────────────────────────
+// Lets an edit form warn "so-and-so is already editing this" and disable Save,
+// instead of silently letting the second person's save clobber the first's.
+// Locks auto-expire after LOCK_TTL_MS so a closed tab / dropped connection can't
+// permanently block a record — this is a courtesy warning, not a hard database lock.
+const LOCK_TTL_MS = 3 * 60 * 1000; // 3 minutes
+let activeLockUnsub = null;
+let activeLockPath = null;
+
+function lockPath(scope, id) {
+  const safeId = String(id).replace(/[.#$\[\]/]/g, '_'); // Firebase keys can't contain these
+  return `locks/${scope}_${safeId}`;
+}
+
+async function acquireLock(scope, id) {
+  if (!currentUser) return;
+  const path = lockPath(scope, id);
+  activeLockPath = path;
+  try { await set(ref(db, path), { lockedBy: currentUser.name, lockedAt: Date.now() }); } catch(e) {}
+}
+
+async function releaseLock(scope, id) {
+  const path = lockPath(scope, id);
+  try {
+    const snap = await get(ref(db, path));
+    const val = snap.val();
+    if (val && val.lockedBy === currentUser?.name) await remove(ref(db, path));
+  } catch(e) {}
+  if (activeLockPath === path) activeLockPath = null;
+}
+
+// Subscribes to a lock and calls back with its live state. Only one lock is
+// watched at a time (one edit form open at a time), so this auto-unsubscribes
+// any prior watch first.
+function watchLock(scope, id, callback) {
+  stopWatchingLock();
+  const path = lockPath(scope, id);
+  activeLockUnsub = onValue(ref(db, path), snap => {
+    const val = snap.val();
+    if (!val) { callback({ locked: false }); return; }
+    const isMine = val.lockedBy === currentUser?.name;
+    const isStale = (Date.now() - val.lockedAt) > LOCK_TTL_MS;
+    callback({ locked: !isMine && !isStale, by: val.lockedBy, isMine, isStale });
+  });
+}
+
+function stopWatchingLock() {
+  if (activeLockUnsub) { activeLockUnsub(); activeLockUnsub = null; }
+}
+
+// Wires up a lock banner + disables a Save button while someone else holds the lock.
+function bindLockUI(bannerEl, saveBtnEl, state) {
+  if (!bannerEl) return;
+  if (state.locked) {
+    bannerEl.style.display = 'block';
+    bannerEl.textContent = `⚠️ ${state.by} is currently editing this — your changes may not save correctly if you both edit at once.`;
+    if (saveBtnEl) saveBtnEl.disabled = true;
+  } else {
+    bannerEl.style.display = 'none';
+    if (saveBtnEl) saveBtnEl.disabled = false;
+  }
+}
+
 function computeCountdown(stageTs, targetMins) {
   const elapsed = Math.floor((Date.now()-stageTs)/1000);
   const remaining = targetMins*60 - elapsed;
@@ -3701,8 +3767,18 @@ window.openUnitModal = function(id) {
   document.getElementById('m-ic').checked=u.icMoved||false;
   document.getElementById('unit-modal').style.display='flex';
   setTimeout(()=>document.getElementById('m-stock').focus(),100);
+
+  if (id) {
+    acquireLock('tracker', id);
+    watchLock('tracker', id, state => bindLockUI(document.getElementById('unit-lock-banner'), document.getElementById('unit-save-btn'), state));
+  }
 };
-window.closeUnitModal = function() { document.getElementById('unit-modal').style.display='none'; editingUnitId=null; };
+window.closeUnitModal = function() {
+  document.getElementById('unit-modal').style.display='none';
+  stopWatchingLock();
+  if (editingUnitId) releaseLock('tracker', editingUnitId);
+  editingUnitId=null;
+};
 window.saveUnit = async function() {
   const arrivedDateVal = document.getElementById('m-arrived').value;
   // Format date nicely for display e.g. "JUN 18TH"
@@ -4061,10 +4137,17 @@ window.openGRModal = function(id) {
   grRenderCustomFields();
   document.getElementById('gr-modal').style.display = 'flex';
   setTimeout(()=>document.getElementById('gr-stock').focus(), 100);
+
+  if (id) {
+    acquireLock('getready', id);
+    watchLock('getready', id, state => bindLockUI(document.getElementById('gr-lock-banner'), document.getElementById('gr-save-btn'), state));
+  }
 };
 
 window.closeGRModal = function() {
   document.getElementById('gr-modal').style.display = 'none';
+  stopWatchingLock();
+  if (editingGRId) releaseLock('getready', editingGRId);
   editingGRId = null;
 };
 
@@ -5010,6 +5093,10 @@ window.cmSpotClick = function(key, ri, ci) {
   }
   document.getElementById('cm-spot-modal').style.display = 'flex';
   setTimeout(()=>document.getElementById('cm-f-stock').focus(), 80);
+
+  const lockId = `${cmCurrentLot}_${key}`;
+  acquireLock('compound', lockId);
+  watchLock('compound', lockId, state => bindLockUI(document.getElementById('cm-lock-banner'), document.getElementById('cm-save-btn'), state));
 };
 
 window.cmSaveSpot = async function() {
@@ -5074,7 +5161,11 @@ window.cmClearKey = async function(key) {
   logCompoundChange(cmCurrentLot, 'clear', `Cleared ${key}${prevVeh?.stock?` (removed ${prevVeh.stock})`:''}`);
 };
 
-window.cmCloseSpot = function() { document.getElementById('cm-spot-modal').style.display = 'none'; };
+window.cmCloseSpot = function() {
+  document.getElementById('cm-spot-modal').style.display = 'none';
+  stopWatchingLock();
+  if (cmActiveKey) releaseLock('compound', `${cmCurrentLot}_${cmActiveKey}`);
+};
 
 let cmSearchQuery = '';
 
