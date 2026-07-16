@@ -326,7 +326,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 /* ── Tracker card grid (all screen sizes — no table scroll) ── */
 .table-wrap{background:transparent;border:none;border-radius:0}
 .tracker-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
-.tracker-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:box-shadow .15s}
+.tracker-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;transition:box-shadow .15s}
 .tracker-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .tracker-card.is-complete{background:#f0fdf4;border-color:#bbf7d0}
 
@@ -380,7 +380,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 @media(min-width:1200px){.tracker-card-grid{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}}
 
 /* ── Get Ready ── */
-.gr-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:box-shadow .15s}
+.gr-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;transition:box-shadow .15s}
 .gr-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .gr-card.is-complete{background:#f0fdf4;border-color:#bbf7d0}
 .gr-card.type-as-is{border-left:4px solid #1d4ed8}
@@ -1348,6 +1348,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
             Lot Transfer Queue
           </div>
           <div style="display:flex;align-items:center;gap:16px">
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.5)">
+              <span id="tv-conn-dot" style="width:8px;height:8px;border-radius:50%;background:#94a3b8;display:inline-block;transition:background .3s"></span>
+              <span id="tv-conn-label">Connecting…</span>
+            </div>
             <div class="tv-clock" id="tv-clock"></div>
             <div id="tv-controls" style="display:none;gap:8px;align-items:center">
               <button onclick="resetIdentity()" style="font-size:11px;padding:5px 12px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.12);border-radius:6px;cursor:pointer">Change role</button>
@@ -1956,7 +1960,6 @@ function loadIdentity() {
       if (el) { el.textContent = msg; el.style.color = isError ? '#fca5a5' : ''; el.style.opacity = isError ? '1' : ''; }
     };
     signInAnonymously(auth)
-      .then(() => showTvStatus('Signed in — loading data…', false))
       .catch(err => {
         console.error('Firebase auth error:', err);
         showTvStatus(`⚠ Sign-in failed: ${err.code || err.message || 'unknown error'}`, true);
@@ -2195,6 +2198,19 @@ function startApp() {
   if (role !== 'merchandiser' && role !== 'display') renderHomeGrid();
   cmInit();
   auditStartListener();
+
+  // Live connection indicator — Firebase's own built-in "am I actually connected
+  // right now" signal, which is more reliable than inferring it from any one
+  // listener. Drives the dot next to the clock on the TV display.
+  onValue(ref(db, '.info/connected'), (snap) => {
+    const isConnected = snap.val() === true;
+    const dot = document.getElementById('tv-conn-dot');
+    const label = document.getElementById('tv-conn-label');
+    if (dot) dot.style.background = isConnected ? '#22c55e' : '#ef4444';
+    if (label) label.textContent = isConnected ? 'Live' : 'Reconnecting…';
+    const syncDot = document.getElementById('sync-dot');
+    if (syncDot && isConnected) syncDot.className = 'sync-dot live';
+  });
 
   // Quick Links (Settings) may open this app with ?view=shuttle to jump straight
   // to the Shuttle Dashboard after a normal login — only applied once per session
