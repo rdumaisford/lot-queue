@@ -1951,8 +1951,26 @@ function loadIdentity() {
   if (isDisplay) {
     // TV kiosk screens have no person present to sign in — use a silent anonymous session.
     currentUser = {name:'Display', role:'display'};
-    signInAnonymously(auth).catch(err=>console.error('Firebase auth error:', err));
+    const showTvStatus = (msg, isError) => {
+      const el = document.getElementById('tv-count');
+      if (el) { el.textContent = msg; el.style.color = isError ? '#fca5a5' : ''; el.style.opacity = isError ? '1' : ''; }
+    };
+    signInAnonymously(auth)
+      .then(() => showTvStatus('Signed in — loading data…', false))
+      .catch(err => {
+        console.error('Firebase auth error:', err);
+        showTvStatus(`⚠ Sign-in failed: ${err.code || err.message || 'unknown error'}`, true);
+      });
     startApp();
+    // If we're still stuck on the default "Connecting…" text after a while, the
+    // sign-in likely never resolved at all — make sure that's visible on-screen
+    // too, since there's no way to open devtools on most kiosk/signage hardware.
+    setTimeout(() => {
+      const el = document.getElementById('tv-count');
+      if (el && el.textContent === 'Connecting…') {
+        showTvStatus('⚠ Still not connected after 10s — Firebase sign-in likely failed silently. Check network/database rules.', true);
+      }
+    }, 10000);
     return;
   }
   // Firebase persists the session in the browser, so returning staff are signed
@@ -2222,7 +2240,13 @@ function startApp() {
     entries = newEntries;
     document.getElementById('sync-dot').className = 'sync-dot live';
     render(); updateWaitBanner();
-  }, ()=>{ document.getElementById('sync-dot').className='sync-dot error'; });
+  }, (err) => {
+    document.getElementById('sync-dot').className='sync-dot error';
+    if (currentUser?.role === 'display') {
+      const el = document.getElementById('tv-count');
+      if (el) { el.textContent = `⚠ Database read denied: ${err.code || err.message || 'unknown error'}`; el.style.color = '#fca5a5'; }
+    }
+  });
 
   onValue(ref(db,'settings'), snap=>{
     const s=snap.val()||{};
