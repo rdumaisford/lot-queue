@@ -752,6 +752,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot.cm-duplicate .cm-spot-num{color:#991b1b}
 .cm-spot.cm-duplicate .cm-spot-stock{color:#7f1d1d}
 .cm-spot-dupe{font-size:7px;font-weight:800;color:#fff;background:#dc2626;border-radius:2px;padding:0 2px;line-height:1.3;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+.cm-spot.cm-heatmap-active{background:var(--heat-color)!important;border-color:var(--heat-color)!important}
+.cm-spot.cm-heatmap-active .cm-spot-num,.cm-spot.cm-heatmap-active .cm-spot-stock,.cm-spot.cm-heatmap-active .cm-spot-desc{color:#fff!important;text-shadow:0 1px 2px rgba(0,0,0,.35)}
 @keyframes dupeBadgeBlink{0%,49%{opacity:1}50%,100%{opacity:.2}}
 .dupe-blink{animation:dupeBadgeBlink .8s steps(1) infinite}
 .cm-note-bubble{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:8px 12px}
@@ -946,8 +948,18 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-faint);font-size:12px">🔍</span>
           <input id="cm-search" type="text" placeholder="Search stock #…" oninput="cmSearch(this.value)" style="padding:6px 10px 6px 28px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);background:var(--bg);color:var(--text);outline:none;width:160px"/>
         </div>
+        <button id="cm-heatmap-btn" onclick="cmToggleHeatmap()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer">🌡️ Age Heatmap</button>
         <button id="cm-edit-btn" onclick="cmToggleEdit()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid #fcd34d;border-radius:var(--radius-sm);background:#fef9ec;color:#b45309;cursor:pointer;display:none">✏️ Edit</button>
         <button onclick="cmOpenQR()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer">🖨 QR</button>
+      </div>
+
+      <!-- Age heatmap legend — shown only while heatmap mode is active -->
+      <div id="cm-heatmap-legend" style="display:none;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--border);background:#fafaf9;font-size:11px;color:var(--text-muted)">
+        <span style="font-weight:700">Days on lot:</span>
+        <span>0</span>
+        <div style="width:220px;height:10px;border-radius:5px;background:linear-gradient(90deg,hsl(142,65%,42%),hsl(90,65%,45%),hsl(50,80%,50%),hsl(25,80%,50%),hsl(0,70%,45%));flex-shrink:0"></div>
+        <span>90+</span>
+        <span style="margin-left:8px;color:var(--text-faint)">· Grey = no arrival date on record</span>
       </div>
 
       <!-- Edit mode row — shown only in edit mode -->
@@ -4809,6 +4821,7 @@ const CM_BAYVIEW700_SEED = (function(){
 
 // Spot key: "R{rowIdx}-C{colIdx}" (0-based)
 let cmCurrentLot = 'bayview700';
+let cmHeatmapMode = false;
 let cmEditMode = false;
 let cmActiveKey = null;
 let cmSelected = new Set();
@@ -4857,6 +4870,11 @@ function cmRenderStats() {
 }
 
 function cmRenderMap() {
+  // Never rebuild the map mid-gesture — the periodic re-render (for live
+  // appointment/get-ready timers) would replace the exact DOM node someone is
+  // currently holding down, silently killing the hold-to-drag interaction.
+  // We catch up once the gesture finishes (see cmHoldPointerUp/cmPointerUp).
+  if (cmGestureMode) return;
   const mapEl = document.getElementById('cm-map');
   if (!mapEl) return;
   const v = cmVehicles[cmCurrentLot] || {};
@@ -4915,6 +4933,8 @@ function cmRenderMap() {
       if (s) stockSpotCounts[s] = (stockSpotCounts[s]||0) + 1;
     });
   });
+
+  const ageMap = cmHeatmapMode ? cmBuildAgeMap() : null;
 
   mapEl.className = `cm-grid${cmEditMode?' cm-edit-active':''}`;
 
@@ -4983,19 +5003,25 @@ function cmRenderMap() {
         } else {
           const selCls = cmEditMode && cmSelected.has(key) ? ' cm-selected' : '';
           const canDrag = !cmEditMode && perm('compoundEdit');
-          html += `<div class="cm-spot ${cls}${selCls}" data-cm-key="${key}"
+          const ageDays = ageMap ? ageMap[(veh.stock||'').toUpperCase().trim()] : null;
+          const heatOn = cmHeatmapMode && !isDupe;
+          const heatCls = heatOn ? ' cm-heatmap-active' : '';
+          const heatStyleVar = heatOn ? `--heat-color:${ageDays!=null ? cmAgeColor(ageDays) : '#cbd5e1'};` : '';
+          const extraStyle = `${canDrag?'touch-action:none;':''}${heatStyleVar}`;
+          html += `<div class="cm-spot ${cls}${selCls}${heatCls}" data-cm-key="${key}"
             onclick="${cmEditMode?`cmSelectSpot(event,'${key}',${ri},${ci})`:`cmOpenQuickActions('${key}',${ri},${ci})`}"
-            ${canDrag?`onpointerdown="cmSpotPointerDown(event,'${key}')" oncontextmenu="return false" style="touch-action:none"`:''}>
+            ${canDrag?`onpointerdown="cmSpotPointerDown(event,'${key}')" oncontextmenu="return false"`:''}
+            ${extraStyle?`style="${extraStyle}"`:''}>
             ${cmEditMode ? `<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
             ${(veh.note || (Array.isArray(veh.notes) && veh.notes.length)) && !cmEditMode ? `<div class="cm-spot-note"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
             ${!cmEditMode && (veh.needsGas || veh.needsWash) ? `<div class="cm-spot-flags">${veh.needsGas?'<span class="cm-spot-flag" title="Needs gas">⛽</span>':''}${veh.needsWash?'<span class="cm-spot-flag" title="Needs wash">🧼</span>':''}</div>` : ''}
             <div class="cm-spot-num">${ci+1}</div>
             <div class="cm-spot-stock">${stock}</div>
-            <div class="cm-spot-desc">${typeLine}</div>
+            <div class="cm-spot-desc">${heatOn ? (ageDays!=null ? `${ageDays}d on lot` : 'no arrival date') : typeLine}</div>
             ${isDupe && !cmEditMode ? `<div class="cm-spot-dupe">⚠ DUPLICATE</div>` : ''}
-            ${onTd && !isDupe && !cmEditMode ? `<div class="cm-spot-td">🚗 Out — Test Drive</div>` : ''}
-            ${appt && !onTd && !isDupe && !cmEditMode ? `<div class="cm-spot-appt">🕐 ${appt.label}</div>` : ''}
-            ${gr && !appt && !onTd && !isDupe && !cmEditMode ? `<div class="cm-spot-gr">${gr.label}</div>` : ''}
+            ${!heatOn && onTd && !isDupe && !cmEditMode ? `<div class="cm-spot-td">🚗 Out — Test Drive</div>` : ''}
+            ${!heatOn && appt && !onTd && !isDupe && !cmEditMode ? `<div class="cm-spot-appt">🕐 ${appt.label}</div>` : ''}
+            ${!heatOn && gr && !appt && !onTd && !isDupe && !cmEditMode ? `<div class="cm-spot-gr">${gr.label}</div>` : ''}
             ${cmEditMode&&cmSelected.has(key)?'<div style="font-size:10px;color:#f59e0b;font-weight:800;position:absolute;bottom:2px;right:3px">✓</div>':''}
           </div>`;
         }
@@ -5030,6 +5056,42 @@ window.cmToggleEdit = function() {
   if (editBar) editBar.style.display = cmEditMode ? 'flex' : 'none';
   cmRender();
 };
+
+// ── Age Heatmap — colours each spot by how long that stock # has been on the
+// lot, using the arrival date already tracked in Incoming. Green = newest,
+// red = oldest (90+ days), grey = no arrival date on record for that stock.
+window.cmToggleHeatmap = function() {
+  cmHeatmapMode = !cmHeatmapMode;
+  const btn = document.getElementById('cm-heatmap-btn');
+  const legend = document.getElementById('cm-heatmap-legend');
+  if (btn) {
+    btn.style.background = cmHeatmapMode ? '#fef2f2' : 'var(--surface)';
+    btn.style.borderColor = cmHeatmapMode ? '#fca5a5' : 'var(--border)';
+    btn.style.color = cmHeatmapMode ? '#991b1b' : 'var(--text)';
+  }
+  if (legend) legend.style.display = cmHeatmapMode ? 'flex' : 'none';
+  cmRenderMap();
+};
+
+function cmBuildAgeMap() {
+  const ageMap = {};
+  Object.values(units||{}).forEach(u => {
+    if (!u.stock || !u.arrivedDate) return;
+    const [y,m,d] = u.arrivedDate.split('-').map(Number);
+    if (!y) return;
+    const arrivedTs = new Date(y, m-1, d).getTime();
+    const days = Math.floor((Date.now() - arrivedTs) / 86400000);
+    ageMap[u.stock.toUpperCase().trim()] = Math.max(0, days);
+  });
+  return ageMap;
+}
+
+// Green (new) → yellow → orange → red (90+ days old)
+function cmAgeColor(days) {
+  const t = Math.max(0, Math.min(days, 90)) / 90;
+  const hue = 142 - (142 * t);
+  return `hsl(${hue}, 70%, 42%)`;
+}
 
 function cmUpdateEditBtn() {
   const btn = document.getElementById('cm-edit-btn');
