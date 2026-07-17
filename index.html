@@ -327,6 +327,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .table-wrap{background:transparent;border:none;border-radius:0}
 .tracker-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
 .tracker-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;transition:box-shadow .15s}
+.tracker-lock-banner{background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:700;padding:6px 16px;border-bottom:1px solid #bfdbfe;border-radius:12px 12px 0 0}
 .tracker-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .tracker-card.is-complete{background:#f0fdf4;border-color:#bbf7d0}
 
@@ -754,6 +755,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot-dupe{font-size:7px;font-weight:800;color:#fff;background:#dc2626;border-radius:2px;padding:0 2px;line-height:1.3;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
 .cm-spot.cm-heatmap-active{background:var(--heat-color)!important;border-color:var(--heat-color)!important}
 .cm-spot.cm-heatmap-active .cm-spot-num,.cm-spot.cm-heatmap-active .cm-spot-stock,.cm-spot.cm-heatmap-active .cm-spot-desc{color:#fff!important;text-shadow:0 1px 2px rgba(0,0,0,.35)}
+@keyframes cmLockPulse{0%,49%{box-shadow:0 0 0 0 rgba(29,78,216,.6)}50%,100%{box-shadow:0 0 0 3px rgba(29,78,216,.15)}}
+.cm-spot.cm-locked-by-other{border-color:#1d4ed8!important;border-width:2px;animation:cmLockPulse 1.2s steps(1) infinite}
+.cm-spot.cm-locked-by-other .cm-spot-desc{color:#1d4ed8!important;font-weight:700}
 @keyframes dupeBadgeBlink{0%,49%{opacity:1}50%,100%{opacity:.2}}
 .dupe-blink{animation:dupeBadgeBlink .8s steps(1) infinite}
 .cm-note-bubble{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:8px 12px}
@@ -2246,6 +2250,16 @@ function startApp() {
     if (syncDot && isConnected) syncDot.className = 'sync-dot live';
   });
 
+  // Live "someone else is editing this" badges — one shared listener on the
+  // whole locks collection (small dataset) drives badges on the map and the
+  // Incoming tracker cards, so people can see at a glance who's mid-edit
+  // without opening anything themselves.
+  onValue(ref(db, 'locks'), snap => {
+    allLocks = snap.val() || {};
+    if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
+    if (document.getElementById('panel-tracker')?.classList.contains('active')) renderTracker();
+  });
+
   // Quick Links (Settings) may open this app with ?view=shuttle to jump straight
   // to the Shuttle Dashboard after a normal login — only applied once per session
   // so it doesn't yank the person back there every time permissions live-update.
@@ -3113,10 +3127,24 @@ function entryHTML(e) {
 const LOCK_TTL_MS = 3 * 60 * 1000; // 3 minutes
 let activeLockUnsub = null;
 let activeLockPath = null;
+let allLocks = {}; // live mirror of the whole /locks node — powers the on-tile "X is editing" badges
 
-function lockPath(scope, id) {
+function lockKey(scope, id) {
   const safeId = String(id).replace(/[.#$\[\]/]/g, '_'); // Firebase keys can't contain these
-  return `locks/${scope}_${safeId}`;
+  return `${scope}_${safeId}`;
+}
+function lockPath(scope, id) {
+  return `locks/${lockKey(scope, id)}`;
+}
+
+// Returns {lockedBy, lockedAt} if someone ELSE currently holds this lock (and
+// it hasn't gone stale), or null otherwise. Used to badge grid/list items live.
+function activeLockFor(scope, id) {
+  const val = allLocks[lockKey(scope, id)];
+  if (!val) return null;
+  if (val.lockedBy === currentUser?.name) return null;
+  if ((Date.now() - val.lockedAt) > LOCK_TTL_MS) return null;
+  return val;
 }
 
 async function acquireLock(scope, id) {
@@ -3728,6 +3756,7 @@ function renderTracker() {
     const isSelected = selectedUnits.has(u.id);
     const completeBadge = isComplete ? `<span class="complete-badge">✓ Done</span>` : '';
     const dupeBadge = isDupe(u) ? `<span class="complete-badge dupe-blink" style="background:#dc2626">⚠ Duplicate</span>` : '';
+    const lockInfo = activeLockFor('tracker', u.id);
 
     const statusClass = {STOCK:'status-stock',SOLD:'status-sold',TURNOVER:'status-turnover'}[u.status]||'status-other';
 
@@ -3753,7 +3782,8 @@ function renderTracker() {
     };
     const isNoPhoto = !photoRequired(u);
 
-    return `<div class="tracker-card${isComplete?' is-complete':''} ${isComplete?'':statusClass}" id="tc-${u.id}" style="${isDupe(u)?'border-left:4px solid #dc2626':''}">
+    return `<div class="tracker-card${isComplete?' is-complete':''} ${isComplete?'':statusClass}" id="tc-${u.id}" style="${isDupe(u)?'border-left:4px solid #dc2626':lockInfo?'border-left:4px solid #1d4ed8':''}">
+      ${lockInfo ? `<div class="tracker-lock-banner">🔒 ${lockInfo.lockedBy} is editing this…</div>` : ''}
       <div class="tracker-card-header">
         <div class="tracker-card-stock">
           ${canEdit?`<input type="checkbox" class="row-select row-cb" ${isSelected?'checked':''} onchange="toggleRowSelect('${u.id}',this.checked)" style="width:15px;height:15px;accent-color:var(--ford);cursor:pointer;flex-shrink:0"/>`:''}
@@ -5007,8 +5037,10 @@ function cmRenderMap() {
           const heatOn = cmHeatmapMode && !isDupe;
           const heatCls = heatOn ? ' cm-heatmap-active' : '';
           const heatStyleVar = heatOn ? `--heat-color:${ageDays!=null ? cmAgeColor(ageDays) : '#cbd5e1'};` : '';
+          const lockInfo = activeLockFor('compound', `${cmCurrentLot}_${key}`);
+          const lockCls = lockInfo ? ' cm-locked-by-other' : '';
           const extraStyle = `${canDrag?'touch-action:none;':''}${heatStyleVar}`;
-          html += `<div class="cm-spot ${cls}${selCls}${heatCls}" data-cm-key="${key}"
+          html += `<div class="cm-spot ${cls}${selCls}${heatCls}${lockCls}" data-cm-key="${key}"
             onclick="${cmEditMode?`cmSelectSpot(event,'${key}',${ri},${ci})`:`cmOpenQuickActions('${key}',${ri},${ci})`}"
             ${canDrag?`onpointerdown="cmSpotPointerDown(event,'${key}')" oncontextmenu="return false"`:''}
             ${extraStyle?`style="${extraStyle}"`:''}>
@@ -5017,7 +5049,7 @@ function cmRenderMap() {
             ${!cmEditMode && (veh.needsGas || veh.needsWash) ? `<div class="cm-spot-flags">${veh.needsGas?'<span class="cm-spot-flag" title="Needs gas">⛽</span>':''}${veh.needsWash?'<span class="cm-spot-flag" title="Needs wash">🧼</span>':''}</div>` : ''}
             <div class="cm-spot-num">${ci+1}</div>
             <div class="cm-spot-stock">${stock}</div>
-            <div class="cm-spot-desc">${heatOn ? (ageDays!=null ? `${ageDays}d on lot` : 'no arrival date') : typeLine}</div>
+            <div class="cm-spot-desc">${lockInfo ? `🔒 ${lockInfo.lockedBy}` : heatOn ? (ageDays!=null ? `${ageDays}d on lot` : 'no arrival date') : typeLine}</div>
             ${isDupe && !cmEditMode ? `<div class="cm-spot-dupe">⚠ DUPLICATE</div>` : ''}
             ${!heatOn && onTd && !isDupe && !cmEditMode ? `<div class="cm-spot-td">🚗 Out — Test Drive</div>` : ''}
             ${!heatOn && appt && !onTd && !isDupe && !cmEditMode ? `<div class="cm-spot-appt">🕐 ${appt.label}</div>` : ''}
