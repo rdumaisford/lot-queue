@@ -45,6 +45,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .sync-dot{width:8px;height:8px;border-radius:50%;background:#ccc;transition:background .3s}
 .rides-driver-icon{font-size:28px;text-align:center;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4));animation:ridesMarkerPulse 2s ease-in-out infinite}
 .rides-lot-icon{font-size:24px;text-align:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+.leaflet-routing-container{display:none!important}
 @keyframes ridesMarkerPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
 #rides-map .leaflet-container{font-family:var(--font);height:100%;width:100%}
 .sync-dot.live{background:#22c55e}.sync-dot.error{background:#ef4444}
@@ -812,6 +813,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"/>
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 </head>
 <body>
 
@@ -939,50 +942,49 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 
     <!-- RIDES — live map + Uber-style bottom sheet -->
     <div id="panel-rides" class="panel" style="padding:0;overflow:hidden">
-      <div id="rides-rider-view" style="display:flex;flex-direction:column;height:100%">
-        <div id="rides-map" style="flex:1;min-height:0;position:relative;background:#e2e8f0"></div>
-        <div id="rides-sheet" style="flex-shrink:0;background:var(--surface);border-top:1px solid var(--border);box-shadow:0 -4px 16px rgba(0,0,0,.1);padding:14px 16px 16px;max-height:48vh;overflow-y:auto;position:relative;z-index:500">
+      <div id="rides-map" style="flex:1;min-height:0;position:relative;background:#e2e8f0"></div>
 
-          <div id="rides-mode-toggle" style="display:none;gap:8px;margin-bottom:12px">
-            <button id="rides-mode-request-btn" onclick="ridesSetMode('request')" class="toggle-btn active" style="flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:700">🙋 Request</button>
-            <button id="rides-mode-drive-btn" onclick="ridesSetMode('drive')" class="toggle-btn" style="flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:700">🚐 Drive</button>
-          </div>
+      <!-- RIDER SHEET -->
+      <div id="rides-sheet" style="flex-shrink:0;background:var(--surface);border-top:1px solid var(--border);box-shadow:0 -4px 16px rgba(0,0,0,.1);padding:14px 16px 16px;max-height:48vh;overflow-y:auto;position:relative;z-index:500">
 
-          <div id="rides-request-panel">
-            <div id="rides-request-form">
-              <div style="font-size:15px;font-weight:700;margin-bottom:10px">Request a ride</div>
-              <div style="display:flex;gap:8px;margin-bottom:10px">
-                <button id="rides-type-hitchhike-btn" onclick="ridesSetType('hitchhike')" class="toggle-btn active" style="flex:1;padding:10px 6px;border-radius:8px;font-size:13px">🙋 Hitchhiking</button>
-                <button id="rides-type-vehicle-btn" onclick="ridesSetType('vehicle')" class="toggle-btn" style="flex:1;padding:10px 6px;border-radius:8px;font-size:13px">🚗 Pick Up a Vehicle</button>
-              </div>
-              <div id="rides-stock-row" style="display:none;margin-bottom:10px">
-                <input id="rides-stock-input" type="text" placeholder="Stock # e.g. B0394" autocomplete="off" oninput="ridesCheckStockLocation()" style="width:100%;padding:10px 12px;font-size:16px;font-family:var(--font);border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"/>
-                <div id="rides-stock-result" style="display:none;margin-top:6px;font-size:12px"></div>
-              </div>
-              <div id="rides-direction-row" style="margin-bottom:12px">
-                <div style="font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Where are you now?</div>
-                <div style="display:flex;gap:8px">
-                  <button id="rides-loc-55-btn" onclick="ridesSetLocation('55 Mapleview')" class="toggle-btn active" style="flex:1;padding:8px;border-radius:8px;font-size:13px">55 Mapleview</button>
-                  <button id="rides-loc-323-btn" onclick="ridesSetLocation('323 Bayview')" class="toggle-btn" style="flex:1;padding:8px;border-radius:8px;font-size:13px">323 Bayview</button>
-                </div>
-              </div>
-              <button id="rides-submit-btn" onclick="submitRide()" style="width:100%;padding:13px;border:none;border-radius:10px;background:var(--ford);color:#fff;font-size:15px;font-weight:700;cursor:pointer">Request Ride</button>
+        <div id="rides-mode-toggle" style="display:none;gap:8px;margin-bottom:12px">
+          <button id="rides-mode-request-btn" onclick="ridesSetMode('request')" class="toggle-btn active" style="flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:700">🙋 Request</button>
+          <button id="rides-mode-drive-btn" onclick="ridesSetMode('drive')" class="toggle-btn" style="flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:700">🚐 Drive</button>
+        </div>
+
+        <div id="rides-request-panel">
+          <div id="rides-request-form">
+            <div style="font-size:15px;font-weight:700;margin-bottom:10px">Request a ride</div>
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+              <button id="rides-type-hitchhike-btn" onclick="ridesSetType('hitchhike')" class="toggle-btn active" style="flex:1;padding:10px 6px;border-radius:8px;font-size:13px">🙋 Hitchhiking</button>
+              <button id="rides-type-vehicle-btn" onclick="ridesSetType('vehicle')" class="toggle-btn" style="flex:1;padding:10px 6px;border-radius:8px;font-size:13px">🚗 Pick Up a Vehicle</button>
             </div>
-            <div id="rides-active-status" style="display:none"></div>
+            <div id="rides-stock-row" style="display:none;margin-bottom:10px">
+              <input id="rides-stock-input" type="text" placeholder="Stock # e.g. B0394" autocomplete="off" oninput="ridesCheckStockLocation()" style="width:100%;padding:10px 12px;font-size:16px;font-family:var(--font);border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"/>
+              <div id="rides-stock-result" style="display:none;margin-top:6px;font-size:12px"></div>
+            </div>
+            <div id="rides-direction-row" style="margin-bottom:12px">
+              <div style="font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Where are you now?</div>
+              <div style="display:flex;gap:8px">
+                <button id="rides-loc-55-btn" onclick="ridesSetLocation('55 Mapleview')" class="toggle-btn active" style="flex:1;padding:8px;border-radius:8px;font-size:13px">55 Mapleview</button>
+                <button id="rides-loc-323-btn" onclick="ridesSetLocation('323 Bayview')" class="toggle-btn" style="flex:1;padding:8px;border-radius:8px;font-size:13px">323 Bayview</button>
+              </div>
+            </div>
+            <button id="rides-submit-btn" onclick="submitRide()" style="width:100%;padding:13px;border:none;border-radius:10px;background:var(--ford);color:#fff;font-size:15px;font-weight:700;cursor:pointer">Request Ride</button>
           </div>
+          <div id="rides-active-status" style="display:none"></div>
         </div>
       </div>
 
-      <!-- DRIVER DASHBOARD — full screen, big buttons, high contrast for glancing at while driving -->
-      <div id="rides-driver-view" style="display:none;flex-direction:column;height:100%;background:#0a1128;color:#fff">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.12);flex-shrink:0">
-          <div style="font-size:21px;font-weight:800">🚐 Driver Dashboard</div>
-          <button onclick="ridesSetMode('request')" style="padding:10px 18px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:10px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;min-height:44px">Exit</button>
+      <!-- DRIVER PANEL — shares the map above, big buttons and high contrast below -->
+      <div id="rides-driver-view" style="display:none;flex-direction:column;flex-shrink:0;max-height:52vh;overflow-y:auto;background:#0a1128;color:#fff;padding:16px 20px 20px;position:relative;z-index:500;box-shadow:0 -4px 16px rgba(0,0,0,.3)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:19px;font-weight:800">🚐 Driver Dashboard</div>
+          <button onclick="ridesSetMode('request')" style="padding:9px 16px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;min-height:40px">Exit</button>
         </div>
-        <div style="padding:16px 20px 8px;flex-shrink:0">
-          <button id="rides-loc-share-btn" onclick="toggleLocationSharing()" style="width:100%;padding:20px;border:none;border-radius:16px;background:rgba(255,255,255,.12);color:#fff;font-size:18px;font-weight:800;cursor:pointer;min-height:64px">📍 Share My Location</button>
-        </div>
-        <div id="rides-driver-queue" style="flex:1;overflow-y:auto;padding:12px 20px 20px"></div>
+        <div id="rides-driver-eta" style="font-size:15px;font-weight:700;color:#93c5fd;margin-bottom:10px"></div>
+        <button id="rides-loc-share-btn" onclick="toggleLocationSharing()" style="width:100%;padding:16px;border:none;border-radius:14px;background:rgba(255,255,255,.12);color:#fff;font-size:16px;font-weight:800;cursor:pointer;min-height:56px;margin-bottom:14px">📍 Share My Location</button>
+        <div id="rides-driver-queue"></div>
       </div>
     </div>
 
@@ -1738,6 +1740,8 @@ let currentUser = null, bookingType = 'asap';
 let rides = {}; // the live ride-request system — 55 Mapleview <-> 323 Bayview
 let ridesType = 'hitchhike', ridesLocation = '55 Mapleview', ridesStockFoundLot = null, ridesMode = 'request';
 let ridesLeafletMap = null, ridesDriverMarkers = {}, ridesMapFitDone = false;
+let ridesRouteControl = null, ridesRouteDestKey = null, ridesLastRouteCalcTs = 0;
+const RIDES_ROUTE_THROTTLE_MS = 15000; // don't hammer the free routing service more than every 15s
 let MOVE_MINS = 15, CONVERT_MINS = 45, LOT_OPEN = 7, LOT_CLOSE = 21;
 let historyDays = 30, soundEnabled = localStorage.getItem('lq-sound') !== 'false';
 let tFilterStatus = 'ALL', tSortCol = 'arrived', tSortAsc = false, editingUnitId = null;
@@ -2536,6 +2540,69 @@ function ridesUpdateDriverMarkers() {
   }
 }
 
+// Draws a real driving route (actual roads, via free OSRM routing) from the
+// current driver's live position to wherever their active ride needs them next
+// — the pickup location while status is 'claimed', the dropoff once 'enroute'.
+// Throttled so it doesn't hammer the public routing service on every GPS ping.
+function ridesUpdateRoute() {
+  if (!ridesLeafletMap || typeof L === 'undefined' || !L.Routing) return;
+  const etaEl = document.getElementById('rides-driver-eta');
+  if (!currentUser?.uid) return;
+
+  const myLoc = driverLocations[currentUser.uid];
+  const myRideEntry = Object.entries(rides||{}).find(([id,r]) => r.claimedBy === currentUser.name && ['claimed','enroute'].includes(r.status));
+
+  if (!myLoc || !myRideEntry) {
+    if (ridesRouteControl) { ridesLeafletMap.removeControl(ridesRouteControl); ridesRouteControl = null; }
+    ridesRouteDestKey = null;
+    if (etaEl) etaEl.textContent = '';
+    return;
+  }
+
+  const [rideId, myRide] = myRideEntry;
+  const destName = myRide.status === 'claimed' ? myRide.pickup : myRide.dropoff;
+  const dest = RIDES_LOTS[destName];
+  if (!dest) return;
+
+  const destKey = rideId + '_' + destName;
+  const now = Date.now();
+  const destChanged = destKey !== ridesRouteDestKey;
+  if (!destChanged && (now - ridesLastRouteCalcTs) < RIDES_ROUTE_THROTTLE_MS) return; // throttle
+
+  ridesLastRouteCalcTs = now;
+  ridesRouteDestKey = destKey;
+  const waypoints = [L.latLng(myLoc.lat, myLoc.lng), L.latLng(dest.lat, dest.lng)];
+
+  if (etaEl) etaEl.textContent = `🕐 Calculating route to ${destName}…`;
+
+  if (!ridesRouteControl) {
+    ridesRouteControl = L.Routing.control({
+      waypoints,
+      router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
+      lineOptions: { styles: [{ color: '#2563eb', weight: 5, opacity: 0.85 }] },
+      show: false, // hide the turn-by-turn instructions panel — just the line + our own ETA text
+      addWaypoints: false,
+      draggableWaypoints: false,
+      fitSelectedRoutes: false,
+      createMarker: () => null, // we already have our own driver/lot markers
+    }).addTo(ridesLeafletMap);
+    ridesRouteControl.on('routesfound', (e) => {
+      const route = e.routes[0];
+      const mins = Math.max(1, Math.round(route.summary.totalTime / 60));
+      const km = (route.summary.totalDistance / 1000).toFixed(1);
+      const liveEtaEl = document.getElementById('rides-driver-eta');
+      if (liveEtaEl) liveEtaEl.textContent = `🕐 ~${mins} min (${km} km) to ${destName}`;
+      update(ref(db, 'rides/'+rideId), { etaMins: mins, etaTs: Date.now() }).catch(()=>{});
+    });
+    ridesRouteControl.on('routingerror', () => {
+      const liveEtaEl = document.getElementById('rides-driver-eta');
+      if (liveEtaEl) liveEtaEl.textContent = '⚠ Could not calculate a route right now';
+    });
+  } else {
+    ridesRouteControl.setWaypoints(waypoints);
+  }
+}
+
 window.toggleLocationSharing = function() {
   if (geoWatchId !== null) {
     navigator.geolocation.clearWatch(geoWatchId);
@@ -2663,23 +2730,21 @@ function renderMyActiveRide() {
     <div style="font-size:15px;font-weight:700;margin-bottom:4px">${mine.type==='vehicle' ? '🚗 '+mine.stock : '🙋 Hitchhiking'}</div>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">${mine.pickup} → ${mine.dropoff}</div>
     <div style="display:flex;margin-bottom:14px">${stepperHTML}</div>
-    ${mine.claimedBy ? `<div style="font-size:13px;color:#1d4ed8;font-weight:700;margin-bottom:10px">🚐 Driver: ${mine.claimedBy}</div>` : ''}
+    ${mine.claimedBy ? `<div style="font-size:13px;color:#1d4ed8;font-weight:700;margin-bottom:4px">🚐 Driver: ${mine.claimedBy}</div>` : ''}
+    ${mine.etaMins && (Date.now()-mine.etaTs) < 5*60*1000 ? `<div style="font-size:13px;color:#15803d;font-weight:700;margin-bottom:10px">🕐 ~${mine.etaMins} min away</div>` : ''}
     ${mine.status === 'pending' ? `<button onclick="cancelRide('${mine.id}')" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:#991b1b;font-size:13px;cursor:pointer">Cancel Request</button>` : ''}
   `;
 }
 
 window.ridesSetMode = function(mode) {
+  if (mode === 'drive' && !(currentUser && (currentUser.role === 'lot' || currentUser.role === 'management'))) return;
   ridesMode = mode;
   document.getElementById('rides-mode-request-btn').classList.toggle('active', mode==='request');
   document.getElementById('rides-mode-drive-btn').classList.toggle('active', mode==='drive');
-  document.getElementById('rides-rider-view').style.display = mode==='request' ? 'flex' : 'none';
+  document.getElementById('rides-sheet').style.display = mode==='request' ? 'block' : 'none';
   document.getElementById('rides-driver-view').style.display = mode==='drive' ? 'flex' : 'none';
-  if (mode === 'drive') {
-    renderDriverQueue();
-    setTimeout(()=>ridesLeafletMap?.invalidateSize(), 50);
-  } else {
-    setTimeout(()=>ridesLeafletMap?.invalidateSize(), 50);
-  }
+  if (mode === 'drive') renderDriverQueue();
+  setTimeout(()=>ridesLeafletMap?.invalidateSize(), 50);
 }
 
 function renderDriverQueue() {
@@ -2757,8 +2822,10 @@ function renderRidesTab() {
   renderMyActiveRide();
   if (ridesMode === 'drive') renderDriverQueue();
   ridesUpdateDriverMarkers();
+  ridesUpdateRoute();
   const toggle = document.getElementById('rides-mode-toggle');
-  if (toggle) toggle.style.display = perm('shuttleAdmin') ? 'flex' : 'none';
+  const canDrive = currentUser && (currentUser.role === 'lot' || currentUser.role === 'management');
+  if (toggle) toggle.style.display = canDrive ? 'flex' : 'none';
   const tc = document.getElementById('tc-rides');
   if (tc) tc.textContent = Object.values(rides||{}).filter(r=>!['done','cancelled'].includes(r.status)).length;
 }
