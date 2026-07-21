@@ -2051,7 +2051,6 @@ function startApp() {
   const initials = currentUser.name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
   document.getElementById('user-avatar').textContent = initials;
   document.getElementById('user-name-display').textContent = currentUser.name;
-  document.getElementById('requester-name-display').textContent = currentUser.name;
   document.getElementById('user-role-badge').textContent = ROLE_LABELS[currentUser.role]||currentUser.role;
   const homeNameEl = document.getElementById('home-name-display');
   if (homeNameEl) homeNameEl.textContent = currentUser.name.split(' ')[0];
