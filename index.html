@@ -2008,6 +2008,7 @@ window.signOutUser = function() {
   if (userApprovalUnsub) { userApprovalUnsub(); userApprovalUnsub = null; }
   if (geoWatchId !== null) { navigator.geolocation.clearWatch(geoWatchId); geoWatchId = null; }
   if (currentUser?.uid) remove(ref(db, 'driverLocation/'+currentUser.uid)).catch(()=>{});
+  localStorage.removeItem('rides-sharing-active');
   signOut(auth).then(()=>location.reload());
 };
 // Existing "Change role" / "Change driver" buttons still call resetIdentity() — now signs out.
@@ -2146,6 +2147,7 @@ function startApp() {
   if (role !== 'merchandiser' && role !== 'display') renderHomeGrid();
   cmInit();
   auditStartListener();
+  ridesResumeLocationSharingIfNeeded();
 
   // Live connection indicator — Firebase's own built-in "am I actually connected
   // right now" signal, which is more reliable than inferring it from any one
@@ -2608,28 +2610,48 @@ function ridesUpdateRoute() {
   }
 }
 
-window.toggleLocationSharing = function() {
-  if (geoWatchId !== null) {
-    navigator.geolocation.clearWatch(geoWatchId);
-    geoWatchId = null;
-    if (currentUser?.uid) remove(ref(db, 'driverLocation/'+currentUser.uid)).catch(()=>{});
-    const btn = document.getElementById('rides-loc-share-btn');
-    if (btn) { btn.textContent = '📍 Share Location'; btn.style.background = 'var(--bg)'; btn.style.color = 'var(--text)'; }
-    return;
-  }
+function startLocationSharing() {
   if (!navigator.geolocation) { alert("This device/browser doesn't support location sharing."); return; }
-  if (!currentUser?.uid) { alert('Location sharing needs a signed-in account.'); return; }
+  if (!currentUser?.uid) return;
   const btn = document.getElementById('rides-loc-share-btn');
   geoWatchId = navigator.geolocation.watchPosition(
     (pos) => {
       const { latitude, longitude, accuracy } = pos.coords;
       set(ref(db, 'driverLocation/'+currentUser.uid), { name: currentUser.name, lat: latitude, lng: longitude, accuracy, ts: Date.now() }).catch(()=>{});
-      if (btn) { btn.textContent = '📍 Sharing — Stop'; btn.style.background = '#dc2626'; btn.style.color = '#fff'; }
+      const liveBtn = document.getElementById('rides-loc-share-btn');
+      if (liveBtn) { liveBtn.textContent = '📍 Sharing — Stop'; liveBtn.style.background = '#dc2626'; liveBtn.style.color = '#fff'; }
     },
-    (err) => { alert('Location error: ' + (err.message || 'permission denied')); geoWatchId = null; },
+    (err) => {
+      alert('Location error: ' + (err.message || 'permission denied'));
+      geoWatchId = null;
+      localStorage.removeItem('rides-sharing-active');
+    },
     { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 }
   );
+  localStorage.setItem('rides-sharing-active', '1'); // so a refresh knows to auto-resume
+}
+
+function stopLocationSharing() {
+  if (geoWatchId !== null) { navigator.geolocation.clearWatch(geoWatchId); geoWatchId = null; }
+  localStorage.removeItem('rides-sharing-active');
+  if (currentUser?.uid) remove(ref(db, 'driverLocation/'+currentUser.uid)).catch(()=>{});
+  const btn = document.getElementById('rides-loc-share-btn');
+  if (btn) { btn.textContent = '📍 Share Location'; btn.style.background = 'var(--bg)'; btn.style.color = 'var(--text)'; }
+}
+
+window.toggleLocationSharing = function() {
+  if (geoWatchId !== null) stopLocationSharing();
+  else startLocationSharing();
 };
+
+// If this device was actively sharing location before a refresh, resume it
+// automatically — otherwise the driver's marker just goes stale and vanishes
+// for everyone until they remember to tap the button again.
+function ridesResumeLocationSharingIfNeeded() {
+  if (localStorage.getItem('rides-sharing-active') === '1' && geoWatchId === null) {
+    startLocationSharing();
+  }
+}
 
 const RIDES_ALL_LOTS = ['55 Mapleview', '323 Bayview', '700 Bayview'];
 
