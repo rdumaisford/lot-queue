@@ -1113,19 +1113,27 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <div class="request-form-wrap" id="request-form-wrap">
         <div class="request-form-inner">
           <div style="font-size:16px;font-weight:600;margin-bottom:6px">New request</div>
-          <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">Request a vehicle move, or a hitchhiker ride for a person/vehicle between lots.</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">Request a vehicle, schedule an internal move, or a hitchhiker ride.</div>
           <div id="form-toast" class="toast"></div>
           <div class="requester-banner">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
             Requesting as <strong id="requester-name-display">—</strong>
           </div>
-          <div class="booking-toggle">
-            <button class="toggle-btn active" id="btn-reqtype-vehicle" onclick="setRequestType('vehicle')"><span class="toggle-btn-label">🚗 Vehicle Move</span><span class="toggle-btn-sub">Move a vehicle on lot</span></button>
-            <button class="toggle-btn" id="btn-reqtype-hitchhiker" onclick="setRequestType('hitchhiker')"><span class="toggle-btn-label">🚐 Hitchhiker Ride</span><span class="toggle-btn-sub">Person or vehicle between lots</span></button>
+          <div class="booking-toggle" style="grid-template-columns:repeat(3,1fr)">
+            <button class="toggle-btn active" id="btn-reqtype-pickup" onclick="setRequestType('pickup')"><span class="toggle-btn-label">🚗 Request a Vehicle</span><span class="toggle-btn-sub">Get a car from 323 Bayview</span></button>
+            <button class="toggle-btn" id="btn-reqtype-vehicle" onclick="setRequestType('vehicle')"><span class="toggle-btn-label">🔧 Internal Move</span><span class="toggle-btn-sub">On-lot shuffle</span></button>
+            <button class="toggle-btn" id="btn-reqtype-hitchhiker" onclick="setRequestType('hitchhiker')"><span class="toggle-btn-label">🧑 Hitchhiker Ride</span><span class="toggle-btn-sub">Just need a ride</span></button>
           </div>
 
-          <!-- VEHICLE MOVE FIELDS -->
-          <div id="reqtype-vehicle-fields">
+          <!-- REQUEST A VEHICLE (Uber-style pickup from 323 Bayview) -->
+          <div id="reqtype-pickup-fields">
+            <div class="form-row"><label>Stock # <span style="color:#e24b4a">*</span></label><input id="pk-stock" type="text" placeholder="e.g. B0394" autocomplete="off" oninput="pkCheckLocation()"/></div>
+            <div id="pk-location-result" style="display:none;margin-bottom:16px"></div>
+            <div class="form-row"><label>Notes <span style="color:var(--text-faint);font-weight:400;text-transform:none;letter-spacing:0">optional</span></label><textarea id="pk-notes" placeholder="Customer waiting, appointment time, etc…" style="min-height:60px"></textarea></div>
+          </div>
+
+          <!-- INTERNAL MOVE FIELDS (on-lot shuffle — unrelated to 323 Bayview pickups) -->
+          <div id="reqtype-vehicle-fields" style="display:none">
             <div class="booking-toggle">
               <button class="toggle-btn active" id="btn-asap" onclick="setBookingType('asap')"><span class="toggle-btn-label">ASAP</span><span class="toggle-btn-sub">Next available</span></button>
               <button class="toggle-btn" id="btn-scheduled" onclick="setBookingType('scheduled')"><span class="toggle-btn-label">Schedule</span><span class="toggle-btn-sub">Pick a time</span></button>
@@ -1168,11 +1176,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
             <div class="form-row"><label>Notes <span style="color:var(--text-faint);font-weight:400;text-transform:none;letter-spacing:0">optional</span></label><textarea id="f-notes" placeholder="Special instructions, key location…" style="min-height:60px"></textarea></div>
           </div>
 
-          <!-- HITCHHIKER FIELDS (person rides only — vehicles use the Vehicle Move tab instead) -->
+          <!-- HITCHHIKER FIELDS (person rides only — vehicles use Request a Vehicle / Internal Move instead) -->
           <div id="reqtype-hitchhiker-fields" style="display:none">
             <div class="requester-banner" style="margin-bottom:16px">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-              🧑 A ride for you, between lots — for vehicles, use <strong>Vehicle Move</strong> above instead.
+              🧑 A ride for you, between lots — for vehicles, use the tabs above instead.
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
               <div class="form-row" style="margin-bottom:0">
@@ -1204,25 +1212,51 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         </div>
       </div>
 
-      <!-- Queue header with New Request button -->
       <div class="queue-toolbar">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <button class="btn-new-request" id="btn-new-request" onclick="toggleRequestForm()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
             New request
           </button>
-          <div class="stats" style="margin-bottom:0;display:flex;gap:10px;flex-wrap:wrap">
-            <div class="stat" style="padding:8px 14px;min-width:0"><div class="stat-num" id="s-pending" style="font-size:20px">0</div><div class="stat-label">Pending</div></div>
-            <div class="stat" style="padding:8px 14px;min-width:0"><div class="stat-num" id="s-progress" style="font-size:20px">0</div><div class="stat-label">In progress</div></div>
-            <div class="stat" style="padding:8px 14px;min-width:0"><div class="stat-num" id="s-scheduled" style="font-size:20px">0</div><div class="stat-label">Scheduled</div></div>
-            <div class="stat" style="padding:8px 14px;min-width:0"><div class="stat-num" id="s-done" style="font-size:20px">0</div><div class="stat-label">Done today</div></div>
-          </div>
         </div>
-        <button class="btn-ghost" id="btn-clear" onclick="clearCompleted()">Clear completed</button>
+      </div>
+
+      <div class="section-label">🚗 Active Pickups <span id="tc-pickups" class="tab-count" style="background:var(--bg)"></span></div>
+      <div id="pickup-active-list"><div style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</div></div>
+
+      <div class="section-label" style="margin-top:24px">⏰ Needs Return Scheduled <span id="needs-return-count" class="tab-count" style="background:#fef3c7;color:#92400e"></span></div>
+      <div id="pickup-needs-return-list"><div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px">Loading…</div></div>
+
+      <div class="section-label" style="margin-top:24px">↩️ Returns <span id="tc-returns" class="tab-count" style="background:var(--bg)"></span></div>
+      <div id="returns-active-list"><div style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</div></div>
+
+      <div class="section-label" style="margin-top:24px">🚐 Van Route — 323 Bayview ↔ 55 Mapleview <span id="tc-van" class="tab-count" style="background:var(--bg)"></span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px">
+        <input id="van-stock" type="text" placeholder="Stock #" style="flex:1;min-width:100px;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/>
+        <select id="van-direction" style="padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)">
+          <option value="323to55">323 Bayview → 55 Mapleview</option>
+          <option value="55to323">55 Mapleview → 323 Bayview</option>
+        </select>
+        <input id="van-notes" type="text" placeholder="Notes (optional)" style="flex:1;min-width:120px;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/>
+        <button class="btn-submit" onclick="submitVanTrip()" style="width:auto;margin-top:0;padding:9px 18px">Add</button>
+      </div>
+      <div id="van-active-list"><div style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</div></div>
+
+      <div class="section-label" style="margin-top:28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <span>🔧 Internal Moves <span class="tab-count" id="tc-internal-moves" style="background:var(--bg)"></span></span>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div class="stats" style="margin-bottom:0;display:flex;gap:8px;flex-wrap:wrap">
+            <div class="stat" style="padding:6px 10px;min-width:0"><div class="stat-num" id="s-pending" style="font-size:16px">0</div><div class="stat-label" style="font-size:9px">Pending</div></div>
+            <div class="stat" style="padding:6px 10px;min-width:0"><div class="stat-num" id="s-progress" style="font-size:16px">0</div><div class="stat-label" style="font-size:9px">In progress</div></div>
+            <div class="stat" style="padding:6px 10px;min-width:0"><div class="stat-num" id="s-scheduled" style="font-size:16px">0</div><div class="stat-label" style="font-size:9px">Scheduled</div></div>
+            <div class="stat" style="padding:6px 10px;min-width:0"><div class="stat-num" id="s-done" style="font-size:16px">0</div><div class="stat-label" style="font-size:9px">Done today</div></div>
+          </div>
+          <button class="btn-ghost" id="btn-clear" onclick="clearCompleted()">Clear completed</button>
+        </div>
       </div>
       <div id="queue-list"><div style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</div></div>
 
-      <div class="section-label" style="margin-top:28px">🚐 Hitchhikers</div>
+      <div class="section-label" style="margin-top:28px">🧑 Hitchhikers</div>
       <div id="hitchhiker-list"><div style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</div></div>
     </div>
 
@@ -1435,8 +1469,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <div id="shuttle-veh-list" class="shuttle-col-list"></div>
         </div>
         <div class="shuttle-col">
-          <div class="shuttle-col-header">🧑‍🤝‍🧑 Hitchhikers <span id="shuttle-hh-count" class="shuttle-col-count"></span></div>
+          <div class="shuttle-col-header">🧑‍🤝‍🧑 Pickups & Returns <span id="shuttle-hh-count" class="shuttle-col-count"></span></div>
           <div id="shuttle-hh-list" class="shuttle-col-list"></div>
+        </div>
+        <div class="shuttle-col">
+          <div class="shuttle-col-header">🚐 Van Route (323↔55) <span id="shuttle-van-count" class="shuttle-col-count"></span></div>
+          <div id="shuttle-van-list" class="shuttle-col-list"></div>
         </div>
       </div>
     </div>
@@ -1836,6 +1874,7 @@ const auth = getAuth(appFB);
 
 // ── State ─────────────────────────────────────────────
 let entries = {}, historyData = {}, units = {}, getReadyDeals = {}, hitchhikers = {}, testDrives = {}, compoundHistoryData = {};
+let vehicleRequests = {}, vehicleReturns = {}, vanTrips = {}; // the new Uber-style dealership <-> 323 Bayview flow
 let driverLocations = {}; // live mirror of /driverLocation — who's currently sharing, and where
 let geoWatchId = null;    // navigator.geolocation.watchPosition() handle, while sharing is on
 let currentUser = null, bookingType = 'asap';
@@ -2394,6 +2433,23 @@ function startApp() {
     const shuttleTc = document.getElementById('tc-shuttle');
     if (shuttleTc) shuttleTc.textContent = activeHHCount + activeVehCount;
     renderHitchhikers();
+    renderPickupRequests(); // pickup cards show the linked ride's live status
+  });
+
+  onValue(ref(db,'vehicleRequests'), snap=>{
+    vehicleRequests = snap.val()||{};
+    renderPickupRequests();
+  });
+
+  onValue(ref(db,'vehicleReturns'), snap=>{
+    vehicleReturns = snap.val()||{};
+    renderReturns();
+  });
+
+  onValue(ref(db,'vanTrips'), snap=>{
+    vanTrips = snap.val()||{};
+    renderVanTrips();
+    renderShuttleDashboard();
   });
 
   onValue(ref(db,'testdrives'), snap=>{
@@ -2471,7 +2527,7 @@ function destClass(d) {
 }
 
 // ── Form ──────────────────────────────────────────────
-let requestType = 'vehicle'; // 'vehicle' | 'hitchhiker'
+let requestType = 'pickup'; // 'pickup' | 'vehicle' | 'hitchhiker'
 
 window.toggleRequestForm = function() {
   const wrap = document.getElementById('request-form-wrap');
@@ -2485,8 +2541,8 @@ window.toggleRequestForm = function() {
   const nameEl = document.getElementById('requester-name-display');
   if (nameEl && currentUser) nameEl.textContent = currentUser.name;
   if (!isOpen) {
-    window.setRequestType('vehicle'); // always open fresh on the vehicle-move tab
-    setTimeout(()=>document.getElementById('f-stock').focus(), 350);
+    window.setRequestType('pickup'); // always open fresh on the "Request a Vehicle" tab
+    setTimeout(()=>document.getElementById('pk-stock').focus(), 350);
   }
 };
 // Kept as an alias — nothing calls this directly anymore, but harmless to keep around.
@@ -2494,14 +2550,17 @@ window.toggleHitchhikerForm = window.toggleRequestForm;
 
 window.setRequestType = function(type) {
   requestType = type;
+  document.getElementById('btn-reqtype-pickup').classList.toggle('active', type==='pickup');
   document.getElementById('btn-reqtype-vehicle').classList.toggle('active', type==='vehicle');
   document.getElementById('btn-reqtype-hitchhiker').classList.toggle('active', type==='hitchhiker');
+  document.getElementById('reqtype-pickup-fields').style.display = type==='pickup' ? '' : 'none';
   document.getElementById('reqtype-vehicle-fields').style.display = type==='vehicle' ? '' : 'none';
   document.getElementById('reqtype-hitchhiker-fields').style.display = type==='hitchhiker' ? '' : 'none';
 };
 
 window.submitUnifiedRequest = function() {
-  if (requestType === 'vehicle') window.submitRequest();
+  if (requestType === 'pickup') window.submitPickupRequest();
+  else if (requestType === 'vehicle') window.submitRequest();
   else window.submitHitchhiker();
 };
 
@@ -2636,7 +2695,295 @@ window.clearCompleted = async function() {
   await Promise.all(Object.entries(entries).filter(([,e])=>e.status==='done').map(([id])=>remove(ref(db,'entries/'+id))));
 };
 
+// ── Returns (scheduled trip back to 323 Bayview) ─────────────────────
+window.openScheduleReturn = async function(requestId, stock) {
+  if (!confirm(`Schedule ${stock} for return to 323 Bayview?`)) return;
+  await push(ref(db,'vehicleReturns'), {
+    stock, requestId,
+    scheduledBy: currentUser.name,
+    status: 'pending', // pending -> claimed -> enroute -> dropped_off
+    ts: Date.now(),
+  });
+  if (requestId) await update(ref(db,'vehicleRequests/'+requestId), { returnScheduled: true });
+};
+
+window.claimReturn = async function(id) {
+  const result = await runTransaction(ref(db,'vehicleReturns/'+id), (curr) => {
+    if (!curr) return curr;
+    if (curr.status !== 'pending') return; // abort — already claimed
+    curr.status = 'claimed';
+    curr.driver = currentUser.name;
+    curr.claimedTs = Date.now();
+    return curr;
+  });
+  if (!result.committed) alert('Someone else already claimed this return.');
+};
+
+window.setReturnEnroute = async function(id) {
+  await update(ref(db,'vehicleReturns/'+id), { status:'enroute', enrouteTs: Date.now() });
+};
+
+// The key step: the instant a solo driver drops the car at 323 Bayview, they're
+// stranded with no vehicle — this automatically creates their ride back.
+window.markReturnDroppedOff = async function(id) {
+  const ret = vehicleReturns[id];
+  if (!ret) return;
+  await update(ref(db,'vehicleReturns/'+id), { status:'dropped_off', droppedOffTs: Date.now() });
+  await push(ref(db,'hitchhikers'), {
+    kind: 'person',
+    name: ret.driver || currentUser.name,
+    pickup: '323 Bayview',
+    dropoff: '700 Bayview',
+    notes: `Dropped off ${ret.stock} at 323 Bayview — needs a ride back`,
+    requestedBy: ret.driver || currentUser.name,
+    status: 'pending',
+    ts: Date.now(),
+    purpose: 'stranded_return',
+    linkedReturnId: id,
+  });
+};
+
+window.deleteReturn = async function(id) {
+  if (!confirm('Remove this return record?')) return;
+  await remove(ref(db,'vehicleReturns/'+id));
+};
+
+function returnHTML(r, id) {
+  // The return driver could be anyone — IC or sales — so claiming isn't gated to a
+  // specific role. Only removing a completed record is kept as admin cleanup.
+  const canAdmin = perm('shuttleAdmin') || perm('hitchhikerAdmin');
+  let actions = '';
+  if (r.status === 'pending') {
+    actions += `<button class="btn-action" onclick="claimReturn('${id}')" style="background:#eff6ff;color:#1d4ed8;font-weight:700">Claim</button>`;
+  } else if (r.status === 'claimed') {
+    if (r.driver === currentUser?.name || canAdmin) actions += `<button class="btn-action" onclick="setReturnEnroute('${id}')" style="background:#fff7ed;color:#c2410c;font-weight:700">🚗 Heading Out</button>`;
+  } else if (r.status === 'enroute') {
+    if (r.driver === currentUser?.name || canAdmin) actions += `<button class="btn-action" onclick="markReturnDroppedOff('${id}')" style="background:#f0fdf4;color:#15803d;font-weight:700">✓ Dropped Off</button>`;
+  } else if (r.status === 'dropped_off') {
+    if (canAdmin) actions += `<button class="btn-action" onclick="deleteReturn('${id}')">Remove</button>`;
+  }
+  const statusLabel = {pending:'Waiting for driver',claimed:'Driver assigned',enroute:'Heading to 323 Bayview',dropped_off:'✓ Dropped off'}[r.status]||r.status;
+  return `<div class="entry">
+    <div style="flex:1">
+      <div class="entry-stock">↩️ ${r.stock}</div>
+      <div class="entry-meta" style="margin-bottom:5px">Scheduled by ${r.scheduledBy}${r.driver?' · Driver: '+r.driver:''}</div>
+      <div style="font-size:13px;font-weight:700;color:#1d4ed8">${statusLabel}</div>
+    </div>
+    <div class="entry-actions">${actions}<div class="entry-time">${timeAgo(r.ts)}</div></div>
+  </div>`;
+}
+
+function renderReturns() {
+  const list = Object.entries(vehicleReturns||{}).map(([id,r])=>({id,...r}));
+  const active = list.filter(r=>r.status!=='dropped_off').sort((a,b)=>a.ts-b.ts);
+  const el = document.getElementById('returns-active-list');
+  if (el) el.innerHTML = active.length ? active.map(r=>returnHTML(r,r.id)).join('') : '<div class="empty-state"><div class="empty-icon">↩️</div><p>No scheduled returns.</p></div>';
+  const countEl = document.getElementById('tc-returns');
+  if (countEl) countEl.textContent = active.length;
+}
+
+// ── Van Route — dedicated 323 Bayview ↔ 55 Mapleview lane, completely
+// separate from dealership traffic. Only the van driver (shuttleAdmin) works it.
+window.submitVanTrip = async function() {
+  const stock = document.getElementById('van-stock').value.trim().toUpperCase();
+  const direction = document.getElementById('van-direction').value;
+  const notes = document.getElementById('van-notes').value.trim();
+  if (!stock) { alert('Please enter a stock #.'); return; }
+  await push(ref(db,'vanTrips'), {
+    stock, direction, notes,
+    requestedBy: currentUser.name,
+    status: 'pending', // pending -> claimed -> enroute -> done
+    ts: Date.now(),
+  });
+  document.getElementById('van-stock').value = '';
+  document.getElementById('van-notes').value = '';
+};
+
+window.claimVanTrip = async function(id) {
+  const result = await runTransaction(ref(db,'vanTrips/'+id), (curr) => {
+    if (!curr) return curr;
+    if (curr.status !== 'pending') return;
+    curr.status = 'claimed';
+    curr.driver = currentUser.name;
+    curr.claimedTs = Date.now();
+    return curr;
+  });
+  if (!result.committed) alert('Someone else already claimed this.');
+};
+window.setVanTripEnroute = async function(id) { await update(ref(db,'vanTrips/'+id), {status:'enroute', enrouteTs:Date.now()}); };
+window.markVanTripDone = async function(id) { await update(ref(db,'vanTrips/'+id), {status:'done', doneTs:Date.now()}); };
+window.deleteVanTrip = async function(id) { if(!confirm('Remove this van trip?'))return; await remove(ref(db,'vanTrips/'+id)); };
+
+function vanTripHTML(v, id, big) {
+  const dirLabel = v.direction === '55to323' ? '55 Mapleview → 323 Bayview' : '323 Bayview → 55 Mapleview';
+  const canManage = perm('shuttleAdmin');
+  const btnCls = big ? 'shuttle-btn' : 'btn-action';
+  let actions = '';
+  if (v.status==='pending' && canManage) actions += `<button class="${btnCls}" style="background:#eff6ff;color:#1d4ed8;font-weight:700" onclick="claimVanTrip('${id}')">Claim</button>`;
+  else if (v.status==='claimed' && canManage) actions += `<button class="${btnCls}" style="background:#fff7ed;color:#c2410c;font-weight:700" onclick="setVanTripEnroute('${id}')">🚐 En Route</button>`;
+  else if (v.status==='enroute' && canManage) actions += `<button class="${btnCls}" style="background:#f0fdf4;color:#15803d;font-weight:700" onclick="markVanTripDone('${id}')">✓ Delivered</button>`;
+  else if (v.status==='done' && canManage) actions += `<button class="${btnCls}" onclick="deleteVanTrip('${id}')">Remove</button>`;
+  const statusLabel = {pending:'Waiting for van',claimed:'Van assigned',enroute:'En route',done:'✓ Delivered'}[v.status]||v.status;
+  if (big) {
+    return `<div class="shuttle-card">
+      <div class="shuttle-card-title">🚐 ${v.stock}</div>
+      <div class="shuttle-card-route">📍 ${dirLabel}</div>
+      <div class="shuttle-card-meta">${statusLabel} · Requested by ${v.requestedBy}${v.driver?' · Driver: '+v.driver:''}${v.notes?' · '+v.notes:''}</div>
+      ${actions}
+    </div>`;
+  }
+  return `<div class="entry">
+    <div style="flex:1">
+      <div class="entry-stock">🚐 ${v.stock}</div>
+      <div class="entry-meta" style="margin-bottom:5px">${dirLabel} · Requested by ${v.requestedBy}${v.driver?' · Driver: '+v.driver:''}</div>
+      <div style="font-size:13px;font-weight:700;color:#1d4ed8">${statusLabel}</div>
+      ${v.notes?`<div class="entry-notes">${v.notes}</div>`:''}
+    </div>
+    <div class="entry-actions">${actions}<div class="entry-time">${timeAgo(v.ts)}</div></div>
+  </div>`;
+}
+
+function renderVanTrips() {
+  const list = Object.entries(vanTrips||{}).map(([id,v])=>({id,...v}));
+  const active = list.filter(v=>v.status!=='done').sort((a,b)=>a.ts-b.ts);
+  const el = document.getElementById('van-active-list');
+  if (el) el.innerHTML = active.length ? active.map(v=>vanTripHTML(v,v.id)).join('') : '<div class="empty-state"><div class="empty-icon">🚐</div><p>No van trips queued.</p></div>';
+  const countEl = document.getElementById('tc-van');
+  if (countEl) countEl.textContent = active.length;
+}
+
 // ── Hitchhikers (people only — vehicles use the Vehicle Move tab) ──
+// ── Request a Vehicle (Uber-style pickup from 323 Bayview) ─────────────
+let pkFoundLot = null; // which lot the currently-typed stock # was actually found at
+
+window.pkCheckLocation = function() {
+  const stock = document.getElementById('pk-stock').value.trim().toUpperCase();
+  const resultEl = document.getElementById('pk-location-result');
+  pkFoundLot = null;
+  if (!stock) { resultEl.style.display = 'none'; return; }
+  let foundLot = null;
+  Object.entries(cmVehicles||{}).forEach(([lot, lotVehs]) => {
+    Object.values(lotVehs||{}).forEach(v => {
+      if (v && v.stock && v.status!=='blocked' && v.status!=='void' && v.stock.toUpperCase().trim() === stock) foundLot = lot;
+    });
+  });
+  resultEl.style.display = 'block';
+  if (!foundLot) {
+    resultEl.innerHTML = `<div style="background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px">⚠ Can't find this stock # on the Vehicle Locator map. Make sure it's placed on the map first, or use Internal Move instead.</div>`;
+    return;
+  }
+  const lotLabel = CM_LOT_LABELS[foundLot] || foundLot;
+  if (foundLot === 'bayview323') {
+    pkFoundLot = foundLot;
+    resultEl.innerHTML = `<div style="background:#f0fdf4;border:1px solid #86efac;color:#15803d;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;font-weight:600">✓ This car is at 323 Bayview — requesting a pickup will get you a ride out there.</div>`;
+  } else {
+    resultEl.innerHTML = `<div style="background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px">This car is already at <strong>${lotLabel}</strong> — no pickup ride needed. Use <strong>Internal Move</strong> instead if it needs to go somewhere else.</div>`;
+  }
+};
+
+window.submitPickupRequest = async function() {
+  const stock = document.getElementById('pk-stock').value.trim().toUpperCase();
+  const notes = document.getElementById('pk-notes').value.trim();
+  if (!stock) { showToast('Please enter a stock #.', 'error'); return; }
+  if (!pkFoundLot) { showToast('This stock # needs to show up at 323 Bayview on the Vehicle Locator map first.', 'error'); return; }
+  const btn = document.getElementById('btn-submit-unified');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+  try {
+    const reqRef = await push(ref(db,'vehicleRequests'), {
+      stock, notes,
+      requestedBy: currentUser.name,
+      pickupLocation: '323 Bayview',
+      dropoffLocation: '700 Bayview',
+      status: 'active', // 'active' | 'delivered'
+      returnScheduled: false,
+      createdAt: Date.now(),
+    });
+    const rideRef = await push(ref(db,'hitchhikers'), {
+      kind: 'person',
+      name: currentUser.name,
+      pickup: '700 Bayview',
+      dropoff: '323 Bayview',
+      notes: notes ? `Pickup for ${stock}: ${notes}` : `Riding out to pick up ${stock}`,
+      requestedBy: currentUser.name,
+      status: 'pending',
+      ts: Date.now(),
+      purpose: 'pickup_companion',
+      linkedRequestId: reqRef.key,
+      linkedStock: stock,
+    });
+    await update(ref(db, 'vehicleRequests/'+reqRef.key), { rideId: rideRef.key });
+    document.getElementById('pk-stock').value = '';
+    document.getElementById('pk-notes').value = '';
+    document.getElementById('pk-location-result').style.display = 'none';
+    pkFoundLot = null;
+    showToast(`✓ Requested ${stock} — a ride out to 323 Bayview has been created`, 'success');
+    toggleRequestForm();
+  } catch(e) { showToast('Error submitting — check connection.', 'error'); }
+  btn.disabled = false; btn.textContent = 'Submit request';
+};
+
+window.markVehicleDelivered = async function(id) {
+  await update(ref(db, 'vehicleRequests/'+id), { status: 'delivered', deliveredAt: Date.now() });
+};
+
+window.deleteVehicleRequest = async function(id) {
+  if (!confirm('Cancel/remove this vehicle request?')) return;
+  await remove(ref(db, 'vehicleRequests/'+id));
+};
+
+function pickupRequestHTML(r) {
+  const ride = r.rideId ? hitchhikers[r.rideId] : null;
+  const rideStatus = ride ? ride.status : null;
+  const isMine = currentUser && r.requestedBy === currentUser.name;
+  const canManage = perm('shuttleAdmin') || perm('hitchhikerAdmin') || isMine;
+  let stageLabel = 'Waiting for driver', stageColor = '#92400e';
+  let actions = '';
+  if (r.status === 'delivered') {
+    stageLabel = '✓ Delivered'; stageColor = '#15803d';
+  } else if (rideStatus === 'done') {
+    stageLabel = '🚗 At 323 Bayview — bring the car back, then tap Delivered'; stageColor = '#1d4ed8';
+    if (isMine || perm('shuttleAdmin')) actions += `<button class="btn-action" onclick="markVehicleDelivered('${r.id}')" style="background:#f0fdf4;color:#15803d;border-color:#86efac;font-weight:700">✓ Mark Delivered</button>`;
+  } else if (rideStatus === 'enroute') {
+    stageLabel = '🚗 Heading to 323 Bayview'; stageColor = '#c2410c';
+  } else if (rideStatus === 'claimed') {
+    stageLabel = '🚐 Driver assigned — heading to pick you up'; stageColor = '#c2410c';
+  }
+  if (r.status !== 'delivered' && isMine) actions += `<button class="btn-action" onclick="deleteVehicleRequest('${r.id}')" style="color:#991b1b">Cancel</button>`;
+  return `<div class="entry">
+    <div style="flex:1">
+      <div class="entry-stock">🚗 ${r.stock}</div>
+      <div class="entry-meta" style="margin-bottom:5px">Requested by ${r.requestedBy||'—'}</div>
+      <div class="entry-row"><span class="dest-pill dest-testdrive">323 Bayview → 700 Bayview</span></div>
+      <div style="font-size:13px;font-weight:700;color:${stageColor};margin-top:4px">${stageLabel}</div>
+      ${r.notes?`<div class="entry-notes">${r.notes}</div>`:''}
+    </div>
+    <div class="entry-actions">${actions}<div class="entry-time">${timeAgo(r.createdAt)}</div></div>
+  </div>`;
+}
+
+function renderPickupRequests() {
+  const list = Object.entries(vehicleRequests||{}).map(([id,r])=>({id,...r}));
+  const active = list.filter(r=>r.status!=='delivered').sort((a,b)=>a.createdAt-b.createdAt);
+  const needsReturn = list.filter(r=>r.status==='delivered' && !r.returnScheduled).sort((a,b)=>a.deliveredAt-b.deliveredAt);
+  const activeEl = document.getElementById('pickup-active-list');
+  const needsReturnEl = document.getElementById('pickup-needs-return-list');
+  if (activeEl) activeEl.innerHTML = active.length ? active.map(pickupRequestHTML).join('') : '<div class="empty-state"><div class="empty-icon">🚗</div><p>No active pickup requests.</p></div>';
+  if (needsReturnEl) {
+    needsReturnEl.innerHTML = needsReturn.length ? needsReturn.map(r => `
+      <div class="entry" style="border-left:3px solid #f59e0b">
+        <div style="flex:1">
+          <div class="entry-stock">🚗 ${r.stock}</div>
+          <div class="entry-meta">Delivered by ${r.requestedBy} · ${timeAgo(r.deliveredAt)}</div>
+        </div>
+        <div class="entry-actions"><button class="btn-action" onclick="openScheduleReturn('${r.id}','${r.stock}')" style="background:#fff7ed;color:#c2410c;border-color:#fed7aa;font-weight:700">📅 Schedule Return</button></div>
+      </div>`).join('') : '<div style="padding:16px;text-align:center;color:var(--text-faint);font-size:13px">Nothing waiting on a return right now.</div>';
+  }
+  const needsReturnCount = document.getElementById('needs-return-count');
+  if (needsReturnCount) needsReturnCount.textContent = needsReturn.length;
+  const tcPickups = document.getElementById('tc-pickups');
+  if (tcPickups) tcPickups.textContent = active.length;
+}
+
 window.submitHitchhiker = async function() {
   const pickup = document.getElementById('hh-pickup').value;
   const dropoff = document.getElementById('hh-dropoff').value;
@@ -2748,6 +3095,68 @@ function hhStatusBubble(h) {
   return '';
 }
 
+// ── Trip pooling — lets a driver claim/progress multiple rides sharing the
+// same pickup+dropoff+stage as one combined trip, instead of one at a time.
+// Only pools rides not yet claimed, or already claimed by the SAME driver
+// (never merges two different drivers' trips together).
+function groupRidesByTrip(rides) {
+  const groups = {};
+  rides.forEach(h => {
+    if (!['pending','claimed','enroute'].includes(h.status)) { groups['solo_'+h.id] = [h]; return; }
+    const key = `${h.pickup}|${h.dropoff}|${h.status}|${h.status==='pending'?'':(h.claimedBy||'')}`;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(h);
+  });
+  return Object.values(groups);
+}
+
+window.claimHitchhikerGroup = async function(idsStr) {
+  const ids = idsStr.split(',');
+  const updates = {};
+  const now = Date.now();
+  ids.forEach(id => {
+    updates[`hitchhikers/${id}/status`] = 'claimed';
+    updates[`hitchhikers/${id}/claimedBy`] = currentUser.name;
+    updates[`hitchhikers/${id}/claimedTs`] = now;
+  });
+  await update(ref(db), updates);
+};
+
+window.setHHStatusGroup = async function(idsStr, status) {
+  const ids = idsStr.split(',');
+  const updates = {};
+  const now = Date.now();
+  ids.forEach(id => {
+    updates[`hitchhikers/${id}/status`] = status;
+    if (status === 'enroute') updates[`hitchhikers/${id}/pickedUpTs`] = now;
+    if (status === 'done') updates[`hitchhikers/${id}/completedTs`] = now;
+  });
+  await update(ref(db), updates);
+};
+
+function hitchhikerGroupHTML(group) {
+  const first = group[0];
+  const canProgress = perm('shuttleAdmin');
+  const names = group.map(h => `${hhKindIcon(h.kind)} ${h.name}`).join(', ');
+  const idsStr = group.map(h=>h.id).join(',');
+  const bubble = hhStatusBubble(first); // all grouped rides share claimedTs/pickedUpTs, so one timer covers the trip
+  let actions = '';
+  if (first.status === 'pending' && canProgress) {
+    actions = `<button class="shuttle-btn" style="background:#eff6ff;color:#1d4ed8;font-weight:700" onclick="claimHitchhikerGroup('${idsStr}')">Claim ${group.length} riders</button>`;
+  } else if (first.status === 'claimed' && canProgress) {
+    actions = `<button class="shuttle-btn" style="background:#fff7ed;color:#c2410c;font-weight:700" onclick="setHHStatusGroup('${idsStr}','enroute')">🚐 Picked up all — En Route</button>`;
+  } else if (first.status === 'enroute' && canProgress) {
+    actions = `<button class="shuttle-btn" style="background:#f0fdf4;color:#15803d;font-weight:700" onclick="setHHStatusGroup('${idsStr}','done')">✓ Dropped off all</button>`;
+  }
+  return `<div class="shuttle-card" style="border:2px solid #1d4ed8">
+    <div class="shuttle-card-title">👥 ${group.length} riders together</div>
+    <div class="shuttle-card-route">📍 ${first.pickup} → ${first.dropoff}</div>
+    ${bubble}
+    <div class="shuttle-card-meta">${names}</div>
+    ${actions}
+  </div>`;
+}
+
 function hitchhikerHTML(h, big) {
   // Claiming and progressing a ride is only ever available from the Shuttle Dashboard —
   // the Moves tab is view-only for hitchhikers (plus the requester's own Cancel button).
@@ -2800,11 +3209,15 @@ function hitchhikerHTML(h, big) {
 
 function renderHitchhikers() {
   const list = Object.entries(hitchhikers||{}).map(([id,h])=>({id,...h})).sort((a,b)=>a.ts-b.ts);
-  const active = list.filter(h=>!['done','cancelled'].includes(h.status));
-  const closed = list.filter(h=>['done','cancelled'].includes(h.status));
+  // The Moves+Rides "Hitchhikers" section is for general person rides only —
+  // pickup companion rides and stranded-return rides already show inside the
+  // Active Pickups / Returns sections, so they're excluded here to avoid duplicates.
+  const generalList = list.filter(h => h.purpose !== 'pickup_companion' && h.purpose !== 'stranded_return');
+  const active = generalList.filter(h=>!['done','cancelled'].includes(h.status));
+  const closed = generalList.filter(h=>['done','cancelled'].includes(h.status));
   const el = document.getElementById('hitchhiker-list');
   if (el) {
-    if (!list.length) el.innerHTML = '<div class="empty-state"><div class="empty-icon">🚐</div><p>No hitchhiker requests yet.</p></div>';
+    if (!generalList.length) el.innerHTML = '<div class="empty-state"><div class="empty-icon">🚐</div><p>No hitchhiker requests yet.</p></div>';
     else el.innerHTML = active.map(h=>hitchhikerHTML(h,false)).join('') + (closed.length?closed.map(h=>hitchhikerHTML(h,false)).join(''):'');
   }
   renderShuttleDashboard();
@@ -2953,8 +3366,18 @@ function renderShuttleDashboard() {
   const activeHH = Object.entries(hitchhikers||{}).map(([id,h])=>({id,...h})).filter(h=>!['done','cancelled'].includes(h.status)).sort((a,b)=>a.ts-b.ts);
   document.getElementById('shuttle-hh-count').textContent = activeHH.length + ' active';
   hhList.innerHTML = activeHH.length
-    ? activeHH.map(h=>hitchhikerHTML(h,true)).join('')
+    ? groupRidesByTrip(activeHH).map(g => g.length > 1 ? hitchhikerGroupHTML(g) : hitchhikerHTML(g[0],true)).join('')
     : '<div style="text-align:center;padding:40px;color:var(--text-muted)">No active hitchhiker requests</div>';
+
+  const vanList = document.getElementById('shuttle-van-list');
+  if (vanList) {
+    const activeVan = Object.entries(vanTrips||{}).map(([id,v])=>({id,...v})).filter(v=>v.status!=='done').sort((a,b)=>a.ts-b.ts);
+    const vanCountEl = document.getElementById('shuttle-van-count');
+    if (vanCountEl) vanCountEl.textContent = activeVan.length + ' active';
+    vanList.innerHTML = activeVan.length
+      ? activeVan.map(v=>vanTripHTML(v,v.id,true)).join('')
+      : '<div style="text-align:center;padding:40px;color:var(--text-muted)">No van trips queued</div>';
+  }
 }
 
 // ── Test Drives ─────────────────────────────────────────
@@ -3351,6 +3774,8 @@ function render() {
   document.getElementById('s-done').textContent=done.length;
   document.getElementById('tc-queue').textContent=pending+progress+upcoming.length+onhold.length;
   document.getElementById('tc-tv').textContent=active.length+upcoming.length;
+  const tcInternal = document.getElementById('tc-internal-moves');
+  if (tcInternal) tcInternal.textContent = pending+progress+upcoming.length+onhold.length;
   const list=document.getElementById('queue-list');
   if(!all.length){list.innerHTML='<div class="empty-state"><div class="empty-icon">🚗</div><p>No requests yet.</p></div>';return;}
   let html='';
@@ -4682,6 +5107,9 @@ setInterval(()=>{
   const homePanel = document.getElementById('panel-home');
   if (homePanel && homePanel.classList.contains('active')) renderHomeGrid();
   renderHitchhikers(); // also refreshes the shuttle dashboard internally
+  renderPickupRequests();
+  renderReturns();
+  renderVanTrips();
   renderDriverLocations();
 },1000);
 
