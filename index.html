@@ -43,7 +43,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .btn-rename:hover{color:white;background:rgba(255,255,255,.1)}
 .header-time{font-size:12px;color:rgba(255,255,255,.45)}
 .sync-dot{width:8px;height:8px;border-radius:50%;background:#ccc;transition:background .3s}
-.rides-driver-icon{font-size:28px;text-align:center;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4));animation:ridesMarkerPulse 2s ease-in-out infinite}
+.rides-driver-icon{font-size:28px;text-align:center}
+.rides-driver-icon-inner{display:inline-block;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4));animation:ridesMarkerPulse 2s ease-in-out infinite}
 .rides-lot-icon{font-size:24px;text-align:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
 .leaflet-routing-container{display:none!important}
 @keyframes ridesMarkerPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
@@ -965,10 +966,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
             </div>
             <div id="rides-direction-row" style="margin-bottom:12px">
               <div style="font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Where are you now?</div>
-              <div style="display:flex;gap:8px">
-                <button id="rides-loc-55-btn" onclick="ridesSetLocation('55 Mapleview')" class="toggle-btn active" style="flex:1;padding:8px;border-radius:8px;font-size:13px">55 Mapleview</button>
-                <button id="rides-loc-323-btn" onclick="ridesSetLocation('323 Bayview')" class="toggle-btn" style="flex:1;padding:8px;border-radius:8px;font-size:13px">323 Bayview</button>
+              <div id="rides-from-row" style="display:flex;gap:6px;margin-bottom:10px">
+                <button onclick="ridesSetLocation('55 Mapleview')" class="toggle-btn active" style="flex:1;padding:8px 4px;border-radius:8px;font-size:12px">55 Mapleview</button>
+                <button onclick="ridesSetLocation('323 Bayview')" class="toggle-btn" style="flex:1;padding:8px 4px;border-radius:8px;font-size:12px">323 Bayview</button>
+                <button onclick="ridesSetLocation('700 Bayview')" class="toggle-btn" style="flex:1;padding:8px 4px;border-radius:8px;font-size:12px">700 Bayview</button>
               </div>
+              <div id="rides-dest-label" style="font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Where do you want to go?</div>
+              <div id="rides-dest-row" style="display:flex;gap:6px"></div>
+              <div id="rides-vehicle-dest-note" style="display:none;font-size:13px;color:var(--text-muted)"></div>
             </div>
             <button id="rides-submit-btn" onclick="submitRide()" style="width:100%;padding:13px;border:none;border-radius:10px;background:var(--ford);color:#fff;font-size:15px;font-weight:700;cursor:pointer">Request Ride</button>
           </div>
@@ -977,7 +982,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       </div>
 
       <!-- DRIVER PANEL — shares the map above, big buttons and high contrast below -->
-      <div id="rides-driver-view" style="display:none;flex-direction:column;flex-shrink:0;max-height:52vh;overflow-y:auto;background:#0a1128;color:#fff;padding:16px 20px 20px;position:relative;z-index:500;box-shadow:0 -4px 16px rgba(0,0,0,.3)">
+      <div id="rides-driver-view" style="display:none;flex-direction:column;flex:1;min-height:0;overflow-y:auto;background:#0a1128;color:#fff;padding:16px 20px 20px;position:relative;z-index:500;box-shadow:0 -4px 16px rgba(0,0,0,.3)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <div style="font-size:19px;font-weight:800">🚐 Driver Dashboard</div>
           <button onclick="ridesSetMode('request')" style="padding:9px 16px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;min-height:40px">Exit</button>
@@ -1738,7 +1743,7 @@ let driverLocations = {}; // live mirror of /driverLocation — who's currently 
 let geoWatchId = null;    // navigator.geolocation.watchPosition() handle, while sharing is on
 let currentUser = null, bookingType = 'asap';
 let rides = {}; // the live ride-request system — 55 Mapleview <-> 323 Bayview
-let ridesType = 'hitchhike', ridesLocation = '55 Mapleview', ridesStockFoundLot = null, ridesMode = 'request';
+let ridesType = 'hitchhike', ridesLocation = '55 Mapleview', ridesDestination = '323 Bayview', ridesStockFoundLot = null, ridesMode = 'request';
 let ridesLeafletMap = null, ridesDriverMarkers = {}, ridesMapFitDone = false;
 let ridesRouteControl = null, ridesRouteDestKey = null, ridesLastRouteCalcTs = 0;
 const RIDES_ROUTE_THROTTLE_MS = 15000; // don't hammer the free routing service more than every 15s
@@ -2502,7 +2507,7 @@ function ridesInitMap() {
     maxZoom: 19,
   }).addTo(ridesLeafletMap);
   Object.entries(RIDES_LOTS).forEach(([name, loc]) => {
-    const icon = L.divIcon({ html: '📍', className: 'rides-lot-icon', iconSize: [26,26] });
+    const icon = L.divIcon({ html: '📍', className: 'rides-lot-icon', iconSize: [26,26], iconAnchor: [13,26] });
     L.marker([loc.lat, loc.lng], { icon })
       .addTo(ridesLeafletMap)
       .bindPopup(`<strong>${name}</strong><br>${loc.address}`);
@@ -2524,7 +2529,7 @@ function ridesUpdateDriverMarkers() {
     if (ridesDriverMarkers[uid]) {
       ridesDriverMarkers[uid].setLatLng([d.lat, d.lng]);
     } else {
-      const icon = L.divIcon({ html: '🚐', className: 'rides-driver-icon', iconSize: [32,32] });
+      const icon = L.divIcon({ html: '<span class="rides-driver-icon-inner">🚐</span>', className: 'rides-driver-icon', iconSize: [32,32], iconAnchor: [16,16] });
       ridesDriverMarkers[uid] = L.marker([d.lat, d.lng], { icon }).addTo(ridesLeafletMap).bindPopup(d.name || 'Driver');
     }
   });
@@ -2626,27 +2631,67 @@ window.toggleLocationSharing = function() {
   );
 };
 
+const RIDES_ALL_LOTS = ['55 Mapleview', '323 Bayview', '700 Bayview'];
+
 window.ridesSetType = function(type) {
   ridesType = type;
   document.getElementById('rides-type-hitchhike-btn').classList.toggle('active', type==='hitchhike');
   document.getElementById('rides-type-vehicle-btn').classList.toggle('active', type==='vehicle');
   document.getElementById('rides-stock-row').style.display = type==='vehicle' ? 'block' : 'none';
-  document.getElementById('rides-direction-row').style.display = (type==='vehicle' && ridesStockFoundLot) ? 'none' : 'block';
+  ridesStockFoundLot = null;
+  ridesRenderDirectionPickers();
 };
+
+// Renders the "from" buttons (excluding wherever the found vehicle is, if any)
+// and the "to" row — either a picker (hitchhiking) or a locked note (vehicle
+// pickup, since the destination is simply wherever the car already is).
+function ridesRenderDirectionPickers() {
+  const fromRow = document.getElementById('rides-from-row');
+  const destRow = document.getElementById('rides-dest-row');
+  const destLabel = document.getElementById('rides-dest-label');
+  const vehNote = document.getElementById('rides-vehicle-dest-note');
+  if (!fromRow) return;
+
+  const excludeFromFrom = ridesType === 'vehicle' && ridesStockFoundLot ? ridesStockFoundLot : null;
+  const fromOptions = RIDES_ALL_LOTS.filter(l => l !== excludeFromFrom);
+  if (!fromOptions.includes(ridesLocation)) ridesLocation = fromOptions[0];
+  fromRow.innerHTML = fromOptions.map(l =>
+    `<button onclick="ridesSetLocation('${l}')" class="toggle-btn${l===ridesLocation?' active':''}" style="flex:1;padding:8px 4px;border-radius:8px;font-size:12px">${l}</button>`
+  ).join('');
+
+  if (ridesType === 'vehicle' && ridesStockFoundLot) {
+    destLabel.style.display = 'none';
+    destRow.style.display = 'none';
+    vehNote.style.display = 'block';
+    vehNote.textContent = `📍 Destination: ${ridesStockFoundLot} (where the car is)`;
+  } else {
+    destLabel.style.display = 'block';
+    destRow.style.display = 'flex';
+    vehNote.style.display = 'none';
+    const destOptions = RIDES_ALL_LOTS.filter(l => l !== ridesLocation);
+    if (!destOptions.includes(ridesDestination)) ridesDestination = destOptions[0];
+    destRow.innerHTML = destOptions.map(l =>
+      `<button onclick="ridesSetDestination('${l}')" class="toggle-btn${l===ridesDestination?' active':''}" style="flex:1;padding:8px 4px;border-radius:8px;font-size:12px">${l}</button>`
+    ).join('');
+  }
+}
 
 window.ridesSetLocation = function(loc) {
   ridesLocation = loc;
-  document.getElementById('rides-loc-55-btn').classList.toggle('active', loc==='55 Mapleview');
-  document.getElementById('rides-loc-323-btn').classList.toggle('active', loc==='323 Bayview');
+  ridesRenderDirectionPickers();
+};
+
+window.ridesSetDestination = function(loc) {
+  ridesDestination = loc;
+  ridesRenderDirectionPickers();
 };
 
 window.ridesCheckStockLocation = function() {
   const stock = document.getElementById('rides-stock-input').value.trim().toUpperCase();
   const normalizedInput = stock.replace(/[^A-Z0-9]/g, ''); // ignore dashes/spaces so formatting differences don't cause false misses
   const resultEl = document.getElementById('rides-stock-result');
-  const dirRow = document.getElementById('rides-direction-row');
   ridesStockFoundLot = null;
-  if (!stock) { resultEl.style.display = 'none'; dirRow.style.display = 'block'; return; }
+  if (!stock) { resultEl.style.display = 'none'; ridesRenderDirectionPickers(); return; }
   let foundLot = null;
   Object.entries(cmVehicles||{}).forEach(([lot, lotVehs]) => {
     Object.values(lotVehs||{}).forEach(v => {
@@ -2658,30 +2703,23 @@ window.ridesCheckStockLocation = function() {
   resultEl.style.display = 'block';
   if (!foundLot) {
     resultEl.innerHTML = `<span style="color:#991b1b">⚠ Can't find "${stock}" anywhere on the Vehicle Locator map — double check the stock # and that it's actually placed on the map.</span>`;
-    dirRow.style.display = 'block';
+    ridesRenderDirectionPickers();
     return;
   }
-  if (foundLot !== 'bayview323' && foundLot !== 'mapleview55') {
-    const lotLabel = CM_LOT_LABELS[foundLot] || foundLot;
-    resultEl.innerHTML = `<span style="color:#991b1b">⚠ Found at ${lotLabel} — rides only run between 323 Bayview and 55 Mapleview, so this car isn't eligible for pickup here.</span>`;
-    dirRow.style.display = 'block';
-    return;
-  }
-  const lotLabel = CM_LOT_LABELS[foundLot];
-  const otherLot = foundLot === 'bayview323' ? '55 Mapleview' : '323 Bayview';
+  const lotLabel = CM_LOT_LABELS[foundLot] || foundLot;
   ridesStockFoundLot = lotLabel;
-  ridesLocation = otherLot;
-  resultEl.innerHTML = `<span style="color:#15803d;font-weight:600">✓ Found at ${lotLabel} — you'll get a ride there from ${otherLot}</span>`;
-  dirRow.style.display = 'none';
+  resultEl.innerHTML = `<span style="color:#15803d;font-weight:600">✓ Found at ${lotLabel}</span>`;
+  ridesRenderDirectionPickers();
 };
 
 window.submitRide = async function(pickupOverride, dropoffOverride, stockOverride) {
   const isOverride = !!pickupOverride;
   const stock = isOverride ? stockOverride : (ridesType === 'vehicle' ? document.getElementById('rides-stock-input').value.trim().toUpperCase() : '');
   if (!isOverride && ridesType === 'vehicle' && !stock) { alert('Please enter a stock #.'); return; }
-  if (!isOverride && ridesType === 'vehicle' && !ridesStockFoundLot) { alert('This stock # needs to be found at 323 Bayview or 55 Mapleview on the map first.'); return; }
+  if (!isOverride && ridesType === 'vehicle' && !ridesStockFoundLot) { alert('This stock # needs to be found on the Vehicle Locator map first.'); return; }
   const pickup = isOverride ? pickupOverride : ridesLocation;
-  const dropoff = isOverride ? dropoffOverride : (pickup === '55 Mapleview' ? '323 Bayview' : '55 Mapleview');
+  const dropoff = isOverride ? dropoffOverride : (ridesType === 'vehicle' ? ridesStockFoundLot : ridesDestination);
+  if (!isOverride && pickup === dropoff) { alert("Pickup and drop-off can't be the same location."); return; }
   const btn = document.getElementById('rides-submit-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Requesting…'; }
   try {
@@ -2697,6 +2735,7 @@ window.submitRide = async function(pickupOverride, dropoffOverride, stockOverrid
       document.getElementById('rides-stock-input').value = '';
       document.getElementById('rides-stock-result').style.display = 'none';
       ridesStockFoundLot = null;
+      ridesRenderDirectionPickers();
     }
   } catch(e) { alert('Error submitting — check connection.'); }
   if (btn) { btn.disabled = false; btn.textContent = 'Request Ride'; }
@@ -2743,6 +2782,8 @@ window.ridesSetMode = function(mode) {
   document.getElementById('rides-mode-drive-btn').classList.toggle('active', mode==='drive');
   document.getElementById('rides-sheet').style.display = mode==='request' ? 'block' : 'none';
   document.getElementById('rides-driver-view').style.display = mode==='drive' ? 'flex' : 'none';
+  const mapEl = document.getElementById('rides-map');
+  if (mapEl) mapEl.style.flex = mode==='drive' ? '0 0 200px' : '1';
   if (mode === 'drive') renderDriverQueue();
   setTimeout(()=>ridesLeafletMap?.invalidateSize(), 50);
 }
@@ -4051,7 +4092,7 @@ window.switchTab=function(name,btn){
   if(name==='history') { renderHistory(); renderCompoundHistory(); }
   if(name==='tracker'){renderTracker();renderTrackerSummary();}
   if(name==='tv'){ renderTVRides(); }
-  if(name==='rides'){ ridesInitMap(); renderRidesTab(); setTimeout(()=>ridesLeafletMap?.invalidateSize(),100); }
+  if(name==='rides'){ ridesInitMap(); ridesRenderDirectionPickers(); renderRidesTab(); setTimeout(()=>ridesLeafletMap?.invalidateSize(),100); }
 };
 window.exitTV=function(){
   const target='queue';
