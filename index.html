@@ -43,6 +43,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .btn-rename:hover{color:white;background:rgba(255,255,255,.1)}
 .header-time{font-size:12px;color:rgba(255,255,255,.45)}
 .sync-dot{width:8px;height:8px;border-radius:50%;background:#ccc;transition:background .3s}
+.rides-driver-icon{font-size:28px;text-align:center;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4));animation:ridesMarkerPulse 2s ease-in-out infinite}
+.rides-lot-icon{font-size:24px;text-align:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+@keyframes ridesMarkerPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+#rides-map .leaflet-container{font-family:var(--font);height:100%;width:100%}
 .sync-dot.live{background:#22c55e}.sync-dot.error{background:#ef4444}
 
 /* ── Tabs ── */
@@ -805,6 +809,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 </head>
 <body>
 
@@ -881,6 +887,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       Home
     </button>
+    <button class="tab" id="tab-rides" onclick="switchTab('rides',this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17h13l3-6h-2l-2-5H8L5 11H3z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="15.5" cy="17.5" r="1.5"/></svg>
+      Rides <span class="tab-count" id="tc-rides">0</span>
+    </button>
     <button class="tab" id="tab-compound" onclick="switchTab('compound',this)" style="display:none">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="17" width="18" height="4" rx="1"/></svg>
       Vehicle Locator
@@ -926,6 +936,51 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <div class="home-grid" id="home-grid"></div>
     </div>
 
+    <!-- RIDES — live map + Uber-style bottom sheet -->
+    <div id="panel-rides" class="panel" style="padding:0;display:flex;flex-direction:column;height:calc(100vh - 130px);overflow:hidden">
+      <div id="rides-map" style="flex:1;min-height:0;position:relative;background:#e2e8f0"></div>
+      <div id="rides-sheet" style="flex-shrink:0;background:var(--surface);border-top:1px solid var(--border);box-shadow:0 -4px 16px rgba(0,0,0,.1);padding:14px 16px 16px;max-height:48vh;overflow-y:auto;position:relative;z-index:500">
+
+        <div id="rides-mode-toggle" style="display:none;gap:8px;margin-bottom:12px">
+          <button id="rides-mode-request-btn" onclick="ridesSetMode('request')" class="toggle-btn active" style="flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:700">🙋 Request</button>
+          <button id="rides-mode-drive-btn" onclick="ridesSetMode('drive')" class="toggle-btn" style="flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:700">🚐 Drive</button>
+        </div>
+
+        <!-- REQUEST MODE -->
+        <div id="rides-request-panel">
+          <div id="rides-request-form">
+            <div style="font-size:15px;font-weight:700;margin-bottom:10px">Request a ride</div>
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+              <button id="rides-type-hitchhike-btn" onclick="ridesSetType('hitchhike')" class="toggle-btn active" style="flex:1;padding:10px 6px;border-radius:8px;font-size:13px">🙋 Hitchhiking</button>
+              <button id="rides-type-vehicle-btn" onclick="ridesSetType('vehicle')" class="toggle-btn" style="flex:1;padding:10px 6px;border-radius:8px;font-size:13px">🚗 Pick Up a Vehicle</button>
+            </div>
+            <div id="rides-stock-row" style="display:none;margin-bottom:10px">
+              <input id="rides-stock-input" type="text" placeholder="Stock # e.g. B0394" autocomplete="off" oninput="ridesCheckStockLocation()" style="width:100%;padding:10px 12px;font-size:16px;font-family:var(--font);border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"/>
+              <div id="rides-stock-result" style="display:none;margin-top:6px;font-size:12px"></div>
+            </div>
+            <div id="rides-direction-row" style="margin-bottom:12px">
+              <div style="font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Where are you now?</div>
+              <div style="display:flex;gap:8px">
+                <button id="rides-loc-55-btn" onclick="ridesSetLocation('55 Mapleview')" class="toggle-btn active" style="flex:1;padding:8px;border-radius:8px;font-size:13px">55 Mapleview</button>
+                <button id="rides-loc-323-btn" onclick="ridesSetLocation('323 Bayview')" class="toggle-btn" style="flex:1;padding:8px;border-radius:8px;font-size:13px">323 Bayview</button>
+              </div>
+            </div>
+            <button id="rides-submit-btn" onclick="submitRide()" style="width:100%;padding:13px;border:none;border-radius:10px;background:var(--ford);color:#fff;font-size:15px;font-weight:700;cursor:pointer">Request Ride</button>
+          </div>
+          <div id="rides-active-status" style="display:none"></div>
+        </div>
+
+        <!-- DRIVE MODE -->
+        <div id="rides-drive-panel" style="display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div style="font-size:15px;font-weight:700">Driver mode</div>
+            <button id="rides-loc-share-btn" onclick="toggleLocationSharing()" style="font-size:12px;padding:7px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);cursor:pointer">📍 Share Location</button>
+          </div>
+          <div id="rides-driver-queue"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- COMPOUND MAP -->
     <div id="panel-compound" class="panel" style="padding:0">
 
@@ -957,6 +1012,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <span>90+</span>
         <span style="margin-left:8px;color:var(--text-faint)">· Grey = no arrival date on record</span>
       </div>
+
+      <!-- Live "someone's coming for a pickup" banner for IC/lot staff -->
+      <div id="cm-incoming-pickups-banner" style="display:none;padding:8px 16px;background:#eff6ff;border-bottom:1px solid #bfdbfe;font-size:12px;color:#1d4ed8;display:flex;gap:12px;flex-wrap:wrap;align-items:center"></div>
 
       <!-- Edit mode row — shown only in edit mode -->
       <div id="cm-edit-bar" style="display:none;align-items:center;gap:8px;padding:8px 16px;background:#fef9ec;border-bottom:1px solid #fcd34d;flex-wrap:wrap">
@@ -1271,6 +1329,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
               <div id="tv-compound-map" style="width:100%"></div>
             </div>
           </div>
+          <!-- Col 3: Vehicles to get ready for pickup -->
+          <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0;border-left:1px solid rgba(255,255,255,.15);padding-left:16px">
+            <div class="tv-col-title" id="tv-title-rides">Get Ready for Pickup</div>
+            <div id="tv-rides-list" style="overflow-y:auto;flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start"></div>
+          </div>
         </div>
         <div id="tv-hint" style="position:absolute;bottom:14px;right:18px;font-size:10px;opacity:.15;color:white;user-select:none">Hold to show controls</div>
       </div>
@@ -1414,6 +1477,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <button id="cm-quick-wash" onclick="cmQuickToggleFlag('needsWash')" style="flex:1;height:60px;border-radius:10px;border:2px solid var(--border);background:var(--bg);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
         <span style="font-size:20px">🧼</span><span style="font-size:11px;font-weight:700">Needs Wash</span>
       </button>
+      <button id="cm-quick-dealership" onclick="cmQuickToggleFlag('atDealership')" style="flex:1;height:60px;border-radius:10px;border:2px solid var(--border);background:var(--bg);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+        <span style="font-size:20px">🏢</span><span style="font-size:11px;font-weight:700">At Dealership</span>
+      </button>
+    </div>
+    <div id="cm-quick-dealership-warning" style="display:none;background:#fef2f2;border:1px solid #fca5a5;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:700;color:#991b1b;margin-bottom:8px">⚠ This car is at the dealership — sales staff need to bring it back to 323 Bayview.</div>
+      <button onclick="cmRequestRideBack()" style="width:100%;padding:10px;border:none;border-radius:var(--radius-sm);background:#dc2626;color:#fff;font-size:13px;font-weight:700;cursor:pointer">🚐 Request Ride Back to 323 Bayview</button>
     </div>
     <div id="cm-quick-td-section" style="margin-bottom:12px"></div>
     <div id="cm-quick-edit-row" style="display:none;border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
@@ -1660,6 +1730,9 @@ let vehicleRequests = {}, vehicleReturns = {}; // one unified pickup/return flow
 let driverLocations = {}; // live mirror of /driverLocation — who's currently sharing, and where
 let geoWatchId = null;    // navigator.geolocation.watchPosition() handle, while sharing is on
 let currentUser = null, bookingType = 'asap';
+let rides = {}; // the live ride-request system — 55 Mapleview <-> 323 Bayview
+let ridesType = 'hitchhike', ridesLocation = '55 Mapleview', ridesStockFoundLot = null, ridesMode = 'request';
+let ridesLeafletMap = null, ridesDriverMarkers = {}, ridesMapFitDone = false;
 let MOVE_MINS = 15, CONVERT_MINS = 45, LOT_OPEN = 7, LOT_CLOSE = 21;
 let historyDays = 30, soundEnabled = localStorage.getItem('lq-sound') !== 'false';
 let tFilterStatus = 'ALL', tSortCol = 'arrived', tSortAsc = false, editingUnitId = null;
@@ -1695,7 +1768,7 @@ function perm(key) {
 
 function applyPermissions() {
   if (!currentUser) return;
-  const tabMap = { tabHome:'tab-home', tabQueue:'tab-queue', tabTracker:'tab-tracker', tabGetReady:'tab-getready', tabTestDrive:'tab-testdrive', tabTV:'tab-tv', tabShuttle:'tab-shuttle', tabCompound:'tab-compound', tabAudit:'tab-audit', tabHistory:'tab-history', tabSettings:'tab-settings' };
+  const tabMap = { tabHome:'tab-home', tabQueue:'tab-rides', tabTracker:'tab-tracker', tabGetReady:'tab-getready', tabTestDrive:'tab-testdrive', tabTV:'tab-tv', tabShuttle:'tab-shuttle', tabCompound:'tab-compound', tabAudit:'tab-audit', tabHistory:'tab-history', tabSettings:'tab-settings' };
   for (const key in tabMap) {
     const el = document.getElementById(tabMap[key]);
     if (el) el.style.display = perm(key) ? '' : 'none';
@@ -1723,7 +1796,7 @@ function applyPermissions() {
 // ── Permissions matrix editor (Settings tab) ──────────
 const PERM_GROUPS = [
   { label:'Tabs', keys: [
-    ['tabHome','Home'], ['tabQueue','Moves + Rides'], ['tabTracker','Incoming'], ['tabGetReady','Get Ready'], ['tabTestDrive','Test Drives'],
+    ['tabHome','Home'], ['tabQueue','Rides'], ['tabTracker','Incoming'], ['tabGetReady','Get Ready'], ['tabTestDrive','Test Drives'],
     ['tabCompound','Vehicle Locator'], ['tabTV','TV Display'], ['tabShuttle','Shuttle Dashboard'], ['tabHistory','History'], ['tabSettings','Settings'],
   ]},
   { label:'Shuttle Dashboard', keys: [
@@ -2083,9 +2156,18 @@ function startApp() {
     if (document.getElementById('panel-tracker')?.classList.contains('active')) renderTracker();
   });
 
-  // Quick Links (Settings) may open this app with ?view=shuttle to jump straight
-  // to the Shuttle Dashboard after a normal login — only applied once per session
-  // so it doesn't yank the person back there every time permissions live-update.
+  onValue(ref(db, 'rides'), snap => {
+    rides = snap.val() || {};
+    if (document.getElementById('panel-rides')?.classList.contains('active')) renderRidesTab();
+    if (document.getElementById('panel-tv')?.classList.contains('active')) renderTVRides();
+    if (document.getElementById('panel-compound')?.classList.contains('active')) renderIncomingPickupsBanner();
+  });
+
+  onValue(ref(db, 'driverLocation'), snap => {
+    driverLocations = snap.val() || {};
+    if (document.getElementById('panel-rides')?.classList.contains('active')) ridesUpdateDriverMarkers();
+  });
+
   if (!viewParamApplied) {
     viewParamApplied = true;
   }
@@ -2393,6 +2475,284 @@ function computeCountdown(stageTs, targetMins) {
   return { text: (overdue?'+':'')+mm+':'+String(ss).padStart(2,'0'), overdue };
 }
 
+// Real addresses for the three lots — pins shown on the Rides map.
+const RIDES_LOTS = {
+  '55 Mapleview': { lat: 44.333195, lng: -79.690616, address: '55 Bryne Drive, Barrie, ON' },
+  '323 Bayview':  { lat: 44.351122, lng: -79.680119, address: '323 Bayview Drive, Barrie, ON' },
+  '700 Bayview':  { lat: 44.330368, lng: -79.677249, address: '700 Bayview Drive, Barrie, ON' },
+};
+
+function ridesInitMap() {
+  if (ridesLeafletMap || typeof L === 'undefined') return;
+  const mapEl = document.getElementById('rides-map');
+  if (!mapEl) return;
+  const lotCoords = Object.values(RIDES_LOTS).map(l => [l.lat, l.lng]);
+  ridesLeafletMap = L.map(mapEl, { zoomControl: true }).fitBounds(lotCoords, { padding: [40,40] });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19,
+  }).addTo(ridesLeafletMap);
+  Object.entries(RIDES_LOTS).forEach(([name, loc]) => {
+    const icon = L.divIcon({ html: '📍', className: 'rides-lot-icon', iconSize: [26,26] });
+    L.marker([loc.lat, loc.lng], { icon })
+      .addTo(ridesLeafletMap)
+      .bindPopup(`<strong>${name}</strong><br>${loc.address}`);
+  });
+  setTimeout(() => ridesLeafletMap.invalidateSize(), 200);
+}
+
+function ridesUpdateDriverMarkers() {
+  if (!ridesLeafletMap) return;
+  const seen = new Set();
+  const STALE_MS = 3 * 60 * 1000;
+  Object.entries(driverLocations||{}).forEach(([uid, d]) => {
+    const isStale = (Date.now() - d.ts) > STALE_MS;
+    if (isStale) {
+      if (ridesDriverMarkers[uid]) { ridesLeafletMap.removeLayer(ridesDriverMarkers[uid]); delete ridesDriverMarkers[uid]; }
+      return;
+    }
+    seen.add(uid);
+    if (ridesDriverMarkers[uid]) {
+      ridesDriverMarkers[uid].setLatLng([d.lat, d.lng]);
+    } else {
+      const icon = L.divIcon({ html: '🚐', className: 'rides-driver-icon', iconSize: [32,32] });
+      ridesDriverMarkers[uid] = L.marker([d.lat, d.lng], { icon }).addTo(ridesLeafletMap).bindPopup(d.name || 'Driver');
+    }
+  });
+  Object.keys(ridesDriverMarkers).forEach(uid => {
+    if (!seen.has(uid)) { ridesLeafletMap.removeLayer(ridesDriverMarkers[uid]); delete ridesDriverMarkers[uid]; }
+  });
+  const activeMarkers = Object.values(ridesDriverMarkers);
+  if (activeMarkers.length && !ridesMapFitDone) {
+    ridesMapFitDone = true;
+    const lotCoords = Object.values(RIDES_LOTS).map(l => [l.lat, l.lng]);
+    const driverCoords = activeMarkers.map(m => m.getLatLng());
+    ridesLeafletMap.fitBounds([...lotCoords, ...driverCoords], { padding: [40,40], maxZoom: 15 });
+  }
+}
+
+window.toggleLocationSharing = function() {
+  if (geoWatchId !== null) {
+    navigator.geolocation.clearWatch(geoWatchId);
+    geoWatchId = null;
+    if (currentUser?.uid) remove(ref(db, 'driverLocation/'+currentUser.uid)).catch(()=>{});
+    const btn = document.getElementById('rides-loc-share-btn');
+    if (btn) { btn.textContent = '📍 Share Location'; btn.style.background = 'var(--bg)'; btn.style.color = 'var(--text)'; }
+    return;
+  }
+  if (!navigator.geolocation) { alert("This device/browser doesn't support location sharing."); return; }
+  if (!currentUser?.uid) { alert('Location sharing needs a signed-in account.'); return; }
+  const btn = document.getElementById('rides-loc-share-btn');
+  geoWatchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      const { latitude, longitude, accuracy } = pos.coords;
+      set(ref(db, 'driverLocation/'+currentUser.uid), { name: currentUser.name, lat: latitude, lng: longitude, accuracy, ts: Date.now() }).catch(()=>{});
+      if (btn) { btn.textContent = '📍 Sharing — Stop'; btn.style.background = '#dc2626'; btn.style.color = '#fff'; }
+    },
+    (err) => { alert('Location error: ' + (err.message || 'permission denied')); geoWatchId = null; },
+    { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 }
+  );
+};
+
+window.ridesSetType = function(type) {
+  ridesType = type;
+  document.getElementById('rides-type-hitchhike-btn').classList.toggle('active', type==='hitchhike');
+  document.getElementById('rides-type-vehicle-btn').classList.toggle('active', type==='vehicle');
+  document.getElementById('rides-stock-row').style.display = type==='vehicle' ? 'block' : 'none';
+  document.getElementById('rides-direction-row').style.display = (type==='vehicle' && ridesStockFoundLot) ? 'none' : 'block';
+};
+
+window.ridesSetLocation = function(loc) {
+  ridesLocation = loc;
+  document.getElementById('rides-loc-55-btn').classList.toggle('active', loc==='55 Mapleview');
+  document.getElementById('rides-loc-323-btn').classList.toggle('active', loc==='323 Bayview');
+};
+
+window.ridesCheckStockLocation = function() {
+  const stock = document.getElementById('rides-stock-input').value.trim().toUpperCase();
+  const resultEl = document.getElementById('rides-stock-result');
+  const dirRow = document.getElementById('rides-direction-row');
+  ridesStockFoundLot = null;
+  if (!stock) { resultEl.style.display = 'none'; dirRow.style.display = 'block'; return; }
+  let foundLot = null;
+  Object.entries(cmVehicles||{}).forEach(([lot, lotVehs]) => {
+    Object.values(lotVehs||{}).forEach(v => {
+      if (v && v.stock && v.status!=='blocked' && v.status!=='void' && v.stock.toUpperCase().trim() === stock) foundLot = lot;
+    });
+  });
+  resultEl.style.display = 'block';
+  if (!foundLot || (foundLot !== 'bayview323' && foundLot !== 'mapleview55')) {
+    resultEl.innerHTML = `<span style="color:#991b1b">⚠ Can't find this car at 323 Bayview or 55 Mapleview on the Vehicle Locator map.</span>`;
+    dirRow.style.display = 'block';
+    return;
+  }
+  const lotLabel = CM_LOT_LABELS[foundLot];
+  const otherLot = foundLot === 'bayview323' ? '55 Mapleview' : '323 Bayview';
+  ridesStockFoundLot = lotLabel;
+  ridesLocation = otherLot;
+  resultEl.innerHTML = `<span style="color:#15803d;font-weight:600">✓ Found at ${lotLabel} — you'll get a ride there from ${otherLot}</span>`;
+  dirRow.style.display = 'none';
+};
+
+window.submitRide = async function(pickupOverride, dropoffOverride, stockOverride) {
+  const isOverride = !!pickupOverride;
+  const stock = isOverride ? stockOverride : (ridesType === 'vehicle' ? document.getElementById('rides-stock-input').value.trim().toUpperCase() : '');
+  if (!isOverride && ridesType === 'vehicle' && !stock) { alert('Please enter a stock #.'); return; }
+  if (!isOverride && ridesType === 'vehicle' && !ridesStockFoundLot) { alert('This stock # needs to be found at 323 Bayview or 55 Mapleview on the map first.'); return; }
+  const pickup = isOverride ? pickupOverride : ridesLocation;
+  const dropoff = isOverride ? dropoffOverride : (pickup === '55 Mapleview' ? '323 Bayview' : '55 Mapleview');
+  const btn = document.getElementById('rides-submit-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Requesting…'; }
+  try {
+    await push(ref(db,'rides'), {
+      type: stock ? 'vehicle' : 'hitchhike', stock,
+      pickup, dropoff,
+      requestedBy: currentUser.name,
+      requestedByUid: currentUser.uid || null,
+      status: 'pending',
+      ts: Date.now(),
+    });
+    if (!isOverride) {
+      document.getElementById('rides-stock-input').value = '';
+      document.getElementById('rides-stock-result').style.display = 'none';
+      ridesStockFoundLot = null;
+    }
+  } catch(e) { alert('Error submitting — check connection.'); }
+  if (btn) { btn.disabled = false; btn.textContent = 'Request Ride'; }
+};
+
+window.cancelRide = async function(id) {
+  if (!confirm('Cancel this ride request?')) return;
+  await remove(ref(db,'rides/'+id));
+};
+
+const RIDE_STAGES = ['pending','claimed','enroute','done'];
+const RIDE_STAGE_LABELS = ['Waiting for Ride','Driver on Route','Ride in Progress','Done'];
+
+function renderMyActiveRide() {
+  const formEl = document.getElementById('rides-request-form');
+  const statusEl = document.getElementById('rides-active-status');
+  if (!formEl || !statusEl || !currentUser) return;
+  const mine = Object.entries(rides||{}).map(([id,r])=>({id,...r}))
+    .filter(r => r.requestedByUid === currentUser.uid && !['done','cancelled'].includes(r.status))
+    .sort((a,b)=>b.ts-a.ts)[0];
+  if (!mine) { formEl.style.display = 'block'; statusEl.style.display = 'none'; return; }
+  formEl.style.display = 'none';
+  statusEl.style.display = 'block';
+  const stageIdx = RIDE_STAGES.indexOf(mine.status);
+  const stepperHTML = RIDE_STAGES.map((s,i) => `
+    <div style="flex:1;text-align:center">
+      <div style="width:26px;height:26px;border-radius:50%;background:${i<=stageIdx?'var(--ford)':'#e2e8f0'};color:${i<=stageIdx?'#fff':'#94a3b8'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;margin:0 auto 4px">${i+1}</div>
+      <div style="font-size:9px;color:${i<=stageIdx?'var(--ford)':'var(--text-faint)'};font-weight:600">${RIDE_STAGE_LABELS[i]}</div>
+    </div>`).join('');
+  statusEl.innerHTML = `
+    <div style="font-size:15px;font-weight:700;margin-bottom:4px">${mine.type==='vehicle' ? '🚗 '+mine.stock : '🙋 Hitchhiking'}</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">${mine.pickup} → ${mine.dropoff}</div>
+    <div style="display:flex;margin-bottom:14px">${stepperHTML}</div>
+    ${mine.claimedBy ? `<div style="font-size:13px;color:#1d4ed8;font-weight:700;margin-bottom:10px">🚐 Driver: ${mine.claimedBy}</div>` : ''}
+    ${mine.status === 'pending' ? `<button onclick="cancelRide('${mine.id}')" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:#991b1b;font-size:13px;cursor:pointer">Cancel Request</button>` : ''}
+  `;
+}
+
+window.ridesSetMode = function(mode) {
+  ridesMode = mode;
+  document.getElementById('rides-mode-request-btn').classList.toggle('active', mode==='request');
+  document.getElementById('rides-mode-drive-btn').classList.toggle('active', mode==='drive');
+  document.getElementById('rides-request-panel').style.display = mode==='request' ? 'block' : 'none';
+  document.getElementById('rides-drive-panel').style.display = mode==='drive' ? 'block' : 'none';
+  if (mode === 'drive') renderDriverQueue();
+}
+
+function renderDriverQueue() {
+  const el = document.getElementById('rides-driver-queue');
+  if (!el) return;
+  const active = Object.entries(rides||{}).map(([id,r])=>({id,...r})).filter(r=>!['done','cancelled'].includes(r.status)).sort((a,b)=>a.ts-b.ts);
+  if (!active.length) { el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px">No active ride requests.</div>'; return; }
+  el.innerHTML = active.map(r => {
+    const label = r.type==='vehicle' ? `🚗 Pickup: ${r.stock}` : '🙋 Hitchhiking';
+    let actionBtn = '';
+    if (r.status === 'pending') actionBtn = `<button onclick="claimRide('${r.id}')" style="padding:8px 14px;border:none;border-radius:8px;background:var(--ford);color:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">Claim</button>`;
+    else if (r.status === 'claimed' && r.claimedBy===currentUser?.name) actionBtn = `<button onclick="setRideStatus('${r.id}','enroute')" style="padding:8px 14px;border:none;border-radius:8px;background:#f97316;color:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">Picked Up</button>`;
+    else if (r.status === 'enroute' && r.claimedBy===currentUser?.name) actionBtn = `<button onclick="setRideStatus('${r.id}','done')" style="padding:8px 14px;border:none;border-radius:8px;background:#15803d;color:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">✓ Done</button>`;
+    else if (r.claimedBy) actionBtn = `<span style="font-size:11px;color:var(--text-faint);white-space:nowrap">${r.claimedBy}</span>`;
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;margin-bottom:8px">
+      <div style="min-width:0">
+        <div style="font-size:13px;font-weight:700">${label}</div>
+        <div style="font-size:11px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.pickup} → ${r.dropoff} · ${r.requestedBy}</div>
+      </div>
+      ${actionBtn}
+    </div>`;
+  }).join('');
+}
+
+window.claimRide = async function(id) {
+  const result = await runTransaction(ref(db,'rides/'+id), (curr) => {
+    if (!curr) return curr;
+    if (curr.status !== 'pending') return;
+    curr.status = 'claimed';
+    curr.claimedBy = currentUser.name;
+    curr.claimedTs = Date.now();
+    return curr;
+  });
+  if (!result.committed) alert('Someone else already claimed this ride.');
+};
+
+window.setRideStatus = async function(id, status) {
+  const updates = { status };
+  if (status === 'enroute') updates.enrouteTs = Date.now();
+  if (status === 'done') updates.doneTs = Date.now();
+  await update(ref(db,'rides/'+id), updates);
+};
+
+function renderRidesTab() {
+  renderMyActiveRide();
+  if (ridesMode === 'drive') renderDriverQueue();
+  ridesUpdateDriverMarkers();
+  const toggle = document.getElementById('rides-mode-toggle');
+  if (toggle) toggle.style.display = perm('shuttleAdmin') ? 'flex' : 'none';
+  const tc = document.getElementById('tc-rides');
+  if (tc) tc.textContent = Object.values(rides||{}).filter(r=>!['done','cancelled'].includes(r.status)).length;
+}
+
+// TV display — "Get Ready for Pickup" board, so on-site lot staff at either
+// end of the 55 Mapleview <-> 323 Bayview route know what's headed their way
+// and can have the vehicle ready before the driver/rider arrives.
+function renderTVRides() {
+  const listEl = document.getElementById('tv-rides-list');
+  if (!listEl) return;
+  const active = Object.entries(rides||{}).map(([id,r])=>({id,...r}))
+    .filter(r => r.type === 'vehicle' && !['done','cancelled'].includes(r.status))
+    .sort((a,b)=>a.ts-b.ts);
+  if (!active.length) {
+    listEl.innerHTML = '<div class="tv-empty" style="grid-column:1/-1"><div style="font-size:40px">✓</div><p>Nothing incoming</p></div>';
+    return;
+  }
+  const stageLabel = { pending: 'Waiting for driver', claimed: '🚐 Driver on route', enroute: '🚗 Ride in progress' };
+  const stageColor = { pending: '#94a3b8', claimed: '#f97316', enroute: '#22c55e' };
+  listEl.innerHTML = active.map(r => `
+    <div style="background:#fff;border-radius:10px;padding:12px 14px;border-left:5px solid ${stageColor[r.status]||'#94a3b8'}">
+      <div style="font-size:20px;font-weight:800;color:#00095b;line-height:1;margin-bottom:4px">${r.stock}</div>
+      <div style="font-size:11px;color:#64748b;margin-bottom:4px">${r.pickup} → ${r.dropoff}</div>
+      <div style="font-size:12px;font-weight:700;color:${stageColor[r.status]||'#64748b'}">${stageLabel[r.status]||r.status}</div>
+      ${r.claimedBy?`<div style="font-size:11px;color:#1d4ed8;font-weight:700;margin-top:2px">🚐 ${r.claimedBy}</div>`:''}
+    </div>`).join('');
+}
+
+// A live "someone's on the way" banner for IC/lot staff, right on the Vehicle
+// Locator screen — shows any ride that's actually moving (claimed or enroute),
+// hitchhikers included, so staff know who's about to show up and why.
+function renderIncomingPickupsBanner() {
+  const el = document.getElementById('cm-incoming-pickups-banner');
+  if (!el) return;
+  const active = Object.values(rides||{}).filter(r => ['claimed','enroute'].includes(r.status));
+  if (!active.length) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  const stageText = { claimed: 'on the way', enroute: 'in progress' };
+  el.innerHTML = active.map(r => {
+    const what = r.type === 'vehicle' ? `🚗 pickup for <strong>${r.stock}</strong>` : `🙋 hitchhiker`;
+    return `<span>🚐 <strong>${r.claimedBy||'Driver'}</strong> ${stageText[r.status]} — ${what} · ${r.pickup} → ${r.dropoff}</span>`;
+  }).join('<span style="color:#93c5fd">|</span>');
+}
 
 function renderTVIncoming() {
   const sumEl  = document.getElementById('tv-inc-summary');
@@ -3574,6 +3934,8 @@ window.switchTab=function(name,btn){
   if(name==='settings'){const sc=document.getElementById('s-sound');if(sc)sc.checked=soundEnabled;renderPermissionsEditor();}
   if(name==='history') { renderHistory(); renderCompoundHistory(); }
   if(name==='tracker'){renderTracker();renderTrackerSummary();}
+  if(name==='tv'){ renderTVRides(); }
+  if(name==='rides'){ ridesInitMap(); renderRidesTab(); setTimeout(()=>ridesLeafletMap?.invalidateSize(),100); }
 };
 window.exitTV=function(){
   const target='queue';
@@ -3630,6 +3992,8 @@ setInterval(()=>{
   }
   const homePanel = document.getElementById('panel-home');
   if (homePanel && homePanel.classList.contains('active')) renderHomeGrid();
+  if (document.getElementById('panel-rides')?.classList.contains('active')) renderRidesTab();
+  if (document.getElementById('panel-compound')?.classList.contains('active')) renderIncomingPickupsBanner();
 },1000);
 
 // ── Today's Drops PDF print ───────────────────────────
@@ -3763,6 +4127,16 @@ function renderHomeGrid() {
   };
 
   const tiles = [];
+
+  if (perm('tabQueue')) {
+    tiles.push({
+      name: 'rides', tone: 'navy',
+      icon: `<path d="M3 17h13l3-6h-2l-2-5H8L5 11H3z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="15.5" cy="17.5" r="1.5"/>`,
+      title: 'Rides',
+      desc: 'Request a ride or a vehicle pickup — 55 Mapleview ↔ 323 Bayview.',
+      badge: () => Object.values(rides).filter(r=>!['done','cancelled'].includes(r.status)).length
+    });
+  }
 
   if (perm('tabCompound')) {
     tiles.push({
@@ -4068,7 +4442,7 @@ function cmRenderMap() {
             ${extraStyle?`style="${extraStyle}"`:''}>
             ${cmEditMode ? `<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
             ${(veh.note || (Array.isArray(veh.notes) && veh.notes.length)) && !cmEditMode ? `<div class="cm-spot-note"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
-            ${!cmEditMode && (veh.needsGas || veh.needsWash) ? `<div class="cm-spot-flags">${veh.needsGas?'<span class="cm-spot-flag" title="Needs gas">⛽</span>':''}${veh.needsWash?'<span class="cm-spot-flag" title="Needs wash">🧼</span>':''}</div>` : ''}
+            ${!cmEditMode && (veh.needsGas || veh.needsWash || veh.atDealership) ? `<div class="cm-spot-flags">${veh.needsGas?'<span class="cm-spot-flag" title="Needs gas">⛽</span>':''}${veh.needsWash?'<span class="cm-spot-flag" title="Needs wash">🧼</span>':''}${veh.atDealership?'<span class="cm-spot-flag" title="At dealership — needs to return to 323 Bayview" style="background:#fecaca">🏢</span>':''}</div>` : ''}
             <div class="cm-spot-num">${ci+1}</div>
             <div class="cm-spot-stock">${stock}</div>
             <div class="cm-spot-desc">${lockInfo ? `🔒 ${lockInfo.lockedBy}` : heatOn ? (ageDays!=null ? `${ageDays}d on lot` : 'no arrival date') : typeLine}</div>
@@ -4200,12 +4574,17 @@ window.cmOpenQuickActions = function(key, ri, ci) {
 
   const gasBtn = document.getElementById('cm-quick-gas');
   const washBtn = document.getElementById('cm-quick-wash');
+  const dealershipBtn = document.getElementById('cm-quick-dealership');
   gasBtn.style.background = veh.needsGas ? '#fef2f2' : 'var(--bg)';
   gasBtn.style.borderColor = veh.needsGas ? '#fca5a5' : 'var(--border)';
   gasBtn.style.color = veh.needsGas ? '#dc2626' : 'var(--text)';
   washBtn.style.background = veh.needsWash ? '#eff6ff' : 'var(--bg)';
   washBtn.style.borderColor = veh.needsWash ? '#93c5fd' : 'var(--border)';
   washBtn.style.color = veh.needsWash ? '#1d4ed8' : 'var(--text)';
+  dealershipBtn.style.background = veh.atDealership ? '#fef2f2' : 'var(--bg)';
+  dealershipBtn.style.borderColor = veh.atDealership ? '#fca5a5' : 'var(--border)';
+  dealershipBtn.style.color = veh.atDealership ? '#dc2626' : 'var(--text)';
+  document.getElementById('cm-quick-dealership-warning').style.display = veh.atDealership ? 'block' : 'none';
 
   const stockUpper = (veh.stock||'').toUpperCase().trim();
   const activeTdEntry = Object.entries(testDrives||{}).find(([id,t]) => t.status==='out' && (t.stock||'').toUpperCase().trim()===stockUpper);
@@ -4233,9 +4612,19 @@ window.cmQuickToggleFlag = async function(field) {
   if (!veh) return;
   const newVal = !veh[field];
   await update(ref(db, `compound_v2/${cmCurrentLot}/${cmQuickKey}`), { [field]: newVal });
-  const label = field === 'needsGas' ? 'gas' : 'a wash';
+  const label = field === 'needsGas' ? 'gas' : field === 'needsWash' ? 'a wash' : 'being at the dealership';
   logCompoundChange(cmCurrentLot, 'flag', `${veh.stock} ${newVal?'flagged as needing':'un-flagged for'} ${label}`);
   cmOpenQuickActions(cmQuickKey, 0, 0); // refresh the modal's button states
+};
+
+window.cmRequestRideBack = async function() {
+  const veh = (cmVehicles[cmCurrentLot]||{})[cmQuickKey];
+  if (!veh) return;
+  if (!confirm(`Request a ride back to 323 Bayview for ${veh.stock}?`)) return;
+  await submitRide('55 Mapleview', '323 Bayview', veh.stock);
+  logCompoundChange(cmCurrentLot, 'ride', `${veh.stock}: ride back to 323 Bayview requested from the map`);
+  cmCloseQuickActions();
+  alert('✓ Ride requested — check the Rides tab for status');
 };
 
 window.cmAddNote = async function() {
@@ -4785,6 +5174,7 @@ window.switchTab = function(name, btn) {
     document.getElementById('main-wrap').style.padding = '0';
     document.getElementById('main-wrap').style.maxWidth = 'none';
     cmRender();
+    renderIncomingPickupsBanner();
   } else if (name === 'audit') {
     auditRender();
   } else {
