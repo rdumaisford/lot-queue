@@ -1120,19 +1120,23 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
             Requesting as <strong id="requester-name-display">—</strong>
           </div>
           <div class="booking-toggle" style="grid-template-columns:repeat(3,1fr)">
-            <button class="toggle-btn active" id="btn-reqtype-pickup" onclick="setRequestType('pickup')"><span class="toggle-btn-label">🚗 Request a Vehicle</span><span class="toggle-btn-sub">Get a car from 323 Bayview</span></button>
+            <button class="toggle-btn active" id="btn-reqtype-pickup" onclick="setRequestType('pickup')"><span class="toggle-btn-label">🚗 Request a Vehicle</span><span class="toggle-btn-sub">Get a car from another lot</span></button>
             <button class="toggle-btn" id="btn-reqtype-vehicle" onclick="setRequestType('vehicle')"><span class="toggle-btn-label">🔧 Internal Move</span><span class="toggle-btn-sub">On-lot shuffle</span></button>
             <button class="toggle-btn" id="btn-reqtype-hitchhiker" onclick="setRequestType('hitchhiker')"><span class="toggle-btn-label">🧑 Hitchhiker Ride</span><span class="toggle-btn-sub">Just need a ride</span></button>
           </div>
 
-          <!-- REQUEST A VEHICLE (Uber-style pickup from 323 Bayview) -->
+          <!-- REQUEST A VEHICLE (Uber-style pickup — works between any two lots) -->
           <div id="reqtype-pickup-fields">
             <div class="form-row"><label>Stock # <span style="color:#e24b4a">*</span></label><input id="pk-stock" type="text" placeholder="e.g. B0394" autocomplete="off" oninput="pkCheckLocation()"/></div>
             <div id="pk-location-result" style="display:none;margin-bottom:16px"></div>
+            <div id="pk-dropoff-row" class="form-row" style="display:none">
+              <label>Deliver to <span style="color:#e24b4a">*</span></label>
+              <select id="pk-dropoff"></select>
+            </div>
             <div class="form-row"><label>Notes <span style="color:var(--text-faint);font-weight:400;text-transform:none;letter-spacing:0">optional</span></label><textarea id="pk-notes" placeholder="Customer waiting, appointment time, etc…" style="min-height:60px"></textarea></div>
           </div>
 
-          <!-- INTERNAL MOVE FIELDS (on-lot shuffle — unrelated to 323 Bayview pickups) -->
+          <!-- INTERNAL MOVE FIELDS (on-lot shuffle — unrelated to inter-lot pickups) -->
           <div id="reqtype-vehicle-fields" style="display:none">
             <div class="booking-toggle">
               <button class="toggle-btn active" id="btn-asap" onclick="setBookingType('asap')"><span class="toggle-btn-label">ASAP</span><span class="toggle-btn-sub">Next available</span></button>
@@ -1229,18 +1233,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 
       <div class="section-label" style="margin-top:24px">↩️ Returns <span id="tc-returns" class="tab-count" style="background:var(--bg)"></span></div>
       <div id="returns-active-list"><div style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</div></div>
-
-      <div class="section-label" style="margin-top:24px">🚐 Van Route — 323 Bayview ↔ 55 Mapleview <span id="tc-van" class="tab-count" style="background:var(--bg)"></span></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px">
-        <input id="van-stock" type="text" placeholder="Stock #" style="flex:1;min-width:100px;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/>
-        <select id="van-direction" style="padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)">
-          <option value="323to55">323 Bayview → 55 Mapleview</option>
-          <option value="55to323">55 Mapleview → 323 Bayview</option>
-        </select>
-        <input id="van-notes" type="text" placeholder="Notes (optional)" style="flex:1;min-width:120px;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/>
-        <button class="btn-submit" onclick="submitVanTrip()" style="width:auto;margin-top:0;padding:9px 18px">Add</button>
-      </div>
-      <div id="van-active-list"><div style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</div></div>
 
       <div class="section-label" style="margin-top:28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
         <span>🔧 Internal Moves <span class="tab-count" id="tc-internal-moves" style="background:var(--bg)"></span></span>
@@ -1471,10 +1463,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div class="shuttle-col">
           <div class="shuttle-col-header">🧑‍🤝‍🧑 Pickups & Returns <span id="shuttle-hh-count" class="shuttle-col-count"></span></div>
           <div id="shuttle-hh-list" class="shuttle-col-list"></div>
-        </div>
-        <div class="shuttle-col">
-          <div class="shuttle-col-header">🚐 Van Route (323↔55) <span id="shuttle-van-count" class="shuttle-col-count"></span></div>
-          <div id="shuttle-van-list" class="shuttle-col-list"></div>
         </div>
       </div>
     </div>
@@ -1874,7 +1862,7 @@ const auth = getAuth(appFB);
 
 // ── State ─────────────────────────────────────────────
 let entries = {}, historyData = {}, units = {}, getReadyDeals = {}, hitchhikers = {}, testDrives = {}, compoundHistoryData = {};
-let vehicleRequests = {}, vehicleReturns = {}, vanTrips = {}; // the new Uber-style dealership <-> 323 Bayview flow
+let vehicleRequests = {}, vehicleReturns = {}; // one unified pickup/return flow across all lots
 let driverLocations = {}; // live mirror of /driverLocation — who's currently sharing, and where
 let geoWatchId = null;    // navigator.geolocation.watchPosition() handle, while sharing is on
 let currentUser = null, bookingType = 'asap';
@@ -2446,12 +2434,6 @@ function startApp() {
     renderReturns();
   });
 
-  onValue(ref(db,'vanTrips'), snap=>{
-    vanTrips = snap.val()||{};
-    renderVanTrips();
-    renderShuttleDashboard();
-  });
-
   onValue(ref(db,'testdrives'), snap=>{
     testDrives = snap.val()||{};
     renderTestDrives();
@@ -2695,11 +2677,16 @@ window.clearCompleted = async function() {
   await Promise.all(Object.entries(entries).filter(([,e])=>e.status==='done').map(([id])=>remove(ref(db,'entries/'+id))));
 };
 
-// ── Returns (scheduled trip back to 323 Bayview) ─────────────────────
+// ── Returns (scheduled trip back to wherever the vehicle came from) ──
 window.openScheduleReturn = async function(requestId, stock) {
-  if (!confirm(`Schedule ${stock} for return to 323 Bayview?`)) return;
+  const req = requestId ? vehicleRequests[requestId] : null;
+  const returnToLocation = req ? req.pickupLocation : null; // send it back where it originally came from
+  const driverHomeLocation = req ? req.dropoffLocation : null; // where the driver needs to end up after dropping it
+  if (!returnToLocation) { alert("Can't figure out where this car should return to — missing original request info."); return; }
+  if (!confirm(`Schedule ${stock} for return to ${returnToLocation}?`)) return;
   await push(ref(db,'vehicleReturns'), {
     stock, requestId,
+    returnToLocation, driverHomeLocation,
     scheduledBy: currentUser.name,
     status: 'pending', // pending -> claimed -> enroute -> dropped_off
     ts: Date.now(),
@@ -2723,18 +2710,19 @@ window.setReturnEnroute = async function(id) {
   await update(ref(db,'vehicleReturns/'+id), { status:'enroute', enrouteTs: Date.now() });
 };
 
-// The key step: the instant a solo driver drops the car at 323 Bayview, they're
-// stranded with no vehicle — this automatically creates their ride back.
+// The key step: the instant a solo driver drops the car off, they're stranded
+// with no vehicle — this automatically creates their ride back to home base.
 window.markReturnDroppedOff = async function(id) {
   const ret = vehicleReturns[id];
   if (!ret) return;
   await update(ref(db,'vehicleReturns/'+id), { status:'dropped_off', droppedOffTs: Date.now() });
+  const pickup = ret.returnToLocation || 'the drop-off lot';
+  const dropoff = ret.driverHomeLocation || '700 Bayview';
   await push(ref(db,'hitchhikers'), {
     kind: 'person',
     name: ret.driver || currentUser.name,
-    pickup: '323 Bayview',
-    dropoff: '700 Bayview',
-    notes: `Dropped off ${ret.stock} at 323 Bayview — needs a ride back`,
+    pickup, dropoff,
+    notes: `Dropped off ${ret.stock} at ${pickup} — needs a ride back`,
     requestedBy: ret.driver || currentUser.name,
     status: 'pending',
     ts: Date.now(),
@@ -2762,11 +2750,12 @@ function returnHTML(r, id) {
   } else if (r.status === 'dropped_off') {
     if (canAdmin) actions += `<button class="btn-action" onclick="deleteReturn('${id}')">Remove</button>`;
   }
-  const statusLabel = {pending:'Waiting for driver',claimed:'Driver assigned',enroute:'Heading to 323 Bayview',dropped_off:'✓ Dropped off'}[r.status]||r.status;
+  const dest = r.returnToLocation || 'destination';
+  const statusLabel = {pending:'Waiting for driver',claimed:'Driver assigned',enroute:`Heading to ${dest}`,dropped_off:'✓ Dropped off'}[r.status]||r.status;
   return `<div class="entry">
     <div style="flex:1">
       <div class="entry-stock">↩️ ${r.stock}</div>
-      <div class="entry-meta" style="margin-bottom:5px">Scheduled by ${r.scheduledBy}${r.driver?' · Driver: '+r.driver:''}</div>
+      <div class="entry-meta" style="margin-bottom:5px">Returning to ${dest} · Scheduled by ${r.scheduledBy}${r.driver?' · Driver: '+r.driver:''}</div>
       <div style="font-size:13px;font-weight:700;color:#1d4ed8">${statusLabel}</div>
     </div>
     <div class="entry-actions">${actions}<div class="entry-time">${timeAgo(r.ts)}</div></div>
@@ -2782,85 +2771,17 @@ function renderReturns() {
   if (countEl) countEl.textContent = active.length;
 }
 
-// ── Van Route — dedicated 323 Bayview ↔ 55 Mapleview lane, completely
-// separate from dealership traffic. Only the van driver (shuttleAdmin) works it.
-window.submitVanTrip = async function() {
-  const stock = document.getElementById('van-stock').value.trim().toUpperCase();
-  const direction = document.getElementById('van-direction').value;
-  const notes = document.getElementById('van-notes').value.trim();
-  if (!stock) { alert('Please enter a stock #.'); return; }
-  await push(ref(db,'vanTrips'), {
-    stock, direction, notes,
-    requestedBy: currentUser.name,
-    status: 'pending', // pending -> claimed -> enroute -> done
-    ts: Date.now(),
-  });
-  document.getElementById('van-stock').value = '';
-  document.getElementById('van-notes').value = '';
-};
-
-window.claimVanTrip = async function(id) {
-  const result = await runTransaction(ref(db,'vanTrips/'+id), (curr) => {
-    if (!curr) return curr;
-    if (curr.status !== 'pending') return;
-    curr.status = 'claimed';
-    curr.driver = currentUser.name;
-    curr.claimedTs = Date.now();
-    return curr;
-  });
-  if (!result.committed) alert('Someone else already claimed this.');
-};
-window.setVanTripEnroute = async function(id) { await update(ref(db,'vanTrips/'+id), {status:'enroute', enrouteTs:Date.now()}); };
-window.markVanTripDone = async function(id) { await update(ref(db,'vanTrips/'+id), {status:'done', doneTs:Date.now()}); };
-window.deleteVanTrip = async function(id) { if(!confirm('Remove this van trip?'))return; await remove(ref(db,'vanTrips/'+id)); };
-
-function vanTripHTML(v, id, big) {
-  const dirLabel = v.direction === '55to323' ? '55 Mapleview → 323 Bayview' : '323 Bayview → 55 Mapleview';
-  const canManage = perm('shuttleAdmin');
-  const btnCls = big ? 'shuttle-btn' : 'btn-action';
-  let actions = '';
-  if (v.status==='pending' && canManage) actions += `<button class="${btnCls}" style="background:#eff6ff;color:#1d4ed8;font-weight:700" onclick="claimVanTrip('${id}')">Claim</button>`;
-  else if (v.status==='claimed' && canManage) actions += `<button class="${btnCls}" style="background:#fff7ed;color:#c2410c;font-weight:700" onclick="setVanTripEnroute('${id}')">🚐 En Route</button>`;
-  else if (v.status==='enroute' && canManage) actions += `<button class="${btnCls}" style="background:#f0fdf4;color:#15803d;font-weight:700" onclick="markVanTripDone('${id}')">✓ Delivered</button>`;
-  else if (v.status==='done' && canManage) actions += `<button class="${btnCls}" onclick="deleteVanTrip('${id}')">Remove</button>`;
-  const statusLabel = {pending:'Waiting for van',claimed:'Van assigned',enroute:'En route',done:'✓ Delivered'}[v.status]||v.status;
-  if (big) {
-    return `<div class="shuttle-card">
-      <div class="shuttle-card-title">🚐 ${v.stock}</div>
-      <div class="shuttle-card-route">📍 ${dirLabel}</div>
-      <div class="shuttle-card-meta">${statusLabel} · Requested by ${v.requestedBy}${v.driver?' · Driver: '+v.driver:''}${v.notes?' · '+v.notes:''}</div>
-      ${actions}
-    </div>`;
-  }
-  return `<div class="entry">
-    <div style="flex:1">
-      <div class="entry-stock">🚐 ${v.stock}</div>
-      <div class="entry-meta" style="margin-bottom:5px">${dirLabel} · Requested by ${v.requestedBy}${v.driver?' · Driver: '+v.driver:''}</div>
-      <div style="font-size:13px;font-weight:700;color:#1d4ed8">${statusLabel}</div>
-      ${v.notes?`<div class="entry-notes">${v.notes}</div>`:''}
-    </div>
-    <div class="entry-actions">${actions}<div class="entry-time">${timeAgo(v.ts)}</div></div>
-  </div>`;
-}
-
-function renderVanTrips() {
-  const list = Object.entries(vanTrips||{}).map(([id,v])=>({id,...v}));
-  const active = list.filter(v=>v.status!=='done').sort((a,b)=>a.ts-b.ts);
-  const el = document.getElementById('van-active-list');
-  if (el) el.innerHTML = active.length ? active.map(v=>vanTripHTML(v,v.id)).join('') : '<div class="empty-state"><div class="empty-icon">🚐</div><p>No van trips queued.</p></div>';
-  const countEl = document.getElementById('tc-van');
-  if (countEl) countEl.textContent = active.length;
-}
-
 // ── Hitchhikers (people only — vehicles use the Vehicle Move tab) ──
-// ── Request a Vehicle (Uber-style pickup from 323 Bayview) ─────────────
+// ── Request a Vehicle (Uber-style pickup — works between any two lots) ──
 let pkFoundLot = null; // which lot the currently-typed stock # was actually found at
 
 window.pkCheckLocation = function() {
   const stock = document.getElementById('pk-stock').value.trim().toUpperCase();
   const resultEl = document.getElementById('pk-location-result');
+  const dropoffRow = document.getElementById('pk-dropoff-row');
+  const dropoffSel = document.getElementById('pk-dropoff');
   pkFoundLot = null;
-  if (!stock) { resultEl.style.display = 'none'; return; }
+  if (!stock) { resultEl.style.display = 'none'; dropoffRow.style.display = 'none'; return; }
   let foundLot = null;
   Object.entries(cmVehicles||{}).forEach(([lot, lotVehs]) => {
     Object.values(lotVehs||{}).forEach(v => {
@@ -2869,40 +2790,48 @@ window.pkCheckLocation = function() {
   });
   resultEl.style.display = 'block';
   if (!foundLot) {
+    dropoffRow.style.display = 'none';
     resultEl.innerHTML = `<div style="background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px">⚠ Can't find this stock # on the Vehicle Locator map. Make sure it's placed on the map first, or use Internal Move instead.</div>`;
     return;
   }
+  pkFoundLot = foundLot;
   const lotLabel = CM_LOT_LABELS[foundLot] || foundLot;
-  if (foundLot === 'bayview323') {
-    pkFoundLot = foundLot;
-    resultEl.innerHTML = `<div style="background:#f0fdf4;border:1px solid #86efac;color:#15803d;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;font-weight:600">✓ This car is at 323 Bayview — requesting a pickup will get you a ride out there.</div>`;
-  } else {
-    resultEl.innerHTML = `<div style="background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px">This car is already at <strong>${lotLabel}</strong> — no pickup ride needed. Use <strong>Internal Move</strong> instead if it needs to go somewhere else.</div>`;
-  }
+  resultEl.innerHTML = `<div style="background:#f0fdf4;border:1px solid #86efac;color:#15803d;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;font-weight:600">✓ This car is at ${lotLabel} — pick where you want it delivered below.</div>`;
+  dropoffRow.style.display = 'block';
+  dropoffSel.innerHTML = Object.keys(CM_LOT_LABELS)
+    .filter(lot => lot !== foundLot)
+    .map(lot => `<option value="${lot}">${CM_LOT_LABELS[lot]}</option>`)
+    .join('');
 };
 
 window.submitPickupRequest = async function() {
   const stock = document.getElementById('pk-stock').value.trim().toUpperCase();
   const notes = document.getElementById('pk-notes').value.trim();
+  const dropoffLot = document.getElementById('pk-dropoff').value;
   if (!stock) { showToast('Please enter a stock #.', 'error'); return; }
-  if (!pkFoundLot) { showToast('This stock # needs to show up at 323 Bayview on the Vehicle Locator map first.', 'error'); return; }
+  if (!pkFoundLot) { showToast('This stock # needs to show up on the Vehicle Locator map first.', 'error'); return; }
+  if (!dropoffLot) { showToast('Please pick where to deliver it.', 'error'); return; }
+  const pickupLabel = CM_LOT_LABELS[pkFoundLot], dropoffLabel = CM_LOT_LABELS[dropoffLot];
   const btn = document.getElementById('btn-submit-unified');
   btn.disabled = true; btn.textContent = 'Submitting…';
   try {
     const reqRef = await push(ref(db,'vehicleRequests'), {
       stock, notes,
       requestedBy: currentUser.name,
-      pickupLocation: '323 Bayview',
-      dropoffLocation: '700 Bayview',
+      pickupLocation: pickupLabel,
+      dropoffLocation: dropoffLabel,
       status: 'active', // 'active' | 'delivered'
       returnScheduled: false,
       createdAt: Date.now(),
     });
+    // The rider travels FROM the delivery destination TO wherever the car
+    // currently is, then drives it back themselves — same pattern everywhere,
+    // whether that's dealership <-> 323 Bayview or 323 <-> 55 Mapleview.
     const rideRef = await push(ref(db,'hitchhikers'), {
       kind: 'person',
       name: currentUser.name,
-      pickup: '700 Bayview',
-      dropoff: '323 Bayview',
+      pickup: dropoffLabel,
+      dropoff: pickupLabel,
       notes: notes ? `Pickup for ${stock}: ${notes}` : `Riding out to pick up ${stock}`,
       requestedBy: currentUser.name,
       status: 'pending',
@@ -2915,8 +2844,9 @@ window.submitPickupRequest = async function() {
     document.getElementById('pk-stock').value = '';
     document.getElementById('pk-notes').value = '';
     document.getElementById('pk-location-result').style.display = 'none';
+    document.getElementById('pk-dropoff-row').style.display = 'none';
     pkFoundLot = null;
-    showToast(`✓ Requested ${stock} — a ride out to 323 Bayview has been created`, 'success');
+    showToast(`✓ Requested ${stock} — a ride out to ${pickupLabel} has been created`, 'success');
     toggleRequestForm();
   } catch(e) { showToast('Error submitting — check connection.', 'error'); }
   btn.disabled = false; btn.textContent = 'Submit request';
@@ -2935,16 +2865,15 @@ function pickupRequestHTML(r) {
   const ride = r.rideId ? hitchhikers[r.rideId] : null;
   const rideStatus = ride ? ride.status : null;
   const isMine = currentUser && r.requestedBy === currentUser.name;
-  const canManage = perm('shuttleAdmin') || perm('hitchhikerAdmin') || isMine;
   let stageLabel = 'Waiting for driver', stageColor = '#92400e';
   let actions = '';
   if (r.status === 'delivered') {
     stageLabel = '✓ Delivered'; stageColor = '#15803d';
   } else if (rideStatus === 'done') {
-    stageLabel = '🚗 At 323 Bayview — bring the car back, then tap Delivered'; stageColor = '#1d4ed8';
+    stageLabel = `🚗 At ${r.pickupLocation} — bring the car to ${r.dropoffLocation}, then tap Delivered`; stageColor = '#1d4ed8';
     if (isMine || perm('shuttleAdmin')) actions += `<button class="btn-action" onclick="markVehicleDelivered('${r.id}')" style="background:#f0fdf4;color:#15803d;border-color:#86efac;font-weight:700">✓ Mark Delivered</button>`;
   } else if (rideStatus === 'enroute') {
-    stageLabel = '🚗 Heading to 323 Bayview'; stageColor = '#c2410c';
+    stageLabel = `🚗 Heading to ${r.pickupLocation}`; stageColor = '#c2410c';
   } else if (rideStatus === 'claimed') {
     stageLabel = '🚐 Driver assigned — heading to pick you up'; stageColor = '#c2410c';
   }
@@ -2953,7 +2882,7 @@ function pickupRequestHTML(r) {
     <div style="flex:1">
       <div class="entry-stock">🚗 ${r.stock}</div>
       <div class="entry-meta" style="margin-bottom:5px">Requested by ${r.requestedBy||'—'}</div>
-      <div class="entry-row"><span class="dest-pill dest-testdrive">323 Bayview → 700 Bayview</span></div>
+      <div class="entry-row"><span class="dest-pill dest-testdrive">${r.pickupLocation} → ${r.dropoffLocation}</span></div>
       <div style="font-size:13px;font-weight:700;color:${stageColor};margin-top:4px">${stageLabel}</div>
       ${r.notes?`<div class="entry-notes">${r.notes}</div>`:''}
     </div>
@@ -3368,16 +3297,6 @@ function renderShuttleDashboard() {
   hhList.innerHTML = activeHH.length
     ? groupRidesByTrip(activeHH).map(g => g.length > 1 ? hitchhikerGroupHTML(g) : hitchhikerHTML(g[0],true)).join('')
     : '<div style="text-align:center;padding:40px;color:var(--text-muted)">No active hitchhiker requests</div>';
-
-  const vanList = document.getElementById('shuttle-van-list');
-  if (vanList) {
-    const activeVan = Object.entries(vanTrips||{}).map(([id,v])=>({id,...v})).filter(v=>v.status!=='done').sort((a,b)=>a.ts-b.ts);
-    const vanCountEl = document.getElementById('shuttle-van-count');
-    if (vanCountEl) vanCountEl.textContent = activeVan.length + ' active';
-    vanList.innerHTML = activeVan.length
-      ? activeVan.map(v=>vanTripHTML(v,v.id,true)).join('')
-      : '<div style="text-align:center;padding:40px;color:var(--text-muted)">No van trips queued</div>';
-  }
 }
 
 // ── Test Drives ─────────────────────────────────────────
@@ -5109,7 +5028,6 @@ setInterval(()=>{
   renderHitchhikers(); // also refreshes the shuttle dashboard internally
   renderPickupRequests();
   renderReturns();
-  renderVanTrips();
   renderDriverLocations();
 },1000);
 
