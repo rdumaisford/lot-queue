@@ -893,10 +893,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
       Get Ready <span class="tab-count" id="tc-getready">0</span>
     </button>
-    <button class="tab" id="tab-queue" onclick="switchTab('queue',this)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11l1.5-4.5h11L19 11M19 11v5H5v-5M5 11H3v2h2M19 11h2v2h-2M7.5 16v1.5M16.5 16v1.5"/></svg>
-      Moves + Rides <span class="tab-count" id="tc-queue">0</span>
-    </button>
     <button class="tab" id="tab-testdrive" onclick="switchTab('testdrive',this)" style="display:none">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg>
       Test Drives <span class="tab-count" id="tc-testdrive">0</span>
@@ -904,10 +900,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     <button class="tab" id="tab-tv" onclick="switchTab('tv',this)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
       TV display <span class="tab-count" id="tc-tv">0</span>
-    </button>
-    <button class="tab" id="tab-shuttle" onclick="switchTab('shuttle',this)" style="display:none">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17h13l3-6h-2l-2-5H8L5 11H3z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="15.5" cy="17.5" r="1.5"/></svg>
-      Shuttle <span class="tab-count" id="tc-shuttle">0</span>
     </button>
     <button class="tab" id="tab-audit" onclick="switchTab('audit',this)" style="display:none">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
@@ -1100,158 +1092,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       </div>
     </div>
 
-    <!-- QUEUE + REQUEST FORM -->
-    <div id="panel-queue" class="panel">
-
-      <!-- Your Requests — status at a glance, no scrolling needed -->
-      <div id="my-requests-bar" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:8px">Your Requests</div>
-        <div id="my-requests-list" style="display:flex;gap:8px;flex-wrap:wrap"></div>
-      </div>
-
-      <!-- Slide-down unified request form -->
-      <div class="request-form-wrap" id="request-form-wrap">
-        <div class="request-form-inner">
-          <div style="font-size:16px;font-weight:600;margin-bottom:6px">New request</div>
-          <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">Request a vehicle, schedule an internal move, or a hitchhiker ride.</div>
-          <div id="form-toast" class="toast"></div>
-          <div class="requester-banner">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-            Requesting as <strong id="requester-name-display">—</strong>
-          </div>
-          <div class="booking-toggle" style="grid-template-columns:repeat(3,1fr)">
-            <button class="toggle-btn active" id="btn-reqtype-pickup" onclick="setRequestType('pickup')"><span class="toggle-btn-label">🚗 Request a Vehicle</span><span class="toggle-btn-sub">Get a car from another lot</span></button>
-            <button class="toggle-btn" id="btn-reqtype-vehicle" onclick="setRequestType('vehicle')"><span class="toggle-btn-label">🔧 Internal Move</span><span class="toggle-btn-sub">On-lot shuffle</span></button>
-            <button class="toggle-btn" id="btn-reqtype-hitchhiker" onclick="setRequestType('hitchhiker')"><span class="toggle-btn-label">🧑 Hitchhiker Ride</span><span class="toggle-btn-sub">Just need a ride</span></button>
-          </div>
-
-          <!-- REQUEST A VEHICLE (Uber-style pickup — works between any two lots) -->
-          <div id="reqtype-pickup-fields">
-            <div class="form-row"><label>Stock # <span style="color:#e24b4a">*</span></label><input id="pk-stock" type="text" placeholder="e.g. B0394" autocomplete="off" oninput="pkCheckLocation()"/></div>
-            <div id="pk-location-result" style="display:none;margin-bottom:16px"></div>
-            <div id="pk-dropoff-row" class="form-row" style="display:none">
-              <label>Deliver to <span style="color:#e24b4a">*</span></label>
-              <select id="pk-dropoff"></select>
-            </div>
-            <div class="form-row"><label>Notes <span style="color:var(--text-faint);font-weight:400;text-transform:none;letter-spacing:0">optional</span></label><textarea id="pk-notes" placeholder="Customer waiting, appointment time, etc…" style="min-height:60px"></textarea></div>
-          </div>
-
-          <!-- INTERNAL MOVE FIELDS (on-lot shuffle — unrelated to inter-lot pickups) -->
-          <div id="reqtype-vehicle-fields" style="display:none">
-            <div class="booking-toggle">
-              <button class="toggle-btn active" id="btn-asap" onclick="setBookingType('asap')"><span class="toggle-btn-label">ASAP</span><span class="toggle-btn-sub">Next available</span></button>
-              <button class="toggle-btn" id="btn-scheduled" onclick="setBookingType('scheduled')"><span class="toggle-btn-label">Schedule</span><span class="toggle-btn-sub">Pick a time</span></button>
-            </div>
-            <div id="wait-banner" class="wait-banner">
-              <div class="wait-banner-top">Estimated wait time</div>
-              <div class="wait-banner-time" id="wait-time-display">~15 min</div>
-              <div class="wait-banner-sub" id="wait-time-sub">Calculating…</div>
-            </div>
-            <div id="scheduled-fields" class="scheduled-fields">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-                <div class="form-row" style="margin-bottom:0"><label>Date <span style="color:#e24b4a">*</span></label><input type="date" id="f-date"/></div>
-                <div class="form-row" style="margin-bottom:0"><label>Time <span style="color:#e24b4a">*</span></label><input type="time" id="f-time" min="07:00" max="21:00"/></div>
-              </div>
-              <div id="schedule-preview" style="font-size:13px;color:var(--text-muted);margin-bottom:16px"></div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-              <div class="form-row" style="margin-bottom:0"><label>Stock # / VIN <span style="color:#e24b4a">*</span></label><input id="f-stock" type="text" placeholder="e.g. 12345 or last 6 of VIN" autocomplete="off"/></div>
-              <div class="form-row" style="margin-bottom:0">
-                <label>Destination <span style="color:#e24b4a">*</span></label>
-                <select id="f-dest" onchange="handleDestChange(this.value)">
-                  <option value="">Select destination…</option>
-                  <option value="Test Drive (Drop-Off Out Back)">Test Drive (Drop-Off Out Back)</option>
-                  <option value="Display / Showcase">Display / Showcase</option>
-                  <option value="Sold Row">Sold Row</option>
-                  <option value="Fuel / Get Ready">Fuel / Get Ready</option>
-                  <option value="Service">Service</option>
-                  <option value="Service — 323 Bayview">Service — 323 Bayview</option>
-                  <option value="Detail — 323 Bayview">Detail — 323 Bayview</option>
-                  <option value="Off-Site Drop-Off">Off-Site Drop-Off</option>
-                  <option value="Off-Site Pickup">Off-Site Pickup</option>
-                  <option value="323 Bayview (Compound)">323 Bayview (Compound)</option>
-                  <option value="Merchandisers">Merchandisers</option>
-                  <option value="Auction / Wholesale">Auction / Wholesale</option>
-                  <option value="Battery Jump">Battery Jump</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-row" id="offsite-location-row" style="display:none"><label>Location <span style="color:#e24b4a">*</span></label><input id="f-offsite-location" type="text" placeholder="Enter drop-off / pickup address or location name" autocomplete="off"/></div>
-            <div class="form-row"><label>Notes <span style="color:var(--text-faint);font-weight:400;text-transform:none;letter-spacing:0">optional</span></label><textarea id="f-notes" placeholder="Special instructions, key location…" style="min-height:60px"></textarea></div>
-          </div>
-
-          <!-- HITCHHIKER FIELDS (person rides only — vehicles use Request a Vehicle / Internal Move instead) -->
-          <div id="reqtype-hitchhiker-fields" style="display:none">
-            <div class="requester-banner" style="margin-bottom:16px">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-              🧑 A ride for you, between lots — for vehicles, use the tabs above instead.
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-              <div class="form-row" style="margin-bottom:0">
-                <label>Pickup at <span style="color:#e24b4a">*</span></label>
-                <select id="hh-pickup">
-                  <option value="">Select location…</option>
-                  <option value="700 Bayview">700 Bayview</option>
-                  <option value="323 Bayview">323 Bayview</option>
-                  <option value="55 Mapleview">55 Mapleview</option>
-                </select>
-              </div>
-              <div class="form-row" style="margin-bottom:0">
-                <label>Drop off at <span style="color:#e24b4a">*</span></label>
-                <select id="hh-dropoff">
-                  <option value="">Select location…</option>
-                  <option value="700 Bayview">700 Bayview</option>
-                  <option value="323 Bayview">323 Bayview</option>
-                  <option value="55 Mapleview">55 Mapleview</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-row"><label>Notes <span style="color:var(--text-faint);font-weight:400;text-transform:none;letter-spacing:0">optional</span></label><textarea id="hh-notes" placeholder="e.g. waiting at front desk, keys in dash…" style="min-height:60px"></textarea></div>
-          </div>
-
-          <div style="display:flex;gap:8px">
-            <button class="btn-submit" id="btn-submit-unified" onclick="submitUnifiedRequest()" style="margin-top:0">Submit request</button>
-            <button onclick="toggleRequestForm()" style="padding:11px 18px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);font-size:14px;cursor:pointer;color:var(--text-muted);margin-top:0">Cancel</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="queue-toolbar">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <button class="btn-new-request" id="btn-new-request" onclick="toggleRequestForm()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-            New request
-          </button>
-        </div>
-      </div>
-
-      <div class="section-label">🚗 Active Pickups <span id="tc-pickups" class="tab-count" style="background:var(--bg)"></span></div>
-      <div id="pickup-active-list"><div style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</div></div>
-
-      <div class="section-label" style="margin-top:24px">⏰ Needs Return Scheduled <span id="needs-return-count" class="tab-count" style="background:#fef3c7;color:#92400e"></span></div>
-      <div id="pickup-needs-return-list"><div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px">Loading…</div></div>
-
-      <div class="section-label" style="margin-top:24px">↩️ Returns <span id="tc-returns" class="tab-count" style="background:var(--bg)"></span></div>
-      <div id="returns-active-list"><div style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</div></div>
-
-      <div class="section-label" style="margin-top:28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-        <span>🔧 Internal Moves <span class="tab-count" id="tc-internal-moves" style="background:var(--bg)"></span></span>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <div class="stats" style="margin-bottom:0;display:flex;gap:8px;flex-wrap:wrap">
-            <div class="stat" style="padding:6px 10px;min-width:0"><div class="stat-num" id="s-pending" style="font-size:16px">0</div><div class="stat-label" style="font-size:9px">Pending</div></div>
-            <div class="stat" style="padding:6px 10px;min-width:0"><div class="stat-num" id="s-progress" style="font-size:16px">0</div><div class="stat-label" style="font-size:9px">In progress</div></div>
-            <div class="stat" style="padding:6px 10px;min-width:0"><div class="stat-num" id="s-scheduled" style="font-size:16px">0</div><div class="stat-label" style="font-size:9px">Scheduled</div></div>
-            <div class="stat" style="padding:6px 10px;min-width:0"><div class="stat-num" id="s-done" style="font-size:16px">0</div><div class="stat-label" style="font-size:9px">Done today</div></div>
-          </div>
-          <button class="btn-ghost" id="btn-clear" onclick="clearCompleted()">Clear completed</button>
-        </div>
-      </div>
-      <div id="queue-list"><div style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</div></div>
-
-      <div class="section-label" style="margin-top:28px">🧑 Hitchhikers</div>
-      <div id="hitchhiker-list"><div style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</div></div>
-    </div>
-
     <!-- INCOMING TRACKER -->
     <div id="panel-tracker" class="panel">
       <div class="tracker-toolbar">
@@ -1415,22 +1255,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           </div>
         </div>
         <div class="tv-sub" id="tv-count">Connecting…</div>
-        <div id="tv-shuttle-wrap" style="display:none;margin-bottom:10px;flex-shrink:0">
-          <div class="tv-col-title" style="margin-bottom:6px;font-size:10px">🚐 Shuttle Status</div>
-          <div id="tv-shuttle-list" style="display:flex;gap:8px;flex-wrap:wrap"></div>
-        </div>
         <div class="tv-body">
-          <!-- Col 1: Appointments -->
-          <div class="tv-col-queue">
-            <div class="tv-col-title" id="tv-title-queue">Moves + Rides</div>
-            <div id="tv-list" style="overflow-y:auto;flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-content:start"></div>
-          </div>
-          <!-- Col 2: Get Ready -->
-          <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0;border-left:1px solid rgba(255,255,255,.15);padding-left:16px">
+          <!-- Col 1: Get Ready -->
+          <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0">
             <div class="tv-col-title" id="tv-title-getready">Get Ready</div>
             <div id="tv-gr-list" style="overflow-y:auto;flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-content:start"></div>
           </div>
-          <!-- Col 3: Incoming + Compound -->
+          <!-- Col 2: Incoming + Compound -->
           <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0;border-left:1px solid rgba(255,255,255,.15);padding-left:16px">
             <div class="tv-col-title" id="tv-title-incoming">Incoming Units</div>
             <div class="tv-incoming-summary" id="tv-inc-summary"></div>
@@ -1444,29 +1275,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div id="tv-hint" style="position:absolute;bottom:14px;right:18px;font-size:10px;opacity:.15;color:white;user-select:none">Hold to show controls</div>
       </div>
     </div>
-
-    <!-- SHUTTLE DRIVER DASHBOARD -->
-    <div id="panel-shuttle" class="panel" style="padding:0">
-      <div class="shuttle-header">
-        <div class="shuttle-header-title">🚐 Shuttle — <span id="shuttle-driver-name"></span></div>
-        <button id="shuttle-loc-btn" onclick="toggleLocationSharing()" style="font-size:12px;padding:8px 14px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;cursor:pointer;min-height:40px">📍 Share My Location</button>
-        <div class="shuttle-clock" id="shuttle-clock"></div>
-        <button class="shuttle-change-btn" onclick="resetIdentity()">Change driver</button>
-      </div>
-      <div id="shuttle-loc-status" style="display:none;padding:10px 16px;background:#fffbeb;border-bottom:1px solid #fde68a;font-size:13px;color:#92400e"></div>
-      <div id="shuttle-loc-viewer" style="display:none;padding:10px 16px;background:#eff6ff;border-bottom:1px solid #bfdbfe;font-size:13px;color:#1d4ed8"></div>
-      <div class="shuttle-body">
-        <div class="shuttle-col">
-          <div class="shuttle-col-header">🚗 Vehicle Moves <span id="shuttle-veh-count" class="shuttle-col-count"></span></div>
-          <div id="shuttle-veh-list" class="shuttle-col-list"></div>
-        </div>
-        <div class="shuttle-col">
-          <div class="shuttle-col-header">🧑‍🤝‍🧑 Pickups & Returns <span id="shuttle-hh-count" class="shuttle-col-count"></span></div>
-          <div id="shuttle-hh-list" class="shuttle-col-list"></div>
-        </div>
-      </div>
-    </div>
-
     <!-- HISTORY -->
     <div id="panel-history" class="panel">
       <div class="history-filters">
@@ -1557,7 +1365,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <div style="font-size:15px;font-weight:600;margin-bottom:4px">Quick Links</div>
           <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Opens a dedicated view in a new tab — handy for setting up a kiosk tablet or TV screen.</div>
           <div style="display:flex;flex-direction:column;gap:8px">
-            <button onclick="openShuttleLink()" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px">🚐 Shuttle Driver View</button>
             <button onclick="openDisplayLink()" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px">📺 Display (TV Screen)</button>
           </div>
         </div>
@@ -1699,19 +1506,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     <div class="modal-actions">
       <button class="btn-modal-cancel" onclick="document.getElementById('cm-qr-modal').style.display='none'">Close</button>
       <button class="btn-modal-primary" onclick="window.print()">🖨 Print</button>
-    </div>
-  </div>
-</div>
-
-<!-- Hold modal -->
-<div id="deny-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this)closeDenyModal()">
-  <div class="modal-card">
-    <div class="modal-title-row"><span>Vehicle On Hold</span><button class="modal-close" onclick="closeDenyModal()">×</button></div>
-    <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Enter the reason this vehicle can't be moved right now.</div>
-    <input class="modal-custom" id="deny-custom" type="text" placeholder="e.g. Dead battery, at body shop, out for test drive…" autocomplete="off"/>
-    <div class="modal-actions">
-      <button class="btn-modal-cancel" onclick="closeDenyModal()">Cancel</button>
-      <button class="btn-modal-primary" style="background:#d97706" onclick="confirmDeny()">Mark On Hold</button>
     </div>
   </div>
 </div>
@@ -1923,10 +1717,6 @@ function applyPermissions() {
   // Land on the right tab for roles whose only access is TV
   if (perm('tabTV') && !perm('tabHome')) {
     switchTab('tv', document.getElementById('tab-tv'));
-  }
-  // Land shuttle drivers directly on their touch dashboard — no home screen detour
-  if (perm('tabShuttle') && !perm('tabHome')) {
-    switchTab('shuttle', document.getElementById('tab-shuttle'));
   }
 }
 
@@ -2294,20 +2084,11 @@ function startApp() {
     if (document.getElementById('panel-tracker')?.classList.contains('active')) renderTracker();
   });
 
-  onValue(ref(db, 'driverLocation'), snap => {
-    driverLocations = snap.val() || {};
-    renderDriverLocations();
-  });
-
   // Quick Links (Settings) may open this app with ?view=shuttle to jump straight
   // to the Shuttle Dashboard after a normal login — only applied once per session
   // so it doesn't yank the person back there every time permissions live-update.
   if (!viewParamApplied) {
     viewParamApplied = true;
-    const viewParam = new URLSearchParams(window.location.search).get('view');
-    if (viewParam === 'shuttle' && perm('tabShuttle')) {
-      switchTab('shuttle', document.getElementById('tab-shuttle'));
-    }
   }
 
   const userMgmtWrap = document.getElementById('user-mgmt-wrap');
@@ -2318,38 +2099,6 @@ function startApp() {
       renderUserManagementSection();
     });
   }
-
-  // Firebase listeners
-  onValue(ref(db,'entries'), snap=>{
-    const newEntries = snap.val()||{};
-    const isFirst = Object.keys(entries).length===0 && Object.keys(newEntries).length>0;
-    if (!isFirst) {
-      for (const id in newEntries) {
-        // "New pending job" still chimes for everyone who can claim it — otherwise nobody
-        // would know to go pick it up. Status-change chimes below are scoped to just the
-        // requester and whoever actually did the work.
-        if (!entries[id]) { if(perm('queueAdmin')) chime('new'); }
-        else {
-          const prev=entries[id], curr=newEntries[id];
-          if (prev.status!==curr.status && currentUser) {
-            const isRequester = curr.requestedBy===currentUser.name;
-            const isClaimer = curr.claimedBy===currentUser.name;
-            if((curr.status==='onroute'||curr.status==='bringing'||curr.status==='progress') && isRequester) chime('claimed');
-            if(curr.status==='done' && (isRequester||isClaimer)) chime('complete');
-          }
-        }
-      }
-    }
-    entries = newEntries;
-    document.getElementById('sync-dot').className = 'sync-dot live';
-    render(); updateWaitBanner();
-  }, (err) => {
-    document.getElementById('sync-dot').className='sync-dot error';
-    if (currentUser?.role === 'display') {
-      const el = document.getElementById('tv-count');
-      if (el) { el.textContent = `⚠ Database read denied: ${err.code || err.message || 'unknown error'}`; el.style.color = '#fca5a5'; }
-    }
-  });
 
   onValue(ref(db,'settings'), snap=>{
     const s=snap.val()||{};
@@ -2367,7 +2116,6 @@ function startApp() {
     if(dh) dh.textContent=fmtHour(LOT_OPEN)+' – '+fmtHour(LOT_CLOSE);
     const ft=document.getElementById('f-time');
     if(ft){ ft.min=String(LOT_OPEN).padStart(2,'0')+':00'; ft.max=String(LOT_CLOSE).padStart(2,'0')+':00'; }
-    render();
   });
 
   // Live permissions — merges Firebase overrides on top of defaults
@@ -2397,43 +2145,6 @@ function startApp() {
     if (document.getElementById('panel-tv')?.classList.contains('active')) { renderTVGetReady(); renderTVCompoundMap(); }
   });
 
-  onValue(ref(db,'hitchhikers'), snap=>{
-    const newHH = snap.val()||{};
-    const isFirst = Object.keys(hitchhikers).length===0 && Object.keys(newHH).length>0;
-    if (!isFirst) {
-      for (const id in newHH) {
-        if (!hitchhikers[id]) {
-          if (perm('shuttleAdmin') || perm('hitchhikerAdmin')) chime('new');
-        } else {
-          const prev = hitchhikers[id], curr = newHH[id];
-          if (prev.status !== curr.status && currentUser) {
-            const isRequester = curr.requestedBy === currentUser.name;
-            const isDriver = curr.claimedBy === currentUser.name;
-            if ((curr.status==='claimed'||curr.status==='enroute') && isRequester) chime('claimed');
-            if (curr.status==='done' && (isRequester || isDriver)) chime('complete');
-          }
-        }
-      }
-    }
-    hitchhikers = newHH;
-    const activeHHCount = Object.values(hitchhikers).filter(h=>!['done','cancelled'].includes(h.status)).length;
-    const activeVehCount = Object.values(entries).filter(e=>['pending','onroute','bringing','progress'].includes(e.status)).length;
-    const shuttleTc = document.getElementById('tc-shuttle');
-    if (shuttleTc) shuttleTc.textContent = activeHHCount + activeVehCount;
-    renderHitchhikers();
-    renderPickupRequests(); // pickup cards show the linked ride's live status
-  });
-
-  onValue(ref(db,'vehicleRequests'), snap=>{
-    vehicleRequests = snap.val()||{};
-    renderPickupRequests();
-  });
-
-  onValue(ref(db,'vehicleReturns'), snap=>{
-    vehicleReturns = snap.val()||{};
-    renderReturns();
-  });
-
   onValue(ref(db,'testdrives'), snap=>{
     testDrives = snap.val()||{};
     renderTestDrives();
@@ -2445,225 +2156,9 @@ function startApp() {
     onValue(ref(db,'history'), snap=>{ historyData=snap.val()||{}; renderHistory(); });
     onValue(ref(db,'compound_history'), snap=>{ compoundHistoryData=snap.val()||{}; renderCompoundHistory(); });
   }
-
-  updateWaitBanner();
 }
 
 // ── Helpers ───────────────────────────────────────────
-function allSorted() {
-  return Object.entries(entries).map(([id,e])=>({id,...e}))
-    .sort((a,b)=>(a.bookingType==='scheduled'?a.scheduledTs:a.ts)-(b.bookingType==='scheduled'?b.scheduledTs:b.ts));
-}
-function activeQueue() {
-  const now=Date.now(), cutoff=now+CONVERT_MINS*60*1000;
-  return allSorted().filter(e=>{
-    if(e.status==='done'||e.status==='onhold') return false;
-    if(e.bookingType!=='scheduled') return true;
-    return e.scheduledTs<=cutoff;
-  });
-}
-function upcomingScheduled() {
-  const now=Date.now(), cutoff=now+CONVERT_MINS*60*1000;
-  return allSorted().filter(e=>e.bookingType==='scheduled'&&e.scheduledTs>cutoff&&e.status!=='done'&&e.status!=='onhold');
-}
-function calcWaitMins() { return activeQueue().filter(e=>e.status!=='done').length*MOVE_MINS; }
-function estimatedReadyTime(mins) {
-  const d=new Date(); d.setMinutes(d.getMinutes()+mins);
-  return d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',hour12:true});
-}
-function fmtHour(h) { const d=new Date(); d.setHours(h,0,0,0); return d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',hour12:true}); }
-function fmtCountdown(ms) {
-  if(ms<=0) return 'Starting now';
-  const s=Math.floor(ms/1000), d=Math.floor(s/86400), h=Math.floor((s%86400)/3600), m=Math.floor((s%3600)/60), sec=s%60;
-  if(d>0) return d+'d '+h+'h '+m+'m';
-  if(h>0) return h+'h '+m+'m '+sec+'s';
-  if(m>0) return m+'m '+sec+'s';
-  return sec+'s';
-}
-function fmtTime(ts){return new Date(ts).toLocaleTimeString([],{hour:'numeric',minute:'2-digit',hour12:true});}
-function fmtTimeStr(str){if(!str)return str;const [h,m]=str.split(':').map(Number);const d=new Date();d.setHours(h,m,0,0);return d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',hour12:true});}
-function fmtDateTime(ts){
-  const d=new Date(ts);
-  return d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'})+' · '+d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',hour12:true});
-}
-function timeAgo(ts) {
-  const diff=Math.floor((Date.now()-ts)/60000);
-  if(diff<1) return 'Just now'; if(diff===1) return '1 min ago';
-  if(diff<60) return diff+' mins ago';
-  const h=Math.floor(diff/60); return h+(h===1?' hr ago':' hrs ago');
-}
-function destClass(d) {
-  if(!d) return 'dest-offsite';
-  if(d.startsWith('Test Drive')) return 'dest-testdrive';
-  if(d.startsWith('Display')) return 'dest-detail';
-  if(d==='Sold Row') return 'dest-offsite';
-  if(d.startsWith('Fuel')) return 'dest-wholesale';
-  if(d.startsWith('Service')) return 'dest-service';
-  if(d.startsWith('Detail')) return 'dest-detail';
-  if(d.startsWith('Off-Site')) return 'dest-wholesale';
-  if(d.startsWith('323 Bayview')) return 'dest-service';
-  if(d==='Merchandisers') return 'dest-detail';
-  if(d.startsWith('Auction')) return 'dest-wholesale';
-  if(d==='Battery Jump') return 'dest-service';
-  return 'dest-offsite';
-}
-
-// ── Form ──────────────────────────────────────────────
-let requestType = 'pickup'; // 'pickup' | 'vehicle' | 'hitchhiker'
-
-window.toggleRequestForm = function() {
-  const wrap = document.getElementById('request-form-wrap');
-  const btn  = document.getElementById('btn-new-request');
-  const isOpen = wrap.classList.contains('open');
-  wrap.classList.toggle('open', !isOpen);
-  btn.classList.toggle('active', !isOpen);
-  btn.innerHTML = !isOpen
-    ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg> Cancel`
-    : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg> New request`;
-  const nameEl = document.getElementById('requester-name-display');
-  if (nameEl && currentUser) nameEl.textContent = currentUser.name;
-  if (!isOpen) {
-    window.setRequestType('pickup'); // always open fresh on the "Request a Vehicle" tab
-    setTimeout(()=>document.getElementById('pk-stock').focus(), 350);
-  }
-};
-// Kept as an alias — nothing calls this directly anymore, but harmless to keep around.
-window.toggleHitchhikerForm = window.toggleRequestForm;
-
-window.setRequestType = function(type) {
-  requestType = type;
-  document.getElementById('btn-reqtype-pickup').classList.toggle('active', type==='pickup');
-  document.getElementById('btn-reqtype-vehicle').classList.toggle('active', type==='vehicle');
-  document.getElementById('btn-reqtype-hitchhiker').classList.toggle('active', type==='hitchhiker');
-  document.getElementById('reqtype-pickup-fields').style.display = type==='pickup' ? '' : 'none';
-  document.getElementById('reqtype-vehicle-fields').style.display = type==='vehicle' ? '' : 'none';
-  document.getElementById('reqtype-hitchhiker-fields').style.display = type==='hitchhiker' ? '' : 'none';
-};
-
-window.submitUnifiedRequest = function() {
-  if (requestType === 'pickup') window.submitPickupRequest();
-  else if (requestType === 'vehicle') window.submitRequest();
-  else window.submitHitchhiker();
-};
-
-window.handleDestChange = function(val) {
-  const isOff = val==='Off-Site Drop-Off'||val==='Off-Site Pickup';
-  document.getElementById('offsite-location-row').style.display = isOff?'block':'none';
-  if(!isOff) document.getElementById('f-offsite-location').value='';
-};
-window.setBookingType = function(type) {
-  bookingType=type;
-  document.getElementById('btn-asap').classList.toggle('active',type==='asap');
-  document.getElementById('btn-scheduled').classList.toggle('active',type==='scheduled');
-  document.getElementById('scheduled-fields').style.display = type==='scheduled'?'block':'none';
-  document.getElementById('wait-banner').style.display = type==='asap'?'block':'none';
-  if(type==='asap') updateWaitBanner();
-};
-function updateWaitBanner() {
-  if(bookingType!=='asap') return;
-  const wait=calcWaitMins();
-  const timeEl=document.getElementById('wait-time-display'), subEl=document.getElementById('wait-time-sub');
-  if(!timeEl) return;
-  if(wait===0){timeEl.textContent='Ready now';subEl.textContent='No vehicles ahead in queue';}
-  else{timeEl.textContent='~'+wait+' min';const q=activeQueue();subEl.textContent=q.length+' vehicle'+(q.length!==1?'s':'')+' ahead — ready around '+estimatedReadyTime(wait);}
-}
-function showToast(msg,type) {
-  const t=document.getElementById('form-toast');
-  t.textContent=msg;t.className='toast '+type;t.style.display='block';
-  setTimeout(()=>{t.style.display='none';},4500);
-}
-window.submitRequest = async function() {
-  const stock=document.getElementById('f-stock').value.trim();
-  let dest=document.getElementById('f-dest').value;
-  const notes=document.getElementById('f-notes').value.trim();
-  const timeVal=document.getElementById('f-time').value;
-  const offsiteLoc=document.getElementById('f-offsite-location').value.trim();
-  if(!stock||!dest){showToast('Please fill in Stock # and Destination.','error');return;}
-  const isOffsite=dest==='Off-Site Drop-Off'||dest==='Off-Site Pickup';
-  if(isOffsite&&!offsiteLoc){showToast('Please enter the off-site location.','error');return;}
-  if(isOffsite) dest=dest+': '+offsiteLoc;
-  let scheduledTs=null;
-  if(bookingType==='scheduled') {
-    const dateVal=document.getElementById('f-date').value;
-    if(!dateVal){showToast('Please select a date.','error');return;}
-    const[h,m]=timeVal.split(':').map(Number);
-    if(h<LOT_OPEN||h>=LOT_CLOSE){showToast(`Please choose a time between ${fmtHour(LOT_OPEN)} and ${fmtHour(LOT_CLOSE)}.`,'error');return;}
-    const[yr,mo,dy]=dateVal.split('-').map(Number);
-    const d=new Date(yr,mo-1,dy,h,m,0,0);
-    const now=Date.now();
-    if(d.getTime()<now){showToast('Scheduled time is in the past.','error');return;}
-    if(d.getTime()>now+7*24*60*60*1000){showToast('Appointments can only be scheduled up to 7 days ahead.','error');return;}
-    scheduledTs=d.getTime();
-  }
-  const btn=document.getElementById('btn-submit-unified');
-  btn.disabled=true;btn.textContent='Submitting…';
-  try {
-    await push(ref(db,'entries'),{stock:stock.toUpperCase(),dest,notes,requestedBy:currentUser.name,status:'pending',bookingType,scheduledTs,ts:Date.now()});
-    document.getElementById('f-stock').value='';
-    document.getElementById('f-dest').value='';
-    document.getElementById('f-notes').value='';
-    document.getElementById('f-offsite-location').value='';
-    document.getElementById('offsite-location-row').style.display='none';
-    document.getElementById('f-stock').focus();
-    showToast('✓ '+stock.toUpperCase()+' → '+dest+' added to queue','success');
-    // Close the form panel
-    toggleRequestForm();
-  } catch(e){showToast('Error submitting — check connection.','error');}
-  btn.disabled=false;btn.textContent='Submit request';
-};
-
-// ── Queue actions ─────────────────────────────────────
-window.setStatus = async function(id,status) {
-  // Claiming a pending job is guarded by a transaction — if two people tap "On Route"
-  // at the same instant, only the first write commits; the second gets a clear message
-  // instead of silently overwriting the first person's claim.
-  if (status === 'onroute') {
-    const result = await runTransaction(ref(db,'entries/'+id), (curr) => {
-      if (!curr) return curr;
-      if (curr.status !== 'pending') return; // abort transaction — already claimed
-      curr.status = 'onroute';
-      curr.onrouteTs = Date.now();
-      curr.bringingTs = null;
-      curr.progressTs = Date.now();
-      curr.claimedBy = currentUser.name;
-      return curr;
-    });
-    if (!result.committed) alert('Someone else just claimed this vehicle.');
-    return;
-  }
-  const updates={status};
-  if(status==='bringing'){
-    updates.bringingTs=Date.now();
-    updates.claimedBy=currentUser.name;
-  }
-  if(status==='progress'){updates.progressTs=Date.now();updates.claimedBy=currentUser.name;}
-  if(status==='pending'){updates.onrouteTs=null;updates.bringingTs=null;updates.claimedBy=null;updates.progressTs=null;}
-  if(status==='done') {
-    const completedTs=Date.now();
-    updates.completedTs=completedTs;updates.claimedBy=currentUser.name;
-    const e=entries[id];
-    const startTs = e?.onrouteTs || e?.progressTs;
-    if(e && startTs) {
-      const durationMins=Math.round((completedTs-startTs)/60000);
-      await push(ref(db,'history'),{stock:e.stock,dest:e.dest,requestedBy:e.requestedBy||'—',claimedBy:currentUser.name,progressTs:startTs,completedTs,durationMins,ts:completedTs});
-      const cutoff=Date.now()-30*24*60*60*1000;
-      const histSnap=await get(ref(db,'history'));
-      const hist=histSnap.val()||{};
-      await Promise.all(Object.entries(hist).filter(([,v])=>v.ts<cutoff).map(([k])=>remove(ref(db,'history/'+k))));
-    }
-  }
-  await update(ref(db,'entries/'+id),updates);
-};
-window.unassign = async id=>{ await update(ref(db,'entries/'+id),{status:'pending',claimedBy:null,progressTs:null}); };
-window.adjustETA = async function(id,delta) {
-  const e=entries[id]; if(!e||!e.progressTs) return;
-  await update(ref(db,'entries/'+id),{progressTs:e.progressTs-(delta*60*1000)});
-};
-window.cancelRequest = async function(id) {
-  if(!confirm('Cancel this request?')) return;
-  await update(ref(db,'entries/'+id),{status:'cancelled',denyReason:'Cancelled by requester'});
-};
-window.deleteEntry = async id=>{ await remove(ref(db,'entries/'+id)); };
 window.clearAllHistory = async function() {
   const count = Object.keys(historyData).length;
   if (!count) { alert('No history to clear.'); return; }
@@ -2673,631 +2168,6 @@ window.clearAllHistory = async function() {
   await remove(ref(db, 'history'));
 };
 
-window.clearCompleted = async function() {
-  await Promise.all(Object.entries(entries).filter(([,e])=>e.status==='done').map(([id])=>remove(ref(db,'entries/'+id))));
-};
-
-// ── Returns (scheduled trip back to wherever the vehicle came from) ──
-window.openScheduleReturn = async function(requestId, stock) {
-  const req = requestId ? vehicleRequests[requestId] : null;
-  const returnToLocation = req ? req.pickupLocation : null; // send it back where it originally came from
-  const driverHomeLocation = req ? req.dropoffLocation : null; // where the driver needs to end up after dropping it
-  if (!returnToLocation) { alert("Can't figure out where this car should return to — missing original request info."); return; }
-  if (!confirm(`Schedule ${stock} for return to ${returnToLocation}?`)) return;
-  await push(ref(db,'vehicleReturns'), {
-    stock, requestId,
-    returnToLocation, driverHomeLocation,
-    scheduledBy: currentUser.name,
-    status: 'pending', // pending -> claimed -> enroute -> dropped_off
-    ts: Date.now(),
-  });
-  if (requestId) await update(ref(db,'vehicleRequests/'+requestId), { returnScheduled: true });
-};
-
-window.claimReturn = async function(id) {
-  const result = await runTransaction(ref(db,'vehicleReturns/'+id), (curr) => {
-    if (!curr) return curr;
-    if (curr.status !== 'pending') return; // abort — already claimed
-    curr.status = 'claimed';
-    curr.driver = currentUser.name;
-    curr.claimedTs = Date.now();
-    return curr;
-  });
-  if (!result.committed) alert('Someone else already claimed this return.');
-};
-
-window.setReturnEnroute = async function(id) {
-  await update(ref(db,'vehicleReturns/'+id), { status:'enroute', enrouteTs: Date.now() });
-};
-
-// The key step: the instant a solo driver drops the car off, they're stranded
-// with no vehicle — this automatically creates their ride back to home base.
-window.markReturnDroppedOff = async function(id) {
-  const ret = vehicleReturns[id];
-  if (!ret) return;
-  await update(ref(db,'vehicleReturns/'+id), { status:'dropped_off', droppedOffTs: Date.now() });
-  const pickup = ret.returnToLocation || 'the drop-off lot';
-  const dropoff = ret.driverHomeLocation || '700 Bayview';
-  await push(ref(db,'hitchhikers'), {
-    kind: 'person',
-    name: ret.driver || currentUser.name,
-    pickup, dropoff,
-    notes: `Dropped off ${ret.stock} at ${pickup} — needs a ride back`,
-    requestedBy: ret.driver || currentUser.name,
-    status: 'pending',
-    ts: Date.now(),
-    purpose: 'stranded_return',
-    linkedReturnId: id,
-  });
-};
-
-window.deleteReturn = async function(id) {
-  if (!confirm('Remove this return record?')) return;
-  await remove(ref(db,'vehicleReturns/'+id));
-};
-
-function returnHTML(r, id) {
-  // The return driver could be anyone — IC or sales — so claiming isn't gated to a
-  // specific role. Only removing a completed record is kept as admin cleanup.
-  const canAdmin = perm('shuttleAdmin') || perm('hitchhikerAdmin');
-  let actions = '';
-  if (r.status === 'pending') {
-    actions += `<button class="btn-action" onclick="claimReturn('${id}')" style="background:#eff6ff;color:#1d4ed8;font-weight:700">Claim</button>`;
-  } else if (r.status === 'claimed') {
-    if (r.driver === currentUser?.name || canAdmin) actions += `<button class="btn-action" onclick="setReturnEnroute('${id}')" style="background:#fff7ed;color:#c2410c;font-weight:700">🚗 Heading Out</button>`;
-  } else if (r.status === 'enroute') {
-    if (r.driver === currentUser?.name || canAdmin) actions += `<button class="btn-action" onclick="markReturnDroppedOff('${id}')" style="background:#f0fdf4;color:#15803d;font-weight:700">✓ Dropped Off</button>`;
-  } else if (r.status === 'dropped_off') {
-    if (canAdmin) actions += `<button class="btn-action" onclick="deleteReturn('${id}')">Remove</button>`;
-  }
-  const dest = r.returnToLocation || 'destination';
-  const statusLabel = {pending:'Waiting for driver',claimed:'Driver assigned',enroute:`Heading to ${dest}`,dropped_off:'✓ Dropped off'}[r.status]||r.status;
-  return `<div class="entry">
-    <div style="flex:1">
-      <div class="entry-stock">↩️ ${r.stock}</div>
-      <div class="entry-meta" style="margin-bottom:5px">Returning to ${dest} · Scheduled by ${r.scheduledBy}${r.driver?' · Driver: '+r.driver:''}</div>
-      <div style="font-size:13px;font-weight:700;color:#1d4ed8">${statusLabel}</div>
-    </div>
-    <div class="entry-actions">${actions}<div class="entry-time">${timeAgo(r.ts)}</div></div>
-  </div>`;
-}
-
-function renderReturns() {
-  const list = Object.entries(vehicleReturns||{}).map(([id,r])=>({id,...r}));
-  const active = list.filter(r=>r.status!=='dropped_off').sort((a,b)=>a.ts-b.ts);
-  const el = document.getElementById('returns-active-list');
-  if (el) el.innerHTML = active.length ? active.map(r=>returnHTML(r,r.id)).join('') : '<div class="empty-state"><div class="empty-icon">↩️</div><p>No scheduled returns.</p></div>';
-  const countEl = document.getElementById('tc-returns');
-  if (countEl) countEl.textContent = active.length;
-}
-
-// ── Hitchhikers (people only — vehicles use the Vehicle Move tab) ──
-// ── Request a Vehicle (Uber-style pickup — works between any two lots) ──
-let pkFoundLot = null; // which lot the currently-typed stock # was actually found at
-
-window.pkCheckLocation = function() {
-  const stock = document.getElementById('pk-stock').value.trim().toUpperCase();
-  const resultEl = document.getElementById('pk-location-result');
-  const dropoffRow = document.getElementById('pk-dropoff-row');
-  const dropoffSel = document.getElementById('pk-dropoff');
-  pkFoundLot = null;
-  if (!stock) { resultEl.style.display = 'none'; dropoffRow.style.display = 'none'; return; }
-  let foundLot = null;
-  Object.entries(cmVehicles||{}).forEach(([lot, lotVehs]) => {
-    Object.values(lotVehs||{}).forEach(v => {
-      if (v && v.stock && v.status!=='blocked' && v.status!=='void' && v.stock.toUpperCase().trim() === stock) foundLot = lot;
-    });
-  });
-  resultEl.style.display = 'block';
-  if (!foundLot) {
-    dropoffRow.style.display = 'none';
-    resultEl.innerHTML = `<div style="background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px">⚠ Can't find this stock # on the Vehicle Locator map. Make sure it's placed on the map first, or use Internal Move instead.</div>`;
-    return;
-  }
-  pkFoundLot = foundLot;
-  const lotLabel = CM_LOT_LABELS[foundLot] || foundLot;
-  resultEl.innerHTML = `<div style="background:#f0fdf4;border:1px solid #86efac;color:#15803d;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;font-weight:600">✓ This car is at ${lotLabel} — pick where you want it delivered below.</div>`;
-  dropoffRow.style.display = 'block';
-  dropoffSel.innerHTML = Object.keys(CM_LOT_LABELS)
-    .filter(lot => lot !== foundLot)
-    .map(lot => `<option value="${lot}">${CM_LOT_LABELS[lot]}</option>`)
-    .join('');
-};
-
-window.submitPickupRequest = async function() {
-  const stock = document.getElementById('pk-stock').value.trim().toUpperCase();
-  const notes = document.getElementById('pk-notes').value.trim();
-  const dropoffLot = document.getElementById('pk-dropoff').value;
-  if (!stock) { showToast('Please enter a stock #.', 'error'); return; }
-  if (!pkFoundLot) { showToast('This stock # needs to show up on the Vehicle Locator map first.', 'error'); return; }
-  if (!dropoffLot) { showToast('Please pick where to deliver it.', 'error'); return; }
-  const pickupLabel = CM_LOT_LABELS[pkFoundLot], dropoffLabel = CM_LOT_LABELS[dropoffLot];
-  const btn = document.getElementById('btn-submit-unified');
-  btn.disabled = true; btn.textContent = 'Submitting…';
-  try {
-    const reqRef = await push(ref(db,'vehicleRequests'), {
-      stock, notes,
-      requestedBy: currentUser.name,
-      pickupLocation: pickupLabel,
-      dropoffLocation: dropoffLabel,
-      status: 'active', // 'active' | 'delivered'
-      returnScheduled: false,
-      createdAt: Date.now(),
-    });
-    // The rider travels FROM the delivery destination TO wherever the car
-    // currently is, then drives it back themselves — same pattern everywhere,
-    // whether that's dealership <-> 323 Bayview or 323 <-> 55 Mapleview.
-    const rideRef = await push(ref(db,'hitchhikers'), {
-      kind: 'person',
-      name: currentUser.name,
-      pickup: dropoffLabel,
-      dropoff: pickupLabel,
-      notes: notes ? `Pickup for ${stock}: ${notes}` : `Riding out to pick up ${stock}`,
-      requestedBy: currentUser.name,
-      status: 'pending',
-      ts: Date.now(),
-      purpose: 'pickup_companion',
-      linkedRequestId: reqRef.key,
-      linkedStock: stock,
-    });
-    await update(ref(db, 'vehicleRequests/'+reqRef.key), { rideId: rideRef.key });
-    document.getElementById('pk-stock').value = '';
-    document.getElementById('pk-notes').value = '';
-    document.getElementById('pk-location-result').style.display = 'none';
-    document.getElementById('pk-dropoff-row').style.display = 'none';
-    pkFoundLot = null;
-    showToast(`✓ Requested ${stock} — a ride out to ${pickupLabel} has been created`, 'success');
-    toggleRequestForm();
-  } catch(e) { showToast('Error submitting — check connection.', 'error'); }
-  btn.disabled = false; btn.textContent = 'Submit request';
-};
-
-window.markVehicleDelivered = async function(id) {
-  await update(ref(db, 'vehicleRequests/'+id), { status: 'delivered', deliveredAt: Date.now() });
-};
-
-window.deleteVehicleRequest = async function(id) {
-  if (!confirm('Cancel/remove this vehicle request?')) return;
-  await remove(ref(db, 'vehicleRequests/'+id));
-};
-
-function pickupRequestHTML(r) {
-  const ride = r.rideId ? hitchhikers[r.rideId] : null;
-  const rideStatus = ride ? ride.status : null;
-  const isMine = currentUser && r.requestedBy === currentUser.name;
-  let stageLabel = 'Waiting for driver', stageColor = '#92400e';
-  let actions = '';
-  if (r.status === 'delivered') {
-    stageLabel = '✓ Delivered'; stageColor = '#15803d';
-  } else if (rideStatus === 'done') {
-    stageLabel = `🚗 At ${r.pickupLocation} — bring the car to ${r.dropoffLocation}, then tap Delivered`; stageColor = '#1d4ed8';
-    if (isMine || perm('shuttleAdmin')) actions += `<button class="btn-action" onclick="markVehicleDelivered('${r.id}')" style="background:#f0fdf4;color:#15803d;border-color:#86efac;font-weight:700">✓ Mark Delivered</button>`;
-  } else if (rideStatus === 'enroute') {
-    stageLabel = `🚗 Heading to ${r.pickupLocation}`; stageColor = '#c2410c';
-  } else if (rideStatus === 'claimed') {
-    stageLabel = '🚐 Driver assigned — heading to pick you up'; stageColor = '#c2410c';
-  }
-  if (r.status !== 'delivered' && isMine) actions += `<button class="btn-action" onclick="deleteVehicleRequest('${r.id}')" style="color:#991b1b">Cancel</button>`;
-  return `<div class="entry">
-    <div style="flex:1">
-      <div class="entry-stock">🚗 ${r.stock}</div>
-      <div class="entry-meta" style="margin-bottom:5px">Requested by ${r.requestedBy||'—'}</div>
-      <div class="entry-row"><span class="dest-pill dest-testdrive">${r.pickupLocation} → ${r.dropoffLocation}</span></div>
-      <div style="font-size:13px;font-weight:700;color:${stageColor};margin-top:4px">${stageLabel}</div>
-      ${r.notes?`<div class="entry-notes">${r.notes}</div>`:''}
-    </div>
-    <div class="entry-actions">${actions}<div class="entry-time">${timeAgo(r.createdAt)}</div></div>
-  </div>`;
-}
-
-function renderPickupRequests() {
-  const list = Object.entries(vehicleRequests||{}).map(([id,r])=>({id,...r}));
-  const active = list.filter(r=>r.status!=='delivered').sort((a,b)=>a.createdAt-b.createdAt);
-  const needsReturn = list.filter(r=>r.status==='delivered' && !r.returnScheduled).sort((a,b)=>a.deliveredAt-b.deliveredAt);
-  const activeEl = document.getElementById('pickup-active-list');
-  const needsReturnEl = document.getElementById('pickup-needs-return-list');
-  if (activeEl) activeEl.innerHTML = active.length ? active.map(pickupRequestHTML).join('') : '<div class="empty-state"><div class="empty-icon">🚗</div><p>No active pickup requests.</p></div>';
-  if (needsReturnEl) {
-    needsReturnEl.innerHTML = needsReturn.length ? needsReturn.map(r => `
-      <div class="entry" style="border-left:3px solid #f59e0b">
-        <div style="flex:1">
-          <div class="entry-stock">🚗 ${r.stock}</div>
-          <div class="entry-meta">Delivered by ${r.requestedBy} · ${timeAgo(r.deliveredAt)}</div>
-        </div>
-        <div class="entry-actions"><button class="btn-action" onclick="openScheduleReturn('${r.id}','${r.stock}')" style="background:#fff7ed;color:#c2410c;border-color:#fed7aa;font-weight:700">📅 Schedule Return</button></div>
-      </div>`).join('') : '<div style="padding:16px;text-align:center;color:var(--text-faint);font-size:13px">Nothing waiting on a return right now.</div>';
-  }
-  const needsReturnCount = document.getElementById('needs-return-count');
-  if (needsReturnCount) needsReturnCount.textContent = needsReturn.length;
-  const tcPickups = document.getElementById('tc-pickups');
-  if (tcPickups) tcPickups.textContent = active.length;
-}
-
-window.submitHitchhiker = async function() {
-  const pickup = document.getElementById('hh-pickup').value;
-  const dropoff = document.getElementById('hh-dropoff').value;
-  const notes = document.getElementById('hh-notes').value.trim();
-  const name = currentUser.name; // the requester is who needs the ride — username is enough
-  if (!pickup || !dropoff) { showToast('Please select pickup and drop-off locations.', 'error'); return; }
-  if (pickup === dropoff) { showToast("Pickup and drop-off can't be the same location.", 'error'); return; }
-  const btn = document.getElementById('btn-submit-unified');
-  btn.disabled = true; btn.textContent = 'Submitting…';
-  try {
-    await push(ref(db,'hitchhikers'), {
-      kind: 'person',
-      name,
-      pickup, dropoff, notes,
-      requestedBy: currentUser.name,
-      status: 'pending',
-      ts: Date.now(),
-    });
-    document.getElementById('hh-pickup').value = '';
-    document.getElementById('hh-dropoff').value = '';
-    document.getElementById('hh-notes').value = '';
-    showToast('✓ Hitchhiker request added', 'success');
-    toggleRequestForm();
-  } catch(e) { showToast('Error submitting — check connection.', 'error'); }
-  btn.disabled = false; btn.textContent = 'Submit request';
-};
-
-// Transaction-guarded claim — same protection as vehicle moves, prevents two
-// drivers claiming the same ride at once.
-window.claimHitchhiker = async function(id) {
-  const result = await runTransaction(ref(db,'hitchhikers/'+id), (curr) => {
-    if (!curr) return curr;
-    if (curr.status !== 'pending') return; // abort — already claimed
-    curr.status = 'claimed';
-    curr.claimedBy = currentUser.name;
-    curr.claimedTs = Date.now();
-    curr.etaAdjustMins = 0;
-    return curr;
-  });
-  if (!result.committed) alert('Someone else just claimed this ride.');
-};
-
-window.setHHStatus = async function(id, status) {
-  const updates = { status };
-  if (status === 'enroute') { updates.pickedUpTs = Date.now(); updates.etaAdjustMins = 0; }
-  if (status === 'done') updates.completedTs = Date.now();
-  await update(ref(db,'hitchhikers/'+id), updates);
-};
-
-// Lets the shuttle driver nudge a ride's ETA up or down — e.g. traffic, a longer
-// pickup than expected. Stored as an offset against the base Move Time setting
-// rather than rewriting the original timestamp, so the "started at" time stays honest.
-window.adjustHHEta = async function(id, deltaMins) {
-  const h = hitchhikers[id];
-  if (!h) return;
-  const newAdj = (h.etaAdjustMins||0) + deltaMins;
-  await update(ref(db,'hitchhikers/'+id), { etaAdjustMins: newAdj });
-};
-
-window.cancelHitchhiker = async function(id) {
-  if (!confirm('Cancel this hitchhiker request?')) return;
-  await update(ref(db,'hitchhikers/'+id), { status:'cancelled' });
-};
-
-window.deleteHitchhiker = async function(id) {
-  await remove(ref(db,'hitchhikers/'+id));
-};
-
-function hhKindIcon(k) { return k === 'vehicle' ? '🚗' : '🧑'; }
-
-// Big, glanceable status bubble with a live countdown — the primary way both the
-// hitchhiker and the driver read a ride's status, instead of small text/pills.
-function hhStatusBubble(h) {
-  const adj = h.etaAdjustMins || 0;
-  const targetSecs = Math.max(0, MOVE_MINS + adj) * 60;
-  function countdownStr(stageTs) {
-    const elapsed = Math.floor((Date.now()-stageTs)/1000);
-    const remaining = targetSecs - elapsed;
-    const overdue = remaining < 0;
-    const abs = Math.abs(remaining);
-    const mm = Math.floor(abs/60), ss = abs%60;
-    return { overdue, text: (overdue?'+':'')+mm+':'+String(ss).padStart(2,'0') };
-  }
-  if (h.status === 'pending') {
-    return `<div class="hh-bubble hh-bubble-waiting"><div class="hh-bubble-icon">⏳</div><div class="hh-bubble-label">Waiting for driver</div></div>`;
-  }
-  if (h.status === 'claimed' && h.claimedTs) {
-    const c = countdownStr(h.claimedTs);
-    return `<div class="hh-bubble ${c.overdue?'hh-bubble-overdue':'hh-bubble-pickup'}">
-      <div class="hh-bubble-icon">🚐</div>
-      <div class="hh-bubble-label">${c.overdue?'Running late — heading to pickup':'Heading to pickup'}</div>
-      <div class="hh-bubble-countdown">${c.text}</div>
-    </div>`;
-  }
-  if (h.status === 'enroute' && h.pickedUpTs) {
-    const c = countdownStr(h.pickedUpTs);
-    return `<div class="hh-bubble ${c.overdue?'hh-bubble-overdue':'hh-bubble-dropoff'}">
-      <div class="hh-bubble-icon">🚗</div>
-      <div class="hh-bubble-label">${c.overdue?'Running late — heading to drop-off':'Heading to drop-off'}</div>
-      <div class="hh-bubble-countdown">${c.text}</div>
-    </div>`;
-  }
-  if (h.status === 'done') {
-    return `<div class="hh-bubble hh-bubble-done"><div class="hh-bubble-icon">✓</div><div class="hh-bubble-label">Arrived</div></div>`;
-  }
-  if (h.status === 'cancelled') {
-    return `<div class="hh-bubble hh-bubble-waiting" style="opacity:.55"><div class="hh-bubble-icon">✕</div><div class="hh-bubble-label">Cancelled</div></div>`;
-  }
-  return '';
-}
-
-// ── Trip pooling — lets a driver claim/progress multiple rides sharing the
-// same pickup+dropoff+stage as one combined trip, instead of one at a time.
-// Only pools rides not yet claimed, or already claimed by the SAME driver
-// (never merges two different drivers' trips together).
-function groupRidesByTrip(rides) {
-  const groups = {};
-  rides.forEach(h => {
-    if (!['pending','claimed','enroute'].includes(h.status)) { groups['solo_'+h.id] = [h]; return; }
-    const key = `${h.pickup}|${h.dropoff}|${h.status}|${h.status==='pending'?'':(h.claimedBy||'')}`;
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(h);
-  });
-  return Object.values(groups);
-}
-
-window.claimHitchhikerGroup = async function(idsStr) {
-  const ids = idsStr.split(',');
-  const updates = {};
-  const now = Date.now();
-  ids.forEach(id => {
-    updates[`hitchhikers/${id}/status`] = 'claimed';
-    updates[`hitchhikers/${id}/claimedBy`] = currentUser.name;
-    updates[`hitchhikers/${id}/claimedTs`] = now;
-  });
-  await update(ref(db), updates);
-};
-
-window.setHHStatusGroup = async function(idsStr, status) {
-  const ids = idsStr.split(',');
-  const updates = {};
-  const now = Date.now();
-  ids.forEach(id => {
-    updates[`hitchhikers/${id}/status`] = status;
-    if (status === 'enroute') updates[`hitchhikers/${id}/pickedUpTs`] = now;
-    if (status === 'done') updates[`hitchhikers/${id}/completedTs`] = now;
-  });
-  await update(ref(db), updates);
-};
-
-function hitchhikerGroupHTML(group) {
-  const first = group[0];
-  const canProgress = perm('shuttleAdmin');
-  const names = group.map(h => `${hhKindIcon(h.kind)} ${h.name}`).join(', ');
-  const idsStr = group.map(h=>h.id).join(',');
-  const bubble = hhStatusBubble(first); // all grouped rides share claimedTs/pickedUpTs, so one timer covers the trip
-  let actions = '';
-  if (first.status === 'pending' && canProgress) {
-    actions = `<button class="shuttle-btn" style="background:#eff6ff;color:#1d4ed8;font-weight:700" onclick="claimHitchhikerGroup('${idsStr}')">Claim ${group.length} riders</button>`;
-  } else if (first.status === 'claimed' && canProgress) {
-    actions = `<button class="shuttle-btn" style="background:#fff7ed;color:#c2410c;font-weight:700" onclick="setHHStatusGroup('${idsStr}','enroute')">🚐 Picked up all — En Route</button>`;
-  } else if (first.status === 'enroute' && canProgress) {
-    actions = `<button class="shuttle-btn" style="background:#f0fdf4;color:#15803d;font-weight:700" onclick="setHHStatusGroup('${idsStr}','done')">✓ Dropped off all</button>`;
-  }
-  return `<div class="shuttle-card" style="border:2px solid #1d4ed8">
-    <div class="shuttle-card-title">👥 ${group.length} riders together</div>
-    <div class="shuttle-card-route">📍 ${first.pickup} → ${first.dropoff}</div>
-    ${bubble}
-    <div class="shuttle-card-meta">${names}</div>
-    ${actions}
-  </div>`;
-}
-
-function hitchhikerHTML(h, big) {
-  // Claiming and progressing a ride is only ever available from the Shuttle Dashboard —
-  // the Moves tab is view-only for hitchhikers (plus the requester's own Cancel button).
-  const canProgress = big && perm('shuttleAdmin');
-  const canCleanup = perm('hitchhikerAdmin') || perm('shuttleAdmin');
-  const isMine = currentUser && h.requestedBy === currentUser.name;
-  const bubble = hhStatusBubble(h);
-  let actions = '';
-  const btnCls = big ? 'shuttle-btn' : 'btn-action';
-  if (h.status === 'pending') {
-    if (canProgress) actions += `<button class="${btnCls}" style="background:#eff6ff;color:#1d4ed8;font-weight:700" onclick="claimHitchhiker('${h.id}')">Claim ride</button>`;
-    else if (isMine) actions += `<button class="${btnCls}" onclick="cancelHitchhiker('${h.id}')" style="color:#991b1b">Cancel</button>`;
-  } else if (h.status === 'claimed') {
-    if (canProgress) actions += `<button class="${btnCls}" style="background:#fff7ed;color:#c2410c;font-weight:700" onclick="setHHStatus('${h.id}','enroute')">🚐 Picked up — En Route</button>`;
-  } else if (h.status === 'enroute') {
-    if (canProgress) actions += `<button class="${btnCls}" style="background:#f0fdf4;color:#15803d;font-weight:700" onclick="setHHStatus('${h.id}','done')">✓ Dropped off</button>`;
-  } else if (['done','cancelled'].includes(h.status)) {
-    if (canCleanup || isMine) actions += `<button class="${btnCls}" onclick="deleteHitchhiker('${h.id}')">${big?'Remove':'Dismiss'}</button>`;
-  }
-  // Only the driver, only on the shuttle dashboard, only while a timer is actually running.
-  const etaAdjust = (canProgress && (h.status==='claimed'||h.status==='enroute'))
-    ? `<div class="hh-eta-adjust">
-        <button onclick="adjustHHEta('${h.id}',-1)">−1m</button>
-        <button onclick="adjustHHEta('${h.id}',1)">+1m</button>
-        <button onclick="adjustHHEta('${h.id}',5)">+5m</button>
-      </div>`
-    : '';
-  if (big) {
-    return `<div class="shuttle-card">
-      <div class="shuttle-card-title">${hhKindIcon(h.kind)} ${h.name}</div>
-      <div class="shuttle-card-route">📍 ${h.pickup} → ${h.dropoff}</div>
-      ${bubble}
-      ${etaAdjust}
-      <div class="shuttle-card-meta">${h.claimedBy?'Driver: '+h.claimedBy+' · ':''}Requested by ${h.requestedBy||'—'}${h.notes?' · '+h.notes:''}</div>
-      ${actions}
-    </div>`;
-  }
-  return `<div class="entry">
-    <div style="flex:1">
-      <div class="entry-stock">${hhKindIcon(h.kind)} ${h.name}</div>
-      <div class="entry-meta" style="margin-bottom:5px">Requested by ${h.requestedBy||'—'}</div>
-      <div class="entry-row"><span class="dest-pill dest-testdrive">${h.pickup} → ${h.dropoff}</span></div>
-      ${bubble}
-      ${h.claimedBy?`<div class="entry-meta" style="color:#1d4ed8;font-weight:500;margin-top:3px">🚐 ${h.claimedBy}</div>`:''}
-      ${h.notes?`<div class="entry-notes">${h.notes}</div>`:''}
-    </div>
-    <div class="entry-actions">${actions}<div class="entry-time">${timeAgo(h.ts)}</div></div>
-  </div>`;
-}
-
-function renderHitchhikers() {
-  const list = Object.entries(hitchhikers||{}).map(([id,h])=>({id,...h})).sort((a,b)=>a.ts-b.ts);
-  // The Moves+Rides "Hitchhikers" section is for general person rides only —
-  // pickup companion rides and stranded-return rides already show inside the
-  // Active Pickups / Returns sections, so they're excluded here to avoid duplicates.
-  const generalList = list.filter(h => h.purpose !== 'pickup_companion' && h.purpose !== 'stranded_return');
-  const active = generalList.filter(h=>!['done','cancelled'].includes(h.status));
-  const closed = generalList.filter(h=>['done','cancelled'].includes(h.status));
-  const el = document.getElementById('hitchhiker-list');
-  if (el) {
-    if (!generalList.length) el.innerHTML = '<div class="empty-state"><div class="empty-icon">🚐</div><p>No hitchhiker requests yet.</p></div>';
-    else el.innerHTML = active.map(h=>hitchhikerHTML(h,false)).join('') + (closed.length?closed.map(h=>hitchhikerHTML(h,false)).join(''):'');
-  }
-  renderShuttleDashboard();
-  renderTVShuttle();
-  renderMyRequests();
-}
-
-// Compact shuttle-status chips for the TV display — same countdown math as the
-// status bubble, condensed into small cards so it's readable from across the lot.
-function renderTVShuttle() {
-  const wrap = document.getElementById('tv-shuttle-wrap');
-  const list = document.getElementById('tv-shuttle-list');
-  if (!wrap || !list) return;
-  const active = Object.values(hitchhikers||{}).filter(h=>!['done','cancelled'].includes(h.status));
-  if (!active.length) { wrap.style.display = 'none'; return; }
-  wrap.style.display = '';
-  list.innerHTML = active.map(h => {
-    const adj = h.etaAdjustMins || 0;
-    const targetSecs = Math.max(0, MOVE_MINS + adj) * 60;
-    let stageTs = null, stageLabel = '', borderColor = '#94a3b8';
-    if (h.status === 'pending') { stageLabel = 'Waiting for driver'; borderColor = '#d97706'; }
-    else if (h.status === 'claimed' && h.claimedTs) { stageTs = h.claimedTs; stageLabel = 'Heading to pickup'; borderColor = '#c2410c'; }
-    else if (h.status === 'enroute' && h.pickedUpTs) { stageTs = h.pickedUpTs; stageLabel = 'Heading to drop-off'; borderColor = '#15803d'; }
-    let timeStr = '', overdue = false;
-    if (stageTs) {
-      const elapsed = Math.floor((Date.now()-stageTs)/1000);
-      const remaining = targetSecs - elapsed;
-      overdue = remaining < 0;
-      const abs = Math.abs(remaining);
-      const mm = Math.floor(abs/60), ss = abs%60;
-      timeStr = (overdue?'+':'') + mm + ':' + String(ss).padStart(2,'0');
-    }
-    const icon = h.kind === 'vehicle' ? '🚗' : '🧑';
-    return `<div style="background:#fff;border-radius:10px;padding:8px 14px;display:flex;align-items:center;gap:10px;border-left:4px solid ${overdue?'#dc2626':borderColor}">
-      <span style="font-size:18px">${icon}</span>
-      <div>
-        <div style="font-size:13px;font-weight:800;color:var(--ford);white-space:nowrap">${h.name}</div>
-        <div style="font-size:10px;color:#64748b;white-space:nowrap">${h.pickup} → ${h.dropoff} · ${stageLabel}</div>
-      </div>
-      ${timeStr ? `<div style="font-size:17px;font-weight:800;color:${overdue?'#dc2626':'#00095b'};margin-left:4px;font-variant-numeric:tabular-nums">${timeStr}</div>` : ''}
-    </div>`;
-  }).join('');
-}
-
-// ── Live location sharing (feasibility test — phone GPS via the browser) ──
-// Known limitation, worth testing for exactly this reason: mobile browsers
-// aggressively pause background tabs, so updates can stall if the driver's
-// phone locks or they switch apps. Works reliably while this tab stays on
-// screen. A dedicated always-on tablet (once it has a SIM) won't have this
-// problem, since nothing backgrounds it.
-window.toggleLocationSharing = function() {
-  if (geoWatchId !== null) {
-    navigator.geolocation.clearWatch(geoWatchId);
-    geoWatchId = null;
-    if (currentUser?.uid) remove(ref(db, 'driverLocation/'+currentUser.uid)).catch(()=>{});
-    const btn = document.getElementById('shuttle-loc-btn');
-    if (btn) { btn.textContent = '📍 Share My Location'; btn.style.background = 'rgba(255,255,255,.12)'; }
-    const statusEl = document.getElementById('shuttle-loc-status');
-    if (statusEl) statusEl.style.display = 'none';
-    return;
-  }
-  if (!navigator.geolocation) {
-    alert('This device/browser doesn\'t support location sharing.');
-    return;
-  }
-  if (!currentUser?.uid) {
-    alert('Location sharing needs a signed-in account (not available on TV/display mode).');
-    return;
-  }
-  const statusEl = document.getElementById('shuttle-loc-status');
-  const btn = document.getElementById('shuttle-loc-btn');
-  if (statusEl) { statusEl.style.display = 'block'; statusEl.textContent = 'Requesting location permission…'; }
-  geoWatchId = navigator.geolocation.watchPosition(
-    (pos) => {
-      const { latitude, longitude, accuracy } = pos.coords;
-      set(ref(db, 'driverLocation/'+currentUser.uid), {
-        name: currentUser.name, lat: latitude, lng: longitude, accuracy, ts: Date.now(),
-      }).catch(()=>{});
-      if (btn) { btn.textContent = '📍 Sharing — Stop'; btn.style.background = '#dc2626'; }
-      if (statusEl) statusEl.textContent = `📍 Sharing your location — last sent just now (accuracy ~${Math.round(accuracy)}m)`;
-    },
-    (err) => {
-      if (statusEl) { statusEl.textContent = `⚠ Location error: ${err.message || 'permission denied'}`; }
-      geoWatchId = null;
-    },
-    { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 }
-  );
-};
-
-// Refreshes the "last sent Xs ago" freshness text and the shared viewer widget —
-// called every second so staleness (e.g. phone backgrounded) is obvious quickly.
-function renderDriverLocations() {
-  const viewerEl = document.getElementById('shuttle-loc-viewer');
-  if (viewerEl) {
-    const rows = Object.values(driverLocations||{});
-    if (!rows.length) {
-      viewerEl.style.display = 'none';
-    } else {
-      viewerEl.style.display = 'block';
-      viewerEl.innerHTML = rows.map(d => {
-        const ageSec = Math.floor((Date.now() - d.ts) / 1000);
-        const ageText = ageSec < 60 ? `${ageSec}s ago` : `${Math.floor(ageSec/60)}m ago`;
-        const stale = ageSec > 60;
-        const mapsUrl = `https://www.google.com/maps?q=${d.lat},${d.lng}`;
-        return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span>🚐 <strong>${d.name}</strong></span>
-          <span style="color:${stale?'#dc2626':'#1d4ed8'};font-weight:600">${stale?'⚠ stale — ':''}${ageText}</span>
-          <a href="${mapsUrl}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:underline">📍 Open in Maps</a>
-        </div>`;
-      }).join('');
-    }
-  }
-  const statusEl = document.getElementById('shuttle-loc-status');
-  if (statusEl && geoWatchId !== null && currentUser?.uid) {
-    const mine = driverLocations[currentUser.uid];
-    if (mine) {
-      const ageSec = Math.floor((Date.now() - mine.ts) / 1000);
-      statusEl.textContent = `📍 Sharing your location — last sent ${ageSec < 5 ? 'just now' : ageSec+'s ago'} (accuracy ~${Math.round(mine.accuracy||0)}m)`;
-    }
-  }
-}
-
-function renderShuttleDashboard() {
-  const vehList = document.getElementById('shuttle-veh-list');
-  const hhList = document.getElementById('shuttle-hh-list');
-  if (!vehList || !hhList) return;
-  const nameEl = document.getElementById('shuttle-driver-name');
-  if (nameEl && currentUser) nameEl.textContent = currentUser.name;
-  const activeVeh = activeQueue().filter(e=>e.status!=='done');
-  document.getElementById('shuttle-veh-count').textContent = activeVeh.length + ' active';
-  vehList.innerHTML = activeVeh.length
-    ? activeVeh.map(e=>{
-        let actionBtn = '';
-        if (e.status==='pending') actionBtn = `<button class="shuttle-btn" style="background:#fff7ed;color:#c2410c" onclick="setStatus('${e.id}','onroute')">🚶 On Route</button>`;
-        else if (e.status==='onroute') actionBtn = `<button class="shuttle-btn" style="background:#f0fdf4;color:#15803d" onclick="setStatus('${e.id}','bringing')">🚗 Got it — Bringing Back</button>`;
-        else if (e.status==='bringing') actionBtn = `<button class="shuttle-btn" style="background:#dcfce7;color:#15803d" onclick="setStatus('${e.id}','done')">✓ Arrived — Complete</button>`;
-        return `<div class="shuttle-card">
-          <div class="shuttle-card-title">${e.stock}</div>
-          <div class="shuttle-card-route">📍 → ${e.dest}</div>
-          <div class="shuttle-card-meta">${e.requestedBy?'Requested by '+e.requestedBy:''}${e.notes?' · '+e.notes:''}</div>
-          ${actionBtn}
-        </div>`;
-      }).join('')
-    : '<div style="text-align:center;padding:40px;color:var(--text-muted)">No active vehicle moves</div>';
-
-  const activeHH = Object.entries(hitchhikers||{}).map(([id,h])=>({id,...h})).filter(h=>!['done','cancelled'].includes(h.status)).sort((a,b)=>a.ts-b.ts);
-  document.getElementById('shuttle-hh-count').textContent = activeHH.length + ' active';
-  hhList.innerHTML = activeHH.length
-    ? groupRidesByTrip(activeHH).map(g => g.length > 1 ? hitchhikerGroupHTML(g) : hitchhikerHTML(g[0],true)).join('')
-    : '<div style="text-align:center;padding:40px;color:var(--text-muted)">No active hitchhiker requests</div>';
-}
 
 // ── Test Drives ─────────────────────────────────────────
 function todayStartTs() { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); }
@@ -3438,119 +2308,6 @@ function renderTestDrives() {
   const tcEl = document.getElementById('tc-testdrive');
   if (tcEl) tcEl.textContent = active.length;
 }
-window.releaseHold = async id=>{ await update(ref(db,'entries/'+id),{status:'pending',denyReason:null,deniedBy:null,holdTs:null}); };
-let denyTimer=null;
-window.openHoldModal = function(id) {
-  denyTargetId=id;
-  document.getElementById('deny-custom').value='';
-  document.getElementById('deny-modal').style.display='flex';
-  setTimeout(()=>document.getElementById('deny-custom').focus(),100);
-};
-window.closeDenyModal = function() { document.getElementById('deny-modal').style.display='none'; denyTargetId=null; };
-window.confirmDeny = async function() {
-  const reason=document.getElementById('deny-custom').value.trim();
-  if(!reason){alert('Please enter a reason.');return;}
-  await update(ref(db,'entries/'+denyTargetId),{status:'onhold',denyReason:reason,deniedBy:currentUser.name,holdTs:Date.now()});
-  closeDenyModal();
-};
-document.getElementById('deny-custom').addEventListener('keydown',e=>{if(e.key==='Enter')window.confirmDeny();});
-
-// ── Entry HTML ────────────────────────────────────────
-function entryHTML(e) {
-  const dc=destClass(e.dest);
-  const statusMap={pending:'pending',onroute:'onroute',bringing:'bringing',progress:'progress',done:'done',cancelled:'cancelled',onhold:'onhold'};
-  const labelMap={pending:'Pending',onroute:'🚶 On Route',bringing:'🚗 Bringing Back',progress:'In progress',done:'Done',cancelled:'Cancelled',onhold:'Vehicle On Hold'};
-  const sc=statusMap[e.status]||'pending', sl=labelMap[e.status]||e.status;
-  const typePill=e.bookingType==='scheduled'?`<span class="type-pill-scheduled">Scheduled ${fmtTime(e.scheduledTs)}</span>`:`<span class="type-pill-asap">ASAP</span>`;
-  const isLot=currentUser&&perm('queueAdmin');
-  const isMine=currentUser&&e.requestedBy===currentUser.name;
-  let actions='';
-  if(e.status==='pending') {
-    if(isLot) actions=`<button class="btn-action" onclick="setStatus('${e.id}','onroute')" style="background:#fff7ed;color:#c2410c;border-color:#fed7aa;font-weight:700">🚶 On Route</button><button class="btn-action" onclick="openHoldModal('${e.id}')" style="color:#92400e;border-color:#fcd34d;background:#fffbeb">On Hold</button>`;
-    else if(isMine) actions=`<button class="btn-action" onclick="cancelRequest('${e.id}')" style="color:#991b1b;border-color:#fca5a5">Cancel</button>`;
-  } else if(e.status==='onroute') {
-    if(isLot) actions=`
-      <button class="btn-action" onclick="setStatus('${e.id}','bringing')" style="background:#f0fdf4;color:#15803d;border-color:#86efac;font-weight:700">🚗 Got it — Bringing Back</button>
-      <button class="btn-action" onclick="setStatus('${e.id}','pending')" style="color:#b45309;border-color:#fde68a;font-size:11px">↩ Back to pending</button>`;
-  } else if(e.status==='bringing') {
-    if(isLot) actions=`
-      <button class="btn-action complete" onclick="setStatus('${e.id}','done')">✓ Arrived — Complete</button>
-      <button class="btn-action" onclick="setStatus('${e.id}','onroute')" style="color:#c2410c;border-color:#fed7aa;font-size:11px">↩ Back to On Route</button>
-      <button class="btn-action" onclick="openHoldModal('${e.id}')" style="color:#92400e;border-color:#fcd34d;background:#fffbeb;font-size:11px">On Hold</button>`;
-  } else if(e.status==='progress') {
-    // Legacy progress status — keep working
-    if(isLot) actions=`
-      <button class="btn-action complete" onclick="setStatus('${e.id}','done')">Complete</button>
-      <button class="btn-action" onclick="unassign('${e.id}')" style="color:#b45309;border-color:#fde68a">Unassign</button>`;
-  } else if(['done','cancelled','onhold'].includes(e.status)) {
-    if(e.status==='onhold'&&isLot) actions=`<button class="btn-action" onclick="releaseHold('${e.id}')" style="color:#065f46;border-color:#6ee7b7;background:#ecfdf5;font-weight:600">✓ Release Hold</button><button class="btn-action" onclick="deleteEntry('${e.id}')" style="font-size:11px">Remove</button>`;
-    else if(isLot) actions=`<button class="btn-action" onclick="deleteEntry('${e.id}')">Remove</button>`;
-    else if(isMine) actions=`<button class="btn-action" onclick="deleteEntry('${e.id}')">Dismiss</button>`;
-  }
-  const typeClass=e.bookingType==='scheduled'?' type-scheduled':'';
-  const fadedClass=(e.status==='cancelled')?' status-done':'';
-  const reasonBanner=e.denyReason?`<div class="deny-reason">⚠ ${e.denyReason}</div>`:'';
-  let progressBar='';
-  if(e.status==='onroute' && e.onrouteTs) {
-    const elapsed=Math.floor((Date.now()-e.onrouteTs)/1000);
-    const pct=Math.min(100,Math.round((elapsed/(MOVE_MINS*60))*100));
-    const remaining=Math.max(0,(MOVE_MINS*60)-elapsed);
-    const remMins=Math.floor(remaining/60), remSecs=remaining%60;
-    const overdue=elapsed>MOVE_MINS*60;
-    const bc=overdue?'#dc2626':'#f97316';
-    const label=overdue?`⚠ Overdue by ${Math.floor((elapsed-MOVE_MINS*60)/60)}m`:`${remMins}m ${remSecs}s to pick up`;
-    progressBar=`<div class="progress-bar-wrap"><div class="progress-bar-label"><span style="color:#c2410c;font-weight:700">🚶 On Route</span><span style="color:${bc};font-weight:600">${label}</span></div><div class="progress-bar-track" style="background:#fff7ed"><div class="progress-bar-fill" style="width:${pct}%;background:${bc}"></div></div></div>`;
-  } else if(e.status==='bringing' && e.bringingTs) {
-    const elapsed=Math.floor((Date.now()-e.bringingTs)/1000);
-    const pct=Math.min(100,Math.round((elapsed/(MOVE_MINS*60))*100));
-    const remaining=Math.max(0,(MOVE_MINS*60)-elapsed);
-    const remMins=Math.floor(remaining/60), remSecs=remaining%60;
-    const overdue=elapsed>MOVE_MINS*60;
-    const bc=overdue?'#dc2626':'#16a34a';
-    const label=overdue?`⚠ Overdue by ${Math.floor((elapsed-MOVE_MINS*60)/60)}m`:`${remMins}m ${remSecs}s to arrive`;
-    progressBar=`<div class="progress-bar-wrap"><div class="progress-bar-label"><span style="color:#15803d;font-weight:700">🚗 Bringing Back</span><span style="color:${bc};font-weight:600">${label}</span></div><div class="progress-bar-track" style="background:#f0fdf4"><div class="progress-bar-fill" style="width:${pct}%;background:${bc}"></div></div></div>`;
-  } else if(e.status==='progress'&&e.progressTs) {
-    const elapsed=Math.floor((Date.now()-e.progressTs)/1000);
-    const pct=Math.min(100,Math.round((elapsed/(MOVE_MINS*60))*100));
-    const elapsedMins=Math.floor(elapsed/60), elapsedSecs=elapsed%60;
-    const elapsedLabel = elapsedMins>0 ? `${elapsedMins}m ${elapsedSecs}s` : `${elapsedSecs}s`;
-    const overdue = elapsed > MOVE_MINS*60;
-    const barColor = overdue ? '#dc2626' : elapsed > MOVE_MINS*60*0.75 ? '#f97316' : '#1d4ed8';
-    const statusLabel = overdue ? `⚠ ${elapsedLabel} (overdue)` : `${elapsedLabel}`;
-    progressBar=`<div class="progress-bar-wrap"><div class="progress-bar-label"><span>Move in progress</span><span style="color:${barColor};font-weight:600">${statusLabel}</span></div><div class="progress-bar-track"><div class="progress-bar-fill" style="width:${pct}%;background:${barColor}"></div></div></div>`;
-  } else if(e.status==='onhold'&&e.holdTs) {
-    const elapsedMs=Date.now()-e.holdTs, elapsedSecs=Math.floor(elapsedMs/1000);
-    const d2=Math.floor(elapsedSecs/86400),h2=Math.floor((elapsedSecs%86400)/3600),m2=Math.floor((elapsedSecs%3600)/60),s2=elapsedSecs%60;
-    let elapsed=''; if(d2>0)elapsed=d2+'d '+h2+'h '+m2+'m'; else if(h2>0)elapsed=h2+'h '+m2+'m '+s2+'s'; else if(m2>0)elapsed=m2+'m '+s2+'s'; else elapsed=s2+'s';
-    const pct=Math.min(100,Math.round((elapsedSecs/3600)*100));
-    const bc=pct>=100?'#dc2626':pct>=50?'#f97316':'#d97706';
-    progressBar=`<div class="progress-bar-wrap"><div class="progress-bar-label" style="color:${bc}"><span>On hold for</span><span>${elapsed}</span></div><div class="progress-bar-track" style="background:#fef3c7"><div class="hold-bar-fill" style="width:${pct}%;background:${bc}"></div></div></div>`;
-  } else if(e.bookingType==='scheduled'&&e.scheduledTs&&e.status==='pending') {
-    const msUntil=Math.max(0,e.scheduledTs-Date.now());
-    const totalWindow=CONVERT_MINS*60*1000, elapsed2=Math.max(0,totalWindow-msUntil);
-    const pct=Math.min(100,Math.round((elapsed2/totalWindow)*100));
-    const minsUntil=Math.floor(msUntil/60000), bc=minsUntil<=5?'#ef4444':minsUntil<=10?'#f97316':'#8b5cf6';
-    progressBar=`<div class="progress-bar-wrap"><div class="progress-bar-label" style="color:${bc}"><span>Scheduled appointment</span><span>${fmtCountdown(msUntil)}</span></div><div class="progress-bar-track" style="background:#ede9fe"><div class="progress-bar-fill" style="width:${pct}%;background:${bc}"></div></div></div>`;
-  }
-  return `<div class="entry status-${e.status}${typeClass}${fadedClass}">
-    <div style="flex:1">
-      <div class="entry-stock">${e.stock}</div>
-      <div class="entry-meta" style="margin-bottom:5px">Requested by ${e.requestedBy||'—'}</div>
-      <div class="entry-row"><span class="dest-pill ${dc}">${e.dest}</span><span class="status-pill ${sc}">${sl}</span>${typePill}</div>
-      ${e.claimedBy?`<div class="entry-meta" style="color:#1d4ed8;font-weight:500;margin-top:3px">🔧 ${e.claimedBy}</div>`:''}
-      ${e.notes?`<div class="entry-notes">${e.notes}</div>`:''}
-      ${reasonBanner}${progressBar}
-    </div>
-    <div class="entry-actions">${actions}<div class="entry-time">${timeAgo(e.ts)}</div></div>
-  </div>`;
-}
-
-// ── Queue render ──────────────────────────────────────
-// Compact "at a glance" bar for the current user's own requests — both vehicle
-// moves and hitchhiker rides — so they don't have to scroll the full queue to
-// find their own status.
-// Shared mm:ss countdown math — used by both the "Your Requests" pills and
-// anywhere else that needs a live ETA against a target number of minutes.
 // ── Soft edit-locks ─────────────────────────────────────
 // Lets an edit form warn "so-and-so is already editing this" and disable Save,
 // instead of silently letting the second person's save clobber the first's.
@@ -3637,155 +2394,6 @@ function computeCountdown(stageTs, targetMins) {
   return { text: (overdue?'+':'')+mm+':'+String(ss).padStart(2,'0'), overdue };
 }
 
-function renderMyRequests() {
-  const wrap = document.getElementById('my-requests-bar');
-  const list = document.getElementById('my-requests-list');
-  if (!wrap || !list || !currentUser) return;
-
-  // Rides/moves disappear from here the moment they're done or cancelled.
-  const myVeh = Object.entries(entries||{}).map(([id,e])=>({id,...e}))
-    .filter(e => e.requestedBy === currentUser.name && !['done','cancelled'].includes(e.status));
-  const myHH = Object.entries(hitchhikers||{}).map(([id,h])=>({id,...h}))
-    .filter(h => h.requestedBy === currentUser.name && !['done','cancelled'].includes(h.status));
-
-  if (!myVeh.length && !myHH.length) { wrap.style.display = 'none'; return; }
-  wrap.style.display = '';
-
-  function pillHTML(icon, title, driver, countdown) {
-    const overdue = countdown && countdown.overdue;
-    return `<div style="display:flex;align-items:center;gap:12px;background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:10px 16px;min-width:180px">
-      <span style="font-size:22px">${icon}</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:800;font-size:14px;color:var(--ford);white-space:nowrap">${title}</div>
-        ${driver ? `<div style="font-size:12px;color:var(--text-muted);margin-top:1px">Driver: ${driver}</div>` : ''}
-      </div>
-      ${countdown ? `<div style="font-size:19px;font-weight:800;color:${overdue?'#dc2626':'#00095b'};font-variant-numeric:tabular-nums;white-space:nowrap">${countdown.text}</div>` : ''}
-    </div>`;
-  }
-
-  const vehPills = myVeh.map(e => {
-    if (e.status === 'onroute' && e.onrouteTs) return pillHTML('🚗', `${e.stock} · On the way`, e.claimedBy, computeCountdown(e.onrouteTs, MOVE_MINS));
-    if (e.status === 'bringing' && e.bringingTs) return pillHTML('🚗', `${e.stock} · Bringing it back`, e.claimedBy, computeCountdown(e.bringingTs, MOVE_MINS));
-    if (e.status === 'progress' && e.progressTs) return pillHTML('🚗', `${e.stock} · In progress`, e.claimedBy, computeCountdown(e.progressTs, MOVE_MINS));
-    if (e.status === 'onhold') return pillHTML('🚗', `${e.stock} · On Hold`, '', null);
-    return pillHTML('🚗', `${e.stock} · Pending`, '', null);
-  }).join('');
-
-  const hhPills = myHH.map(h => {
-    const adj = h.etaAdjustMins || 0;
-    if (h.status === 'claimed' && h.claimedTs) return pillHTML('🚐', 'Waiting for Pickup', h.claimedBy, computeCountdown(h.claimedTs, MOVE_MINS+adj));
-    if (h.status === 'enroute' && h.pickedUpTs) return pillHTML('🚐', 'Heading to Drop-off', h.claimedBy, computeCountdown(h.pickedUpTs, MOVE_MINS+adj));
-    return pillHTML('🚐', 'Waiting for driver', '', null);
-  }).join('');
-
-  list.innerHTML = vehPills + hhPills;
-}
-
-function render() {
-  renderMyRequests();
-  const all=allSorted(), active=activeQueue(), upcoming=upcomingScheduled();
-  const done=all.filter(e=>e.status==='done'), onhold=all.filter(e=>e.status==='onhold');
-  const closed=all.filter(e=>['cancelled'].includes(e.status));
-  const pending=active.filter(e=>e.status==='pending').length, progress=active.filter(e=>e.status==='progress').length;
-  document.getElementById('s-pending').textContent=pending;
-  document.getElementById('s-progress').textContent=progress;
-  document.getElementById('s-scheduled').textContent=upcoming.length;
-  document.getElementById('s-done').textContent=done.length;
-  document.getElementById('tc-queue').textContent=pending+progress+upcoming.length+onhold.length;
-  document.getElementById('tc-tv').textContent=active.length+upcoming.length;
-  const tcInternal = document.getElementById('tc-internal-moves');
-  if (tcInternal) tcInternal.textContent = pending+progress+upcoming.length+onhold.length;
-  const list=document.getElementById('queue-list');
-  if(!all.length){list.innerHTML='<div class="empty-state"><div class="empty-icon">🚗</div><p>No requests yet.</p></div>';return;}
-  let html='';
-  if(active.length) html+='<div class="section-label">Active queue</div>'+active.map(entryHTML).join('');
-  if(onhold.length) html+='<div class="section-label">On Hold</div>'+onhold.map(entryHTML).join('');
-  if(upcoming.length) html+='<div class="section-label">Upcoming scheduled</div>'+upcoming.map(entryHTML).join('');
-  if(done.length) html+='<div class="section-label">Completed</div>'+done.map(entryHTML).join('');
-  if(closed.length) html+='<div class="section-label">Cancelled</div>'+closed.map(entryHTML).join('');
-  if(!html) html='<div class="empty-state"><div class="empty-icon">🚗</div><p>No active requests right now.</p></div>';
-  list.innerHTML=html;
-  renderTV();
-  updateWaitBanner();
-  // Re-render compound map live if it's the active tab
-  if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
-}
-
-// ── TV render ─────────────────────────────────────────
-function renderTV() {
-  const all=allSorted(), active=activeQueue(), upcoming=upcomingScheduled();
-  const done=all.filter(e=>e.status==='done').slice(-6);
-  const onholdEntries=all.filter(e=>e.status==='onhold');
-  const tvList=document.getElementById('tv-list');
-  const tvCount=document.getElementById('tv-count');
-  const total=active.length+upcoming.length;
-
-  if(!total&&!done.length&&!onholdEntries.length){
-    tvCount.textContent='No active moves';
-    tvList.innerHTML='<div class="tv-empty" style="grid-column:1/-1"><div style="font-size:48px">✓</div><p>All clear</p></div>';
-    document.getElementById('tv-title-queue').textContent='Moves + Rides (0)';
-    renderTVGetReady(); renderTVCompoundMap(); renderTVIncoming();
-    return;
-  }
-  tvCount.textContent=(active.length?active.length+' active ':'')+( upcoming.length?'· '+upcoming.length+' upcoming ':'')+( done.length?'· '+done.length+' done':'');
-  document.getElementById('tv-title-queue').textContent=`Moves + Rides (${active.length+upcoming.length})`;
-
-  // Build compact tiles for every entry
-  const allEntries = [...active, ...upcoming, ...done, ...onholdEntries];
-  tvList.innerHTML = allEntries.map(e => {
-    const dc = destClass(e.dest);
-    const isProgress = e.status === 'progress';
-    const isOnRoute  = e.status === 'onroute';
-    const isBringing = e.status === 'bringing';
-    const isDone = e.status === 'done';
-    const isHold = e.status === 'onhold';
-    const isScheduled = e.bookingType === 'scheduled' && e.status === 'pending';
-
-    const border = isHold ? '#f59e0b' : isDone ? '#16a34a' : isBringing ? '#16a34a' : isOnRoute ? '#f97316' : isProgress ? '#3b82f6' : isScheduled ? '#8b5cf6' : '#e2e8f0';
-
-    // Progress/countdown bar
-    let barHtml = '';
-    if (isOnRoute && e.onrouteTs) {
-      const el = Math.floor((Date.now()-e.onrouteTs)/1000);
-      const rem = Math.max(0,(MOVE_MINS*60)-el);
-      const pct = Math.min(100,Math.round((el/(MOVE_MINS*60))*100));
-      const bc = el>MOVE_MINS*60 ? '#dc2626' : '#f97316';
-      barHtml = `<div style="margin-top:6px"><div style="font-size:10px;color:#c2410c;font-weight:700;margin-bottom:2px;display:flex;justify-content:space-between"><span>🚶 On Route</span><span style="color:${bc}">${Math.floor(rem/60)}m ${rem%60}s</span></div><div style="height:4px;background:#fff7ed;border-radius:99px"><div style="height:100%;width:${pct}%;background:${bc};border-radius:99px"></div></div></div>`;
-    } else if (isBringing && e.bringingTs) {
-      const el = Math.floor((Date.now()-e.bringingTs)/1000);
-      const rem = Math.max(0,(MOVE_MINS*60)-el);
-      const pct = Math.min(100,Math.round((el/(MOVE_MINS*60))*100));
-      const bc = el>MOVE_MINS*60 ? '#dc2626' : '#16a34a';
-      barHtml = `<div style="margin-top:6px"><div style="font-size:10px;color:#15803d;font-weight:700;margin-bottom:2px;display:flex;justify-content:space-between"><span>🚗 Bringing Back</span><span style="color:${bc}">${Math.floor(rem/60)}m ${rem%60}s</span></div><div style="height:4px;background:#f0fdf4;border-radius:99px"><div style="height:100%;width:${pct}%;background:${bc};border-radius:99px"></div></div></div>`;
-    } else if (isProgress && e.progressTs) {
-      const el = Math.floor((Date.now()-e.progressTs)/1000);
-      const pct = Math.min(100, Math.round((el/(MOVE_MINS*60))*100));
-      const overdue = el > MOVE_MINS*60;
-      const elLabel = Math.floor(el/60)+'m '+(el%60)+'s';
-      const bc = overdue ? '#dc2626' : '#3b82f6';
-      barHtml = `<div style="margin-top:6px"><div style="font-size:10px;color:${bc};font-weight:700;margin-bottom:2px;display:flex;justify-content:space-between"><span>${overdue?'⚠ Overdue':'In transit'}</span><span>${elLabel}</span></div><div style="height:4px;background:#e2e8f0;border-radius:99px"><div style="height:100%;width:${pct}%;background:${bc};border-radius:99px"></div></div></div>`;
-    } else if (isScheduled && e.scheduledTs) {
-      const msUntil = Math.max(0, e.scheduledTs - Date.now());
-      const pct = Math.min(100, Math.round(((CONVERT_MINS*60*1000-msUntil)/(CONVERT_MINS*60*1000))*100));
-      const bc = msUntil<=300000?'#dc2626':msUntil<=600000?'#d97706':'#8b5cf6';
-      barHtml = `<div style="margin-top:6px"><div style="font-size:10px;color:${bc};font-weight:700;margin-bottom:2px;display:flex;justify-content:space-between"><span>Appt</span><span>${fmtCountdown(msUntil)}</span></div><div style="height:4px;background:#ede9fe;border-radius:99px"><div style="height:100%;width:${pct}%;background:${bc};border-radius:99px"></div></div></div>`;
-    }
-
-    return `<div style="background:#fff;border-radius:10px;padding:12px 14px;border-left:5px solid ${border};${isDone?'opacity:.6':''}">
-      <div style="font-size:20px;font-weight:800;color:#00095b;line-height:1;margin-bottom:3px${isDone?';text-decoration:line-through;opacity:.5':''}">${e.stock}</div>
-      <div style="margin-bottom:4px"><span class="dest-pill ${dc}" style="font-size:11px;padding:2px 8px;font-weight:700;white-space:nowrap">${e.dest}</span></div>
-      ${e.claimedBy?`<div style="font-size:11px;color:#1d4ed8;font-weight:700">🔧 ${e.claimedBy}</div>`:''}
-      ${isDone&&e.claimedBy?`<div style="font-size:11px;color:#15803d;font-weight:700">✓ ${e.claimedBy}</div>`:''}
-      ${isHold?`<div style="font-size:10px;color:#92400e;font-weight:700;background:#fef3c7;border-radius:4px;padding:2px 6px;display:inline-block;margin-top:3px">ON HOLD</div>`:''}
-      ${e.requestedBy?`<div style="font-size:10px;color:#64748b;margin-top:3px">${e.requestedBy}</div>`:''}
-      ${barHtml}
-    </div>`;
-  }).join('');
-
-  renderTVIncoming();
-  renderTVGetReady();
-  renderTVCompoundMap();
-}
 
 function renderTVIncoming() {
   const sumEl  = document.getElementById('tv-inc-summary');
@@ -4958,7 +3566,7 @@ window.switchTab=function(name,btn){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('panel-'+name).classList.add('active');
-  const isTV=name==='tv'||name==='shuttle';
+  const isTV=name==='tv';
   document.querySelector('.header').style.display=isTV?'none':'flex';
   document.querySelector('.tabs').style.display=isTV?'none':'flex';
   document.getElementById('main-wrap').style.padding=isTV?'0':'24px';
@@ -4967,7 +3575,6 @@ window.switchTab=function(name,btn){
   if(name==='settings'){const sc=document.getElementById('s-sound');if(sc)sc.checked=soundEnabled;renderPermissionsEditor();}
   if(name==='history') { renderHistory(); renderCompoundHistory(); }
   if(name==='tracker'){renderTracker();renderTrackerSummary();}
-  if(name==='shuttle') renderShuttleDashboard();
 };
 window.exitTV=function(){
   const target='queue';
@@ -5009,7 +3616,6 @@ updateClock();
 setInterval(updateClock,10000);
 setInterval(()=>{
   if (!currentUser) return; // nobody signed in yet — nothing to refresh
-  render();
   // Don't re-render tracker if user is actively using an inline field inside a card
   const active = document.activeElement;
   const isTrackerFocused = active && (
@@ -5025,10 +3631,6 @@ setInterval(()=>{
   }
   const homePanel = document.getElementById('panel-home');
   if (homePanel && homePanel.classList.contains('active')) renderHomeGrid();
-  renderHitchhikers(); // also refreshes the shuttle dashboard internally
-  renderPickupRequests();
-  renderReturns();
-  renderDriverLocations();
 },1000);
 
 // ── Today's Drops PDF print ───────────────────────────
@@ -5191,13 +3793,6 @@ function renderHomeGrid() {
     });
   }
 
-  tiles.push({
-    name: 'queue', tone: 'navy', icon: icon.queue,
-    title: 'Moves + Rides',
-    desc: 'Submit a move request or view the live lot queue.',
-    badge: () => Object.values(entries).filter(e=>['pending','progress'].includes(e.status)).length
-  });
-
   if (perm('tabTestDrive')) {
     tiles.push({
       name: 'testdrive', tone: 'amber',
@@ -5205,15 +3800,6 @@ function renderHomeGrid() {
       title: 'Test Drives',
       desc: "See who's out on a test drive, gas level, and expected return.",
       badge: () => Object.values(testDrives).filter(t=>t.status==='out').length
-    });
-  }
-
-  if (perm('tabShuttle')) {
-    tiles.push({
-      name: 'shuttle', tone: 'amber',
-      icon: `<path d="M3 17h13l3-6h-2l-2-5H8L5 11H3z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="15.5" cy="17.5" r="1.5"/>`,
-      title: 'Shuttle Dashboard',
-      desc: 'Big-button view of vehicle moves and hitchhiker rides.'
     });
   }
 
@@ -6203,9 +4789,9 @@ window.switchTab = function(name, btn) {
   } else if (name === 'audit') {
     auditRender();
   } else {
-    // Restore normal padding when leaving compound tab (but not for TV/shuttle kiosk views)
+    // Restore normal padding when leaving compound tab (but not for the TV kiosk view)
     const wasCompound = document.getElementById('panel-compound')?.classList.contains('active');
-    if (wasCompound || (name !== 'tv' && name !== 'shuttle')) {
+    if (wasCompound || name !== 'tv') {
       document.getElementById('main-wrap').style.padding = '';
       document.getElementById('main-wrap').style.maxWidth = '';
     }
