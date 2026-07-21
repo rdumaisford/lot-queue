@@ -939,46 +939,50 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 
     <!-- RIDES — live map + Uber-style bottom sheet -->
     <div id="panel-rides" class="panel" style="padding:0;overflow:hidden">
-      <div id="rides-map" style="flex:1;min-height:0;position:relative;background:#e2e8f0"></div>
-      <div id="rides-sheet" style="flex-shrink:0;background:var(--surface);border-top:1px solid var(--border);box-shadow:0 -4px 16px rgba(0,0,0,.1);padding:14px 16px 16px;max-height:48vh;overflow-y:auto;position:relative;z-index:500">
+      <div id="rides-rider-view" style="display:flex;flex-direction:column;height:100%">
+        <div id="rides-map" style="flex:1;min-height:0;position:relative;background:#e2e8f0"></div>
+        <div id="rides-sheet" style="flex-shrink:0;background:var(--surface);border-top:1px solid var(--border);box-shadow:0 -4px 16px rgba(0,0,0,.1);padding:14px 16px 16px;max-height:48vh;overflow-y:auto;position:relative;z-index:500">
 
-        <div id="rides-mode-toggle" style="display:none;gap:8px;margin-bottom:12px">
-          <button id="rides-mode-request-btn" onclick="ridesSetMode('request')" class="toggle-btn active" style="flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:700">🙋 Request</button>
-          <button id="rides-mode-drive-btn" onclick="ridesSetMode('drive')" class="toggle-btn" style="flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:700">🚐 Drive</button>
-        </div>
+          <div id="rides-mode-toggle" style="display:none;gap:8px;margin-bottom:12px">
+            <button id="rides-mode-request-btn" onclick="ridesSetMode('request')" class="toggle-btn active" style="flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:700">🙋 Request</button>
+            <button id="rides-mode-drive-btn" onclick="ridesSetMode('drive')" class="toggle-btn" style="flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:700">🚐 Drive</button>
+          </div>
 
-        <!-- REQUEST MODE -->
-        <div id="rides-request-panel">
-          <div id="rides-request-form">
-            <div style="font-size:15px;font-weight:700;margin-bottom:10px">Request a ride</div>
-            <div style="display:flex;gap:8px;margin-bottom:10px">
-              <button id="rides-type-hitchhike-btn" onclick="ridesSetType('hitchhike')" class="toggle-btn active" style="flex:1;padding:10px 6px;border-radius:8px;font-size:13px">🙋 Hitchhiking</button>
-              <button id="rides-type-vehicle-btn" onclick="ridesSetType('vehicle')" class="toggle-btn" style="flex:1;padding:10px 6px;border-radius:8px;font-size:13px">🚗 Pick Up a Vehicle</button>
-            </div>
-            <div id="rides-stock-row" style="display:none;margin-bottom:10px">
-              <input id="rides-stock-input" type="text" placeholder="Stock # e.g. B0394" autocomplete="off" oninput="ridesCheckStockLocation()" style="width:100%;padding:10px 12px;font-size:16px;font-family:var(--font);border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"/>
-              <div id="rides-stock-result" style="display:none;margin-top:6px;font-size:12px"></div>
-            </div>
-            <div id="rides-direction-row" style="margin-bottom:12px">
-              <div style="font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Where are you now?</div>
-              <div style="display:flex;gap:8px">
-                <button id="rides-loc-55-btn" onclick="ridesSetLocation('55 Mapleview')" class="toggle-btn active" style="flex:1;padding:8px;border-radius:8px;font-size:13px">55 Mapleview</button>
-                <button id="rides-loc-323-btn" onclick="ridesSetLocation('323 Bayview')" class="toggle-btn" style="flex:1;padding:8px;border-radius:8px;font-size:13px">323 Bayview</button>
+          <div id="rides-request-panel">
+            <div id="rides-request-form">
+              <div style="font-size:15px;font-weight:700;margin-bottom:10px">Request a ride</div>
+              <div style="display:flex;gap:8px;margin-bottom:10px">
+                <button id="rides-type-hitchhike-btn" onclick="ridesSetType('hitchhike')" class="toggle-btn active" style="flex:1;padding:10px 6px;border-radius:8px;font-size:13px">🙋 Hitchhiking</button>
+                <button id="rides-type-vehicle-btn" onclick="ridesSetType('vehicle')" class="toggle-btn" style="flex:1;padding:10px 6px;border-radius:8px;font-size:13px">🚗 Pick Up a Vehicle</button>
               </div>
+              <div id="rides-stock-row" style="display:none;margin-bottom:10px">
+                <input id="rides-stock-input" type="text" placeholder="Stock # e.g. B0394" autocomplete="off" oninput="ridesCheckStockLocation()" style="width:100%;padding:10px 12px;font-size:16px;font-family:var(--font);border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"/>
+                <div id="rides-stock-result" style="display:none;margin-top:6px;font-size:12px"></div>
+              </div>
+              <div id="rides-direction-row" style="margin-bottom:12px">
+                <div style="font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Where are you now?</div>
+                <div style="display:flex;gap:8px">
+                  <button id="rides-loc-55-btn" onclick="ridesSetLocation('55 Mapleview')" class="toggle-btn active" style="flex:1;padding:8px;border-radius:8px;font-size:13px">55 Mapleview</button>
+                  <button id="rides-loc-323-btn" onclick="ridesSetLocation('323 Bayview')" class="toggle-btn" style="flex:1;padding:8px;border-radius:8px;font-size:13px">323 Bayview</button>
+                </div>
+              </div>
+              <button id="rides-submit-btn" onclick="submitRide()" style="width:100%;padding:13px;border:none;border-radius:10px;background:var(--ford);color:#fff;font-size:15px;font-weight:700;cursor:pointer">Request Ride</button>
             </div>
-            <button id="rides-submit-btn" onclick="submitRide()" style="width:100%;padding:13px;border:none;border-radius:10px;background:var(--ford);color:#fff;font-size:15px;font-weight:700;cursor:pointer">Request Ride</button>
+            <div id="rides-active-status" style="display:none"></div>
           </div>
-          <div id="rides-active-status" style="display:none"></div>
         </div>
+      </div>
 
-        <!-- DRIVE MODE -->
-        <div id="rides-drive-panel" style="display:none">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-            <div style="font-size:15px;font-weight:700">Driver mode</div>
-            <button id="rides-loc-share-btn" onclick="toggleLocationSharing()" style="font-size:12px;padding:7px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);cursor:pointer">📍 Share Location</button>
-          </div>
-          <div id="rides-driver-queue"></div>
+      <!-- DRIVER DASHBOARD — full screen, big buttons, high contrast for glancing at while driving -->
+      <div id="rides-driver-view" style="display:none;flex-direction:column;height:100%;background:#0a1128;color:#fff">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.12);flex-shrink:0">
+          <div style="font-size:21px;font-weight:800">🚐 Driver Dashboard</div>
+          <button onclick="ridesSetMode('request')" style="padding:10px 18px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:10px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;min-height:44px">Exit</button>
         </div>
+        <div style="padding:16px 20px 8px;flex-shrink:0">
+          <button id="rides-loc-share-btn" onclick="toggleLocationSharing()" style="width:100%;padding:20px;border:none;border-radius:16px;background:rgba(255,255,255,.12);color:#fff;font-size:18px;font-weight:800;cursor:pointer;min-height:64px">📍 Share My Location</button>
+        </div>
+        <div id="rides-driver-queue" style="flex:1;overflow-y:auto;padding:12px 20px 20px"></div>
       </div>
     </div>
 
@@ -2571,6 +2575,7 @@ window.ridesSetLocation = function(loc) {
 
 window.ridesCheckStockLocation = function() {
   const stock = document.getElementById('rides-stock-input').value.trim().toUpperCase();
+  const normalizedInput = stock.replace(/[^A-Z0-9]/g, ''); // ignore dashes/spaces so formatting differences don't cause false misses
   const resultEl = document.getElementById('rides-stock-result');
   const dirRow = document.getElementById('rides-direction-row');
   ridesStockFoundLot = null;
@@ -2578,12 +2583,20 @@ window.ridesCheckStockLocation = function() {
   let foundLot = null;
   Object.entries(cmVehicles||{}).forEach(([lot, lotVehs]) => {
     Object.values(lotVehs||{}).forEach(v => {
-      if (v && v.stock && v.status!=='blocked' && v.status!=='void' && v.stock.toUpperCase().trim() === stock) foundLot = lot;
+      if (!v || !v.stock || v.status === 'blocked' || v.status === 'void') return;
+      const normalizedStored = v.stock.toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+      if (normalizedStored === normalizedInput) foundLot = lot;
     });
   });
   resultEl.style.display = 'block';
-  if (!foundLot || (foundLot !== 'bayview323' && foundLot !== 'mapleview55')) {
-    resultEl.innerHTML = `<span style="color:#991b1b">⚠ Can't find this car at 323 Bayview or 55 Mapleview on the Vehicle Locator map.</span>`;
+  if (!foundLot) {
+    resultEl.innerHTML = `<span style="color:#991b1b">⚠ Can't find "${stock}" anywhere on the Vehicle Locator map — double check the stock # and that it's actually placed on the map.</span>`;
+    dirRow.style.display = 'block';
+    return;
+  }
+  if (foundLot !== 'bayview323' && foundLot !== 'mapleview55') {
+    const lotLabel = CM_LOT_LABELS[foundLot] || foundLot;
+    resultEl.innerHTML = `<span style="color:#991b1b">⚠ Found at ${lotLabel} — rides only run between 323 Bayview and 55 Mapleview, so this car isn't eligible for pickup here.</span>`;
     dirRow.style.display = 'block';
     return;
   }
@@ -2659,31 +2672,66 @@ window.ridesSetMode = function(mode) {
   ridesMode = mode;
   document.getElementById('rides-mode-request-btn').classList.toggle('active', mode==='request');
   document.getElementById('rides-mode-drive-btn').classList.toggle('active', mode==='drive');
-  document.getElementById('rides-request-panel').style.display = mode==='request' ? 'block' : 'none';
-  document.getElementById('rides-drive-panel').style.display = mode==='drive' ? 'block' : 'none';
-  if (mode === 'drive') renderDriverQueue();
+  document.getElementById('rides-rider-view').style.display = mode==='request' ? 'flex' : 'none';
+  document.getElementById('rides-driver-view').style.display = mode==='drive' ? 'flex' : 'none';
+  if (mode === 'drive') {
+    renderDriverQueue();
+    setTimeout(()=>ridesLeafletMap?.invalidateSize(), 50);
+  } else {
+    setTimeout(()=>ridesLeafletMap?.invalidateSize(), 50);
+  }
 }
 
 function renderDriverQueue() {
   const el = document.getElementById('rides-driver-queue');
   if (!el) return;
-  const active = Object.entries(rides||{}).map(([id,r])=>({id,...r})).filter(r=>!['done','cancelled'].includes(r.status)).sort((a,b)=>a.ts-b.ts);
-  if (!active.length) { el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px">No active ride requests.</div>'; return; }
-  el.innerHTML = active.map(r => {
-    const label = r.type==='vehicle' ? `🚗 Pickup: ${r.stock}` : '🙋 Hitchhiking';
-    let actionBtn = '';
-    if (r.status === 'pending') actionBtn = `<button onclick="claimRide('${r.id}')" style="padding:8px 14px;border:none;border-radius:8px;background:var(--ford);color:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">Claim</button>`;
-    else if (r.status === 'claimed' && r.claimedBy===currentUser?.name) actionBtn = `<button onclick="setRideStatus('${r.id}','enroute')" style="padding:8px 14px;border:none;border-radius:8px;background:#f97316;color:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">Picked Up</button>`;
-    else if (r.status === 'enroute' && r.claimedBy===currentUser?.name) actionBtn = `<button onclick="setRideStatus('${r.id}','done')" style="padding:8px 14px;border:none;border-radius:8px;background:#15803d;color:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">✓ Done</button>`;
-    else if (r.claimedBy) actionBtn = `<span style="font-size:11px;color:var(--text-faint);white-space:nowrap">${r.claimedBy}</span>`;
-    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;margin-bottom:8px">
-      <div style="min-width:0">
-        <div style="font-size:13px;font-weight:700">${label}</div>
-        <div style="font-size:11px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.pickup} → ${r.dropoff} · ${r.requestedBy}</div>
-      </div>
-      ${actionBtn}
+  const all = Object.entries(rides||{}).map(([id,r])=>({id,...r})).filter(r=>!['done','cancelled'].includes(r.status)).sort((a,b)=>a.ts-b.ts);
+  if (!all.length) {
+    el.innerHTML = '<div style="text-align:center;padding:60px 20px;color:rgba(255,255,255,.5);font-size:16px">No active ride requests right now.</div>';
+    return;
+  }
+  const mine = all.filter(r => r.claimedBy === currentUser?.name);
+  const unclaimed = all.filter(r => r.status === 'pending');
+  const othersActive = all.filter(r => r.claimedBy && r.claimedBy !== currentUser?.name);
+
+  const bigCard = (r, big) => {
+    const label = r.type==='vehicle' ? `🚗 ${r.stock}` : '🙋 Hitchhiker';
+    const sub = r.type==='vehicle' ? 'Vehicle pickup' : 'Just needs a ride';
+    let action = '';
+    if (r.status === 'pending') {
+      action = `<button onclick="claimRide('${r.id}')" style="width:100%;padding:18px;border:none;border-radius:14px;background:#2563eb;color:#fff;font-size:18px;font-weight:800;cursor:pointer;min-height:60px">Claim This Ride</button>`;
+    } else if (r.status === 'claimed' && r.claimedBy === currentUser?.name) {
+      action = `<button onclick="setRideStatus('${r.id}','enroute')" style="width:100%;padding:18px;border:none;border-radius:14px;background:#f97316;color:#fff;font-size:18px;font-weight:800;cursor:pointer;min-height:60px">🚗 Picked Up — Start Ride</button>`;
+    } else if (r.status === 'enroute' && r.claimedBy === currentUser?.name) {
+      action = `<button onclick="setRideStatus('${r.id}','done')" style="width:100%;padding:18px;border:none;border-radius:14px;background:#16a34a;color:#fff;font-size:18px;font-weight:800;cursor:pointer;min-height:60px">✓ Mark Done</button>`;
+    }
+    const stageText = { pending:'Waiting for a driver', claimed:'You\'re heading to pick them up', enroute:'Ride in progress' }[r.status] || '';
+    return `<div style="background:rgba(255,255,255,.08);border:2px solid ${big?'#2563eb':'rgba(255,255,255,.15)'};border-radius:18px;padding:18px;margin-bottom:14px">
+      <div style="font-size:24px;font-weight:800;margin-bottom:2px">${label}</div>
+      <div style="font-size:14px;color:rgba(255,255,255,.6);margin-bottom:8px">${sub}</div>
+      <div style="font-size:17px;font-weight:700;margin-bottom:4px">📍 ${r.pickup} → ${r.dropoff}</div>
+      <div style="font-size:14px;color:rgba(255,255,255,.7);margin-bottom:14px">${r.requestedBy||''}${stageText?' · '+stageText:''}</div>
+      ${action}
     </div>`;
-  }).join('');
+  };
+
+  let html = '';
+  if (mine.length) {
+    html += `<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.5);margin-bottom:8px">Your active ride</div>`;
+    html += mine.map(r => bigCard(r, true)).join('');
+  }
+  if (unclaimed.length) {
+    html += `<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.5);margin:16px 0 8px">Available to claim</div>`;
+    html += unclaimed.map(r => bigCard(r, false)).join('');
+  }
+  if (othersActive.length) {
+    html += `<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.4);margin:16px 0 8px">Other drivers</div>`;
+    html += othersActive.map(r => `<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 18px;margin-bottom:10px;opacity:.7">
+      <div style="font-size:16px;font-weight:700">${r.type==='vehicle'?'🚗 '+r.stock:'🙋 Hitchhiker'} · ${r.pickup} → ${r.dropoff}</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.6)">🚐 ${r.claimedBy}</div>
+    </div>`).join('');
+  }
+  el.innerHTML = html;
 }
 
 window.claimRide = async function(id) {
