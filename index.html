@@ -896,6 +896,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17h13l3-6h-2l-2-5H8L5 11H3z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="15.5" cy="17.5" r="1.5"/></svg>
       Rides <span class="tab-count" id="tc-rides">0</span>
     </button>
+    <button class="tab" id="tab-jobs" onclick="switchTab('jobs',this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+      Jobs <span class="tab-count" id="tc-jobs">0</span>
+    </button>
     <button class="tab" id="tab-compound" onclick="switchTab('compound',this)" style="display:none">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="17" width="18" height="4" rx="1"/></svg>
       Vehicle Locator
@@ -955,7 +959,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 
         <div id="rides-request-panel">
           <div id="rides-request-form">
-            <div style="font-size:15px;font-weight:700;margin-bottom:10px">Request a ride</div>
+            <div style="font-size:15px;font-weight:700;margin-bottom:2px">Request a ride</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Between 55 Mapleview, 323 Bayview, and 700 Bayview</div>
             <div style="display:flex;gap:6px;margin-bottom:10px">
               <button id="rides-type-hitchhike-btn" onclick="ridesSetType('hitchhike')" class="toggle-btn active" style="flex:1;padding:10px 4px;border-radius:8px;font-size:12px">🙋 Hitchhiking</button>
               <button id="rides-type-vehicle-btn" onclick="ridesSetType('vehicle')" class="toggle-btn" style="flex:1;padding:10px 4px;border-radius:8px;font-size:12px">🚗 Pick Up</button>
@@ -981,7 +986,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
             <div id="rides-appt-fields" style="display:none;margin-bottom:12px">
               <div class="form-row" style="margin-bottom:10px">
                 <label style="font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Stock # <span style="color:#e24b4a">*</span></label>
-                <input id="rides-appt-stock" type="text" placeholder="e.g. B0394" autocomplete="off" style="width:100%;padding:10px 12px;font-size:16px;font-family:var(--font);border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"/>
+                <input id="rides-appt-stock" type="text" placeholder="e.g. B0394" autocomplete="off" oninput="ridesApptCheckLocation()" style="width:100%;padding:10px 12px;font-size:16px;font-family:var(--font);border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"/>
+                <div id="rides-appt-stock-result" style="display:none;margin-top:6px;font-size:12px"></div>
               </div>
               <div class="form-row" style="margin-bottom:10px">
                 <label style="font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Bring to <span style="color:#e24b4a">*</span></label>
@@ -1019,6 +1025,36 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div id="rides-driver-eta" style="font-size:15px;font-weight:700;color:#93c5fd;margin-bottom:10px"></div>
         <button id="rides-loc-share-btn" onclick="toggleLocationSharing()" style="width:100%;padding:16px;border:none;border-radius:14px;background:rgba(255,255,255,.12);color:#fff;font-size:16px;font-weight:800;cursor:pointer;min-height:56px;margin-bottom:14px">📍 Share My Location</button>
         <div id="rides-driver-queue"></div>
+      </div>
+    </div>
+
+    <!-- JOBS QUEUE — Vehicle Appointments + Get Ready, for lot crew / dedicated Get Ready staff -->
+    <div id="panel-jobs" class="panel">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px" id="jobs-category-filter">
+        <button class="filter-chip active" onclick="setJobsCategory('all',this)">All Jobs</button>
+        <button class="filter-chip" onclick="setJobsCategory('appointments',this)">📅 Appointments</button>
+        <button class="filter-chip" onclick="setJobsCategory('getready',this)">📋 Get Ready</button>
+      </div>
+      <div id="jobs-task-filter" style="display:none;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+        <button class="filter-chip active" onclick="setJobsTask('all',this)">All Tasks</button>
+        <button class="filter-chip" onclick="setJobsTask('pdi',this)">PDI</button>
+        <button class="filter-chip" onclick="setJobsTask('lof',this)">LOF</button>
+        <button class="filter-chip" onclick="setJobsTask('detail',this)">Detail</button>
+        <button class="filter-chip" onclick="setJobsTask('paint',this)">Paint</button>
+        <button class="filter-chip" onclick="setJobsTask('safety',this)">Safety</button>
+        <button class="filter-chip" onclick="setJobsTask('leather',this)">Leather</button>
+        <button class="filter-chip" onclick="setJobsTask('fabric',this)">Fabric</button>
+        <button class="filter-chip" onclick="setJobsTask('module',this)">Module</button>
+      </div>
+
+      <div id="jobs-appt-section">
+        <div class="section-label">📅 Vehicle Appointments <span class="tab-count" id="tc-jobs-appts" style="background:var(--bg)"></span></div>
+        <div id="jobs-appt-list"><div style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</div></div>
+      </div>
+
+      <div id="jobs-gr-section">
+        <div class="section-label" style="margin-top:28px">📋 Get Ready <span class="tab-count" id="tc-jobs-gr" style="background:var(--bg)"></span></div>
+        <div id="jobs-gr-list"><div style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</div></div>
       </div>
     </div>
 
@@ -1476,6 +1512,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
             <button onclick="openDisplayLink('55mapleview')" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px">📺 Display — 55 Mapleview (dealership)</button>
             <button onclick="openDisplayLink('323bayview')" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px">📺 Display — 323 Bayview (off-site lot)</button>
             <button onclick="openDisplayLink()" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px">📺 Display — unfiltered (shows everything)</button>
+            <button onclick="openDriveLink()" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px">🚐 Driver Dashboard (sign in, jumps straight to Drive)</button>
           </div>
         </div>
       </div>
@@ -1795,16 +1832,16 @@ const ROLE_LABELS = {lot:'Inventory Control',reception:'Reception',service:'Serv
 
 // Default permission matrix — used until Firebase settings/permissions loads (or if a role/perm is missing there)
 const DEFAULT_PERMISSIONS = {
-  lot:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:true,  testDriveAdmin:true  },
-  reception:    { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:false, clearCompleted:false, getReadyEdit:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  service:      { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  sales:        { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:true,  testDriveAdmin:false },
-  fandi:        { tabHome:true,  tabQueue:true,  tabTracker:false, tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  detail:       { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  pdi:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:true,  trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  merchandiser: { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:true,  tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:true,  trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:true,  cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  management:   { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:true,  testDriveAdmin:true  },
-  shuttle:      { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false },
+  lot:          { tabHome:true,  tabQueue:true,  tabJobs:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:true,  testDriveAdmin:true  },
+  reception:    { tabHome:true,  tabQueue:true,  tabJobs:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:false, clearCompleted:false, getReadyEdit:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  service:      { tabHome:true,  tabQueue:true,  tabJobs:false, tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  sales:        { tabHome:true,  tabQueue:true,  tabJobs:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:true,  testDriveAdmin:false },
+  fandi:        { tabHome:true,  tabQueue:true,  tabJobs:true,  tabTracker:false, tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  detail:       { tabHome:true,  tabQueue:true,  tabJobs:false, tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  pdi:          { tabHome:true,  tabQueue:true,  tabJobs:false, tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:true,  trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  merchandiser: { tabHome:false, tabQueue:false, tabJobs:false, tabTracker:false, tabGetReady:false, tabTV:true,  tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:true,  trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:true,  cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  management:   { tabHome:true,  tabQueue:true,  tabJobs:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:true,  testDriveAdmin:true  },
+  shuttle:      { tabHome:false, tabQueue:false, tabJobs:false, tabTracker:false, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false },
 };
 
 let PERMISSIONS = JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS)); // live copy, overwritten by Firebase
@@ -1818,7 +1855,7 @@ function perm(key) {
 
 function applyPermissions() {
   if (!currentUser) return;
-  const tabMap = { tabHome:'tab-home', tabQueue:'tab-rides', tabTracker:'tab-tracker', tabGetReady:'tab-getready', tabTestDrive:'tab-testdrive', tabTV:'tab-tv', tabShuttle:'tab-shuttle', tabCompound:'tab-compound', tabAudit:'tab-audit', tabHistory:'tab-history', tabSettings:'tab-settings' };
+  const tabMap = { tabHome:'tab-home', tabQueue:'tab-rides', tabJobs:'tab-jobs', tabTracker:'tab-tracker', tabGetReady:'tab-getready', tabTestDrive:'tab-testdrive', tabTV:'tab-tv', tabShuttle:'tab-shuttle', tabCompound:'tab-compound', tabAudit:'tab-audit', tabHistory:'tab-history', tabSettings:'tab-settings' };
   for (const key in tabMap) {
     const el = document.getElementById(tabMap[key]);
     if (el) el.style.display = perm(key) ? '' : 'none';
@@ -1846,7 +1883,7 @@ function applyPermissions() {
 // ── Permissions matrix editor (Settings tab) ──────────
 const PERM_GROUPS = [
   { label:'Tabs', keys: [
-    ['tabHome','Home'], ['tabQueue','Rides'], ['tabTracker','Incoming'], ['tabGetReady','Get Ready'], ['tabTestDrive','Test Drives'],
+    ['tabHome','Home'], ['tabQueue','Rides'], ['tabJobs','Jobs'], ['tabTracker','Incoming'], ['tabGetReady','Get Ready'], ['tabTestDrive','Test Drives'],
     ['tabCompound','Vehicle Locator'], ['tabTV','TV Display'], ['tabShuttle','Shuttle Dashboard'], ['tabHistory','History'], ['tabSettings','Settings'],
   ]},
   { label:'Shuttle Dashboard', keys: [
@@ -2070,6 +2107,10 @@ window.openDisplayLink = function(loc) {
   const url = window.location.origin + window.location.pathname + '?display=true' + (loc ? '&loc='+loc : '');
   window.open(url, '_blank');
 };
+window.openDriveLink = function() {
+  const url = window.location.origin + window.location.pathname + '?view=drive';
+  window.open(url, '_blank');
+};
 
 async function watchUserApproval(fbUser) {
   const uid = fbUser.uid;
@@ -2226,6 +2267,7 @@ function startApp() {
   onValue(ref(db, 'appointments'), snap => {
     appointments = snap.val() || {};
     if (document.getElementById('panel-rides')?.classList.contains('active')) renderRidesTab();
+    if (document.getElementById('panel-jobs')?.classList.contains('active')) renderJobsQueue();
   });
 
   onValue(ref(db, 'driverLocation'), snap => {
@@ -2235,6 +2277,11 @@ function startApp() {
 
   if (!viewParamApplied) {
     viewParamApplied = true;
+    const viewParam = new URLSearchParams(window.location.search).get('view');
+    if (viewParam === 'drive' && currentUser && (currentUser.role === 'lot' || currentUser.role === 'management')) {
+      switchTab('rides', document.getElementById('tab-rides'));
+      setTimeout(() => window.ridesSetMode('drive'), 150);
+    }
   }
 
   const userMgmtWrap = document.getElementById('user-mgmt-wrap');
@@ -2289,6 +2336,7 @@ function startApp() {
     renderGetReady(); renderGetReadySummary();
     if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
     if (document.getElementById('panel-tv')?.classList.contains('active')) { renderTVGetReady(); renderTVCompoundMap(); }
+    if (document.getElementById('panel-jobs')?.classList.contains('active')) renderJobsQueue();
   });
 
   onValue(ref(db,'testdrives'), snap=>{
@@ -2828,6 +2876,35 @@ window.cancelRide = async function(id) {
 const APPT_STAGES = ['pending','in_progress','delivered'];
 const APPT_STAGE_LABELS = ['Waiting for Driver','On the Way','Delivered'];
 
+let ridesApptFoundLocation = null; // informational only — never blocks submission
+
+// Live location lookup for appointments — purely informational. Unlike the
+// ride-request lookup, this never blocks submission: if the stock # isn't
+// found (typo, car not yet placed on the map, etc.), the appointment still
+// goes through — we just won't have a "currently at" note attached to it.
+window.ridesApptCheckLocation = function() {
+  const stock = document.getElementById('rides-appt-stock').value.trim().toUpperCase();
+  const resultEl = document.getElementById('rides-appt-stock-result');
+  ridesApptFoundLocation = null;
+  if (!stock) { resultEl.style.display = 'none'; return; }
+  let foundLot = null;
+  Object.entries(cmVehicles||{}).forEach(([lot, lotVehs]) => {
+    Object.values(lotVehs||{}).forEach(v => {
+      if (!v || !v.stock || v.status === 'blocked' || v.status === 'void') return;
+      const normalizedStored = v.stock.toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+      const normalizedInput = stock.replace(/[^A-Z0-9]/g, '');
+      if (normalizedStored === normalizedInput) foundLot = lot;
+    });
+  });
+  resultEl.style.display = 'block';
+  if (!foundLot) {
+    resultEl.innerHTML = `<span style="color:var(--text-faint)">Not found on the Vehicle Locator map — that's fine, the request will still go through.</span>`;
+    return;
+  }
+  ridesApptFoundLocation = CM_LOT_LABELS[foundLot] || foundLot;
+  resultEl.innerHTML = `<span style="color:#15803d;font-weight:600">📍 Currently at ${ridesApptFoundLocation}</span>`;
+};
+
 async function submitAppointment() {
   const stock = document.getElementById('rides-appt-stock').value.trim().toUpperCase();
   const deptSel = document.getElementById('rides-appt-dept').value;
@@ -2841,6 +2918,7 @@ async function submitAppointment() {
   try {
     await push(ref(db,'appointments'), {
       stock, department, notes,
+      currentLocation: ridesApptFoundLocation || null, // best-effort — never required
       requestedBy: currentUser.name,
       requestedByUid: currentUser.uid || null,
       status: 'pending', // pending -> in_progress -> delivered
@@ -2850,6 +2928,8 @@ async function submitAppointment() {
     document.getElementById('rides-appt-notes').value = '';
     document.getElementById('rides-appt-dept').value = 'Service';
     document.getElementById('rides-appt-dept-other-row').style.display = 'none';
+    document.getElementById('rides-appt-stock-result').style.display = 'none';
+    ridesApptFoundLocation = null;
   } catch(e) { alert('Error submitting — check connection.'); }
   if (btn) { btn.disabled = false; btn.textContent = 'Request Appointment'; }
 }
@@ -2892,10 +2972,99 @@ function renderMyActiveAppointment() {
       </div>`).join('');
     return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px">
       <div style="font-size:14px;font-weight:700;margin-bottom:2px">📅 ${a.stock} → ${a.department}</div>
+      ${a.currentLocation?`<div style="font-size:12px;color:#15803d;font-weight:600;margin-bottom:4px">📍 Currently at ${a.currentLocation}</div>`:''}
       ${a.notes?`<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">${a.notes}</div>`:''}
       <div style="display:flex;margin:10px 0">${stepperHTML}</div>
       ${a.claimedBy?`<div style="font-size:12px;color:#1d4ed8;font-weight:700;margin-bottom:8px">🚐 ${a.claimedBy}</div>`:''}
       ${a.status==='pending'?`<button onclick="cancelAppointment('${a.id}')" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:#991b1b;font-size:12px;cursor:pointer">Cancel</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ── Jobs Queue — a normal (non-kiosk) tab combining Vehicle Appointments and
+// Get Ready, for lot crew and a dedicated Get Ready person to work from.
+let jobsCategory = 'all'; // 'all' | 'appointments' | 'getready'
+let jobsTask = 'all';     // 'all' | a GR_CHECKLIST key — lets a specific associate (PDI, Detail, etc.) see just their work
+
+window.setJobsCategory = function(cat, btn) {
+  jobsCategory = cat;
+  document.querySelectorAll('#jobs-category-filter .filter-chip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const taskFilter = document.getElementById('jobs-task-filter');
+  taskFilter.style.display = cat === 'getready' ? 'flex' : 'none';
+  document.getElementById('jobs-appt-section').style.display = cat === 'getready' ? 'none' : 'block';
+  document.getElementById('jobs-gr-section').style.display = cat === 'appointments' ? 'none' : 'block';
+  renderJobsQueue();
+};
+
+window.setJobsTask = function(task, btn) {
+  jobsTask = task;
+  document.querySelectorAll('#jobs-task-filter .filter-chip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderJobsGetReady();
+};
+
+function renderJobsQueue() {
+  renderJobsAppointments();
+  renderJobsGetReady();
+}
+
+function renderJobsAppointments() {
+  const el = document.getElementById('jobs-appt-list');
+  if (!el) return;
+  const active = Object.entries(appointments||{}).map(([id,a])=>({id,...a})).filter(a=>a.status!=='delivered').sort((a,b)=>a.ts-b.ts);
+  const tc = document.getElementById('tc-jobs-appts');
+  if (tc) tc.textContent = active.length;
+  const tcMain = document.getElementById('tc-jobs');
+  if (tcMain) tcMain.textContent = active.length + Object.values(getReadyDeals||{}).filter(d=>!grIsComplete(d)).length;
+  if (jobsCategory === 'getready') return; // section is hidden entirely, nothing to render
+  if (!active.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><p>No pending appointments.</p></div>'; return; }
+  el.innerHTML = active.map(a => {
+    let action = '';
+    if (a.status === 'pending') {
+      action = `<button class="btn-action" onclick="claimAppointment('${a.id}')" style="background:#eff6ff;color:#1d4ed8;font-weight:700">Claim</button>`;
+    } else if (a.status === 'in_progress') {
+      action = a.claimedBy === currentUser?.name
+        ? `<button class="btn-action" onclick="setAppointmentDelivered('${a.id}')" style="background:#f0fdf4;color:#15803d;font-weight:700">✓ Delivered</button>`
+        : `<span style="font-size:12px;color:var(--text-faint)">🚐 ${a.claimedBy}</span>`;
+    }
+    const stageLabel = { pending:'Waiting for driver', in_progress:'On the way' }[a.status] || a.status;
+    return `<div class="entry">
+      <div style="flex:1">
+        <div class="entry-stock">📅 ${a.stock} → ${a.department}</div>
+        <div class="entry-meta" style="margin-bottom:5px">Requested by ${a.requestedBy}${a.currentLocation?' · 📍 '+a.currentLocation:''}</div>
+        <div style="font-size:13px;font-weight:700;color:#1d4ed8">${stageLabel}</div>
+        ${a.notes?`<div class="entry-notes">${a.notes}</div>`:''}
+      </div>
+      <div class="entry-actions">${action}<div class="entry-time">${timeAgo(a.ts)}</div></div>
+    </div>`;
+  }).join('');
+}
+
+function renderJobsGetReady() {
+  const el = document.getElementById('jobs-gr-list');
+  if (!el) return;
+  if (jobsCategory === 'appointments') return; // section is hidden entirely, nothing to render
+  let pending = Object.values(getReadyDeals||{}).filter(d => !grIsComplete(d));
+  // Task filter — an associate who only does PDI (say) only wants deals where
+  // PDI specifically is still outstanding, regardless of what else is pending.
+  if (jobsTask !== 'all') {
+    pending = pending.filter(d => !d[jobsTask]);
+  }
+  pending.sort((a,b)=>(a.deliveryDate||'').localeCompare(b.deliveryDate||''));
+  const tc = document.getElementById('tc-jobs-gr');
+  if (tc) tc.textContent = pending.length;
+  if (!pending.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>Nothing pending — all caught up.</p></div>'; return; }
+  el.innerHTML = pending.map(d => {
+    const required = GR_CHECKLIST.filter(([key]) => d['req_'+key]);
+    const toCheck = required.length > 0 ? required : GR_CHECKLIST;
+    const outstanding = toCheck.filter(([key]) => !d[key]).map(([,label]) => label);
+    return `<div class="entry">
+      <div style="flex:1">
+        <div class="entry-stock">${d.stock||'—'} ${d.vehicle?'· '+d.vehicle:''}</div>
+        ${outstanding.length?`<div class="entry-meta">Still needed: ${outstanding.join(', ')}</div>`:''}
+        ${d.needsGas && !d.gasFilled?`<div style="font-size:12px;color:#c2410c;margin-top:2px">⛽ Needs gas</div>`:''}
+      </div>
     </div>`;
   }).join('');
 }
@@ -2946,18 +3115,14 @@ function renderDriverQueue() {
   const el = document.getElementById('rides-driver-queue');
   if (!el) return;
   const all = Object.entries(rides||{}).map(([id,r])=>({id,...r})).filter(r=>!['done','cancelled'].includes(r.status)).sort((a,b)=>a.ts-b.ts);
-  const allAppts = Object.entries(appointments||{}).map(([id,a])=>({id,...a,isAppt:true})).filter(a=>a.status!=='delivered').sort((a,b)=>a.ts-b.ts);
 
-  if (!all.length && !allAppts.length) {
-    el.innerHTML = '<div style="text-align:center;padding:60px 20px;color:rgba(255,255,255,.5);font-size:16px">No active requests right now.</div>';
+  if (!all.length) {
+    el.innerHTML = '<div style="text-align:center;padding:60px 20px;color:rgba(255,255,255,.5);font-size:16px">No active ride requests right now.</div>';
     return;
   }
   const mine = all.filter(r => r.claimedBy === currentUser?.name);
   const unclaimed = all.filter(r => r.status === 'pending');
   const othersActive = all.filter(r => r.claimedBy && r.claimedBy !== currentUser?.name);
-  const myAppts = allAppts.filter(a => a.claimedBy === currentUser?.name);
-  const unclaimedAppts = allAppts.filter(a => a.status === 'pending');
-  const othersAppts = allAppts.filter(a => a.claimedBy && a.claimedBy !== currentUser?.name);
 
   const bigCard = (r, big) => {
     const label = r.type==='vehicle' ? `🚗 ${r.stock}` : '🙋 Hitchhiker';
@@ -2980,46 +3145,23 @@ function renderDriverQueue() {
     </div>`;
   };
 
-  const apptCard = (a, big) => {
-    let action = '';
-    if (a.status === 'pending') {
-      action = `<button onclick="claimAppointment('${a.id}')" style="width:100%;padding:18px;border:none;border-radius:14px;background:#2563eb;color:#fff;font-size:18px;font-weight:800;cursor:pointer;min-height:60px">Claim This Appointment</button>`;
-    } else if (a.status === 'in_progress' && a.claimedBy === currentUser?.name) {
-      action = `<button onclick="setAppointmentDelivered('${a.id}')" style="width:100%;padding:18px;border:none;border-radius:14px;background:#16a34a;color:#fff;font-size:18px;font-weight:800;cursor:pointer;min-height:60px">✓ Delivered</button>`;
-    }
-    const stageText = { pending:'Waiting for a driver', in_progress:'On the way' }[a.status] || '';
-    return `<div style="background:rgba(255,255,255,.08);border:2px solid ${big?'#f59e0b':'rgba(255,255,255,.15)'};border-radius:18px;padding:18px;margin-bottom:14px">
-      <div style="font-size:24px;font-weight:800;margin-bottom:2px">📅 ${a.stock}</div>
-      <div style="font-size:14px;color:rgba(255,255,255,.6);margin-bottom:8px">Vehicle appointment</div>
-      <div style="font-size:17px;font-weight:700;margin-bottom:4px">📍 Bring to ${a.department}</div>
-      ${a.notes?`<div style="font-size:14px;color:rgba(255,255,255,.6);margin-bottom:8px">${a.notes}</div>`:''}
-      <div style="font-size:14px;color:rgba(255,255,255,.7);margin-bottom:14px">${a.requestedBy||''}${stageText?' · '+stageText:''}</div>
-      ${action}
-    </div>`;
-  };
-
   let html = '';
-  if (mine.length || myAppts.length) {
-    html += `<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.5);margin-bottom:8px">Your active jobs</div>`;
+  if (mine.length) {
+    html += `<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.5);margin-bottom:8px">Your active ride</div>`;
     html += mine.map(r => bigCard(r, true)).join('');
-    html += myAppts.map(a => apptCard(a, true)).join('');
   }
-  if (unclaimed.length || unclaimedAppts.length) {
+  if (unclaimed.length) {
     html += `<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.5);margin:16px 0 8px">Available to claim</div>`;
     html += unclaimed.map(r => bigCard(r, false)).join('');
-    html += unclaimedAppts.map(a => apptCard(a, false)).join('');
   }
-  if (othersActive.length || othersAppts.length) {
+  if (othersActive.length) {
     html += `<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.4);margin:16px 0 8px">Other drivers</div>`;
     html += othersActive.map(r => `<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 18px;margin-bottom:10px;opacity:.7">
       <div style="font-size:16px;font-weight:700">${r.type==='vehicle'?'🚗 '+r.stock:'🙋 Hitchhiker'} · ${r.pickup} → ${r.dropoff}</div>
       <div style="font-size:13px;color:rgba(255,255,255,.6)">🚐 ${r.claimedBy}</div>
     </div>`).join('');
-    html += othersAppts.map(a => `<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 18px;margin-bottom:10px;opacity:.7">
-      <div style="font-size:16px;font-weight:700">📅 ${a.stock} → ${a.department}</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.6)">🚐 ${a.claimedBy}</div>
-    </div>`).join('');
   }
+
   el.innerHTML = html;
 }
 
@@ -4306,6 +4448,7 @@ window.switchTab=function(name,btn){
   if(name==='tracker'){renderTracker();renderTrackerSummary();}
   if(name==='tv'){ renderTVRides(); }
   if(name==='rides'){ ridesInitMap(); ridesRenderDirectionPickers(); renderRidesTab(); setTimeout(()=>ridesLeafletMap?.invalidateSize(),100); }
+  if(name==='jobs'){ renderJobsQueue(); }
 };
 window.exitTV=function(){
   const target='queue';
@@ -4363,6 +4506,7 @@ setInterval(()=>{
   const homePanel = document.getElementById('panel-home');
   if (homePanel && homePanel.classList.contains('active')) renderHomeGrid();
   if (document.getElementById('panel-rides')?.classList.contains('active')) renderRidesTab();
+  if (document.getElementById('panel-jobs')?.classList.contains('active')) renderJobsQueue();
   if (document.getElementById('panel-compound')?.classList.contains('active')) renderIncomingPickupsBanner();
 },1000);
 
@@ -4503,8 +4647,18 @@ function renderHomeGrid() {
       name: 'rides', tone: 'navy',
       icon: `<path d="M3 17h13l3-6h-2l-2-5H8L5 11H3z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="15.5" cy="17.5" r="1.5"/>`,
       title: 'Rides',
-      desc: 'Request a ride or a vehicle pickup — 55 Mapleview ↔ 323 Bayview.',
+      desc: 'Request a ride or a vehicle pickup — between 55 Mapleview, 323 Bayview, and 700 Bayview.',
       badge: () => Object.values(rides).filter(r=>!['done','cancelled'].includes(r.status)).length
+    });
+  }
+
+  if (perm('tabJobs')) {
+    tiles.push({
+      name: 'jobs', tone: 'amber',
+      icon: `<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>`,
+      title: 'Jobs',
+      desc: 'Vehicle appointments and Get Ready — the on-site work queue.',
+      badge: () => Object.values(appointments||{}).filter(a=>a.status!=='delivered').length + Object.values(getReadyDeals||{}).filter(d=>!grIsComplete(d)).length
     });
   }
 
