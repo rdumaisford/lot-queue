@@ -3692,10 +3692,17 @@ function renderTVIncoming() {
       <span class="ff-label">${label}</span>
     </div>`;
 
+  const catLabel = { RETAIL:'Retail', FLEET:'Fleet', TRADEIN:'Trade-In', AUCTION:'Auction' };
+  const subLabel = { RETAIL:'Retail', ASIS:'As-Is', WHOLESALE:'Wholesale', CPO:'CPO' };
+
   let html = sorted.map(u => {
     const ps  = statusPillStyle[u.status]||statusPillStyle.OTHER;
     const sc  = statusCls[u.status]||'';
     const done = isUnitComplete(u);
+    const isUsed = u.condition === 'used';
+    const catBadge = isUsed
+      ? [catLabel[u.category], subLabel[u.subcategory]].filter(Boolean).join(' · ')
+      : catLabel[u.category] || '';
     return `<div class="tv-inc-tile ${done?'is-done':sc}">
       <div class="tv-inc-tile-body">
         <div class="tv-inc-tile-top">
@@ -3703,12 +3710,18 @@ function renderTVIncoming() {
           <span class="tv-inc-tile-status" style="${ps}">${done?'DONE':u.status||'?'}</span>
         </div>
         <div class="tv-inc-tile-vehicle">${u.vehicle||'—'}</div>
+        ${catBadge?`<div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.03em">${catBadge}</div>`:''}
       </div>
       <div class="tv-inc-tile-flags" style="padding:0 6px 6px">
-        ${ff('Acc',u.accessories,'ff-done-acc')}
-        ${ff('PDI',u.pdi,'ff-done-pdi')}
-        ${photoRequired(u)?ff('Photo',u.photo,'ff-done-photo'):ffNA('Photo')}
-        ${ff('IC',u.icMoved,'ff-done-ic')}
+        ${isUsed ? `
+          ${ff('File Rec\'d',u.fileReceived,'ff-done-acc')}
+          ${ff('IC',u.icMoved,'ff-done-ic')}
+        ` : `
+          ${ff('Acc',u.accessories,'ff-done-acc')}
+          ${ff('PDI',u.pdi,'ff-done-pdi')}
+          ${photoRequired(u)?ff('Photo',u.photo,'ff-done-photo'):ffNA('Photo')}
+          ${ff('IC',u.icMoved,'ff-done-ic')}
+        `}
       </div>
     </div>`;
   }).join('');
@@ -4684,6 +4697,10 @@ window.grRemoveTradeSlot = function(i) {
   grRenderTradeSlots();
 };
 
+window.grSetTradeField = function(i, field, value) {
+  if (grTrades[i]) grTrades[i][field] = value;
+};
+
 function grRenderTradeSlots() {
   const el = document.getElementById('gr-trades-list');
   if (!el) return;
@@ -4694,15 +4711,15 @@ function grRenderTradeSlots() {
         ${grTrades.length > 1 ? `<button type="button" onclick="grRemoveTradeSlot(${i})" style="padding:3px 8px;font-size:11px;border:1px solid #fca5a5;border-radius:var(--radius-sm);background:#fef2f2;color:#dc2626;cursor:pointer">✕ Remove</button>` : ''}
       </div>
       <div class="modal-grid" style="gap:8px">
-        <div class="modal-form-row"><label>Stock #</label><input value="${(t.stock||'').replace(/"/g,'&quot;')}" oninput="grTrades[${i}].stock=this.value" placeholder="e.g. A1402A"/></div>
-        <div class="modal-form-row modal-full"><label>VIN</label><input value="${(t.vin||'').replace(/"/g,'&quot;')}" oninput="grTrades[${i}].vin=this.value" placeholder="17-digit VIN" style="font-family:monospace;letter-spacing:.05em" maxlength="17"/></div>
-        <div class="modal-form-row"><label>Year</label><input value="${(t.year||'').replace(/"/g,'&quot;')}" oninput="grTrades[${i}].year=this.value" placeholder="2012" maxlength="4"/></div>
-        <div class="modal-form-row"><label>Make</label><input value="${(t.make||'').replace(/"/g,'&quot;')}" oninput="grTrades[${i}].make=this.value" placeholder="Volkswagen"/></div>
-        <div class="modal-form-row"><label>Model</label><input value="${(t.model||'').replace(/"/g,'&quot;')}" oninput="grTrades[${i}].model=this.value" placeholder="Passat"/></div>
-        <div class="modal-form-row"><label>Colour</label><input value="${(t.colour||'').replace(/"/g,'&quot;')}" oninput="grTrades[${i}].colour=this.value" placeholder="White"/></div>
-        <div class="modal-form-row"><label>KMs</label><input value="${(t.kms||'').replace(/"/g,'&quot;')}" oninput="grTrades[${i}].kms=this.value" placeholder="263312"/></div>
+        <div class="modal-form-row"><label>Stock #</label><input value="${(t.stock||'').replace(/"/g,'&quot;')}" oninput="grSetTradeField(${i},'stock',this.value)" placeholder="e.g. A1402A"/></div>
+        <div class="modal-form-row modal-full"><label>VIN</label><input value="${(t.vin||'').replace(/"/g,'&quot;')}" oninput="grSetTradeField(${i},'vin',this.value)" placeholder="17-digit VIN" style="font-family:monospace;letter-spacing:.05em" maxlength="17"/></div>
+        <div class="modal-form-row"><label>Year</label><input value="${(t.year||'').replace(/"/g,'&quot;')}" oninput="grSetTradeField(${i},'year',this.value)" placeholder="2012" maxlength="4"/></div>
+        <div class="modal-form-row"><label>Make</label><input value="${(t.make||'').replace(/"/g,'&quot;')}" oninput="grSetTradeField(${i},'make',this.value)" placeholder="Volkswagen"/></div>
+        <div class="modal-form-row"><label>Model</label><input value="${(t.model||'').replace(/"/g,'&quot;')}" oninput="grSetTradeField(${i},'model',this.value)" placeholder="Passat"/></div>
+        <div class="modal-form-row"><label>Colour</label><input value="${(t.colour||'').replace(/"/g,'&quot;')}" oninput="grSetTradeField(${i},'colour',this.value)" placeholder="White"/></div>
+        <div class="modal-form-row"><label>KMs</label><input value="${(t.kms||'').replace(/"/g,'&quot;')}" oninput="grSetTradeField(${i},'kms',this.value)" placeholder="263312"/></div>
         <div class="modal-form-row"><label>Category <span style="font-weight:400;color:var(--text-faint);text-transform:none;letter-spacing:0">for Incoming</span></label>
-          <select onchange="grTrades[${i}].category=this.value">
+          <select onchange="grSetTradeField(${i},'category',this.value)">
             <option value="RETAIL" ${t.category==='RETAIL'?'selected':''}>Retail</option>
             <option value="ASIS" ${t.category==='ASIS'?'selected':''}>As-Is</option>
             <option value="WHOLESALE" ${t.category==='WHOLESALE'?'selected':''}>Wholesale</option>
@@ -4718,16 +4735,25 @@ window.grAddCustomField = function(label='', done=false) {
   grRenderCustomFields();
 };
 
+window.grSetCustomField = function(i, field, value) {
+  if (grCustomFields[i]) grCustomFields[i][field] = value;
+};
+
+window.grRemoveCustomField = function(i) {
+  grCustomFields.splice(i, 1);
+  grRenderCustomFields();
+};
+
 function grRenderCustomFields() {
   const el = document.getElementById('gr-custom-list');
   if (!el) return;
   el.innerHTML = grCustomFields.map((f, i) => `
     <div style="display:flex;align-items:center;gap:8px">
-      <input type="checkbox" id="gr-custom-done-${i}" ${f.done?'checked':''} onchange="grCustomFields[${i}].done=this.checked" style="width:16px;height:16px;accent-color:var(--ford);cursor:pointer;flex-shrink:0"/>
+      <input type="checkbox" id="gr-custom-done-${i}" ${f.done?'checked':''} onchange="grSetCustomField(${i},'done',this.checked)" style="width:16px;height:16px;accent-color:var(--ford);cursor:pointer;flex-shrink:0"/>
       <input type="text" value="${f.label.replace(/"/g,'&quot;')}" placeholder="e.g. Tint removed, Winter tires off…"
-        oninput="grCustomFields[${i}].label=this.value"
+        oninput="grSetCustomField(${i},'label',this.value)"
         style="flex:1;padding:7px 10px;font-size:13px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none"/>
-      <button onclick="grCustomFields.splice(${i},1);grRenderCustomFields()" style="padding:4px 8px;font-size:12px;border:1px solid #fca5a5;border-radius:var(--radius-sm);background:#fef2f2;color:#dc2626;cursor:pointer;flex-shrink:0">✕</button>
+      <button onclick="grRemoveCustomField(${i})" style="padding:4px 8px;font-size:12px;border:1px solid #fca5a5;border-radius:var(--radius-sm);background:#fef2f2;color:#dc2626;cursor:pointer;flex-shrink:0">✕</button>
     </div>`).join('');
 }
 
