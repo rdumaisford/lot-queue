@@ -1403,10 +1403,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         </div>
         <div class="tv-sub" id="tv-count">Connecting…</div>
         <div class="tv-body">
-          <!-- Col 1: Get Ready -->
+          <!-- Col 1: Get Ready + Vehicle Appointments -->
           <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0">
             <div class="tv-col-title" id="tv-title-getready">Get Ready</div>
-            <div id="tv-gr-list" style="overflow-y:auto;flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-content:start"></div>
+            <div id="tv-gr-list" style="overflow-y:auto;flex:1.2;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-content:start"></div>
+            <div style="flex-direction:column;flex:1;min-height:0;margin-top:10px;border-top:1px solid rgba(255,255,255,.15);padding-top:10px;display:flex">
+              <div class="tv-col-title" style="font-size:11px">📅 Vehicle Appointments</div>
+              <div id="tv-appt-list" style="overflow-y:auto;flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start"></div>
+            </div>
           </div>
           <!-- Col 2: Incoming + Compound -->
           <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0;border-left:1px solid rgba(255,255,255,.15);padding-left:16px">
@@ -1418,12 +1422,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
               <div id="tv-compound-map" style="width:100%"></div>
             </div>
           </div>
-          <!-- Col 3: Vehicles to get ready for pickup + returns coming in -->
+          <!-- Col 3: Pickups & Dropoffs -->
           <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0;border-left:1px solid rgba(255,255,255,.15);padding-left:16px">
-            <div class="tv-col-title" id="tv-title-rides">Get Ready for Pickup</div>
+            <div class="tv-col-title" id="tv-title-rides">Pickups — Get Ready for Pickup</div>
             <div id="tv-rides-list" style="overflow-y:auto;flex:1.4;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start"></div>
             <div id="tv-returns-wrap" style="display:none;flex-direction:column;flex:1;min-height:0;margin-top:10px;border-top:1px solid rgba(255,255,255,.15);padding-top:10px">
-              <div class="tv-col-title" style="font-size:11px">↩️ Returns Coming In</div>
+              <div class="tv-col-title" style="font-size:11px">↩️ Dropoffs — Returns Coming In</div>
               <div id="tv-returns-list" style="overflow-y:auto;flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start"></div>
             </div>
           </div>
@@ -2280,6 +2284,7 @@ function startApp() {
     appointments = snap.val() || {};
     if (document.getElementById('panel-rides')?.classList.contains('active')) renderRidesTab();
     if (document.getElementById('panel-jobs')?.classList.contains('active')) renderJobsQueue();
+    if (document.getElementById('panel-tv')?.classList.contains('active')) renderTVAppointments();
   });
 
   onValue(ref(db, 'driverLocation'), snap => {
@@ -3288,7 +3293,7 @@ function renderTVRides() {
   const listEl = document.getElementById('tv-rides-list');
   if (!listEl) return;
   const titleEl = document.getElementById('tv-title-rides');
-  if (titleEl) titleEl.textContent = tvLocation ? `Get Ready for Pickup — ${tvLocation}` : 'Get Ready for Pickup';
+  if (titleEl) titleEl.textContent = tvLocation ? `Pickups — Get Ready for Pickup — ${tvLocation}` : 'Pickups — Get Ready for Pickup';
 
   const allActive = Object.entries(rides||{}).map(([id,r])=>({id,...r}))
     .filter(r => r.type === 'vehicle' && !['done','cancelled'].includes(r.status));
@@ -3330,6 +3335,32 @@ function renderTVRides() {
         : '<div class="tv-empty" style="grid-column:1/-1"><div style="font-size:28px">✓</div><p style="font-size:12px">None right now</p></div>';
     }
   }
+}
+
+// Vehicle Appointments board — lives in the left column alongside Get Ready,
+// so on-site staff can see both kinds of "get a car ready" work in one glance.
+function renderTVAppointments() {
+  const el = document.getElementById('tv-appt-list');
+  if (!el) return;
+  const active = Object.entries(appointments||{}).map(([id,a])=>({id,...a}))
+    .filter(a => a.status !== 'delivered')
+    .sort((a,b) => (a.scheduledFor||a.ts) - (b.scheduledFor||b.ts));
+  if (!active.length) {
+    el.innerHTML = '<div class="tv-empty" style="grid-column:1/-1"><div style="font-size:28px">✓</div><p style="font-size:12px">None pending</p></div>';
+    return;
+  }
+  const stageColor = { pending: '#94a3b8', in_progress: '#f97316' };
+  const stageLabel = { pending: 'Waiting for driver', in_progress: '🚐 On the way' };
+  el.innerHTML = active.map(a => {
+    const timeLabel = formatApptTime(a);
+    return `<div style="background:#fff;border-radius:10px;padding:12px 14px;border-left:5px solid ${stageColor[a.status]||'#94a3b8'}">
+      <div style="font-size:18px;font-weight:800;color:#00095b;line-height:1;margin-bottom:4px">${a.stock}</div>
+      <div style="font-size:11px;color:#64748b;margin-bottom:4px">→ ${a.department}</div>
+      ${timeLabel?`<div style="font-size:11px;font-weight:700;color:#c2410c;margin-bottom:4px">${timeLabel}</div>`:''}
+      <div style="font-size:12px;font-weight:700;color:${stageColor[a.status]||'#64748b'}">${stageLabel[a.status]||a.status}</div>
+      ${a.claimedBy?`<div style="font-size:11px;color:#1d4ed8;font-weight:700;margin-top:2px">🚐 ${a.claimedBy}</div>`:''}
+    </div>`;
+  }).join('');
 }
 
 // A live "someone's on the way" banner for IC/lot staff, right on the Vehicle
@@ -4528,7 +4559,7 @@ window.switchTab=function(name,btn){
   if(name==='settings'){const sc=document.getElementById('s-sound');if(sc)sc.checked=soundEnabled;renderPermissionsEditor();}
   if(name==='history') { renderHistory(); renderCompoundHistory(); }
   if(name==='tracker'){renderTracker();renderTrackerSummary();}
-  if(name==='tv'){ renderTVRides(); }
+  if(name==='tv'){ renderTVRides(); renderTVAppointments(); }
   if(name==='rides'){ ridesInitMap(); ridesRenderDirectionPickers(); renderRidesTab(); setTimeout(()=>ridesLeafletMap?.invalidateSize(),100); }
   if(name==='jobs'){ renderJobsQueue(); }
 };
