@@ -1003,6 +1003,18 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
               <div id="rides-appt-dept-other-row" class="form-row" style="display:none;margin-bottom:10px">
                 <input id="rides-appt-dept-other" type="text" placeholder="Department name" autocomplete="off" style="width:100%;padding:10px 12px;font-size:15px;font-family:var(--font);border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"/>
               </div>
+              <div class="form-row" style="margin-bottom:10px">
+                <label style="font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">When</label>
+                <div style="display:flex;gap:8px;margin-bottom:8px">
+                  <button id="rides-appt-asap-btn" onclick="setApptTiming('asap')" class="toggle-btn active" style="flex:1;padding:9px 4px;border-radius:8px;font-size:13px">ASAP</button>
+                  <button id="rides-appt-scheduled-btn" onclick="setApptTiming('scheduled')" class="toggle-btn" style="flex:1;padding:9px 4px;border-radius:8px;font-size:13px">Schedule</button>
+                </div>
+                <div id="rides-appt-datetime-row" style="display:none;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px">
+                  <input id="rides-appt-date" type="date" style="padding:9px 10px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"/>
+                  <input id="rides-appt-time" type="time" style="padding:9px 10px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"/>
+                </div>
+                <div id="rides-appt-time-preview" style="font-size:12px;color:var(--text-muted)"></div>
+              </div>
               <div class="form-row">
                 <label style="font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Notes <span style="color:var(--text-faint);font-weight:400;text-transform:none">optional</span></label>
                 <textarea id="rides-appt-notes" placeholder="e.g. needed by 3pm, bay 2…" style="width:100%;min-height:50px;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"></textarea>
@@ -2905,6 +2917,34 @@ window.ridesApptCheckLocation = function() {
   resultEl.innerHTML = `<span style="color:#15803d;font-weight:600">📍 Currently at ${ridesApptFoundLocation}</span>`;
 };
 
+let ridesApptTiming = 'asap'; // 'asap' | 'scheduled'
+
+window.setApptTiming = function(mode) {
+  ridesApptTiming = mode;
+  document.getElementById('rides-appt-asap-btn').classList.toggle('active', mode==='asap');
+  document.getElementById('rides-appt-scheduled-btn').classList.toggle('active', mode==='scheduled');
+  document.getElementById('rides-appt-datetime-row').style.display = mode==='scheduled' ? 'grid' : 'none';
+  updateApptTimePreview();
+};
+
+function updateApptTimePreview() {
+  const previewEl = document.getElementById('rides-appt-time-preview');
+  if (!previewEl) return;
+  if (ridesApptTiming === 'asap') { previewEl.textContent = ''; return; }
+  const dateVal = document.getElementById('rides-appt-date').value;
+  const timeVal = document.getElementById('rides-appt-time').value;
+  if (!dateVal || !timeVal) { previewEl.textContent = ''; return; }
+  const dt = new Date(dateVal+'T'+timeVal);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dtDay = new Date(dt); dtDay.setHours(0,0,0,0);
+  const dayLabel = dtDay.getTime() === today.getTime() ? 'today' : dt.toLocaleDateString([],{weekday:'long', month:'short', day:'numeric'});
+  previewEl.textContent = `📅 Requested for ${dayLabel} at ${dt.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}`;
+}
+const apptDateEl = document.getElementById('rides-appt-date');
+const apptTimeEl = document.getElementById('rides-appt-time');
+if (apptDateEl) apptDateEl.addEventListener('change', updateApptTimePreview);
+if (apptTimeEl) apptTimeEl.addEventListener('change', updateApptTimePreview);
+
 async function submitAppointment() {
   const stock = document.getElementById('rides-appt-stock').value.trim().toUpperCase();
   const deptSel = document.getElementById('rides-appt-dept').value;
@@ -2913,12 +2953,20 @@ async function submitAppointment() {
   const notes = document.getElementById('rides-appt-notes').value.trim();
   if (!stock) { alert('Please enter a stock #.'); return; }
   if (deptSel === 'Other' && !deptOther) { alert('Please enter the department name.'); return; }
+  let scheduledFor = null;
+  if (ridesApptTiming === 'scheduled') {
+    const dateVal = document.getElementById('rides-appt-date').value;
+    const timeVal = document.getElementById('rides-appt-time').value;
+    if (!dateVal || !timeVal) { alert('Please pick a date and time, or switch to ASAP.'); return; }
+    scheduledFor = new Date(dateVal+'T'+timeVal).getTime();
+  }
   const btn = document.getElementById('rides-submit-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Requesting…'; }
   try {
     await push(ref(db,'appointments'), {
       stock, department, notes,
       currentLocation: ridesApptFoundLocation || null, // best-effort — never required
+      timing: ridesApptTiming, scheduledFor,
       requestedBy: currentUser.name,
       requestedByUid: currentUser.uid || null,
       status: 'pending', // pending -> in_progress -> delivered
@@ -2929,7 +2977,10 @@ async function submitAppointment() {
     document.getElementById('rides-appt-dept').value = 'Service';
     document.getElementById('rides-appt-dept-other-row').style.display = 'none';
     document.getElementById('rides-appt-stock-result').style.display = 'none';
+    document.getElementById('rides-appt-date').value = '';
+    document.getElementById('rides-appt-time').value = '';
     ridesApptFoundLocation = null;
+    setApptTiming('asap');
   } catch(e) { alert('Error submitting — check connection.'); }
   if (btn) { btn.disabled = false; btn.textContent = 'Request Appointment'; }
 }
@@ -2955,6 +3006,15 @@ window.setAppointmentDelivered = async function(id) {
   await update(ref(db,'appointments/'+id), { status:'delivered', deliveredTs: Date.now() });
 };
 
+function formatApptTime(a) {
+  if (a.timing !== 'scheduled' || !a.scheduledFor) return '';
+  const dt = new Date(a.scheduledFor);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dtDay = new Date(dt); dtDay.setHours(0,0,0,0);
+  const dayLabel = dtDay.getTime() === today.getTime() ? 'today' : dt.toLocaleDateString([],{weekday:'short', month:'short', day:'numeric'});
+  return `📅 ${dayLabel} at ${dt.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}`;
+}
+
 function renderMyActiveAppointment() {
   const el = document.getElementById('rides-active-appt-status');
   if (!el || !currentUser) return;
@@ -2970,8 +3030,10 @@ function renderMyActiveAppointment() {
         <div style="width:24px;height:24px;border-radius:50%;background:${i<=stageIdx?'var(--ford)':'#e2e8f0'};color:${i<=stageIdx?'#fff':'#94a3b8'};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;margin:0 auto 4px">${i+1}</div>
         <div style="font-size:9px;color:${i<=stageIdx?'var(--ford)':'var(--text-faint)'};font-weight:600">${APPT_STAGE_LABELS[i]}</div>
       </div>`).join('');
+    const timeLabel = formatApptTime(a);
     return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px">
       <div style="font-size:14px;font-weight:700;margin-bottom:2px">📅 ${a.stock} → ${a.department}</div>
+      ${timeLabel?`<div style="font-size:12px;color:#c2410c;font-weight:700;margin-bottom:4px">${timeLabel}</div>`:''}
       ${a.currentLocation?`<div style="font-size:12px;color:#15803d;font-weight:600;margin-bottom:4px">📍 Currently at ${a.currentLocation}</div>`:''}
       ${a.notes?`<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">${a.notes}</div>`:''}
       <div style="display:flex;margin:10px 0">${stepperHTML}</div>
@@ -3012,7 +3074,8 @@ function renderJobsQueue() {
 function renderJobsAppointments() {
   const el = document.getElementById('jobs-appt-list');
   if (!el) return;
-  const active = Object.entries(appointments||{}).map(([id,a])=>({id,...a})).filter(a=>a.status!=='delivered').sort((a,b)=>a.ts-b.ts);
+  const active = Object.entries(appointments||{}).map(([id,a])=>({id,...a})).filter(a=>a.status!=='delivered')
+    .sort((a,b) => (a.scheduledFor||a.ts) - (b.scheduledFor||b.ts));
   const tc = document.getElementById('tc-jobs-appts');
   if (tc) tc.textContent = active.length;
   const tcMain = document.getElementById('tc-jobs');
@@ -3029,9 +3092,11 @@ function renderJobsAppointments() {
         : `<span style="font-size:12px;color:var(--text-faint)">🚐 ${a.claimedBy}</span>`;
     }
     const stageLabel = { pending:'Waiting for driver', in_progress:'On the way' }[a.status] || a.status;
+    const timeLabel = formatApptTime(a);
     return `<div class="entry">
       <div style="flex:1">
         <div class="entry-stock">📅 ${a.stock} → ${a.department}</div>
+        ${timeLabel?`<div style="font-size:12px;font-weight:700;color:#c2410c;margin-bottom:3px">${timeLabel}</div>`:''}
         <div class="entry-meta" style="margin-bottom:5px">Requested by ${a.requestedBy}${a.currentLocation?' · 📍 '+a.currentLocation:''}</div>
         <div style="font-size:13px;font-weight:700;color:#1d4ed8">${stageLabel}</div>
         ${a.notes?`<div class="entry-notes">${a.notes}</div>`:''}
