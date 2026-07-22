@@ -814,6 +814,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"/>
 <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 </head>
@@ -1524,6 +1525,23 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       </div>
 
       <div style="max-width:480px">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-top:16px">
+          <div style="font-size:15px;font-weight:600;margin-bottom:4px">📧 Email Notifications</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Uses a free <a href="https://www.emailjs.com" target="_blank" style="color:var(--ford)">EmailJS</a> account to send email directly from the browser — no server needed. New Get Ready deals email automatically while someone has the app open; Incoming units send with a button click.</div>
+          <div class="modal-form-row" style="margin-bottom:10px"><label>Notification email</label><input id="email-notify-address" type="email" placeholder="team@yourdealership.com" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
+          <div class="modal-form-row" style="margin-bottom:10px"><label>EmailJS Public Key</label><input id="email-public-key" type="text" placeholder="e.g. user_Ab12Cd34" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
+          <div class="modal-form-row" style="margin-bottom:10px"><label>EmailJS Service ID</label><input id="email-service-id" type="text" placeholder="e.g. service_abc123" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
+          <div class="modal-form-row" style="margin-bottom:10px"><label>Get Ready Template ID</label><input id="email-gr-template" type="text" placeholder="e.g. template_getready" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
+          <div class="modal-form-row" style="margin-bottom:14px"><label>Incoming Vehicle Template ID</label><input id="email-inc-template" type="text" placeholder="e.g. template_incoming" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
+          <div style="display:flex;gap:8px">
+            <button onclick="saveEmailSettings()" style="flex:1;padding:11px;border:none;border-radius:var(--radius-sm);background:var(--ford);color:#fff;font-size:14px;font-weight:700;cursor:pointer">Save</button>
+            <button onclick="sendTestEmail()" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer">Send Test</button>
+          </div>
+          <div id="email-settings-toast" class="toast" style="margin-top:10px"></div>
+        </div>
+      </div>
+
+      <div style="max-width:480px">
         <div style="background:var(--surface);border:1px solid #fca5a5;border-radius:var(--radius);padding:24px;margin-top:16px">
           <div style="font-size:15px;font-weight:600;margin-bottom:4px;color:#dc2626">Danger zone</div>
           <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">These actions are permanent and cannot be undone.</div>
@@ -1789,11 +1807,20 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div style="font-size:11px;font-weight:700;color:var(--ford);margin-bottom:8px">Trade 1</div>
         <div class="modal-grid" style="gap:8px">
           <div class="modal-form-row"><label>Stock #</label><input id="gr-t1-stock" type="text" placeholder="e.g. A1402A"/></div>
+          <div class="modal-form-row modal-full"><label>VIN</label><input id="gr-t1-vin" type="text" placeholder="17-digit VIN" style="font-family:monospace;letter-spacing:.05em" maxlength="17"/></div>
           <div class="modal-form-row"><label>Year</label><input id="gr-t1-year" type="text" placeholder="2012" maxlength="4"/></div>
           <div class="modal-form-row"><label>Make</label><input id="gr-t1-make" type="text" placeholder="Volkswagen"/></div>
           <div class="modal-form-row"><label>Model</label><input id="gr-t1-model" type="text" placeholder="Passat"/></div>
           <div class="modal-form-row"><label>Colour</label><input id="gr-t1-colour" type="text" placeholder="White"/></div>
           <div class="modal-form-row"><label>KMs</label><input id="gr-t1-kms" type="text" placeholder="263312"/></div>
+          <div class="modal-form-row"><label>Category <span style="font-weight:400;color:var(--text-faint);text-transform:none;letter-spacing:0">for Incoming</span></label>
+            <select id="gr-t1-category">
+              <option value="RETAIL">Retail</option>
+              <option value="ASIS">As-Is</option>
+              <option value="WHOLESALE">Wholesale</option>
+              <option value="CPO">Certified Pre-Owned</option>
+            </select>
+          </div>
         </div>
       </div>
       <!-- Trade 2 -->
@@ -1801,11 +1828,20 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div style="font-size:11px;font-weight:700;color:var(--ford);margin-bottom:8px">Trade 2</div>
         <div class="modal-grid" style="gap:8px">
           <div class="modal-form-row"><label>Stock #</label><input id="gr-t2-stock" type="text" placeholder="e.g. B0123"/></div>
+          <div class="modal-form-row modal-full"><label>VIN</label><input id="gr-t2-vin" type="text" placeholder="17-digit VIN" style="font-family:monospace;letter-spacing:.05em" maxlength="17"/></div>
           <div class="modal-form-row"><label>Year</label><input id="gr-t2-year" type="text" placeholder="2020" maxlength="4"/></div>
           <div class="modal-form-row"><label>Make</label><input id="gr-t2-make" type="text" placeholder="Honda"/></div>
           <div class="modal-form-row"><label>Model</label><input id="gr-t2-model" type="text" placeholder="Civic"/></div>
           <div class="modal-form-row"><label>Colour</label><input id="gr-t2-colour" type="text" placeholder="Blue"/></div>
           <div class="modal-form-row"><label>KMs</label><input id="gr-t2-kms" type="text" placeholder="80000"/></div>
+          <div class="modal-form-row"><label>Category <span style="font-weight:400;color:var(--text-faint);text-transform:none;letter-spacing:0">for Incoming</span></label>
+            <select id="gr-t2-category">
+              <option value="RETAIL">Retail</option>
+              <option value="ASIS">As-Is</option>
+              <option value="WHOLESALE">Wholesale</option>
+              <option value="CPO">Certified Pre-Owned</option>
+            </select>
+          </div>
         </div>
       </div>
     </div>
@@ -1858,6 +1894,8 @@ const auth = getAuth(appFB);
 
 // ── State ─────────────────────────────────────────────
 let entries = {}, historyData = {}, units = {}, getReadyDeals = {}, hitchhikers = {}, testDrives = {}, compoundHistoryData = {};
+let emailSettings = {}; // {notifyAddress, publicKey, serviceId, grTemplateId, incTemplateId}
+let emailjsReady = false;
 let vehicleSpecs = {}; // stock# -> {year,trim,type,colour} — shared between Incoming and Compound so specs entered once autofill everywhere else
 let vehicleRequests = {}, vehicleReturns = {}; // one unified pickup/return flow across all lots
 let driverLocations = {}; // live mirror of /driverLocation — who's currently sharing, and where
@@ -2374,6 +2412,18 @@ function startApp() {
     if(dh) dh.textContent=fmtHour(LOT_OPEN)+' – '+fmtHour(LOT_CLOSE);
     const ft=document.getElementById('f-time');
     if(ft){ ft.min=String(LOT_OPEN).padStart(2,'0')+':00'; ft.max=String(LOT_CLOSE).padStart(2,'0')+':00'; }
+
+    emailSettings = s.email || {};
+    const eAddr=document.getElementById('email-notify-address'), ePub=document.getElementById('email-public-key'),
+          eSvc=document.getElementById('email-service-id'), eGr=document.getElementById('email-gr-template'), eInc=document.getElementById('email-inc-template');
+    if (eAddr && !eAddr.matches(':focus')) eAddr.value = emailSettings.notifyAddress || '';
+    if (ePub && !ePub.matches(':focus')) ePub.value = emailSettings.publicKey || '';
+    if (eSvc && !eSvc.matches(':focus')) eSvc.value = emailSettings.serviceId || '';
+    if (eGr && !eGr.matches(':focus')) eGr.value = emailSettings.grTemplateId || '';
+    if (eInc && !eInc.matches(':focus')) eInc.value = emailSettings.incTemplateId || '';
+    if (emailSettings.publicKey && typeof emailjs !== 'undefined' && !emailjsReady) {
+      try { emailjs.init({ publicKey: emailSettings.publicKey }); emailjsReady = true; } catch(e) {}
+    }
   });
 
   // Live permissions — merges Firebase overrides on top of defaults
@@ -2398,8 +2448,37 @@ function startApp() {
     vehicleSpecs = snap.val()||{};
   });
 
+  // Fires once per new Get Ready deal, from whichever open session sees it
+  // first — the transaction flag prevents every other open session from also
+  // sending a duplicate for the same deal.
+  async function sendGetReadyEmail(id, d) {
+    if (!emailSettings.grTemplateId) return; // not configured — silently skip
+    try {
+      const result = await runTransaction(ref(db, 'getready/'+id+'/emailSent'), curr => curr ? undefined : true);
+      if (!result.committed) return; // another session already claimed this one
+      await sendNotificationEmail(emailSettings.grTemplateId, {
+        subject: `New Get Ready Deal — ${d.stock||'no stock #'}`,
+        stock: d.stock||'',
+        vehicle: d.vehicle||'',
+        customer: d.customer||'',
+        salesperson: d.salesperson||'',
+        deliveryDate: d.deliveryDate||'',
+        message: `A new Get Ready deal was added for ${d.vehicle||d.stock||'a vehicle'}.`,
+      });
+    } catch(e) { console.error('Get Ready email failed:', e); }
+  }
+
+  let grKnownIds = null; // null = not yet initialized (first snapshot); populated after that
   onValue(ref(db,'getready'), snap=>{
     getReadyDeals = snap.val()||{};
+    const currentIds = new Set(Object.keys(getReadyDeals));
+    if (grKnownIds === null) {
+      grKnownIds = currentIds; // first load — don't email for deals that already existed
+    } else {
+      const newIds = [...currentIds].filter(id => !grKnownIds.has(id));
+      grKnownIds = currentIds;
+      newIds.forEach(id => sendGetReadyEmail(id, getReadyDeals[id]));
+    }
     const active = Object.values(getReadyDeals).filter(d=>!d.completedAt);
     document.getElementById('tc-getready').textContent = active.length;
     renderGetReady(); renderGetReadySummary();
@@ -4038,6 +4117,7 @@ function renderTracker() {
       </div>
       ${canEdit?`<div class="tracker-card-actions">
         <button class="btn-tedit" onclick="openUnitModal('${u.id}')">✎ Edit</button>
+        <button class="btn-tedit" onclick="sendIncomingEmail('${u.id}')" title="Send email notification">📧 Email</button>
         <button class="btn-tdel" onclick="deleteUnit('${u.id}','${(u.stock||u.vin).replace(/'/g,"\\'")}')">✕</button>
       </div>`:''}
     </div>`;
@@ -4323,6 +4403,64 @@ window.deleteGR = async function(id, label) {
   await remove(ref(db,'getready/'+id));
 };
 
+// Clicking "Deal Completed" is the one moment a trade-in actually becomes a
+// real Incoming Unit — nothing moves over automatically before that, and if
+// this never gets clicked (deal falls through), the trade-in just never
+// shows up in Incoming. The deal stays flagged "On Hold" in the meantime.
+window.completeDealTradeIn = async function(id) {
+  const d = getReadyDeals[id];
+  if (!d) return;
+  const trades = [d.trade1, d.trade2].filter(t => t && t.stock);
+  if (!trades.length) return;
+  const summary = trades.map(t => `${t.stock} (${[t.year,t.make,t.model].filter(Boolean).join(' ')})`).join(', ');
+  if (!confirm(`Mark this deal completed and move ${trades.length > 1 ? 'these trade-ins' : 'this trade-in'} to Incoming Units?\n\n${summary}`)) return;
+
+  const todayStr = new Date().toISOString().slice(0,10);
+  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  const now = new Date();
+  const dy = now.getDate();
+  const suffix = dy===1||dy===21||dy===31?'ST':dy===2||dy===22?'ND':dy===3||dy===23?'RD':'TH';
+  const arrivedDisplay = months[now.getMonth()]+' '+dy+suffix;
+
+  try {
+    for (const t of trades) {
+      const stock = t.stock.trim().toUpperCase();
+      const vin = (t.vin||'').trim().toUpperCase();
+      const vehicleDesc = [t.year, t.make, t.model].filter(Boolean).join(' ') + (t.colour ? ' — '+t.colour : '');
+      const unit = {
+        arrived: arrivedDisplay,
+        arrivedDate: todayStr,
+        stock, vin,
+        vehicle: vehicleDesc,
+        condition: 'used',
+        category: 'TRADEIN',
+        subcategory: t.category || 'RETAIL',
+        year: t.year||'', trim: '', type: t.make && t.model ? `${t.make} ${t.model}` : '', colour: t.colour||'',
+        kms: t.kms||'',
+        status: 'STOCK',
+        workReq: '',
+        notes: `Trade-in from Get Ready deal${d.customer?' — '+d.customer:''}${d.stock?' (deal stock '+d.stock+')':''}`,
+        accessories: false, pdi: false, photo: false,
+        icMoved: false, fileReceived: false,
+        updatedBy: currentUser.name,
+        ts: Date.now(),
+      };
+      await push(ref(db,'tracker'), unit);
+      // Feed the shared spec cache too, same as every other entry point
+      if (stock && (unit.year || unit.type || unit.colour)) {
+        update(ref(db,'vehicleSpecs/'+stock), { year:unit.year, trim:unit.trim, type:unit.type, colour:unit.colour, updatedAt: Date.now() }).catch(()=>{});
+      }
+    }
+    await update(ref(db,'getready/'+id), {
+      dealCompleted: true,
+      dealCompletedBy: currentUser.name,
+      dealCompletedAt: Date.now(),
+    });
+  } catch(e) {
+    alert('Error moving trade-in to Incoming — check connection and try again.');
+  }
+};
+
 function fmtGRDate(dateStr, timeStr) {
   if (!dateStr) return '';
   const [yr,mo,dy] = dateStr.split('-').map(Number);
@@ -4380,6 +4518,9 @@ function renderGetReady() {
     const typePillClass = {'AS-IS':'as-is','RETAIL':'retail','WHOLESALE':'wholesale'}[d.type]||'as-is';
     const completeBadge = isComplete ? `<span class="gr-complete-badge">✓ Ready</span>` : '';
     const dupeBadge = isDupe(d) ? `<span class="gr-complete-badge dupe-blink" style="background:#dc2626">⚠ Duplicate</span>` : '';
+    const hasTrade = !!(d.trade1?.stock || d.trade2?.stock);
+    const holdBadge = (hasTrade && !d.dealCompleted) ? `<span class="gr-complete-badge" style="background:#94a3b8">⏸ On Hold</span>` : '';
+    const canCompleteDeal = currentUser && ['sales','fandi','management'].includes(currentUser.role);
 
     const cbBtn = (field, label) => {
       const required = d['req_'+field];
@@ -4435,7 +4576,7 @@ function renderGetReady() {
         <div class="gr-card-top">
           <span class="gr-card-stock">${d.stock||'—'}</span>
           <span class="gr-type-pill ${typePillClass}">${d.type||'—'}</span>
-          ${completeBadge}${dupeBadge}
+          ${completeBadge}${holdBadge}${dupeBadge}
         </div>
         <div class="gr-card-vehicle">${d.vehicle||'—'}</div>
         ${d.customer?`<div class="gr-card-customer">${d.customer}${d.salesperson?' · '+d.salesperson:''}</div>`:''}
@@ -4448,6 +4589,7 @@ function renderGetReady() {
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
             <span style="background:#dbeafe;color:#1d4ed8;font-weight:700;padding:1px 6px;border-radius:3px;font-size:9px;flex-shrink:0">T1</span>
             <span style="font-weight:700;color:var(--text);font-size:13px">${d.trade1.stock}</span>
+            <span style="font-size:9px;font-weight:700;color:#7c3aed;text-transform:uppercase">${({RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'})[d.trade1.category]||'Retail'}</span>
             ${d.trade1.kms?`<span style="font-size:11px;color:var(--text-faint);margin-left:auto">${Number(d.trade1.kms).toLocaleString()} km</span>`:''}
           </div>
           <div style="font-size:11px;color:var(--text-muted)">${[d.trade1.year,d.trade1.make,d.trade1.model,d.trade1.colour].filter(Boolean).join(' · ')}</div>
@@ -4456,6 +4598,7 @@ function renderGetReady() {
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
             <span style="background:#ede9fe;color:#6d28d9;font-weight:700;padding:1px 6px;border-radius:3px;font-size:9px;flex-shrink:0">T2</span>
             <span style="font-weight:700;color:var(--text);font-size:13px">${d.trade2.stock}</span>
+            <span style="font-size:9px;font-weight:700;color:#7c3aed;text-transform:uppercase">${({RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'})[d.trade2.category]||'Retail'}</span>
             ${d.trade2.kms?`<span style="font-size:11px;color:var(--text-faint);margin-left:auto">${Number(d.trade2.kms).toLocaleString()} km</span>`:''}
           </div>
           <div style="font-size:11px;color:var(--text-muted)">${[d.trade2.year,d.trade2.make,d.trade2.model,d.trade2.colour].filter(Boolean).join(' · ')}</div>
@@ -4481,6 +4624,8 @@ function renderGetReady() {
       </div>
       ${canEdit?`<div class="gr-card-actions">
         <button class="btn-tedit" onclick="openGRModal('${d.id}')">✎ Edit</button>
+        ${hasTrade && !d.dealCompleted && canCompleteDeal ? `<button class="btn-tedit" onclick="completeDealTradeIn('${d.id}')" style="background:#f0fdf4;color:#15803d;border-color:#86efac;font-weight:700">✓ Deal Completed</button>` : ''}
+        ${hasTrade && d.dealCompleted ? `<span style="font-size:11px;color:#15803d;font-weight:700;display:flex;align-items:center;padding:0 8px">✓ Moved to Incoming</span>` : ''}
         <button class="btn-tdel" onclick="deleteGR('${d.id}','${(d.stock||d.customer||'').replace(/'/g,"\\'")}')">✕</button>
       </div>`:''}
     </div>`;
@@ -4539,17 +4684,21 @@ window.openGRModal = function(id) {
   const t1 = d.trade1 || {};
   const t2 = d.trade2 || {};
   document.getElementById('gr-t1-stock').value  = t1.stock  || '';
+  document.getElementById('gr-t1-vin').value    = t1.vin    || '';
   document.getElementById('gr-t1-year').value   = t1.year   || '';
   document.getElementById('gr-t1-make').value   = t1.make   || '';
   document.getElementById('gr-t1-model').value  = t1.model  || '';
   document.getElementById('gr-t1-colour').value = t1.colour || '';
   document.getElementById('gr-t1-kms').value    = t1.kms    || '';
+  document.getElementById('gr-t1-category').value = t1.category || 'RETAIL';
   document.getElementById('gr-t2-stock').value  = t2.stock  || '';
+  document.getElementById('gr-t2-vin').value    = t2.vin    || '';
   document.getElementById('gr-t2-year').value   = t2.year   || '';
   document.getElementById('gr-t2-make').value   = t2.make   || '';
   document.getElementById('gr-t2-model').value  = t2.model  || '';
   document.getElementById('gr-t2-colour').value = t2.colour || '';
   document.getElementById('gr-t2-kms').value    = t2.kms    || '';
+  document.getElementById('gr-t2-category').value = t2.category || 'RETAIL';
   // Custom fields
   grCustomFields = Array.isArray(d.customFields) ? d.customFields.map(f=>({...f})) : [];
   grRenderCustomFields();
@@ -4585,19 +4734,23 @@ window.saveGR = async function() {
     needsGas: document.getElementById('gr-needs-gas').checked,
     trade1: {
       stock:  document.getElementById('gr-t1-stock').value.trim().toUpperCase(),
+      vin:    document.getElementById('gr-t1-vin').value.trim().toUpperCase(),
       year:   document.getElementById('gr-t1-year').value.trim(),
       make:   document.getElementById('gr-t1-make').value.trim(),
       model:  document.getElementById('gr-t1-model').value.trim(),
       colour: document.getElementById('gr-t1-colour').value.trim(),
       kms:    document.getElementById('gr-t1-kms').value.trim(),
+      category: document.getElementById('gr-t1-category').value,
     },
     trade2: {
       stock:  document.getElementById('gr-t2-stock').value.trim().toUpperCase(),
+      vin:    document.getElementById('gr-t2-vin').value.trim().toUpperCase(),
       year:   document.getElementById('gr-t2-year').value.trim(),
       make:   document.getElementById('gr-t2-make').value.trim(),
       model:  document.getElementById('gr-t2-model').value.trim(),
       colour: document.getElementById('gr-t2-colour').value.trim(),
       kms:    document.getElementById('gr-t2-kms').value.trim(),
+      category: document.getElementById('gr-t2-category').value,
     },
     updatedBy: currentUser.name,
     ts: editingGRId ? (getReadyDeals[editingGRId]?.ts || Date.now()) : Date.now(),
@@ -4753,6 +4906,85 @@ window.saveSettings = async function() {
   btn.disabled=false;btn.textContent='Save settings';
 };
 function showSettingsToast(msg,type){const t=document.getElementById('settings-toast');t.textContent=msg;t.className='toast '+type;t.style.display='block';setTimeout(()=>{t.style.display='none';},4000);}
+function showEmailToast(msg,type){const t=document.getElementById('email-settings-toast');t.textContent=msg;t.className='toast '+type;t.style.display='block';setTimeout(()=>{t.style.display='none';},5000);}
+
+window.saveEmailSettings = async function() {
+  const settings = {
+    notifyAddress: document.getElementById('email-notify-address').value.trim(),
+    publicKey: document.getElementById('email-public-key').value.trim(),
+    serviceId: document.getElementById('email-service-id').value.trim(),
+    grTemplateId: document.getElementById('email-gr-template').value.trim(),
+    incTemplateId: document.getElementById('email-inc-template').value.trim(),
+  };
+  try {
+    await update(ref(db,'settings'), { email: settings });
+    if (settings.publicKey && typeof emailjs !== 'undefined') {
+      emailjs.init({ publicKey: settings.publicKey });
+      emailjsReady = true;
+    }
+    showEmailToast('✓ Email settings saved.', 'success');
+  } catch(e) { showEmailToast('Error saving — check connection.', 'error'); }
+};
+
+// Shared send helper — every email notification in the app goes through this.
+// Returns true/false so callers can react (e.g. re-enable a button) without
+// needing to know anything about EmailJS specifically.
+async function sendNotificationEmail(templateId, params) {
+  if (typeof emailjs === 'undefined') { console.error('EmailJS SDK not loaded.'); return false; }
+  if (!emailSettings.publicKey || !emailSettings.serviceId || !templateId) {
+    console.warn('Email notifications are not configured yet — see Settings.');
+    return false;
+  }
+  if (!emailjsReady) { emailjs.init({ publicKey: emailSettings.publicKey }); emailjsReady = true; }
+  try {
+    await emailjs.send(emailSettings.serviceId, templateId, { to_email: emailSettings.notifyAddress, ...params });
+    return true;
+  } catch(e) {
+    console.error('Email send failed:', e);
+    return false;
+  }
+}
+
+window.sendTestEmail = async function() {
+  // Uses whichever template ID is filled in — Get Ready first, falling back to Incoming.
+  const templateId = document.getElementById('email-gr-template').value.trim() || document.getElementById('email-inc-template').value.trim();
+  if (!document.getElementById('email-public-key').value.trim() || !document.getElementById('email-service-id').value.trim() || !templateId) {
+    showEmailToast('Fill in Public Key, Service ID, and at least one Template ID first.', 'error');
+    return;
+  }
+  // Save first so the test uses whatever's currently in the fields, not stale saved values.
+  await window.saveEmailSettings();
+  const ok = await sendNotificationEmail(templateId, {
+    subject: 'Test notification — Vehicle Manager',
+    stock: 'TEST123',
+    vehicle: 'This is a test email',
+    message: 'If you got this, your email notifications are working correctly.',
+  });
+  showEmailToast(ok ? '✓ Test email sent — check your inbox.' : 'Failed to send — check your EmailJS details and template.', ok ? 'success' : 'error');
+};
+
+window.sendIncomingEmail = async function(id) {
+  if (!emailSettings.incTemplateId) {
+    alert('Email notifications for Incoming Vehicles aren\'t set up yet — add an Incoming Vehicle Template ID in Settings → Email Notifications.');
+    return;
+  }
+  const u = units[id];
+  if (!u) return;
+  const specLine = [u.year, u.type, u.trim, u.colour].filter(Boolean).join(' · ');
+  const ok = await sendNotificationEmail(emailSettings.incTemplateId, {
+    subject: `Incoming Vehicle — ${u.stock||u.vin||'no stock #'}`,
+    stock: u.stock||'',
+    vin: u.vin||'',
+    vehicle: u.vehicle || specLine || '',
+    kms: u.kms||'',
+    status: u.status||'',
+    condition: u.condition==='used' ? 'Used' : 'New',
+    category: u.category||'',
+    arrived: u.arrived||'',
+    message: `Incoming vehicle notification for ${u.vehicle || specLine || u.stock || 'a vehicle'}.`,
+  });
+  if (!ok) alert('Failed to send — check your EmailJS details in Settings → Email Notifications.');
+};
 
 window.clearAllTrackerUnits = async function() {
   const count = Object.keys(units).length;
