@@ -948,6 +948,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
            lot team needs to see and act on at a glance. -->
       <div id="rides-queue-view" style="flex:1;overflow-y:auto;padding:16px">
         <div id="rides-pending-returns" style="display:none;margin-bottom:14px"></div>
+        <div id="rides-active-status" style="display:none;margin-bottom:14px"></div>
+        <div id="rides-active-appt-status" style="display:none;margin-bottom:14px"></div>
 
         <div style="display:flex;gap:8px;margin-bottom:18px">
           <button class="btn-new-request" onclick="ridesSetViewMode('request')" style="flex:1">
@@ -1037,8 +1039,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 
             <button id="rides-submit-btn" onclick="submitRide()" style="width:100%;padding:13px;border:none;border-radius:10px;background:var(--ford);color:#fff;font-size:15px;font-weight:700;cursor:pointer">Request Ride</button>
           </div>
-          <div id="rides-active-status" style="display:none"></div>
-          <div id="rides-active-appt-status" style="display:none;margin-top:12px"></div>
         </div>
       </div>
 
@@ -2850,6 +2850,28 @@ window.ridesCheckStockLocation = function() {
   ridesRenderDirectionPickers();
 };
 
+// Races any promise against a timeout — on a flaky mobile connection, a
+// Firebase write can otherwise just hang indefinitely with no feedback,
+// leaving a button stuck on "Requesting…" forever. Important: Firebase
+// doesn't actually cancel the write just because we stop waiting for it — it
+// keeps trying in the background and very often still succeeds a few seconds
+// later. So this doesn't claim outright failure, and if the write does land
+// after we've already warned about the delay, it follows up to say so —
+// instead of leaving the person thinking it failed and resubmitting a duplicate.
+function withTimeout(promise, ms, label) {
+  let timedOut = false;
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => {
+      timedOut = true;
+      reject(new Error(`${label || 'Request'} is taking longer than expected — it may still go through on its own. Check the queue in a moment before submitting again, to avoid a duplicate.`));
+    }, ms);
+  });
+  promise.then(() => {
+    if (timedOut) alert(`✓ Good news — that ${(label||'request').toLowerCase()} went through after all. No need to resubmit.`);
+  }).catch(() => {}); // a genuine failure after timing out isn't worth a second alert
+  return Promise.race([promise, timeoutPromise]);
+}
+
 window.submitRide = async function(pickupOverride, dropoffOverride, stockOverride, subtype) {
   if (!pickupOverride && ridesType === 'appointment') return submitAppointment();
   const isOverride = !!pickupOverride;
@@ -2862,7 +2884,7 @@ window.submitRide = async function(pickupOverride, dropoffOverride, stockOverrid
   const btn = document.getElementById('rides-submit-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Requesting…'; }
   try {
-    await push(ref(db,'rides'), {
+    await withTimeout(push(ref(db,'rides'), {
       type: stock ? 'vehicle' : 'hitchhike', stock,
       pickup, dropoff,
       subtype: subtype || null, // e.g. 'return' — distinguishes "car is inbound" from a normal fetch, for the TV boards
@@ -2870,7 +2892,7 @@ window.submitRide = async function(pickupOverride, dropoffOverride, stockOverrid
       requestedByUid: currentUser.uid || null,
       status: 'pending',
       ts: Date.now(),
-    });
+    }), 20000, 'Ride request');
     if (!isOverride) {
       document.getElementById('rides-stock-input').value = '';
       document.getElementById('rides-stock-result').style.display = 'none';
@@ -2878,7 +2900,7 @@ window.submitRide = async function(pickupOverride, dropoffOverride, stockOverrid
       ridesRenderDirectionPickers();
       ridesSetViewMode('queue');
     }
-  } catch(e) { alert('Error submitting — check connection.'); }
+  } catch(e) { alert(e.message || 'Error submitting — check connection.'); }
   if (btn) { btn.disabled = false; btn.textContent = 'Request Ride'; }
 };
 
@@ -2967,7 +2989,7 @@ async function submitAppointment() {
   const btn = document.getElementById('rides-submit-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Requesting…'; }
   try {
-    await push(ref(db,'appointments'), {
+    await withTimeout(push(ref(db,'appointments'), {
       stock, department, notes,
       currentLocation: ridesApptFoundLocation || null, // best-effort — never required
       timing: ridesApptTiming, scheduledFor,
@@ -2975,7 +2997,7 @@ async function submitAppointment() {
       requestedByUid: currentUser.uid || null,
       status: 'pending', // pending -> in_progress -> delivered
       ts: Date.now(),
-    });
+    }), 20000, 'Appointment request');
     document.getElementById('rides-appt-stock').value = '';
     document.getElementById('rides-appt-notes').value = '';
     document.getElementById('rides-appt-dept').value = 'Service';
@@ -2986,7 +3008,7 @@ async function submitAppointment() {
     ridesApptFoundLocation = null;
     setApptTiming('asap');
     ridesSetViewMode('queue');
-  } catch(e) { alert('Error submitting — check connection.'); }
+  } catch(e) { alert(e.message || 'Error submitting — check connection.'); }
   if (btn) { btn.disabled = false; btn.textContent = 'Request Appointment'; }
 }
 
@@ -3130,14 +3152,12 @@ const RIDE_STAGES = ['pending','claimed','enroute','done'];
 const RIDE_STAGE_LABELS = ['Waiting for Ride','Driver on Route','Ride in Progress','Done'];
 
 function renderMyActiveRide() {
-  const formEl = document.getElementById('rides-request-form');
   const statusEl = document.getElementById('rides-active-status');
-  if (!formEl || !statusEl || !currentUser) return;
+  if (!statusEl || !currentUser) return;
   const mine = Object.entries(rides||{}).map(([id,r])=>({id,...r}))
     .filter(r => r.requestedByUid === currentUser.uid && !['done','cancelled'].includes(r.status))
     .sort((a,b)=>b.ts-a.ts)[0];
-  if (!mine) { formEl.style.display = 'block'; statusEl.style.display = 'none'; return; }
-  formEl.style.display = 'none';
+  if (!mine) { statusEl.style.display = 'none'; return; }
   statusEl.style.display = 'block';
   const stageIdx = RIDE_STAGES.indexOf(mine.status);
   const stepperHTML = RIDE_STAGES.map((s,i) => `
@@ -3146,12 +3166,14 @@ function renderMyActiveRide() {
       <div style="font-size:9px;color:${i<=stageIdx?'var(--ford)':'var(--text-faint)'};font-weight:600">${RIDE_STAGE_LABELS[i]}</div>
     </div>`).join('');
   statusEl.innerHTML = `
-    <div style="font-size:15px;font-weight:700;margin-bottom:4px">${mine.type==='vehicle' ? '🚗 '+mine.stock : '🙋 Hitchhiking'}</div>
-    <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">${mine.pickup} → ${mine.dropoff}</div>
-    <div style="display:flex;margin-bottom:14px">${stepperHTML}</div>
-    ${mine.claimedBy ? `<div style="font-size:13px;color:#1d4ed8;font-weight:700;margin-bottom:4px">🚐 Driver: ${mine.claimedBy}</div>` : ''}
-    ${mine.etaMins && (Date.now()-mine.etaTs) < 5*60*1000 ? `<div style="font-size:13px;color:#15803d;font-weight:700;margin-bottom:10px">🕐 ~${mine.etaMins} min away</div>` : ''}
-    ${mine.status === 'pending' ? `<button onclick="cancelRide('${mine.id}')" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:#991b1b;font-size:13px;cursor:pointer">Cancel Request</button>` : ''}
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">${mine.type==='vehicle' ? '🚗 '+mine.stock : '🙋 Hitchhiking'}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">${mine.pickup} → ${mine.dropoff}</div>
+      <div style="display:flex;margin-bottom:14px">${stepperHTML}</div>
+      ${mine.claimedBy ? `<div style="font-size:13px;color:#1d4ed8;font-weight:700;margin-bottom:4px">🚐 Driver: ${mine.claimedBy}</div>` : ''}
+      ${mine.etaMins && (Date.now()-mine.etaTs) < 5*60*1000 ? `<div style="font-size:13px;color:#15803d;font-weight:700;margin-bottom:10px">🕐 ~${mine.etaMins} min away</div>` : ''}
+      ${mine.status === 'pending' ? `<button onclick="cancelRide('${mine.id}')" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:#991b1b;font-size:13px;cursor:pointer">Cancel Request</button>` : ''}
+    </div>
   `;
 }
 
