@@ -4119,8 +4119,18 @@ function renderTracker() {
     </div>`;
   }
 
+  const activeNew = active.filter(u => u.condition !== 'used');
+  const activeUsed = active.filter(u => u.condition === 'used');
+
   let html = '';
-  if(active.length) html += active.map(makeCard).join('');
+  if (activeNew.length) {
+    html += `<div class="section-divider">🆕 New (${activeNew.length})</div>`;
+    html += activeNew.map(makeCard).join('');
+  }
+  if (activeUsed.length) {
+    html += `<div class="section-divider">🔁 Used (${activeUsed.length})</div>`;
+    html += activeUsed.map(makeCard).join('');
+  }
   if(completed.length) {
     html += `<div class="section-divider">✓ Completed (${completed.length})</div>`;
     html += completed.map(makeCard).join('');
@@ -4403,9 +4413,20 @@ window.deleteGR = async function(id, label) {
 // real Incoming Unit — nothing moves over automatically before that, and if
 // this never gets clicked (deal falls through), the trade-in just never
 // shows up in Incoming. The deal stays flagged "On Hold" in the meantime.
+window.setGRDealStatus = async function(id, status) {
+  const d = getReadyDeals[id];
+  if (!d) return;
+  if (status) {
+    const label = status === 'on_hold' ? 'on hold' : 'declined';
+    if (!confirm(`Mark this deal as ${label}? The trade-in won't move to Incoming while it's ${label} — you can resume it any time.`)) return;
+  }
+  await update(ref(db,'getready/'+id), { dealStatus: status || null });
+};
+
 window.completeDealTradeIn = async function(id) {
   const d = getReadyDeals[id];
   if (!d) return;
+  if (d.dealStatus) { alert(`This deal is currently ${d.dealStatus === 'on_hold' ? 'on hold' : 'declined'} — resume it first before completing.`); return; }
   const trades = (Array.isArray(d.trades) ? d.trades : [d.trade1, d.trade2]).filter(t => t && t.stock);
   if (!trades.length) return;
   const summary = trades.map(t => `${t.stock} (${[t.year,t.make,t.model].filter(Boolean).join(' ')})`).join(', ');
@@ -4512,10 +4533,11 @@ function renderGetReady() {
     const isComplete = grIsComplete(d);
     const typeClass = {'AS-IS':'type-as-is','RETAIL':'type-retail','WHOLESALE':'type-wholesale'}[d.type]||'';
     const typePillClass = {'AS-IS':'as-is','RETAIL':'retail','WHOLESALE':'wholesale'}[d.type]||'as-is';
-    const completeBadge = isComplete ? `<span class="gr-complete-badge">✓ Ready</span>` : '';
+    const completeBadge = isComplete ? `<span class="gr-complete-badge">✓ Ready</span>` : `<span class="gr-complete-badge" style="background:#f97316">🔧 Work In Progress</span>`;
     const dupeBadge = isDupe(d) ? `<span class="gr-complete-badge dupe-blink" style="background:#dc2626">⚠ Duplicate</span>` : '';
     const hasTrade = Array.isArray(d.trades) ? d.trades.some(t=>t?.stock) : !!(d.trade1?.stock || d.trade2?.stock);
-    const holdBadge = (hasTrade && !d.dealCompleted) ? `<span class="gr-complete-badge" style="background:#94a3b8">⏸ On Hold</span>` : '';
+    const holdBadge = d.dealStatus === 'on_hold' ? `<span class="gr-complete-badge" style="background:#94a3b8">⏸ On Hold</span>`
+      : d.dealStatus === 'declined' ? `<span class="gr-complete-badge" style="background:#64748b">❌ Declined</span>` : '';
     const canCompleteDeal = currentUser && ['sales','fandi','management'].includes(currentUser.role);
 
     const cbBtn = (field, label) => {
@@ -4618,8 +4640,11 @@ function renderGetReady() {
       </div>
       ${canEdit?`<div class="gr-card-actions">
         <button class="btn-tedit" onclick="openGRModal('${d.id}')">✎ Edit</button>
-        ${hasTrade && !d.dealCompleted && canCompleteDeal ? `<button class="btn-tedit" onclick="completeDealTradeIn('${d.id}')" style="background:#f0fdf4;color:#15803d;border-color:#86efac;font-weight:700">✓ Deal Completed</button>` : ''}
+        ${hasTrade && !d.dealCompleted && canCompleteDeal && !d.dealStatus ? `<button class="btn-tedit" onclick="completeDealTradeIn('${d.id}')" style="background:#f0fdf4;color:#15803d;border-color:#86efac;font-weight:700">✓ Deal Completed</button>` : ''}
         ${hasTrade && d.dealCompleted ? `<span style="font-size:11px;color:#15803d;font-weight:700;display:flex;align-items:center;padding:0 8px">✓ Moved to Incoming</span>` : ''}
+        ${hasTrade && !d.dealCompleted && !d.dealStatus && canCompleteDeal ? `<button class="btn-tedit" onclick="setGRDealStatus('${d.id}','on_hold')" style="background:#f8fafc;color:#64748b">⏸ Hold</button>` : ''}
+        ${hasTrade && !d.dealCompleted && !d.dealStatus && canCompleteDeal ? `<button class="btn-tedit" onclick="setGRDealStatus('${d.id}','declined')" style="background:#f8fafc;color:#64748b">❌ Decline</button>` : ''}
+        ${hasTrade && !d.dealCompleted && d.dealStatus && canCompleteDeal ? `<button class="btn-tedit" onclick="setGRDealStatus('${d.id}',null)" style="background:#eff6ff;color:#1d4ed8;font-weight:700">▶ Resume</button>` : ''}
         <button class="btn-tdel" onclick="deleteGR('${d.id}','${(d.stock||d.customer||'').replace(/'/g,"\\'")}')">✕</button>
       </div>`:''}
     </div>`;
