@@ -3185,9 +3185,6 @@ function renderDriverQueue() {
     el.innerHTML = '<div style="text-align:center;padding:60px 20px;color:rgba(255,255,255,.5);font-size:16px">No active ride requests right now.</div>';
     return;
   }
-  const mine = all.filter(r => r.claimedBy === currentUser?.name);
-  const unclaimed = all.filter(r => r.status === 'pending');
-  const othersActive = all.filter(r => r.claimedBy && r.claimedBy !== currentUser?.name);
 
   const bigCard = (r, big) => {
     const label = r.type==='vehicle' ? `🚗 ${r.stock}` : '🙋 Hitchhiker';
@@ -3210,24 +3207,44 @@ function renderDriverQueue() {
     </div>`;
   };
 
-  let html = '';
-  if (mine.length) {
-    html += `<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.5);margin-bottom:8px">Your active ride</div>`;
-    html += mine.map(r => bigCard(r, true)).join('');
-  }
-  if (unclaimed.length) {
-    html += `<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.5);margin:16px 0 8px">Available to claim</div>`;
-    html += unclaimed.map(r => bigCard(r, false)).join('');
-  }
-  if (othersActive.length) {
-    html += `<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.4);margin:16px 0 8px">Other drivers</div>`;
-    html += othersActive.map(r => `<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 18px;margin-bottom:10px;opacity:.7">
+  const otherCard = r => `<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 18px;margin-bottom:10px;opacity:.7">
       <div style="font-size:16px;font-weight:700">${r.type==='vehicle'?'🚗 '+r.stock:'🙋 Hitchhiker'} · ${r.pickup} → ${r.dropoff}</div>
       <div style="font-size:13px;color:rgba(255,255,255,.6)">🚐 ${r.claimedBy}</div>
-    </div>`).join('');
-  }
+    </div>`;
 
-  el.innerHTML = html;
+  // Renders one full section (mine / available / others) for a given subset,
+  // under its own header — this is what keeps Vehicle Moves and Rides visually
+  // separate on screen instead of mixed into one flat list.
+  const renderSection = (title, list) => {
+    if (!list.length) return '';
+    const mine = list.filter(r => r.claimedBy === currentUser?.name);
+    const unclaimed = list.filter(r => r.status === 'pending');
+    const othersActive = list.filter(r => r.claimedBy && r.claimedBy !== currentUser?.name);
+    let html = `<div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid rgba(255,255,255,.15)">${title}</div>`;
+    if (mine.length) {
+      html += `<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.5);margin-bottom:8px">Your active job</div>`;
+      html += mine.map(r => bigCard(r, true)).join('');
+    }
+    if (unclaimed.length) {
+      html += `<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.5);margin:16px 0 8px">Available to claim</div>`;
+      html += unclaimed.map(r => bigCard(r, false)).join('');
+    }
+    if (othersActive.length) {
+      html += `<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.4);margin:16px 0 8px">Other drivers</div>`;
+      html += othersActive.map(otherCard).join('');
+    }
+    return html;
+  };
+
+  const vehicleMoves = all.filter(r => r.type === 'vehicle');
+  const hitchhikeRides = all.filter(r => r.type !== 'vehicle');
+
+  let html = '';
+  html += renderSection('🚗 Vehicle Moves', vehicleMoves);
+  if (vehicleMoves.length && hitchhikeRides.length) html += `<div style="height:24px"></div>`;
+  html += renderSection('🙋 Rides', hitchhikeRides);
+
+  el.innerHTML = html || '<div style="text-align:center;padding:60px 20px;color:rgba(255,255,255,.5);font-size:16px">No active ride requests right now.</div>';
 }
 
 window.claimRide = async function(id) {
