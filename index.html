@@ -959,8 +959,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <button id="rides-drive-mode-btn" onclick="ridesSetViewMode('drive')" style="display:none;flex:1;padding:11px 18px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-size:14px;font-weight:600;cursor:pointer">🚐 Drive Mode</button>
         </div>
 
-        <div class="section-label">📅 Vehicle Appointments <span class="tab-count" id="tc-rq-appts" style="background:var(--bg)"></span></div>
-        <div id="rq-appt-list"><div style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</div></div>
+        <div id="rq-appt-section">
+          <div class="section-label">📅 Vehicle Appointments <span class="tab-count" id="tc-rq-appts" style="background:var(--bg)"></span></div>
+          <div id="rq-appt-list"><div style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</div></div>
+        </div>
 
         <div class="section-label" style="margin-top:28px">🚗 Pickups & Dropoffs <span class="tab-count" id="tc-rq-rides" style="background:var(--bg)"></span></div>
         <div id="rq-rides-list"><div style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</div></div>
@@ -1884,6 +1886,15 @@ function applyPermissions() {
   const clearHistBtn = document.getElementById('btn-clear-history');
   if (clearHistBtn) clearHistBtn.style.display = currentUser?.role === 'management' ? '' : 'none';
 
+  // Vehicle Appointments are for internal departments (Service, Reception)
+  // plus whoever fulfills them (lot, management) — sales handles their own
+  // pickups directly and doesn't need this cluttering their view.
+  const canSeeAppointments = ['service','reception','lot','management'].includes(currentUser.role);
+  const apptTypeBtn = document.getElementById('rides-type-appt-btn');
+  if (apptTypeBtn) apptTypeBtn.style.display = canSeeAppointments ? '' : 'none';
+  const apptQueueSection = document.getElementById('rq-appt-section');
+  if (apptQueueSection) apptQueueSection.style.display = canSeeAppointments ? 'block' : 'none';
+
   // Land on the right tab for roles whose only access is TV
   if (perm('tabTV') && !perm('tabHome')) {
     switchTab('tv', document.getElementById('tab-tv'));
@@ -2615,7 +2626,15 @@ function ridesInitMap() {
   const mapEl = document.getElementById('rides-map');
   if (!mapEl) return;
   const lotCoords = Object.values(RIDES_LOTS).map(l => [l.lat, l.lng]);
-  ridesLeafletMap = L.map(mapEl, { zoomControl: true }).fitBounds(lotCoords, { padding: [40,40] });
+  ridesLeafletMap = L.map(mapEl, {
+    zoomControl: false,
+    scrollWheelZoom: false,
+    doubleClickZoom: false,
+    touchZoom: false,
+    boxZoom: false,
+    dragging: false,
+    keyboard: false,
+  }).fitBounds(lotCoords, { padding: [40,40] });
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors',
     maxZoom: 19,
@@ -2650,13 +2669,8 @@ function ridesUpdateDriverMarkers() {
   Object.keys(ridesDriverMarkers).forEach(uid => {
     if (!seen.has(uid)) { ridesLeafletMap.removeLayer(ridesDriverMarkers[uid]); delete ridesDriverMarkers[uid]; }
   });
-  const activeMarkers = Object.values(ridesDriverMarkers);
-  if (activeMarkers.length && !ridesMapFitDone) {
-    ridesMapFitDone = true;
-    const lotCoords = Object.values(RIDES_LOTS).map(l => [l.lat, l.lng]);
-    const driverCoords = activeMarkers.map(m => m.getLatLng());
-    ridesLeafletMap.fitBounds([...lotCoords, ...driverCoords], { padding: [40,40], maxZoom: 15 });
-  }
+  // View stays fixed on the three lot pins — it never re-fits to include
+  // driver positions, since the map isn't meant to zoom or pan around at all.
 }
 
 // Draws a real driving route (actual roads, via free OSRM routing) from the
@@ -2768,6 +2782,7 @@ function ridesResumeLocationSharingIfNeeded() {
 const RIDES_ALL_LOTS = ['55 Mapleview', '323 Bayview', '700 Bayview'];
 
 window.ridesSetType = function(type) {
+  if (type === 'appointment' && !(currentUser && ['service','reception','lot','management'].includes(currentUser.role))) return;
   ridesType = type;
   document.getElementById('rides-type-hitchhike-btn').classList.toggle('active', type==='hitchhike');
   document.getElementById('rides-type-vehicle-btn').classList.toggle('active', type==='vehicle');
@@ -2972,6 +2987,7 @@ if (apptDateEl) apptDateEl.addEventListener('change', updateApptTimePreview);
 if (apptTimeEl) apptTimeEl.addEventListener('change', updateApptTimePreview);
 
 async function submitAppointment() {
+  if (!(currentUser && ['service','reception','lot','management'].includes(currentUser.role))) return;
   const stock = document.getElementById('rides-appt-stock').value.trim().toUpperCase();
   const deptSel = document.getElementById('rides-appt-dept').value;
   const deptOther = document.getElementById('rides-appt-dept-other').value.trim();
@@ -3091,9 +3107,11 @@ function renderRidesQueueAppointments() {
   if (tc) tc.textContent = active.length;
   if (!active.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><p>No pending appointments.</p></div>'; return; }
   el.innerHTML = active.map(a => {
+    const isMine = currentUser && a.requestedByUid === currentUser.uid;
     let action = '';
     if (a.status === 'pending') {
-      action = canManage ? `<button class="btn-action" onclick="claimAppointment('${a.id}')" style="background:#eff6ff;color:#1d4ed8;font-weight:700">Claim</button>` : '';
+      if (canManage) action = `<button class="btn-action" onclick="claimAppointment('${a.id}')" style="background:#eff6ff;color:#1d4ed8;font-weight:700">Claim</button>`;
+      else if (isMine) action = `<button class="btn-action" onclick="cancelAppointment('${a.id}')" style="background:#fef2f2;color:#991b1b;font-weight:700">Cancel</button>`;
     } else if (a.status === 'in_progress') {
       action = (canManage && a.claimedBy === currentUser?.name)
         ? `<button class="btn-action" onclick="setAppointmentDelivered('${a.id}')" style="background:#f0fdf4;color:#15803d;font-weight:700">✓ Delivered</button>`
@@ -3123,16 +3141,20 @@ function renderRidesQueuePickups() {
   if (tc) tc.textContent = active.length;
   if (!active.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">🚗</div><p>Nothing active right now.</p></div>'; return; }
   el.innerHTML = active.map(r => {
+    const isMine = currentUser && r.requestedByUid === currentUser.uid;
     let action = '';
     if (r.status === 'pending') {
-      action = canManage ? `<button class="btn-action" onclick="claimRide('${r.id}')" style="background:#eff6ff;color:#1d4ed8;font-weight:700">Claim</button>` : '';
+      if (canManage) action = `<button class="btn-action" onclick="claimRide('${r.id}')" style="background:#eff6ff;color:#1d4ed8;font-weight:700">Claim</button>`;
+      else if (isMine) action = `<button class="btn-action" onclick="cancelRide('${r.id}')" style="background:#fef2f2;color:#991b1b;font-weight:700">Cancel</button>`;
     } else if (r.status === 'claimed') {
       action = (canManage && r.claimedBy === currentUser?.name)
-        ? `<button class="btn-action" onclick="setRideStatus('${r.id}','enroute')" style="background:#fff7ed;color:#c2410c;font-weight:700">🚗 Picked Up</button>`
+        ? `<button class="btn-action" onclick="setRideStatus('${r.id}','enroute')" style="background:#fff7ed;color:#c2410c;font-weight:700">🚗 Picked Up</button>
+           <button class="btn-action" onclick="promptDropRide('${r.id}')" style="background:#fef2f2;color:#991b1b;font-weight:700;margin-top:4px">Drop</button>`
         : `<span style="font-size:12px;color:var(--text-faint)">🚐 ${r.claimedBy}</span>`;
     } else if (r.status === 'enroute') {
       action = (canManage && r.claimedBy === currentUser?.name)
-        ? `<button class="btn-action" onclick="setRideStatus('${r.id}','done')" style="background:#f0fdf4;color:#15803d;font-weight:700">✓ Done</button>`
+        ? `<button class="btn-action" onclick="setRideStatus('${r.id}','done')" style="background:#f0fdf4;color:#15803d;font-weight:700">✓ Done</button>
+           <button class="btn-action" onclick="promptDropRide('${r.id}')" style="background:#fef2f2;color:#991b1b;font-weight:700;margin-top:4px">Drop</button>`
         : `<span style="font-size:12px;color:var(--text-faint)">🚐 ${r.claimedBy}</span>`;
     }
     const stageLabel = { pending:'Waiting for driver', claimed:'Driver on route', enroute:'Ride in progress' }[r.status] || r.status;
@@ -3142,6 +3164,7 @@ function renderRidesQueuePickups() {
         <div class="entry-stock">${label}</div>
         <div class="entry-meta" style="margin-bottom:5px">${r.pickup} → ${r.dropoff} · Requested by ${r.requestedBy}</div>
         <div style="font-size:13px;font-weight:700;color:#1d4ed8">${stageLabel}</div>
+        ${r.status==='pending' && r.droppedBy ? `<div style="font-size:12px;color:#991b1b;margin-top:2px">⚠️ Dropped by ${r.droppedBy}: "${r.dropReason}"</div>` : ''}
       </div>
       <div class="entry-actions">${action}<div class="entry-time">${timeAgo(r.ts)}</div></div>
     </div>`;
@@ -3170,6 +3193,7 @@ function renderMyActiveRide() {
       <div style="font-size:15px;font-weight:700;margin-bottom:4px">${mine.type==='vehicle' ? '🚗 '+mine.stock : '🙋 Hitchhiking'}</div>
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">${mine.pickup} → ${mine.dropoff}</div>
       <div style="display:flex;margin-bottom:14px">${stepperHTML}</div>
+      ${mine.status === 'pending' && mine.droppedBy ? `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:10px 12px;margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:#991b1b;margin-bottom:2px">⚠️ ${mine.droppedBy} had to drop this ride</div><div style="font-size:12px;color:#7f1d1d">"${mine.dropReason}" — waiting for another driver to pick it up</div></div>` : ''}
       ${mine.claimedBy ? `<div style="font-size:13px;color:#1d4ed8;font-weight:700;margin-bottom:4px">🚐 Driver: ${mine.claimedBy}</div>` : ''}
       ${mine.etaMins && (Date.now()-mine.etaTs) < 5*60*1000 ? `<div style="font-size:13px;color:#15803d;font-weight:700;margin-bottom:10px">🕐 ~${mine.etaMins} min away</div>` : ''}
       ${mine.status === 'pending' ? `<button onclick="cancelRide('${mine.id}')" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:#991b1b;font-size:13px;cursor:pointer">Cancel Request</button>` : ''}
@@ -3212,9 +3236,11 @@ function renderDriverQueue() {
     if (r.status === 'pending') {
       action = `<button onclick="claimRide('${r.id}')" style="width:100%;padding:13px;border:none;border-radius:12px;background:#2563eb;color:#fff;font-size:15px;font-weight:700;cursor:pointer;min-height:46px">Claim This Ride</button>`;
     } else if (r.status === 'claimed' && r.claimedBy === currentUser?.name) {
-      action = `<button onclick="setRideStatus('${r.id}','enroute')" style="width:100%;padding:13px;border:none;border-radius:12px;background:#f97316;color:#fff;font-size:15px;font-weight:700;cursor:pointer;min-height:46px">🚗 Picked Up — Start Ride</button>`;
+      action = `<button onclick="setRideStatus('${r.id}','enroute')" style="width:100%;padding:13px;border:none;border-radius:12px;background:#f97316;color:#fff;font-size:15px;font-weight:700;cursor:pointer;min-height:46px;margin-bottom:8px">🚗 Picked Up — Start Ride</button>
+        <button onclick="promptDropRide('${r.id}')" style="width:100%;padding:10px;border:1px solid rgba(255,255,255,.25);border-radius:10px;background:transparent;color:rgba(255,255,255,.8);font-size:13px;font-weight:600;cursor:pointer">Can't take this one — Drop</button>`;
     } else if (r.status === 'enroute' && r.claimedBy === currentUser?.name) {
-      action = `<button onclick="setRideStatus('${r.id}','done')" style="width:100%;padding:13px;border:none;border-radius:12px;background:#16a34a;color:#fff;font-size:15px;font-weight:700;cursor:pointer;min-height:46px">✓ Mark Done</button>`;
+      action = `<button onclick="setRideStatus('${r.id}','done')" style="width:100%;padding:13px;border:none;border-radius:12px;background:#16a34a;color:#fff;font-size:15px;font-weight:700;cursor:pointer;min-height:46px;margin-bottom:8px">✓ Mark Done</button>
+        <button onclick="promptDropRide('${r.id}')" style="width:100%;padding:10px;border:1px solid rgba(255,255,255,.25);border-radius:10px;background:transparent;color:rgba(255,255,255,.8);font-size:13px;font-weight:600;cursor:pointer">Can't take this one — Drop</button>`;
     }
     const stageText = { pending:'Waiting for a driver', claimed:'You\'re heading to pick them up', enroute:'Ride in progress' }[r.status] || '';
     return `<div style="background:rgba(255,255,255,.08);border:2px solid ${big?'#2563eb':'rgba(255,255,255,.15)'};border-radius:14px;padding:14px;margin-bottom:10px">
@@ -3301,6 +3327,26 @@ window.setRideStatus = async function(id, status) {
       status: 'pending', // pending -> resolved
     });
   }
+};
+
+// A driver who's claimed a ride can't always follow through (van full, rider
+// wasn't ready, etc.) — this releases it back to the pool for another driver
+// to pick up, and leaves a reason the requester will actually see.
+window.promptDropRide = async function(id) {
+  if (!(currentUser && (currentUser.role === 'lot' || currentUser.role === 'management'))) return;
+  const ride = rides[id];
+  if (!ride || ride.claimedBy !== currentUser.name) return;
+  const reason = prompt("Why are you dropping this ride? (e.g. \"wasn't ready\", \"van full\")");
+  if (reason === null) return; // cancelled
+  if (!reason.trim()) { alert('Please enter a reason so the requester knows what happened.'); return; }
+  await update(ref(db,'rides/'+id), {
+    status: 'pending',
+    claimedBy: null,
+    claimedTs: null,
+    dropReason: reason.trim(),
+    droppedBy: currentUser.name,
+    droppedTs: Date.now(),
+  });
 };
 
 window.startVehicleReturn = async function(id) {
