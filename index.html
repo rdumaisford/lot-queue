@@ -1339,7 +1339,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div class="tv-header">
           <div class="tv-title">
             <div class="tv-title-icon"><svg viewBox="0 0 24 24"><path d="M5 11l1.5-4.5h11L19 11M19 11v5H5v-5M5 11H3v2h2M19 11h2v2h-2M7.5 16v1.5M16.5 16v1.5M7 13.5h2M15 13.5h2"/></svg></div>
-            Lot Transfer Queue
+            Lot Transfer Queue<span id="tv-loc-badge" style="font-size:14px;font-weight:600;color:rgba(255,255,255,.5);margin-left:10px"></span>
           </div>
           <div style="display:flex;align-items:center;gap:16px">
             <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.5)">
@@ -1370,10 +1370,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
               <div id="tv-compound-map" style="width:100%"></div>
             </div>
           </div>
-          <!-- Col 3: Vehicles to get ready for pickup -->
+          <!-- Col 3: Vehicles to get ready for pickup + returns coming in -->
           <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0;border-left:1px solid rgba(255,255,255,.15);padding-left:16px">
             <div class="tv-col-title" id="tv-title-rides">Get Ready for Pickup</div>
-            <div id="tv-rides-list" style="overflow-y:auto;flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start"></div>
+            <div id="tv-rides-list" style="overflow-y:auto;flex:1.4;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start"></div>
+            <div id="tv-returns-wrap" style="display:none;flex-direction:column;flex:1;min-height:0;margin-top:10px;border-top:1px solid rgba(255,255,255,.15);padding-top:10px">
+              <div class="tv-col-title" style="font-size:11px">↩️ Returns Coming In</div>
+              <div id="tv-returns-list" style="overflow-y:auto;flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start"></div>
+            </div>
           </div>
         </div>
         <div id="tv-hint" style="position:absolute;bottom:14px;right:18px;font-size:10px;opacity:.15;color:white;user-select:none">Hold to show controls</div>
@@ -1469,7 +1473,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <div style="font-size:15px;font-weight:600;margin-bottom:4px">Quick Links</div>
           <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Opens a dedicated view in a new tab — handy for setting up a kiosk tablet or TV screen.</div>
           <div style="display:flex;flex-direction:column;gap:8px">
-            <button onclick="openDisplayLink()" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px">📺 Display (TV Screen)</button>
+            <button onclick="openDisplayLink('55mapleview')" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px">📺 Display — 55 Mapleview (dealership)</button>
+            <button onclick="openDisplayLink('323bayview')" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px">📺 Display — 323 Bayview (off-site lot)</button>
+            <button onclick="openDisplayLink()" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px">📺 Display — unfiltered (shows everything)</button>
           </div>
         </div>
       </div>
@@ -1926,10 +1932,18 @@ window.resetPermissionsToDefault = async function() {
 let allUsers = {};
 let viewParamApplied = false; // ensures ?view=shuttle only redirects once per session
 let userApprovalUnsub = null;
+let tvLocation = null; // e.g. '323 Bayview' — set via ?loc= on the TV display URL, filters its boards to that lot
 
 function loadIdentity() {
   const isDisplay = new URLSearchParams(window.location.search).get('display') === 'true';
   if (isDisplay) {
+    const locParam = new URLSearchParams(window.location.search).get('loc');
+    const locMap = { '55mapleview':'55 Mapleview', '323bayview':'323 Bayview', '700bayview':'700 Bayview' };
+    tvLocation = locMap[locParam] || null; // no ?loc= = unfiltered, shows everything (old behavior)
+    if (tvLocation) {
+      const badgeEl = document.getElementById('tv-loc-badge');
+      if (badgeEl) badgeEl.textContent = '— ' + tvLocation;
+    }
     // TV kiosk screens have no person present to sign in — use a silent anonymous session.
     currentUser = {name:'Display', role:'display'};
     const showTvStatus = (msg, isError) => {
@@ -2052,8 +2066,8 @@ window.openShuttleLink = function() {
   const url = window.location.origin + window.location.pathname + '?view=shuttle';
   window.open(url, '_blank');
 };
-window.openDisplayLink = function() {
-  const url = window.location.origin + window.location.pathname + '?display=true';
+window.openDisplayLink = function(loc) {
+  const url = window.location.origin + window.location.pathname + '?display=true' + (loc ? '&loc='+loc : '');
   window.open(url, '_blank');
 };
 
@@ -2773,7 +2787,7 @@ window.ridesCheckStockLocation = function() {
   ridesRenderDirectionPickers();
 };
 
-window.submitRide = async function(pickupOverride, dropoffOverride, stockOverride) {
+window.submitRide = async function(pickupOverride, dropoffOverride, stockOverride, subtype) {
   if (!pickupOverride && ridesType === 'appointment') return submitAppointment();
   const isOverride = !!pickupOverride;
   const stock = isOverride ? stockOverride : (ridesType === 'vehicle' ? document.getElementById('rides-stock-input').value.trim().toUpperCase() : '');
@@ -2788,6 +2802,7 @@ window.submitRide = async function(pickupOverride, dropoffOverride, stockOverrid
     await push(ref(db,'rides'), {
       type: stock ? 'vehicle' : 'hitchhike', stock,
       pickup, dropoff,
+      subtype: subtype || null, // e.g. 'return' — distinguishes "car is inbound" from a normal fetch, for the TV boards
       requestedBy: currentUser.name,
       requestedByUid: currentUser.uid || null,
       status: 'pending',
@@ -3048,22 +3063,49 @@ function renderRidesTab() {
 function renderTVRides() {
   const listEl = document.getElementById('tv-rides-list');
   if (!listEl) return;
-  const active = Object.entries(rides||{}).map(([id,r])=>({id,...r}))
-    .filter(r => r.type === 'vehicle' && !['done','cancelled'].includes(r.status))
+  const titleEl = document.getElementById('tv-title-rides');
+  if (titleEl) titleEl.textContent = tvLocation ? `Get Ready for Pickup — ${tvLocation}` : 'Get Ready for Pickup';
+
+  const allActive = Object.entries(rides||{}).map(([id,r])=>({id,...r}))
+    .filter(r => r.type === 'vehicle' && !['done','cancelled'].includes(r.status));
+
+  // "Get ready for pickup" — the car is sitting at this lot and someone's
+  // coming to fetch it. Excludes return-flow rides, which are the opposite
+  // physical direction (a car arriving, not leaving).
+  const pickups = allActive
+    .filter(r => r.subtype !== 'return' && (!tvLocation || r.dropoff === tvLocation))
     .sort((a,b)=>a.ts-b.ts);
-  if (!active.length) {
-    listEl.innerHTML = '<div class="tv-empty" style="grid-column:1/-1"><div style="font-size:40px">✓</div><p>Nothing incoming</p></div>';
-    return;
-  }
+
   const stageLabel = { pending: 'Waiting for driver', claimed: '🚐 Driver on route', enroute: '🚗 Ride in progress' };
   const stageColor = { pending: '#94a3b8', claimed: '#f97316', enroute: '#22c55e' };
-  listEl.innerHTML = active.map(r => `
+  const cardHTML = r => `
     <div style="background:#fff;border-radius:10px;padding:12px 14px;border-left:5px solid ${stageColor[r.status]||'#94a3b8'}">
       <div style="font-size:20px;font-weight:800;color:#00095b;line-height:1;margin-bottom:4px">${r.stock}</div>
       <div style="font-size:11px;color:#64748b;margin-bottom:4px">${r.pickup} → ${r.dropoff}</div>
       <div style="font-size:12px;font-weight:700;color:${stageColor[r.status]||'#64748b'}">${stageLabel[r.status]||r.status}</div>
       ${r.claimedBy?`<div style="font-size:11px;color:#1d4ed8;font-weight:700;margin-top:2px">🚐 ${r.claimedBy}</div>`:''}
-    </div>`).join('');
+    </div>`;
+
+  listEl.innerHTML = pickups.length
+    ? pickups.map(cardHTML).join('')
+    : '<div class="tv-empty" style="grid-column:1/-1"><div style="font-size:40px">✓</div><p>Nothing incoming</p></div>';
+
+  // Returns coming in — only meaningful at 323 Bayview (where the dealership
+  // return flow always sends cars back to), so this section only shows there.
+  const returnsWrap = document.getElementById('tv-returns-wrap');
+  const returnsList = document.getElementById('tv-returns-list');
+  if (returnsWrap && returnsList) {
+    const showReturns = !tvLocation || tvLocation === '323 Bayview';
+    if (!showReturns) {
+      returnsWrap.style.display = 'none';
+    } else {
+      const returns = allActive.filter(r => r.subtype === 'return' && (!tvLocation || r.dropoff === tvLocation)).sort((a,b)=>a.ts-b.ts);
+      returnsWrap.style.display = 'flex';
+      returnsList.innerHTML = returns.length
+        ? returns.map(cardHTML).join('')
+        : '<div class="tv-empty" style="grid-column:1/-1"><div style="font-size:28px">✓</div><p style="font-size:12px">None right now</p></div>';
+    }
+  }
 }
 
 // A live "someone's on the way" banner for IC/lot staff, right on the Vehicle
@@ -4949,7 +4991,7 @@ window.cmRequestRideBack = async function() {
   const veh = (cmVehicles[cmCurrentLot]||{})[cmQuickKey];
   if (!veh) return;
   if (!confirm(`Request a ride back to 323 Bayview for ${veh.stock}?`)) return;
-  await submitRide('55 Mapleview', '323 Bayview', veh.stock);
+  await submitRide('55 Mapleview', '323 Bayview', veh.stock, 'return');
   logCompoundChange(cmCurrentLot, 'ride', `${veh.stock}: ride back to 323 Bayview requested from the map`);
   cmCloseQuickActions();
   alert('✓ Ride requested — check the Rides tab for status');
