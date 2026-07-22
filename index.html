@@ -956,9 +956,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div id="rides-request-panel">
           <div id="rides-request-form">
             <div style="font-size:15px;font-weight:700;margin-bottom:10px">Request a ride</div>
-            <div style="display:flex;gap:8px;margin-bottom:10px">
-              <button id="rides-type-hitchhike-btn" onclick="ridesSetType('hitchhike')" class="toggle-btn active" style="flex:1;padding:10px 6px;border-radius:8px;font-size:13px">🙋 Hitchhiking</button>
-              <button id="rides-type-vehicle-btn" onclick="ridesSetType('vehicle')" class="toggle-btn" style="flex:1;padding:10px 6px;border-radius:8px;font-size:13px">🚗 Pick Up a Vehicle</button>
+            <div style="display:flex;gap:6px;margin-bottom:10px">
+              <button id="rides-type-hitchhike-btn" onclick="ridesSetType('hitchhike')" class="toggle-btn active" style="flex:1;padding:10px 4px;border-radius:8px;font-size:12px">🙋 Hitchhiking</button>
+              <button id="rides-type-vehicle-btn" onclick="ridesSetType('vehicle')" class="toggle-btn" style="flex:1;padding:10px 4px;border-radius:8px;font-size:12px">🚗 Pick Up</button>
+              <button id="rides-type-appt-btn" onclick="ridesSetType('appointment')" class="toggle-btn" style="flex:1;padding:10px 4px;border-radius:8px;font-size:12px">📅 Appointment</button>
             </div>
             <div id="rides-stock-row" style="display:none;margin-bottom:10px">
               <input id="rides-stock-input" type="text" placeholder="Stock # e.g. B0394" autocomplete="off" oninput="ridesCheckStockLocation()" style="width:100%;padding:10px 12px;font-size:16px;font-family:var(--font);border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"/>
@@ -975,9 +976,37 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
               <div id="rides-dest-row" style="display:flex;gap:6px"></div>
               <div id="rides-vehicle-dest-note" style="display:none;font-size:13px;color:var(--text-muted)"></div>
             </div>
+
+            <!-- APPOINTMENT FIELDS — bring a vehicle to a department on-site -->
+            <div id="rides-appt-fields" style="display:none;margin-bottom:12px">
+              <div class="form-row" style="margin-bottom:10px">
+                <label style="font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Stock # <span style="color:#e24b4a">*</span></label>
+                <input id="rides-appt-stock" type="text" placeholder="e.g. B0394" autocomplete="off" style="width:100%;padding:10px 12px;font-size:16px;font-family:var(--font);border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"/>
+              </div>
+              <div class="form-row" style="margin-bottom:10px">
+                <label style="font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Bring to <span style="color:#e24b4a">*</span></label>
+                <select id="rides-appt-dept" onchange="document.getElementById('rides-appt-dept-other-row').style.display=this.value==='Other'?'block':'none'" style="width:100%;padding:10px 12px;font-size:15px;font-family:var(--font);border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)">
+                  <option value="Service">Service</option>
+                  <option value="Detail">Detail</option>
+                  <option value="Photo Bay">Photo Bay</option>
+                  <option value="Wash Bay">Wash Bay</option>
+                  <option value="Sales">Sales</option>
+                  <option value="Other">Other…</option>
+                </select>
+              </div>
+              <div id="rides-appt-dept-other-row" class="form-row" style="display:none;margin-bottom:10px">
+                <input id="rides-appt-dept-other" type="text" placeholder="Department name" autocomplete="off" style="width:100%;padding:10px 12px;font-size:15px;font-family:var(--font);border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"/>
+              </div>
+              <div class="form-row">
+                <label style="font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Notes <span style="color:var(--text-faint);font-weight:400;text-transform:none">optional</span></label>
+                <textarea id="rides-appt-notes" placeholder="e.g. needed by 3pm, bay 2…" style="width:100%;min-height:50px;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"></textarea>
+              </div>
+            </div>
+
             <button id="rides-submit-btn" onclick="submitRide()" style="width:100%;padding:13px;border:none;border-radius:10px;background:var(--ford);color:#fff;font-size:15px;font-weight:700;cursor:pointer">Request Ride</button>
           </div>
           <div id="rides-active-status" style="display:none"></div>
+          <div id="rides-active-appt-status" style="display:none;margin-top:12px"></div>
         </div>
       </div>
 
@@ -1743,6 +1772,7 @@ let driverLocations = {}; // live mirror of /driverLocation — who's currently 
 let geoWatchId = null;    // navigator.geolocation.watchPosition() handle, while sharing is on
 let currentUser = null, bookingType = 'asap';
 let rides = {}; // the live ride-request system — 55 Mapleview <-> 323 Bayview
+let appointments = {}; // on-site "bring this car to my department" requests
 let ridesType = 'hitchhike', ridesLocation = '55 Mapleview', ridesDestination = '323 Bayview', ridesStockFoundLot = null, ridesMode = 'request';
 let ridesLeafletMap = null, ridesDriverMarkers = {}, ridesMapFitDone = false;
 let ridesRouteControl = null, ridesRouteDestKey = null, ridesLastRouteCalcTs = 0;
@@ -2177,6 +2207,11 @@ function startApp() {
     if (document.getElementById('panel-rides')?.classList.contains('active')) renderRidesTab();
     if (document.getElementById('panel-tv')?.classList.contains('active')) renderTVRides();
     if (document.getElementById('panel-compound')?.classList.contains('active')) renderIncomingPickupsBanner();
+  });
+
+  onValue(ref(db, 'appointments'), snap => {
+    appointments = snap.val() || {};
+    if (document.getElementById('panel-rides')?.classList.contains('active')) renderRidesTab();
   });
 
   onValue(ref(db, 'driverLocation'), snap => {
@@ -2659,9 +2694,13 @@ window.ridesSetType = function(type) {
   ridesType = type;
   document.getElementById('rides-type-hitchhike-btn').classList.toggle('active', type==='hitchhike');
   document.getElementById('rides-type-vehicle-btn').classList.toggle('active', type==='vehicle');
+  document.getElementById('rides-type-appt-btn').classList.toggle('active', type==='appointment');
   document.getElementById('rides-stock-row').style.display = type==='vehicle' ? 'block' : 'none';
+  document.getElementById('rides-direction-row').style.display = type==='appointment' ? 'none' : 'block';
+  document.getElementById('rides-appt-fields').style.display = type==='appointment' ? 'block' : 'none';
+  document.getElementById('rides-submit-btn').textContent = type==='appointment' ? 'Request Appointment' : 'Request Ride';
   ridesStockFoundLot = null;
-  ridesRenderDirectionPickers();
+  if (type !== 'appointment') ridesRenderDirectionPickers();
 };
 
 // Renders the "from" buttons (excluding wherever the found vehicle is, if any)
@@ -2735,6 +2774,7 @@ window.ridesCheckStockLocation = function() {
 };
 
 window.submitRide = async function(pickupOverride, dropoffOverride, stockOverride) {
+  if (!pickupOverride && ridesType === 'appointment') return submitAppointment();
   const isOverride = !!pickupOverride;
   const stock = isOverride ? stockOverride : (ridesType === 'vehicle' ? document.getElementById('rides-stock-input').value.trim().toUpperCase() : '');
   if (!isOverride && ridesType === 'vehicle' && !stock) { alert('Please enter a stock #.'); return; }
@@ -2767,6 +2807,83 @@ window.cancelRide = async function(id) {
   if (!confirm('Cancel this ride request?')) return;
   await remove(ref(db,'rides/'+id));
 };
+
+// ── Vehicle Appointments — on-site "bring this car to my department"
+// requests (Service, Detail, etc.), separate from the inter-lot Rides system.
+const APPT_STAGES = ['pending','in_progress','delivered'];
+const APPT_STAGE_LABELS = ['Waiting for Driver','On the Way','Delivered'];
+
+async function submitAppointment() {
+  const stock = document.getElementById('rides-appt-stock').value.trim().toUpperCase();
+  const deptSel = document.getElementById('rides-appt-dept').value;
+  const deptOther = document.getElementById('rides-appt-dept-other').value.trim();
+  const department = deptSel === 'Other' ? (deptOther || 'Other') : deptSel;
+  const notes = document.getElementById('rides-appt-notes').value.trim();
+  if (!stock) { alert('Please enter a stock #.'); return; }
+  if (deptSel === 'Other' && !deptOther) { alert('Please enter the department name.'); return; }
+  const btn = document.getElementById('rides-submit-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Requesting…'; }
+  try {
+    await push(ref(db,'appointments'), {
+      stock, department, notes,
+      requestedBy: currentUser.name,
+      requestedByUid: currentUser.uid || null,
+      status: 'pending', // pending -> in_progress -> delivered
+      ts: Date.now(),
+    });
+    document.getElementById('rides-appt-stock').value = '';
+    document.getElementById('rides-appt-notes').value = '';
+    document.getElementById('rides-appt-dept').value = 'Service';
+    document.getElementById('rides-appt-dept-other-row').style.display = 'none';
+  } catch(e) { alert('Error submitting — check connection.'); }
+  if (btn) { btn.disabled = false; btn.textContent = 'Request Appointment'; }
+}
+
+window.cancelAppointment = async function(id) {
+  if (!confirm('Cancel this appointment request?')) return;
+  await remove(ref(db,'appointments/'+id));
+};
+
+window.claimAppointment = async function(id) {
+  const result = await runTransaction(ref(db,'appointments/'+id), (curr) => {
+    if (!curr) return curr;
+    if (curr.status !== 'pending') return;
+    curr.status = 'in_progress';
+    curr.claimedBy = currentUser.name;
+    curr.claimedTs = Date.now();
+    return curr;
+  });
+  if (!result.committed) alert('Someone else already claimed this appointment.');
+};
+
+window.setAppointmentDelivered = async function(id) {
+  await update(ref(db,'appointments/'+id), { status:'delivered', deliveredTs: Date.now() });
+};
+
+function renderMyActiveAppointment() {
+  const el = document.getElementById('rides-active-appt-status');
+  if (!el || !currentUser) return;
+  const mine = Object.entries(appointments||{}).map(([id,a])=>({id,...a}))
+    .filter(a => a.requestedByUid === currentUser.uid && a.status !== 'delivered')
+    .sort((a,b)=>b.ts-a.ts);
+  if (!mine.length) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  el.innerHTML = mine.map(a => {
+    const stageIdx = APPT_STAGES.indexOf(a.status);
+    const stepperHTML = APPT_STAGES.map((s,i) => `
+      <div style="flex:1;text-align:center">
+        <div style="width:24px;height:24px;border-radius:50%;background:${i<=stageIdx?'var(--ford)':'#e2e8f0'};color:${i<=stageIdx?'#fff':'#94a3b8'};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;margin:0 auto 4px">${i+1}</div>
+        <div style="font-size:9px;color:${i<=stageIdx?'var(--ford)':'var(--text-faint)'};font-weight:600">${APPT_STAGE_LABELS[i]}</div>
+      </div>`).join('');
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:2px">📅 ${a.stock} → ${a.department}</div>
+      ${a.notes?`<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">${a.notes}</div>`:''}
+      <div style="display:flex;margin:10px 0">${stepperHTML}</div>
+      ${a.claimedBy?`<div style="font-size:12px;color:#1d4ed8;font-weight:700;margin-bottom:8px">🚐 ${a.claimedBy}</div>`:''}
+      ${a.status==='pending'?`<button onclick="cancelAppointment('${a.id}')" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:#991b1b;font-size:12px;cursor:pointer">Cancel</button>`:''}
+    </div>`;
+  }).join('');
+}
 
 const RIDE_STAGES = ['pending','claimed','enroute','done'];
 const RIDE_STAGE_LABELS = ['Waiting for Ride','Driver on Route','Ride in Progress','Done'];
@@ -2814,13 +2931,18 @@ function renderDriverQueue() {
   const el = document.getElementById('rides-driver-queue');
   if (!el) return;
   const all = Object.entries(rides||{}).map(([id,r])=>({id,...r})).filter(r=>!['done','cancelled'].includes(r.status)).sort((a,b)=>a.ts-b.ts);
-  if (!all.length) {
-    el.innerHTML = '<div style="text-align:center;padding:60px 20px;color:rgba(255,255,255,.5);font-size:16px">No active ride requests right now.</div>';
+  const allAppts = Object.entries(appointments||{}).map(([id,a])=>({id,...a,isAppt:true})).filter(a=>a.status!=='delivered').sort((a,b)=>a.ts-b.ts);
+
+  if (!all.length && !allAppts.length) {
+    el.innerHTML = '<div style="text-align:center;padding:60px 20px;color:rgba(255,255,255,.5);font-size:16px">No active requests right now.</div>';
     return;
   }
   const mine = all.filter(r => r.claimedBy === currentUser?.name);
   const unclaimed = all.filter(r => r.status === 'pending');
   const othersActive = all.filter(r => r.claimedBy && r.claimedBy !== currentUser?.name);
+  const myAppts = allAppts.filter(a => a.claimedBy === currentUser?.name);
+  const unclaimedAppts = allAppts.filter(a => a.status === 'pending');
+  const othersAppts = allAppts.filter(a => a.claimedBy && a.claimedBy !== currentUser?.name);
 
   const bigCard = (r, big) => {
     const label = r.type==='vehicle' ? `🚗 ${r.stock}` : '🙋 Hitchhiker';
@@ -2843,20 +2965,44 @@ function renderDriverQueue() {
     </div>`;
   };
 
+  const apptCard = (a, big) => {
+    let action = '';
+    if (a.status === 'pending') {
+      action = `<button onclick="claimAppointment('${a.id}')" style="width:100%;padding:18px;border:none;border-radius:14px;background:#2563eb;color:#fff;font-size:18px;font-weight:800;cursor:pointer;min-height:60px">Claim This Appointment</button>`;
+    } else if (a.status === 'in_progress' && a.claimedBy === currentUser?.name) {
+      action = `<button onclick="setAppointmentDelivered('${a.id}')" style="width:100%;padding:18px;border:none;border-radius:14px;background:#16a34a;color:#fff;font-size:18px;font-weight:800;cursor:pointer;min-height:60px">✓ Delivered</button>`;
+    }
+    const stageText = { pending:'Waiting for a driver', in_progress:'On the way' }[a.status] || '';
+    return `<div style="background:rgba(255,255,255,.08);border:2px solid ${big?'#f59e0b':'rgba(255,255,255,.15)'};border-radius:18px;padding:18px;margin-bottom:14px">
+      <div style="font-size:24px;font-weight:800;margin-bottom:2px">📅 ${a.stock}</div>
+      <div style="font-size:14px;color:rgba(255,255,255,.6);margin-bottom:8px">Vehicle appointment</div>
+      <div style="font-size:17px;font-weight:700;margin-bottom:4px">📍 Bring to ${a.department}</div>
+      ${a.notes?`<div style="font-size:14px;color:rgba(255,255,255,.6);margin-bottom:8px">${a.notes}</div>`:''}
+      <div style="font-size:14px;color:rgba(255,255,255,.7);margin-bottom:14px">${a.requestedBy||''}${stageText?' · '+stageText:''}</div>
+      ${action}
+    </div>`;
+  };
+
   let html = '';
-  if (mine.length) {
-    html += `<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.5);margin-bottom:8px">Your active ride</div>`;
+  if (mine.length || myAppts.length) {
+    html += `<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.5);margin-bottom:8px">Your active jobs</div>`;
     html += mine.map(r => bigCard(r, true)).join('');
+    html += myAppts.map(a => apptCard(a, true)).join('');
   }
-  if (unclaimed.length) {
+  if (unclaimed.length || unclaimedAppts.length) {
     html += `<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.5);margin:16px 0 8px">Available to claim</div>`;
     html += unclaimed.map(r => bigCard(r, false)).join('');
+    html += unclaimedAppts.map(a => apptCard(a, false)).join('');
   }
-  if (othersActive.length) {
+  if (othersActive.length || othersAppts.length) {
     html += `<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.4);margin:16px 0 8px">Other drivers</div>`;
     html += othersActive.map(r => `<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 18px;margin-bottom:10px;opacity:.7">
       <div style="font-size:16px;font-weight:700">${r.type==='vehicle'?'🚗 '+r.stock:'🙋 Hitchhiker'} · ${r.pickup} → ${r.dropoff}</div>
       <div style="font-size:13px;color:rgba(255,255,255,.6)">🚐 ${r.claimedBy}</div>
+    </div>`).join('');
+    html += othersAppts.map(a => `<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 18px;margin-bottom:10px;opacity:.7">
+      <div style="font-size:16px;font-weight:700">📅 ${a.stock} → ${a.department}</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.6)">🚐 ${a.claimedBy}</div>
     </div>`).join('');
   }
   el.innerHTML = html;
@@ -2883,6 +3029,7 @@ window.setRideStatus = async function(id, status) {
 
 function renderRidesTab() {
   renderMyActiveRide();
+  renderMyActiveAppointment();
   if (ridesMode === 'drive') renderDriverQueue();
   ridesUpdateDriverMarkers();
   ridesUpdateRoute();
@@ -2890,7 +3037,9 @@ function renderRidesTab() {
   const canDrive = currentUser && (currentUser.role === 'lot' || currentUser.role === 'management');
   if (toggle) toggle.style.display = canDrive ? 'flex' : 'none';
   const tc = document.getElementById('tc-rides');
-  if (tc) tc.textContent = Object.values(rides||{}).filter(r=>!['done','cancelled'].includes(r.status)).length;
+  const activeRides = Object.values(rides||{}).filter(r=>!['done','cancelled'].includes(r.status)).length;
+  const activeAppts = Object.values(appointments||{}).filter(a=>a.status!=='delivered').length;
+  if (tc) tc.textContent = activeRides + activeAppts;
 }
 
 // TV display — "Get Ready for Pickup" board, so on-site lot staff at either
