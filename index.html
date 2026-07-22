@@ -1527,12 +1527,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <div style="max-width:480px">
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-top:16px">
           <div style="font-size:15px;font-weight:600;margin-bottom:4px">📧 Email Notifications</div>
-          <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Uses a free <a href="https://www.emailjs.com" target="_blank" style="color:var(--ford)">EmailJS</a> account to send email directly from the browser — no server needed. New Get Ready deals email automatically while someone has the app open; Incoming units send with a button click.</div>
-          <div class="modal-form-row" style="margin-bottom:10px"><label>Notification email</label><input id="email-notify-address" type="email" placeholder="team@yourdealership.com" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Uses a free <a href="https://www.emailjs.com" target="_blank" style="color:var(--ford)">EmailJS</a> account to send email directly from the browser — no server needed. New Get Ready deals email automatically. Incoming units are summarized into one email at the end of each day. Both only fire while at least one person has the app open.</div>
+          <div class="modal-form-row" style="margin-bottom:10px"><label>Get Ready notification email</label><input id="email-gr-address" type="email" placeholder="getready@yourdealership.com" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
+          <div class="modal-form-row" style="margin-bottom:10px"><label>Incoming daily digest email</label><input id="email-inc-address" type="email" placeholder="incoming@yourdealership.com" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
+          <div class="modal-form-row" style="margin-bottom:10px"><label>Digest send time</label><input id="email-digest-time" type="time" value="18:00" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
           <div class="modal-form-row" style="margin-bottom:10px"><label>EmailJS Public Key</label><input id="email-public-key" type="text" placeholder="e.g. user_Ab12Cd34" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
           <div class="modal-form-row" style="margin-bottom:10px"><label>EmailJS Service ID</label><input id="email-service-id" type="text" placeholder="e.g. service_abc123" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
           <div class="modal-form-row" style="margin-bottom:10px"><label>Get Ready Template ID</label><input id="email-gr-template" type="text" placeholder="e.g. template_getready" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
-          <div class="modal-form-row" style="margin-bottom:14px"><label>Incoming Vehicle Template ID</label><input id="email-inc-template" type="text" placeholder="e.g. template_incoming" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
+          <div class="modal-form-row" style="margin-bottom:14px"><label>Incoming Digest Template ID</label><input id="email-inc-template" type="text" placeholder="e.g. template_incoming_digest" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
           <div style="display:flex;gap:8px">
             <button onclick="saveEmailSettings()" style="flex:1;padding:11px;border:none;border-radius:var(--radius-sm);background:var(--ford);color:#fff;font-size:14px;font-weight:700;cursor:pointer">Save</button>
             <button onclick="sendTestEmail()" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer">Send Test</button>
@@ -1783,6 +1785,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <div class="modal-form-row"><label>Stock #</label><input id="gr-stock" type="text" placeholder="e.g. A1402"/></div>
       <div class="modal-form-row"><label>Deal #</label><input id="gr-deal" type="text" placeholder="e.g. 6463159"/></div>
       <div class="modal-form-row modal-full"><label>Vehicle</label><input id="gr-vehicle" type="text" placeholder="e.g. 2025 Bronco Sport"/></div>
+      <div class="modal-form-row modal-full"><label>VIN</label><input id="gr-vin" type="text" placeholder="17-digit VIN" style="font-family:monospace;letter-spacing:.05em" maxlength="17"/></div>
       <div class="modal-form-row"><label>Customer name</label><input id="gr-customer" type="text" placeholder="e.g. Brad Bodanis"/></div>
       <div class="modal-form-row"><label>Salesperson</label><input id="gr-salesperson" type="text" placeholder="e.g. Michael Prince"/></div>
       <div class="modal-form-row"><label>Type</label>
@@ -1792,9 +1795,26 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <option value="WHOLESALE">Wholesale</option>
         </select>
       </div>
-      <div class="modal-form-row"><label>KMs allowed</label><input id="gr-kms" type="text" placeholder="e.g. 60000"/></div>
+      <div class="modal-form-row"><label>Financing</label>
+        <select id="gr-financing">
+          <option value="CASH">Cash</option>
+          <option value="COMMERCIAL_LEASE">Commercial Lease</option>
+          <option value="FINANCE">Finance</option>
+          <option value="FORD_RCL">Ford RCL</option>
+        </select>
+      </div>
       <div class="modal-form-row"><label>Delivery date</label><input id="gr-delivery-date" type="date"/></div>
       <div class="modal-form-row"><label>Delivery time</label><input id="gr-delivery-time" type="time"/></div>
+
+      <div class="modal-form-row modal-full">
+        <label>License Plates</label>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button type="button" id="gr-plate-new-btn" onclick="setGRPlateType('NEW')" class="toggle-btn active" style="flex:1;padding:9px;border-radius:8px;font-size:13px">New License Plates</button>
+          <button type="button" id="gr-plate-transfer-btn" onclick="setGRPlateType('TRANSFER')" class="toggle-btn" style="flex:1;padding:9px;border-radius:8px;font-size:13px">License Plate Transfer</button>
+        </div>
+      </div>
+      <div class="modal-form-row modal-full"><label>Licensing notes</label><textarea id="gr-licensing-notes" placeholder="Plate #, transfer from stock #, insurance info, etc…" style="min-height:50px"></textarea></div>
+
       <div class="modal-form-row modal-full"><label>Special instructions</label><textarea id="gr-instructions" placeholder="Accessories to remove, supplier, amount, PO/RO#…"></textarea></div>
       <div class="modal-form-row modal-full"><label>Notes</label><textarea id="gr-notes-field" placeholder="Any additional notes for the Get Ready team…"></textarea></div>
     </div>
@@ -1802,51 +1822,24 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     <!-- Trade-ins -->
     <div style="margin-top:10px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
       <div style="padding:8px 14px;background:var(--bg);border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Trade-ins</div>
-      <!-- Trade 1 -->
-      <div style="padding:10px 14px;border-bottom:1px solid var(--border)">
-        <div style="font-size:11px;font-weight:700;color:var(--ford);margin-bottom:8px">Trade 1</div>
-        <div class="modal-grid" style="gap:8px">
-          <div class="modal-form-row"><label>Stock #</label><input id="gr-t1-stock" type="text" placeholder="e.g. A1402A"/></div>
-          <div class="modal-form-row modal-full"><label>VIN</label><input id="gr-t1-vin" type="text" placeholder="17-digit VIN" style="font-family:monospace;letter-spacing:.05em" maxlength="17"/></div>
-          <div class="modal-form-row"><label>Year</label><input id="gr-t1-year" type="text" placeholder="2012" maxlength="4"/></div>
-          <div class="modal-form-row"><label>Make</label><input id="gr-t1-make" type="text" placeholder="Volkswagen"/></div>
-          <div class="modal-form-row"><label>Model</label><input id="gr-t1-model" type="text" placeholder="Passat"/></div>
-          <div class="modal-form-row"><label>Colour</label><input id="gr-t1-colour" type="text" placeholder="White"/></div>
-          <div class="modal-form-row"><label>KMs</label><input id="gr-t1-kms" type="text" placeholder="263312"/></div>
-          <div class="modal-form-row"><label>Category <span style="font-weight:400;color:var(--text-faint);text-transform:none;letter-spacing:0">for Incoming</span></label>
-            <select id="gr-t1-category">
-              <option value="RETAIL">Retail</option>
-              <option value="ASIS">As-Is</option>
-              <option value="WHOLESALE">Wholesale</option>
-              <option value="CPO">Certified Pre-Owned</option>
-            </select>
-          </div>
-        </div>
-      </div>
-      <!-- Trade 2 -->
-      <div style="padding:10px 14px">
-        <div style="font-size:11px;font-weight:700;color:var(--ford);margin-bottom:8px">Trade 2</div>
-        <div class="modal-grid" style="gap:8px">
-          <div class="modal-form-row"><label>Stock #</label><input id="gr-t2-stock" type="text" placeholder="e.g. B0123"/></div>
-          <div class="modal-form-row modal-full"><label>VIN</label><input id="gr-t2-vin" type="text" placeholder="17-digit VIN" style="font-family:monospace;letter-spacing:.05em" maxlength="17"/></div>
-          <div class="modal-form-row"><label>Year</label><input id="gr-t2-year" type="text" placeholder="2020" maxlength="4"/></div>
-          <div class="modal-form-row"><label>Make</label><input id="gr-t2-make" type="text" placeholder="Honda"/></div>
-          <div class="modal-form-row"><label>Model</label><input id="gr-t2-model" type="text" placeholder="Civic"/></div>
-          <div class="modal-form-row"><label>Colour</label><input id="gr-t2-colour" type="text" placeholder="Blue"/></div>
-          <div class="modal-form-row"><label>KMs</label><input id="gr-t2-kms" type="text" placeholder="80000"/></div>
-          <div class="modal-form-row"><label>Category <span style="font-weight:400;color:var(--text-faint);text-transform:none;letter-spacing:0">for Incoming</span></label>
-            <select id="gr-t2-category">
-              <option value="RETAIL">Retail</option>
-              <option value="ASIS">As-Is</option>
-              <option value="WHOLESALE">Wholesale</option>
-              <option value="CPO">Certified Pre-Owned</option>
-            </select>
-          </div>
-        </div>
+      <div id="gr-trades-list"></div>
+      <div style="padding:10px 14px;border-top:1px solid var(--border)">
+        <button type="button" onclick="grAddTradeSlot()" style="padding:7px 14px;font-size:13px;font-weight:600;border:1px dashed var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text-muted);cursor:pointer;width:100%">+ Add another trade-in</button>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:10px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
-      <div class="checkbox-row" style="border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:#fef2f2"><input type="checkbox" id="gr-needs-gas"/><label for="gr-needs-gas" style="font-weight:700;color:#991b1b">⛽ Gas</label></div>
+    <div class="modal-form-row modal-full" style="margin-top:10px">
+      <label>Gas</label>
+      <div style="display:flex;gap:8px;margin-top:4px;margin-bottom:8px">
+        <button type="button" id="gr-gas-yes-btn" onclick="setGRGasNeeded(true)" class="toggle-btn active" style="flex:1;padding:9px;border-radius:8px;font-size:13px">⛽ Gas</button>
+        <button type="button" id="gr-gas-no-btn" onclick="setGRGasNeeded(false)" class="toggle-btn" style="flex:1;padding:9px;border-radius:8px;font-size:13px">No Gas</button>
+      </div>
+      <div id="gr-gas-amount-row">
+        <input id="gr-gas-amount" type="number" min="0" step="0.01" placeholder="Amount ($)" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/>
+      </div>
+    </div>
+
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin:14px 0 6px">Which steps are required <span style="font-weight:400;color:var(--text-faint);text-transform:none;letter-spacing:0">— these start unchecked and get marked done as work happens</span></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
       <div class="checkbox-row" style="border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-pdi"/><label for="gr-c-pdi">PDI</label></div>
       <div class="checkbox-row" style="border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-lof"/><label for="gr-c-lof">LOF</label></div>
       <div class="checkbox-row" style="border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-detail"/><label for="gr-c-detail">Detail</label></div>
@@ -2414,9 +2407,12 @@ function startApp() {
     if(ft){ ft.min=String(LOT_OPEN).padStart(2,'0')+':00'; ft.max=String(LOT_CLOSE).padStart(2,'0')+':00'; }
 
     emailSettings = s.email || {};
-    const eAddr=document.getElementById('email-notify-address'), ePub=document.getElementById('email-public-key'),
+    const eGrAddr=document.getElementById('email-gr-address'), eIncAddr=document.getElementById('email-inc-address'),
+          eDigestTime=document.getElementById('email-digest-time'), ePub=document.getElementById('email-public-key'),
           eSvc=document.getElementById('email-service-id'), eGr=document.getElementById('email-gr-template'), eInc=document.getElementById('email-inc-template');
-    if (eAddr && !eAddr.matches(':focus')) eAddr.value = emailSettings.notifyAddress || '';
+    if (eGrAddr && !eGrAddr.matches(':focus')) eGrAddr.value = emailSettings.grAddress || '';
+    if (eIncAddr && !eIncAddr.matches(':focus')) eIncAddr.value = emailSettings.incAddress || '';
+    if (eDigestTime && !eDigestTime.matches(':focus')) eDigestTime.value = emailSettings.digestTime || '18:00';
     if (ePub && !ePub.matches(':focus')) ePub.value = emailSettings.publicKey || '';
     if (eSvc && !eSvc.matches(':focus')) eSvc.value = emailSettings.serviceId || '';
     if (eGr && !eGr.matches(':focus')) eGr.value = emailSettings.grTemplateId || '';
@@ -2452,11 +2448,12 @@ function startApp() {
   // first — the transaction flag prevents every other open session from also
   // sending a duplicate for the same deal.
   async function sendGetReadyEmail(id, d) {
-    if (!emailSettings.grTemplateId) return; // not configured — silently skip
+    if (!emailSettings.grTemplateId || !emailSettings.grAddress) return; // not configured — silently skip
     try {
       const result = await runTransaction(ref(db, 'getready/'+id+'/emailSent'), curr => curr ? undefined : true);
       if (!result.committed) return; // another session already claimed this one
       await sendNotificationEmail(emailSettings.grTemplateId, {
+        to_email: emailSettings.grAddress,
         subject: `New Get Ready Deal — ${d.stock||'no stock #'}`,
         stock: d.stock||'',
         vehicle: d.vehicle||'',
@@ -4117,7 +4114,6 @@ function renderTracker() {
       </div>
       ${canEdit?`<div class="tracker-card-actions">
         <button class="btn-tedit" onclick="openUnitModal('${u.id}')">✎ Edit</button>
-        <button class="btn-tedit" onclick="sendIncomingEmail('${u.id}')" title="Send email notification">📧 Email</button>
         <button class="btn-tdel" onclick="deleteUnit('${u.id}','${(u.stock||u.vin).replace(/'/g,"\\'")}')">✕</button>
       </div>`:''}
     </div>`;
@@ -4349,7 +4345,7 @@ function getGRFiltered() {
 
   if (grFilterStatus === 'GAS') rows = rows.filter(d => d.needsGas && !d.gasFilled);
   else if (grFilterStatus !== 'ALL') rows = rows.filter(d => d.type === grFilterStatus);
-  if (q) rows = rows.filter(d => [d.stock,d.dealNum,d.vehicle,d.customer,d.salesperson,d.notes].join(' ').toLowerCase().includes(q));
+  if (q) rows = rows.filter(d => [d.stock,d.dealNum,d.vehicle,d.vin,d.customer,d.salesperson,d.notes].join(' ').toLowerCase().includes(q));
   rows.sort((a,b) => {
     // Fully complete → very bottom
     const ac = grIsComplete(a)?2:0, bc = grIsComplete(b)?2:0;
@@ -4410,7 +4406,7 @@ window.deleteGR = async function(id, label) {
 window.completeDealTradeIn = async function(id) {
   const d = getReadyDeals[id];
   if (!d) return;
-  const trades = [d.trade1, d.trade2].filter(t => t && t.stock);
+  const trades = (Array.isArray(d.trades) ? d.trades : [d.trade1, d.trade2]).filter(t => t && t.stock);
   if (!trades.length) return;
   const summary = trades.map(t => `${t.stock} (${[t.year,t.make,t.model].filter(Boolean).join(' ')})`).join(', ');
   if (!confirm(`Mark this deal completed and move ${trades.length > 1 ? 'these trade-ins' : 'this trade-in'} to Incoming Units?\n\n${summary}`)) return;
@@ -4518,7 +4514,7 @@ function renderGetReady() {
     const typePillClass = {'AS-IS':'as-is','RETAIL':'retail','WHOLESALE':'wholesale'}[d.type]||'as-is';
     const completeBadge = isComplete ? `<span class="gr-complete-badge">✓ Ready</span>` : '';
     const dupeBadge = isDupe(d) ? `<span class="gr-complete-badge dupe-blink" style="background:#dc2626">⚠ Duplicate</span>` : '';
-    const hasTrade = !!(d.trade1?.stock || d.trade2?.stock);
+    const hasTrade = Array.isArray(d.trades) ? d.trades.some(t=>t?.stock) : !!(d.trade1?.stock || d.trade2?.stock);
     const holdBadge = (hasTrade && !d.dealCompleted) ? `<span class="gr-complete-badge" style="background:#94a3b8">⏸ On Hold</span>` : '';
     const canCompleteDeal = currentUser && ['sales','fandi','management'].includes(currentUser.role);
 
@@ -4571,6 +4567,11 @@ function renderGetReady() {
           <span style="font-size:18px">✓</span>
         </div>`;
 
+    // Backward-compatible: pull from the new trades[] array if present,
+    // otherwise fall back to the old trade1/trade2 shape for existing deals.
+    const dealTrades = Array.isArray(d.trades) ? d.trades.filter(t=>t.stock) : [d.trade1, d.trade2].filter(t=>t?.stock);
+    const financingLabel = ({CASH:'Cash',COMMERCIAL_LEASE:'Commercial Lease',FINANCE:'Finance',FORD_RCL:'Ford RCL'})[d.financing];
+
     return `<div class="gr-card${isComplete?' is-complete':' '+typeClass}" id="gr-${d.id}" style="${isDupe(d)?'border-left:4px solid #dc2626':''}">
       <div class="gr-card-header">
         <div class="gr-card-top">
@@ -4578,31 +4579,24 @@ function renderGetReady() {
           <span class="gr-type-pill ${typePillClass}">${d.type||'—'}</span>
           ${completeBadge}${holdBadge}${dupeBadge}
         </div>
-        <div class="gr-card-vehicle">${d.vehicle||'—'}</div>
+        <div class="gr-card-vehicle">${d.vehicle||'—'}${d.vin?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">${d.vin}</span>`:''}</div>
         ${d.customer?`<div class="gr-card-customer">${d.customer}${d.salesperson?' · '+d.salesperson:''}</div>`:''}
+        ${financingLabel?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">💳 ${financingLabel}</div>`:''}
       </div>
       ${gasBanner}
-      ${d.deliveryDate?`<div class="gr-delivery">📅 Delivery: <strong>${fmtGRDate(d.deliveryDate,d.deliveryTime)}</strong>${d.kms?` · ${d.kms} km allowed`:''}</div>`:''}
-      ${(d.trade1?.stock || d.trade2?.stock) ? `<div style="padding:8px 16px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px">
+      ${d.deliveryDate?`<div class="gr-delivery">📅 Delivery: <strong>${fmtGRDate(d.deliveryDate,d.deliveryTime)}</strong></div>`:''}
+      <div style="padding:6px 16px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text-muted)">🪪 ${d.plateType==='TRANSFER'?'License Plate Transfer':'New License Plates'}${d.licensingNotes?` — ${d.licensingNotes}`:''}</div>
+      ${dealTrades.length ? `<div style="padding:8px 16px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px">
         <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Trade-ins</div>
-        ${d.trade1?.stock ? `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px">
+        ${dealTrades.map((t,i) => `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
-            <span style="background:#dbeafe;color:#1d4ed8;font-weight:700;padding:1px 6px;border-radius:3px;font-size:9px;flex-shrink:0">T1</span>
-            <span style="font-weight:700;color:var(--text);font-size:13px">${d.trade1.stock}</span>
-            <span style="font-size:9px;font-weight:700;color:#7c3aed;text-transform:uppercase">${({RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'})[d.trade1.category]||'Retail'}</span>
-            ${d.trade1.kms?`<span style="font-size:11px;color:var(--text-faint);margin-left:auto">${Number(d.trade1.kms).toLocaleString()} km</span>`:''}
+            <span style="background:${i%2===0?'#dbeafe':'#ede9fe'};color:${i%2===0?'#1d4ed8':'#6d28d9'};font-weight:700;padding:1px 6px;border-radius:3px;font-size:9px;flex-shrink:0">T${i+1}</span>
+            <span style="font-weight:700;color:var(--text);font-size:13px">${t.stock}</span>
+            <span style="font-size:9px;font-weight:700;color:#7c3aed;text-transform:uppercase">${({RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'})[t.category]||'Retail'}</span>
+            ${t.kms?`<span style="font-size:11px;color:var(--text-faint);margin-left:auto">${Number(t.kms).toLocaleString()} km</span>`:''}
           </div>
-          <div style="font-size:11px;color:var(--text-muted)">${[d.trade1.year,d.trade1.make,d.trade1.model,d.trade1.colour].filter(Boolean).join(' · ')}</div>
-        </div>` : ''}
-        ${d.trade2?.stock ? `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
-            <span style="background:#ede9fe;color:#6d28d9;font-weight:700;padding:1px 6px;border-radius:3px;font-size:9px;flex-shrink:0">T2</span>
-            <span style="font-weight:700;color:var(--text);font-size:13px">${d.trade2.stock}</span>
-            <span style="font-size:9px;font-weight:700;color:#7c3aed;text-transform:uppercase">${({RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'})[d.trade2.category]||'Retail'}</span>
-            ${d.trade2.kms?`<span style="font-size:11px;color:var(--text-faint);margin-left:auto">${Number(d.trade2.kms).toLocaleString()} km</span>`:''}
-          </div>
-          <div style="font-size:11px;color:var(--text-muted)">${[d.trade2.year,d.trade2.make,d.trade2.model,d.trade2.colour].filter(Boolean).join(' · ')}</div>
-        </div>` : ''}
+          <div style="font-size:11px;color:var(--text-muted)">${[t.year,t.make,t.model,t.colour].filter(Boolean).join(' · ')}${t.vin?` · ${t.vin}`:''}</div>
+        </div>`).join('')}
       </div>` : ''}
       <div class="gr-checklist">
         ${renderChecklist}
@@ -4642,6 +4636,46 @@ function renderGetReady() {
 
 // Custom GR fields
 let grCustomFields = []; // [{ label, done }]
+let grTrades = []; // [{ stock, vin, year, make, model, colour, kms, category }] — 2 by default, expandable
+
+window.grAddTradeSlot = function(t) {
+  grTrades.push(t || { stock:'', vin:'', year:'', make:'', model:'', colour:'', kms:'', category:'RETAIL' });
+  grRenderTradeSlots();
+};
+
+window.grRemoveTradeSlot = function(i) {
+  grTrades.splice(i, 1);
+  grRenderTradeSlots();
+};
+
+function grRenderTradeSlots() {
+  const el = document.getElementById('gr-trades-list');
+  if (!el) return;
+  el.innerHTML = grTrades.map((t, i) => `
+    <div style="padding:10px 14px;${i < grTrades.length-1 ? 'border-bottom:1px solid var(--border)' : ''}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:700;color:var(--ford)">Trade ${i+1}</div>
+        ${grTrades.length > 1 ? `<button type="button" onclick="grRemoveTradeSlot(${i})" style="padding:3px 8px;font-size:11px;border:1px solid #fca5a5;border-radius:var(--radius-sm);background:#fef2f2;color:#dc2626;cursor:pointer">✕ Remove</button>` : ''}
+      </div>
+      <div class="modal-grid" style="gap:8px">
+        <div class="modal-form-row"><label>Stock #</label><input value="${(t.stock||'').replace(/"/g,'&quot;')}" oninput="grTrades[${i}].stock=this.value" placeholder="e.g. A1402A"/></div>
+        <div class="modal-form-row modal-full"><label>VIN</label><input value="${(t.vin||'').replace(/"/g,'&quot;')}" oninput="grTrades[${i}].vin=this.value" placeholder="17-digit VIN" style="font-family:monospace;letter-spacing:.05em" maxlength="17"/></div>
+        <div class="modal-form-row"><label>Year</label><input value="${(t.year||'').replace(/"/g,'&quot;')}" oninput="grTrades[${i}].year=this.value" placeholder="2012" maxlength="4"/></div>
+        <div class="modal-form-row"><label>Make</label><input value="${(t.make||'').replace(/"/g,'&quot;')}" oninput="grTrades[${i}].make=this.value" placeholder="Volkswagen"/></div>
+        <div class="modal-form-row"><label>Model</label><input value="${(t.model||'').replace(/"/g,'&quot;')}" oninput="grTrades[${i}].model=this.value" placeholder="Passat"/></div>
+        <div class="modal-form-row"><label>Colour</label><input value="${(t.colour||'').replace(/"/g,'&quot;')}" oninput="grTrades[${i}].colour=this.value" placeholder="White"/></div>
+        <div class="modal-form-row"><label>KMs</label><input value="${(t.kms||'').replace(/"/g,'&quot;')}" oninput="grTrades[${i}].kms=this.value" placeholder="263312"/></div>
+        <div class="modal-form-row"><label>Category <span style="font-weight:400;color:var(--text-faint);text-transform:none;letter-spacing:0">for Incoming</span></label>
+          <select onchange="grTrades[${i}].category=this.value">
+            <option value="RETAIL" ${t.category==='RETAIL'?'selected':''}>Retail</option>
+            <option value="ASIS" ${t.category==='ASIS'?'selected':''}>As-Is</option>
+            <option value="WHOLESALE" ${t.category==='WHOLESALE'?'selected':''}>Wholesale</option>
+            <option value="CPO" ${t.category==='CPO'?'selected':''}>Certified Pre-Owned</option>
+          </select>
+        </div>
+      </div>
+    </div>`).join('');
+}
 
 window.grAddCustomField = function(label='', done=false) {
   grCustomFields.push({ label, done });
@@ -4669,36 +4703,38 @@ window.openGRModal = function(id) {
   document.getElementById('gr-stock').value = d.stock || '';
   document.getElementById('gr-deal').value = d.dealNum || '';
   document.getElementById('gr-vehicle').value = d.vehicle || '';
+  document.getElementById('gr-vin').value = d.vin || '';
   document.getElementById('gr-customer').value = d.customer || '';
   document.getElementById('gr-salesperson').value = d.salesperson || '';
   document.getElementById('gr-type').value = d.type || 'AS-IS';
-  document.getElementById('gr-kms').value = d.kms || '';
+  document.getElementById('gr-financing').value = d.financing || 'CASH';
   document.getElementById('gr-delivery-date').value = d.deliveryDate || '';
   document.getElementById('gr-delivery-time').value = d.deliveryTime || '';
   document.getElementById('gr-instructions').value = d.instructions || '';
   document.getElementById('gr-notes-field').value = d.notes || '';
-  document.getElementById('gr-needs-gas').checked = d.needsGas || false;
-  // Checkboxes — always unchecked on new deals, restored on edit
-  GR_CHECKLIST.forEach(([key]) => { document.getElementById('gr-c-'+key).checked = id ? (d[key] || false) : false; });
-  // Trade-ins
-  const t1 = d.trade1 || {};
-  const t2 = d.trade2 || {};
-  document.getElementById('gr-t1-stock').value  = t1.stock  || '';
-  document.getElementById('gr-t1-vin').value    = t1.vin    || '';
-  document.getElementById('gr-t1-year').value   = t1.year   || '';
-  document.getElementById('gr-t1-make').value   = t1.make   || '';
-  document.getElementById('gr-t1-model').value  = t1.model  || '';
-  document.getElementById('gr-t1-colour').value = t1.colour || '';
-  document.getElementById('gr-t1-kms').value    = t1.kms    || '';
-  document.getElementById('gr-t1-category').value = t1.category || 'RETAIL';
-  document.getElementById('gr-t2-stock').value  = t2.stock  || '';
-  document.getElementById('gr-t2-vin').value    = t2.vin    || '';
-  document.getElementById('gr-t2-year').value   = t2.year   || '';
-  document.getElementById('gr-t2-make').value   = t2.make   || '';
-  document.getElementById('gr-t2-model').value  = t2.model  || '';
-  document.getElementById('gr-t2-colour').value = t2.colour || '';
-  document.getElementById('gr-t2-kms').value    = t2.kms    || '';
-  document.getElementById('gr-t2-category').value = t2.category || 'RETAIL';
+  document.getElementById('gr-licensing-notes').value = d.licensingNotes || '';
+  setGRPlateType(d.plateType || 'NEW');
+  setGRGasNeeded(id ? (d.needsGas || false) : true);
+  document.getElementById('gr-gas-amount').value = d.gasAmount || '';
+  // Required-steps checkboxes reflect which steps are REQUIRED for this deal
+  // (req_key), never actual completion — actual progress only ever changes
+  // via the card's own tap-to-check boxes, so new deals always start with
+  // every step showing as not-yet-done regardless of what's selected here.
+  GR_CHECKLIST.forEach(([key]) => { document.getElementById('gr-c-'+key).checked = d['req_'+key] || false; });
+  // Trade-ins — supports the old trade1/trade2 shape for existing deals, and
+  // the new flexible array for everything going forward. Defaults to 2 empty
+  // slots for a brand-new deal.
+  if (Array.isArray(d.trades) && d.trades.length) {
+    grTrades = d.trades.map(t => ({...t}));
+  } else if (d.trade1 || d.trade2) {
+    grTrades = [d.trade1 || {}, d.trade2 || {}].map(t => ({stock:t.stock||'',vin:t.vin||'',year:t.year||'',make:t.make||'',model:t.model||'',colour:t.colour||'',kms:t.kms||'',category:t.category||'RETAIL'}));
+  } else {
+    grTrades = [
+      { stock:'', vin:'', year:'', make:'', model:'', colour:'', kms:'', category:'RETAIL' },
+      { stock:'', vin:'', year:'', make:'', model:'', colour:'', kms:'', category:'RETAIL' },
+    ];
+  }
+  grRenderTradeSlots();
   // Custom fields
   grCustomFields = Array.isArray(d.customFields) ? d.customFields.map(f=>({...f})) : [];
   grRenderCustomFields();
@@ -4709,6 +4745,22 @@ window.openGRModal = function(id) {
     acquireLock('getready', id);
     watchLock('getready', id, state => bindLockUI(document.getElementById('gr-lock-banner'), document.getElementById('gr-save-btn'), state));
   }
+};
+
+let grPlateType = 'NEW';
+let grGasNeeded = true;
+
+window.setGRPlateType = function(type) {
+  grPlateType = type;
+  document.getElementById('gr-plate-new-btn').classList.toggle('active', type==='NEW');
+  document.getElementById('gr-plate-transfer-btn').classList.toggle('active', type==='TRANSFER');
+};
+
+window.setGRGasNeeded = function(needed) {
+  grGasNeeded = needed;
+  document.getElementById('gr-gas-yes-btn').classList.toggle('active', needed);
+  document.getElementById('gr-gas-no-btn').classList.toggle('active', !needed);
+  document.getElementById('gr-gas-amount-row').style.display = needed ? 'block' : 'none';
 };
 
 window.closeGRModal = function() {
@@ -4723,53 +4775,46 @@ window.saveGR = async function() {
     stock: document.getElementById('gr-stock').value.trim().toUpperCase(),
     dealNum: document.getElementById('gr-deal').value.trim(),
     vehicle: document.getElementById('gr-vehicle').value.trim(),
+    vin: document.getElementById('gr-vin').value.trim().toUpperCase(),
     customer: document.getElementById('gr-customer').value.trim(),
     salesperson: document.getElementById('gr-salesperson').value.trim(),
     type: document.getElementById('gr-type').value,
-    kms: document.getElementById('gr-kms').value.trim(),
+    financing: document.getElementById('gr-financing').value,
     deliveryDate: document.getElementById('gr-delivery-date').value,
     deliveryTime: document.getElementById('gr-delivery-time').value,
     instructions: document.getElementById('gr-instructions').value.trim(),
     notes: document.getElementById('gr-notes-field').value.trim(),
-    needsGas: document.getElementById('gr-needs-gas').checked,
-    trade1: {
-      stock:  document.getElementById('gr-t1-stock').value.trim().toUpperCase(),
-      vin:    document.getElementById('gr-t1-vin').value.trim().toUpperCase(),
-      year:   document.getElementById('gr-t1-year').value.trim(),
-      make:   document.getElementById('gr-t1-make').value.trim(),
-      model:  document.getElementById('gr-t1-model').value.trim(),
-      colour: document.getElementById('gr-t1-colour').value.trim(),
-      kms:    document.getElementById('gr-t1-kms').value.trim(),
-      category: document.getElementById('gr-t1-category').value,
-    },
-    trade2: {
-      stock:  document.getElementById('gr-t2-stock').value.trim().toUpperCase(),
-      vin:    document.getElementById('gr-t2-vin').value.trim().toUpperCase(),
-      year:   document.getElementById('gr-t2-year').value.trim(),
-      make:   document.getElementById('gr-t2-make').value.trim(),
-      model:  document.getElementById('gr-t2-model').value.trim(),
-      colour: document.getElementById('gr-t2-colour').value.trim(),
-      kms:    document.getElementById('gr-t2-kms').value.trim(),
-      category: document.getElementById('gr-t2-category').value,
-    },
+    plateType: grPlateType,
+    licensingNotes: document.getElementById('gr-licensing-notes').value.trim(),
+    needsGas: grGasNeeded,
+    gasAmount: grGasNeeded ? document.getElementById('gr-gas-amount').value.trim() : '',
+    trades: grTrades.map(t => ({
+      stock: (t.stock||'').trim().toUpperCase(),
+      vin: (t.vin||'').trim().toUpperCase(),
+      year: (t.year||'').trim(),
+      make: (t.make||'').trim(),
+      model: (t.model||'').trim(),
+      colour: (t.colour||'').trim(),
+      kms: (t.kms||'').trim(),
+      category: t.category || 'RETAIL',
+    })),
     updatedBy: currentUser.name,
     ts: editingGRId ? (getReadyDeals[editingGRId]?.ts || Date.now()) : Date.now(),
     customFields: grCustomFields.filter(f => f.label.trim()),
   };
+  // These checkboxes only ever select which steps are REQUIRED for this deal
+  // — actual completion (deal[key]) is never touched here, whether adding or
+  // editing. Progress only ever happens via the card's own tap-to-check boxes,
+  // so a step marked required always starts (and stays, through edits) as not
+  // yet done until someone actually checks it off on the card.
   GR_CHECKLIST.forEach(([key]) => {
-    const checked = document.getElementById('gr-c-'+key).checked;
-    deal[key] = checked;
-    // On new deals, mark which services are required based on what's checked
-    // On edits, preserve existing req_ flags unless the checkbox was just turned on
-    if (!editingGRId) {
-      deal['req_'+key] = checked;
-    } else {
-      // Keep existing req flag, but if newly checked add it as required
-      deal['req_'+key] = getReadyDeals[editingGRId]?.['req_'+key] || checked;
-    }
+    const required = document.getElementById('gr-c-'+key).checked;
+    deal['req_'+key] = required;
+    deal[key] = editingGRId ? (getReadyDeals[editingGRId]?.[key] || false) : false;
   });
   if (editingGRId) deal.gasFilled = getReadyDeals[editingGRId]?.gasFilled || false;
   else deal.gasFilled = false;
+  if (editingGRId) deal.dealCompleted = getReadyDeals[editingGRId]?.dealCompleted || false;
 
   if (!deal.stock) { alert('Please enter a Stock #.'); return; }
   const btn = document.getElementById('gr-save-btn');
@@ -4910,7 +4955,9 @@ function showEmailToast(msg,type){const t=document.getElementById('email-setting
 
 window.saveEmailSettings = async function() {
   const settings = {
-    notifyAddress: document.getElementById('email-notify-address').value.trim(),
+    grAddress: document.getElementById('email-gr-address').value.trim(),
+    incAddress: document.getElementById('email-inc-address').value.trim(),
+    digestTime: document.getElementById('email-digest-time').value.trim() || '18:00',
     publicKey: document.getElementById('email-public-key').value.trim(),
     serviceId: document.getElementById('email-service-id').value.trim(),
     grTemplateId: document.getElementById('email-gr-template').value.trim(),
@@ -4927,8 +4974,8 @@ window.saveEmailSettings = async function() {
 };
 
 // Shared send helper — every email notification in the app goes through this.
-// Returns true/false so callers can react (e.g. re-enable a button) without
-// needing to know anything about EmailJS specifically.
+// Callers must include to_email in params, since Get Ready and Incoming now
+// go to two different addresses. Returns true/false so callers can react.
 async function sendNotificationEmail(templateId, params) {
   if (typeof emailjs === 'undefined') { console.error('EmailJS SDK not loaded.'); return false; }
   if (!emailSettings.publicKey || !emailSettings.serviceId || !templateId) {
@@ -4937,7 +4984,7 @@ async function sendNotificationEmail(templateId, params) {
   }
   if (!emailjsReady) { emailjs.init({ publicKey: emailSettings.publicKey }); emailjsReady = true; }
   try {
-    await emailjs.send(emailSettings.serviceId, templateId, { to_email: emailSettings.notifyAddress, ...params });
+    await emailjs.send(emailSettings.serviceId, templateId, params);
     return true;
   } catch(e) {
     console.error('Email send failed:', e);
@@ -4946,15 +4993,17 @@ async function sendNotificationEmail(templateId, params) {
 }
 
 window.sendTestEmail = async function() {
-  // Uses whichever template ID is filled in — Get Ready first, falling back to Incoming.
+  // Uses whichever template/address is filled in — Get Ready first, falling back to Incoming.
   const templateId = document.getElementById('email-gr-template').value.trim() || document.getElementById('email-inc-template').value.trim();
-  if (!document.getElementById('email-public-key').value.trim() || !document.getElementById('email-service-id').value.trim() || !templateId) {
-    showEmailToast('Fill in Public Key, Service ID, and at least one Template ID first.', 'error');
+  const toAddr = document.getElementById('email-gr-address').value.trim() || document.getElementById('email-inc-address').value.trim();
+  if (!document.getElementById('email-public-key').value.trim() || !document.getElementById('email-service-id').value.trim() || !templateId || !toAddr) {
+    showEmailToast('Fill in an email address, Public Key, Service ID, and at least one Template ID first.', 'error');
     return;
   }
   // Save first so the test uses whatever's currently in the fields, not stale saved values.
   await window.saveEmailSettings();
   const ok = await sendNotificationEmail(templateId, {
+    to_email: toAddr,
     subject: 'Test notification — Vehicle Manager',
     stock: 'TEST123',
     vehicle: 'This is a test email',
@@ -4963,28 +5012,42 @@ window.sendTestEmail = async function() {
   showEmailToast(ok ? '✓ Test email sent — check your inbox.' : 'Failed to send — check your EmailJS details and template.', ok ? 'success' : 'error');
 };
 
-window.sendIncomingEmail = async function(id) {
-  if (!emailSettings.incTemplateId) {
-    alert('Email notifications for Incoming Vehicles aren\'t set up yet — add an Incoming Vehicle Template ID in Settings → Email Notifications.');
-    return;
-  }
-  const u = units[id];
-  if (!u) return;
-  const specLine = [u.year, u.type, u.trim, u.colour].filter(Boolean).join(' · ');
-  const ok = await sendNotificationEmail(emailSettings.incTemplateId, {
-    subject: `Incoming Vehicle — ${u.stock||u.vin||'no stock #'}`,
-    stock: u.stock||'',
-    vin: u.vin||'',
-    vehicle: u.vehicle || specLine || '',
-    kms: u.kms||'',
-    status: u.status||'',
-    condition: u.condition==='used' ? 'Used' : 'New',
-    category: u.category||'',
-    arrived: u.arrived||'',
-    message: `Incoming vehicle notification for ${u.vehicle || specLine || u.stock || 'a vehicle'}.`,
-  });
-  if (!ok) alert('Failed to send — check your EmailJS details in Settings → Email Notifications.');
-};
+// Checked periodically (see the 1-second interval below) — once the
+// configured digest time has passed for today, and nobody's already sent
+// today's digest, this composes and sends one summarizing every Incoming
+// Unit added that day. The transaction flag means only one open session
+// actually sends it even if several people have the app open at the time.
+async function checkAndSendDailyDigest() {
+  if (!emailSettings.incTemplateId || !emailSettings.incAddress) return; // not configured
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0,10);
+  const [digestH, digestM] = (emailSettings.digestTime || '18:00').split(':').map(Number);
+  const digestTimePassed = now.getHours() > digestH || (now.getHours() === digestH && now.getMinutes() >= digestM);
+  if (!digestTimePassed) return;
+
+  try {
+    const result = await runTransaction(ref(db, 'dailyDigestSent/'+todayStr), curr => curr ? undefined : true);
+    if (!result.committed) return; // today's digest already sent (by this or another session)
+
+    const todaysUnits = Object.values(units||{}).filter(u => u.arrivedDate === todayStr);
+    if (!todaysUnits.length) return; // nothing arrived today — nothing to send, and the flag above still prevents re-checking all day
+
+    const lines = todaysUnits.map(u => {
+      const specLine = [u.year, u.type, u.trim, u.colour].filter(Boolean).join(' ');
+      const condLabel = u.condition === 'used'
+        ? `Used — ${({TRADEIN:'Trade-In',AUCTION:'Auction'})[u.category]||u.category||''}${u.subcategory?' / '+({RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'})[u.subcategory]:''}`
+        : `New — ${({RETAIL:'Retail',FLEET:'Fleet'})[u.category]||u.category||''}`;
+      return `${u.stock||u.vin||'—'} — ${u.vehicle || specLine || 'no description'} — ${condLabel}${u.kms?' — '+u.kms+' km':''}`;
+    }).join('\n');
+
+    await sendNotificationEmail(emailSettings.incTemplateId, {
+      to_email: emailSettings.incAddress,
+      subject: `Incoming Vehicles — Daily Summary (${todaysUnits.length} unit${todaysUnits.length!==1?'s':''})`,
+      count: todaysUnits.length,
+      message: lines,
+    });
+  } catch(e) { console.error('Daily digest failed:', e); }
+}
 
 window.clearAllTrackerUnits = async function() {
   const count = Object.keys(units).length;
@@ -5118,6 +5181,11 @@ setInterval(()=>{
   if (document.getElementById('panel-rides')?.classList.contains('active')) renderRidesTab();
   if (document.getElementById('panel-compound')?.classList.contains('active')) renderIncomingPickupsBanner();
 },1000);
+
+setInterval(() => { if (currentUser) checkAndSendDailyDigest(); }, 60000);
+// Also check once shortly after sign-in, in case the digest time already
+// passed earlier today before anyone had the app open.
+setTimeout(() => { if (currentUser) checkAndSendDailyDigest(); }, 5000);
 
 // ── Today's Drops PDF print ───────────────────────────
 window.printTodaysDrops = function() {
