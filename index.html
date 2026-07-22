@@ -1592,7 +1592,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     <div id="cm-spot-current" style="margin-bottom:12px"></div>
     <div class="field">
       <label>Stock #</label>
-      <input id="cm-f-stock" type="text" placeholder="e.g. B0394" autocomplete="off" style="width:100%;padding:10px 12px;font-size:15px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box;font-weight:700"/>
+      <input id="cm-f-stock" type="text" placeholder="e.g. B0394" autocomplete="off" oninput="cmLookupSpecsForSpot()" style="width:100%;padding:10px 12px;font-size:15px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box;font-weight:700"/>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="field">
@@ -1682,11 +1682,38 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   <div class="modal-card">
     <div class="modal-title-row"><span id="unit-modal-title">Add unit</span><button class="modal-close" onclick="closeUnitModal()">×</button></div>
     <div id="unit-lock-banner" style="display:none;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;margin-bottom:12px"></div>
+
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button type="button" id="m-cond-new-btn" onclick="setUnitCondition('new')" class="toggle-btn active" style="flex:1;padding:10px;border-radius:8px;font-size:14px;font-weight:700">New</button>
+      <button type="button" id="m-cond-used-btn" onclick="setUnitCondition('used')" class="toggle-btn" style="flex:1;padding:10px;border-radius:8px;font-size:14px;font-weight:700">Used</button>
+    </div>
+
     <div class="modal-grid">
       <div class="modal-form-row"><label>Arrived date</label><input id="m-arrived" type="date"/></div>
-      <div class="modal-form-row"><label>Stock #</label><input id="m-stock" type="text" placeholder="e.g. B1234"/></div>
+      <div class="modal-form-row"><label>Stock #</label><input id="m-stock" type="text" placeholder="e.g. B1234" oninput="cmLookupSpecsForUnit()"/></div>
       <div class="modal-form-row modal-full"><label>VIN</label><input id="m-vin" type="text" placeholder="17-digit VIN" style="font-family:monospace;letter-spacing:.05em" maxlength="17"/></div>
-      <div class="modal-form-row modal-full"><label>Vehicle description</label><textarea id="m-vehicle" placeholder="e.g. 2026 Ford F-150 XLT — Oxford White, 302A, Tow Package" style="min-height:60px;resize:vertical"></textarea></div>
+
+      <div class="modal-form-row"><label id="m-category-label">Category</label>
+        <select id="m-category">
+          <option value="RETAIL">Retail</option>
+          <option value="FLEET">Fleet</option>
+        </select>
+      </div>
+      <div class="modal-form-row" id="m-subcategory-row" style="display:none"><label>Subcategory</label>
+        <select id="m-subcategory">
+          <option value="RETAIL">Retail</option>
+          <option value="ASIS">As-Is</option>
+          <option value="WHOLESALE">Wholesale</option>
+          <option value="CPO">Certified Pre-Owned</option>
+        </select>
+      </div>
+
+      <div class="modal-form-row"><label>Year</label><input id="m-year" type="text" placeholder="2026" maxlength="4"/></div>
+      <div class="modal-form-row"><label>Trim</label><input id="m-trim" type="text" placeholder="e.g. XLT, Lariat"/></div>
+      <div class="modal-form-row"><label>Type</label><input id="m-type" type="text" placeholder="e.g. F-150 SuperCrew"/></div>
+      <div class="modal-form-row"><label>Colour</label><input id="m-colour" type="text" placeholder="e.g. Oxford White"/></div>
+      <div class="modal-form-row modal-full"><label>Vehicle description <span style="font-weight:400;color:var(--text-faint);text-transform:none;letter-spacing:0">optional — for quick display</span></label><textarea id="m-vehicle" placeholder="e.g. 2026 Ford F-150 XLT — Oxford White, 302A, Tow Package" style="min-height:50px;resize:vertical"></textarea></div>
+
       <div class="modal-form-row"><label>KMs</label><input id="m-kms" type="number" min="0" placeholder="e.g. 10"/></div>
       <div class="modal-form-row"><label>Status</label>
         <select id="m-status">
@@ -1700,7 +1727,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <div class="modal-form-row"><label>Work Req. #</label><input id="m-workreq" type="text" placeholder="e.g. P1234 or 30456"/></div>
       <div class="modal-form-row modal-full"><label>Notes</label><textarea id="m-notes" placeholder="Sold to, dealer trade info, salesperson initials…"></textarea></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:12px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+    <div id="m-checkboxes-new" style="display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:12px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
       <div class="checkbox-row" style="border-right:1px solid var(--border)">
         <input type="checkbox" id="m-acc"/><label for="m-acc">Accessories</label>
       </div>
@@ -1712,6 +1739,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       </div>
       <div class="checkbox-row" style="border-top:1px solid var(--border)">
         <input type="checkbox" id="m-ic"/><label for="m-ic">IC Moved</label>
+      </div>
+    </div>
+    <div id="m-checkboxes-used" style="display:none;grid-template-columns:1fr 1fr;gap:0;margin-top:12px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+      <div class="checkbox-row" style="border-right:1px solid var(--border)">
+        <input type="checkbox" id="m-file-received"/><label for="m-file-received">File Received</label>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="m-ic-used"/><label for="m-ic-used">IC Moved</label>
       </div>
     </div>
     <div class="modal-actions">
@@ -1823,6 +1858,7 @@ const auth = getAuth(appFB);
 
 // ── State ─────────────────────────────────────────────
 let entries = {}, historyData = {}, units = {}, getReadyDeals = {}, hitchhikers = {}, testDrives = {}, compoundHistoryData = {};
+let vehicleSpecs = {}; // stock# -> {year,trim,type,colour} — shared between Incoming and Compound so specs entered once autofill everywhere else
 let vehicleRequests = {}, vehicleReturns = {}; // one unified pickup/return flow across all lots
 let driverLocations = {}; // live mirror of /driverLocation — who's currently sharing, and where
 let geoWatchId = null;    // navigator.geolocation.watchPosition() handle, while sharing is on
@@ -2283,8 +2319,8 @@ function startApp() {
   onValue(ref(db, 'rides'), snap => {
     rides = snap.val() || {};
     if (document.getElementById('panel-rides')?.classList.contains('active')) renderRidesTab();
-    if (document.getElementById('panel-tv')?.classList.contains('active')) renderTVRides();
-    if (document.getElementById('panel-compound')?.classList.contains('active')) renderIncomingPickupsBanner();
+    if (document.getElementById('panel-tv')?.classList.contains('active')) { renderTVRides(); renderTVCompoundMap(); }
+    if (document.getElementById('panel-compound')?.classList.contains('active')) { renderIncomingPickupsBanner(); cmRenderMap(); }
   });
 
   onValue(ref(db, 'appointments'), snap => {
@@ -2356,6 +2392,10 @@ function startApp() {
     document.getElementById('tc-tracker').textContent = Object.keys(units).length;
     renderTracker(); renderTrackerSummary();
     renderTVIncoming();
+  });
+
+  onValue(ref(db,'vehicleSpecs'), snap=>{
+    vehicleSpecs = snap.val()||{};
   });
 
   onValue(ref(db,'getready'), snap=>{
@@ -3685,6 +3725,7 @@ function renderTVCompoundMap() {
 
   // Build appointment + GR + test-drive lookup for colour coding
   const apptStocks = new Set(Object.values(appointments||{}).filter(a=>a.stock&&a.status!=='delivered').map(a=>a.stock.toUpperCase()));
+  Object.values(rides||{}).filter(r=>r.stock && r.type==='vehicle' && !['done','cancelled'].includes(r.status)).forEach(r=>apptStocks.add(r.stock.toUpperCase()));
   const grStocks = new Set(Object.values(getReadyDeals||{}).filter(d=>d.stock&&!grIsComplete(d)).map(d=>d.stock.toUpperCase()));
   const tdStocks = new Set(Object.values(testDrives||{}).filter(t=>t.stock&&t.status==='out').map(t=>t.stock.toUpperCase()));
   const dupeCounts = {};
@@ -3777,6 +3818,10 @@ function photoRequired(u) {
 }
 
 function isUnitComplete(u) {
+  if (u.condition === 'used') {
+    // Used units track File Received + IC Moved only — no PDI/Photo requirement
+    return !!u.fileReceived && !!u.icMoved;
+  }
   // Accessories is optional — PDI + IC Moved always required
   // Photo only required if not Turnover/Sold
   if (!u.pdi || !u.icMoved) return false;
@@ -3950,22 +3995,31 @@ function renderTracker() {
     };
     const isNoPhoto = !photoRequired(u);
 
+    const condBadge = u.condition === 'used'
+      ? `<span class="complete-badge" style="background:#7c3aed">${{TRADEIN:'Trade-In',AUCTION:'Auction'}[u.category]||'Used'}${u.subcategory?' · '+({RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'}[u.subcategory]||''):''}</span>`
+      : `<span class="complete-badge" style="background:#2563eb">${{RETAIL:'Retail',FLEET:'Fleet'}[u.category]||'New'}</span>`;
+
     return `<div class="tracker-card${isComplete?' is-complete':''} ${isComplete?'':statusClass}" id="tc-${u.id}" style="${isDupe(u)?'border-left:4px solid #dc2626':lockInfo?'border-left:4px solid #1d4ed8':''}">
       ${lockInfo ? `<div class="tracker-lock-banner">🔒 ${lockInfo.lockedBy} is editing this…</div>` : ''}
       <div class="tracker-card-header">
         <div class="tracker-card-stock">
           ${canEdit?`<input type="checkbox" class="row-select row-cb" ${isSelected?'checked':''} onchange="toggleRowSelect('${u.id}',this.checked)" style="width:15px;height:15px;accent-color:var(--ford);cursor:pointer;flex-shrink:0"/>`:''}
           <span>${u.stock||'—'}</span>
-          ${completeBadge}${dupeBadge}
+          ${condBadge}${completeBadge}${dupeBadge}
         </div>
         <div class="tracker-card-vin">${u.vin||''}</div>
-        <div class="tracker-card-vehicle">${u.vehicle||''}</div>
+        <div class="tracker-card-vehicle">${u.vehicle||[u.year,u.type,u.trim,u.colour].filter(Boolean).join(' · ')||''}</div>
       </div>
       <div class="tracker-card-checks">
-        ${cbBtn('accessories','Acc.',u.accessories,false,'',canAcc)}
-        ${cbBtn('pdi','PDI',u.pdi,false,'cb-pdi',canPdi)}
-        ${cbBtn('photo','Photo',u.photo,isNoPhoto,'cb-photo',canPhoto)}
-        ${cbBtn('icMoved','IC Moved',u.icMoved,false,'cb-ic',canIC)}
+        ${u.condition === 'used' ? `
+          ${cbBtn('fileReceived','File Rec\'d',u.fileReceived,false,'',canEdit)}
+          ${cbBtn('icMoved','IC Moved',u.icMoved,false,'cb-ic',canIC)}
+        ` : `
+          ${cbBtn('accessories','Acc.',u.accessories,false,'',canAcc)}
+          ${cbBtn('pdi','PDI',u.pdi,false,'cb-pdi',canPdi)}
+          ${cbBtn('photo','Photo',u.photo,isNoPhoto,'cb-photo',canPhoto)}
+          ${cbBtn('icMoved','IC Moved',u.icMoved,false,'cb-ic',canIC)}
+        `}
       </div>
       <div class="tracker-card-meta">
         ${canEdit?`<select class="inline-status" onchange="inlineStatus('${u.id}',this.value)">
@@ -4030,6 +4084,53 @@ function renderTrackerSummary() {
 
 
 // ── Unit modal ────────────────────────────────────────
+let unitCondition = 'new'; // 'new' | 'used' — drives category options, checkbox set, and KMs auto-fill
+
+window.setUnitCondition = function(cond, isInitialLoad) {
+  unitCondition = cond;
+  document.getElementById('m-cond-new-btn').classList.toggle('active', cond==='new');
+  document.getElementById('m-cond-used-btn').classList.toggle('active', cond==='used');
+  const catSel = document.getElementById('m-category');
+  const subRow = document.getElementById('m-subcategory-row');
+  const catLabel = document.getElementById('m-category-label');
+  if (cond === 'new') {
+    catLabel.textContent = 'Category';
+    catSel.innerHTML = `<option value="RETAIL">Retail</option><option value="FLEET">Fleet</option>`;
+    subRow.style.display = 'none';
+    document.getElementById('m-checkboxes-new').style.display = 'grid';
+    document.getElementById('m-checkboxes-used').style.display = 'none';
+    // KMs auto-fill to 10 for a brand-new unit — only when adding fresh, never
+    // silently overwrites a value that's already there (e.g. when editing).
+    if (!isInitialLoad && !editingUnitId) {
+      const kmsEl = document.getElementById('m-kms');
+      if (!kmsEl.value) kmsEl.value = '10';
+    }
+  } else {
+    catLabel.textContent = 'Category';
+    catSel.innerHTML = `<option value="TRADEIN">Trade-In</option><option value="AUCTION">Auction</option>`;
+    subRow.style.display = 'block';
+    document.getElementById('m-checkboxes-new').style.display = 'none';
+    document.getElementById('m-checkboxes-used').style.display = 'grid';
+  }
+};
+
+// Live spec lookup as a stock # is typed into Incoming — if that stock # was
+// already specced elsewhere (e.g. placed on the Vehicle Locator map first),
+// autofill year/trim/type/colour here too. Never overwrites fields someone's
+// already typed into, and is silent/no-op if there's no match.
+window.cmLookupSpecsForUnit = function() {
+  const stock = document.getElementById('m-stock').value.trim().toUpperCase();
+  if (!stock) return;
+  const spec = vehicleSpecs[stock];
+  if (!spec) return;
+  const yearEl = document.getElementById('m-year'), trimEl = document.getElementById('m-trim'),
+        typeEl = document.getElementById('m-type'), colourEl = document.getElementById('m-colour');
+  if (!yearEl.value && spec.year) yearEl.value = spec.year;
+  if (!trimEl.value && spec.trim) trimEl.value = spec.trim;
+  if (!typeEl.value && spec.type) typeEl.value = spec.type;
+  if (!colourEl.value && spec.colour) colourEl.value = spec.colour;
+};
+
 window.openUnitModal = function(id) {
   editingUnitId=id||null;
   const u=id?units[id]:{};
@@ -4045,7 +4146,14 @@ window.openUnitModal = function(id) {
   document.getElementById('m-stock').value=u.stock||'';
   document.getElementById('m-vin').value=u.vin||'';
   document.getElementById('m-vehicle').value=u.vehicle||'';
-  document.getElementById('m-kms').value=u.kms||'';
+  document.getElementById('m-year').value=u.year||'';
+  document.getElementById('m-trim').value=u.trim||'';
+  document.getElementById('m-type').value=u.type||'';
+  document.getElementById('m-colour').value=u.colour||'';
+  setUnitCondition(u.condition || 'new', true);
+  document.getElementById('m-category').value = u.category || (unitCondition==='new' ? 'RETAIL' : 'TRADEIN');
+  document.getElementById('m-subcategory').value = u.subcategory || 'RETAIL';
+  document.getElementById('m-kms').value = u.kms || (!id && unitCondition==='new' ? '10' : '');
   document.getElementById('m-status').value=u.status||'STOCK';
   document.getElementById('m-workreq').value=u.workReq||'';
   document.getElementById('m-notes').value=u.notes||'';
@@ -4053,6 +4161,8 @@ window.openUnitModal = function(id) {
   document.getElementById('m-pdi').checked=u.pdi||false;
   document.getElementById('m-photo').checked=u.photo||false;
   document.getElementById('m-ic').checked=u.icMoved||false;
+  document.getElementById('m-file-received').checked=u.fileReceived||false;
+  document.getElementById('m-ic-used').checked=u.icMoved||false;
   document.getElementById('unit-modal').style.display='flex';
   setTimeout(()=>document.getElementById('m-stock').focus(),100);
 
@@ -4078,20 +4188,29 @@ window.saveUnit = async function() {
     const suffix = dy===1||dy===21||dy===31?'ST':dy===2||dy===22?'ND':dy===3||dy===23?'RD':'TH';
     arrivedDisplay = months[mo-1]+' '+dy+suffix;
   }
+  const year = document.getElementById('m-year').value.trim();
+  const trim = document.getElementById('m-trim').value.trim();
+  const type = document.getElementById('m-type').value.trim();
+  const colour = document.getElementById('m-colour').value.trim();
   const unit={
     arrived: arrivedDisplay,
     arrivedDate: arrivedDateVal,
     stock:document.getElementById('m-stock').value.trim().toUpperCase(),
     vin:document.getElementById('m-vin').value.trim().toUpperCase(),
     vehicle:document.getElementById('m-vehicle').value.trim(),
+    condition: unitCondition,
+    category: document.getElementById('m-category').value,
+    subcategory: unitCondition === 'used' ? document.getElementById('m-subcategory').value : null,
+    year, trim, type, colour,
     kms:document.getElementById('m-kms').value.trim(),
     status:document.getElementById('m-status').value,
     workReq:document.getElementById('m-workreq').value.trim().toUpperCase(),
     notes:document.getElementById('m-notes').value.trim(),
-    accessories:document.getElementById('m-acc').checked,
-    pdi:document.getElementById('m-pdi').checked,
-    photo:document.getElementById('m-photo').checked,
-    icMoved:document.getElementById('m-ic').checked,
+    accessories: unitCondition==='new' ? document.getElementById('m-acc').checked : false,
+    pdi: unitCondition==='new' ? document.getElementById('m-pdi').checked : false,
+    photo: unitCondition==='new' ? document.getElementById('m-photo').checked : false,
+    icMoved: unitCondition==='new' ? document.getElementById('m-ic').checked : document.getElementById('m-ic-used').checked,
+    fileReceived: unitCondition==='used' ? document.getElementById('m-file-received').checked : false,
     updatedBy:currentUser.name,
     ts:editingUnitId?(units[editingUnitId]?.ts||Date.now()):Date.now()
   };
@@ -4103,6 +4222,11 @@ window.saveUnit = async function() {
   try {
     if(editingUnitId) await update(ref(db,'tracker/'+editingUnitId),unit);
     else await push(ref(db,'tracker'),unit);
+    // Save specs to the shared cache so the Compound Map (or anywhere else
+    // that recognizes this stock #) can autofill them later.
+    if (unit.stock && (year || trim || type || colour)) {
+      await update(ref(db,'vehicleSpecs/'+unit.stock), { year, trim, type, colour, updatedAt: Date.now() }).catch(()=>{});
+    }
     closeUnitModal();
   } catch(e){alert('Error saving — check connection.');}
   btn.disabled=false;btn.textContent=editingUnitId?'Save changes':'Add unit';
@@ -5093,6 +5217,15 @@ function cmRenderMap() {
     }
     apptMap[stock] = { label: `📅 ${a.department} — ${whenLabel}`, status: a.status };
   });
+  // Same purple styling applies to vehicles with an active pickup ride —
+  // someone's coming for this car, same visual meaning as an appointment.
+  Object.values(rides||{}).forEach(r => {
+    if (!r.stock || r.type !== 'vehicle' || ['done','cancelled'].includes(r.status)) return;
+    const stock = r.stock.toUpperCase().trim();
+    if (apptMap[stock]) return; // an appointment already covers this car — don't overwrite
+    const stageLabel = { pending: 'Pending pickup', claimed: '🚐 Driver on route', enroute: 'Ride in progress' }[r.status] || 'Pickup';
+    apptMap[stock] = { label: `🚗 ${stageLabel}`, status: r.status };
+  });
 
   // Build stock# → get ready lookup
   const grMap = {};
@@ -5481,6 +5614,26 @@ window.cmOpenFullEditFromQuick = function() {
   cmSpotClick(key, ri, ci);
 };
 
+// Live spec lookup as a stock # is typed on the Vehicle Locator — if that
+// stock # was already specced elsewhere (e.g. entered at Incoming first),
+// autofill year/trim/type/colour here too. Only fills blank fields — never
+// overwrites something someone's already typed, and only applies when adding
+// a brand-new vehicle to an empty spot, not when editing an existing one.
+window.cmLookupSpecsForSpot = function() {
+  const existing = (cmVehicles[cmCurrentLot]||{})[cmActiveKey];
+  if (existing && existing.stock) return; // editing an existing vehicle — don't overwrite its specs
+  const stock = document.getElementById('cm-f-stock').value.trim().toUpperCase();
+  if (!stock) return;
+  const spec = vehicleSpecs[stock];
+  if (!spec) return;
+  const yearEl = document.getElementById('cm-f-year'), trimEl = document.getElementById('cm-f-trim'),
+        typeEl = document.getElementById('cm-f-type'), colourEl = document.getElementById('cm-f-colour');
+  if (yearEl && !yearEl.value && spec.year) yearEl.value = spec.year;
+  if (trimEl && !trimEl.value && spec.trim) trimEl.value = spec.trim;
+  if (typeEl && !typeEl.value && spec.type) typeEl.value = spec.type;
+  if (colourEl && !colourEl.value && spec.colour) colourEl.value = spec.colour;
+};
+
 window.cmSpotClick = function(key, ri, ci) {
   if (!perm('compoundEdit')) return; // view-only roles can already see stock # / info directly on the map
   cmActiveKey = key;
@@ -5591,6 +5744,9 @@ window.cmSaveSpot = async function() {
     if (Array.isArray(prevVeh.notes) && prevVeh.notes.length) data.notes = prevVeh.notes;
   }
   await set(ref(db, `compound_v2/${cmCurrentLot}/${key}`), data);
+  if (stock.trim() && (data.year || data.trim || data.type || data.colour)) {
+    update(ref(db,'vehicleSpecs/'+stock.trim().toUpperCase()), { year:data.year, trim:data.trim, type:data.type, colour:data.colour, updatedAt: Date.now() }).catch(()=>{});
+  }
   const desc = !prevVeh?.stock
     ? `Assigned ${stock} to ${key}`
     : prevVeh.stock === stock
