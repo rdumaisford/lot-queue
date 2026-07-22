@@ -2004,17 +2004,17 @@ function loadIdentity() {
       if (el) { el.textContent = msg; el.style.color = isError ? '#fca5a5' : ''; el.style.opacity = isError ? '1' : ''; }
     };
     signInAnonymously(auth)
+      .then(() => showTvStatus('Connected', false))
       .catch(err => {
         console.error('Firebase auth error:', err);
         showTvStatus(`⚠ Sign-in failed: ${err.code || err.message || 'unknown error'}`, true);
       });
     startApp();
-    // If we're still stuck on the default "Connecting…" text after a while, the
-    // sign-in likely never resolved at all — make sure that's visible on-screen
-    // too, since there's no way to open devtools on most kiosk/signage hardware.
+    // If sign-in genuinely never resolved after a while, make that visible
+    // on-screen — there's no way to open devtools on most kiosk hardware.
+    // Checks the real auth state, not a text field nothing else updates.
     setTimeout(() => {
-      const el = document.getElementById('tv-count');
-      if (el && el.textContent === 'Connecting…') {
+      if (!auth.currentUser) {
         showTvStatus('⚠ Still not connected after 10s — Firebase sign-in likely failed silently. Check network/database rules.', true);
       }
     }, 10000);
