@@ -4423,6 +4423,15 @@ window.setGRDealStatus = async function(id, status) {
   await update(ref(db,'getready/'+id), { dealStatus: status || null });
 };
 
+// Doesn't touch whatever was already added to Incoming — that vehicle may
+// already be in use elsewhere by the time someone needs to undo this, so it's
+// safer to leave it and let staff remove it manually if it's genuinely wrong.
+// This just re-opens the deal so "Deal Completed" can be clicked again later.
+window.undoDealCompleted = async function(id) {
+  if (!confirm("Undo Deal Completed? This won't remove anything already added to Incoming Units — if that needs to come out too, delete it from the Incoming tab separately.")) return;
+  await update(ref(db,'getready/'+id), { dealCompleted: false, dealCompletedBy: null, dealCompletedAt: null });
+};
+
 window.completeDealTradeIn = async function(id) {
   const d = getReadyDeals[id];
   if (!d) return;
@@ -4569,16 +4578,17 @@ function renderGetReady() {
           </div>`;
         }).join('');
 
+    const gasAmountBadge = d.gasAmount ? `<span style="font-size:15px;font-weight:800;color:#991b1b;background:#fff;border:1px solid #fca5a5;border-radius:6px;padding:1px 8px;margin-left:6px">$${Number(d.gasAmount).toFixed(2)}</span>` : '';
     const gasBanner = d.needsGas
       ? `<div class="gr-gas-banner ${d.gasFilled?'no-gas-needed':''}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px">
           <span style="font-size:20px">⛽</span>
           <div style="flex:1">
-            <div style="font-weight:700">${d.gasFilled?'Gas Filled':'Needs Gas'}</div>
+            <div style="font-weight:700">${d.gasFilled?'Gas Filled':'Needs Gas'}${!d.gasFilled?gasAmountBadge:''}</div>
             <div style="font-size:11px;font-weight:400;opacity:.7">${d.gasFilled?'Tank topped up and ready':'Fuel before delivery'}</div>
           </div>
-          ${canEdit?`<div class="gr-tap" style="width:auto;height:32px;padding:0 14px;border-radius:20px;${d.gasFilled?'background:#dcfce7;border-color:#86efac':''}" onclick="toggleGRField('${d.id}','gasFilled',${!d.gasFilled})">
-            <span style="font-size:12px;font-weight:700;color:${d.gasFilled?'#15803d':'#991b1b'}">${d.gasFilled?'✓ Done':'Mark filled'}</span>
-          </div>`:'<span style="font-size:12px;font-weight:700;color:'+(d.gasFilled?'#15803d':'#991b1b')+'">'+(d.gasFilled?'✓ Filled':'Pending')+'</span>'}
+          ${canEdit?`<div class="gr-tap" style="width:auto;height:32px;padding:0 14px;border-radius:20px;${d.gasFilled?'background:#f1f5f9;border-color:#e2e8f0':''}" onclick="toggleGRField('${d.id}','gasFilled',${!d.gasFilled})">
+            <span style="font-size:12px;font-weight:700;color:${d.gasFilled?'#94a3b8':'#991b1b'}">${d.gasFilled?'✓ Done':'Mark filled'}</span>
+          </div>`:'<span style="font-size:12px;font-weight:700;color:'+(d.gasFilled?'#94a3b8':'#991b1b')+'">'+(d.gasFilled?'✓ Filled':'Pending')+'</span>'}
         </div>`
       : `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:#f0fdf4;border-bottom:2px solid #86efac;font-size:14px;font-weight:700;color:#15803d">
           <span style="font-size:20px">⛽</span>
@@ -4641,7 +4651,8 @@ function renderGetReady() {
       ${canEdit?`<div class="gr-card-actions">
         <button class="btn-tedit" onclick="openGRModal('${d.id}')">✎ Edit</button>
         ${hasTrade && !d.dealCompleted && canCompleteDeal && !d.dealStatus ? `<button class="btn-tedit" onclick="completeDealTradeIn('${d.id}')" style="background:#f0fdf4;color:#15803d;border-color:#86efac;font-weight:700">✓ Deal Completed</button>` : ''}
-        ${hasTrade && d.dealCompleted ? `<span style="font-size:11px;color:#15803d;font-weight:700;display:flex;align-items:center;padding:0 8px">✓ Moved to Incoming</span>` : ''}
+        ${hasTrade && d.dealCompleted ? `<span style="font-size:11px;color:#15803d;font-weight:700;display:flex;align-items:center;padding:0 8px">✓ Moved to Incoming</span>
+        <button class="btn-tedit" onclick="undoDealCompleted('${d.id}')" style="background:#f8fafc;color:#64748b">↩ Undo</button>` : ''}
         ${hasTrade && !d.dealCompleted && !d.dealStatus && canCompleteDeal ? `<button class="btn-tedit" onclick="setGRDealStatus('${d.id}','on_hold')" style="background:#f8fafc;color:#64748b">⏸ Hold</button>` : ''}
         ${hasTrade && !d.dealCompleted && !d.dealStatus && canCompleteDeal ? `<button class="btn-tedit" onclick="setGRDealStatus('${d.id}','declined')" style="background:#f8fafc;color:#64748b">❌ Decline</button>` : ''}
         ${hasTrade && !d.dealCompleted && d.dealStatus && canCompleteDeal ? `<button class="btn-tedit" onclick="setGRDealStatus('${d.id}',null)" style="background:#eff6ff;color:#1d4ed8;font-weight:700">▶ Resume</button>` : ''}
