@@ -1305,7 +1305,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <div class="gr-filter-row">
         <div class="search-wrap">
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-          <input class="search-input" id="gr-search" type="text" placeholder="Search stock, customer, deal #…" oninput="renderGetReady()"/>
+          <input class="search-input" id="gr-search" type="text" placeholder="Search stock, customer, deal #…" oninput="renderGetReady(); if(grView==='calendar')renderGRCalendar();"/>
         </div>
         <button class="filter-chip active" onclick="setGRFilter('ALL',this)">All</button>
         <button class="filter-chip" onclick="setGRFilter('AS-IS',this)">As-Is</button>
@@ -1319,8 +1319,24 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         </button>
       </div>
       <div class="tracker-summary" id="gr-summary"></div>
-      <div class="table-wrap">
+
+      <div style="display:flex;gap:8px;margin:0 0 12px">
+        <button id="gr-view-list-btn" onclick="setGRView('list')" class="toggle-btn active" style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700">📋 List</button>
+        <button id="gr-view-cal-btn" onclick="setGRView('calendar')" class="toggle-btn" style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700">📅 Calendar</button>
+      </div>
+
+      <div id="gr-list-view" class="table-wrap">
         <div id="gr-body" class="tracker-card-grid"></div>
+      </div>
+
+      <div id="gr-calendar-view" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <button onclick="grCalNav(-1)" style="padding:8px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-size:14px;font-weight:700;cursor:pointer">← Prev</button>
+          <div id="gr-cal-title" style="font-size:17px;font-weight:800"></div>
+          <button onclick="grCalNav(1)" style="padding:8px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-size:14px;font-weight:700;cursor:pointer">Next →</button>
+        </div>
+        <div id="gr-cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px"></div>
+        <div id="gr-cal-unscheduled" style="margin-top:20px"></div>
       </div>
     </div>
 
@@ -2540,6 +2556,7 @@ function startApp() {
     const active = Object.values(getReadyDeals).filter(d=>!d.completedAt);
     document.getElementById('tc-getready').textContent = active.length;
     renderGetReady(); renderGetReadySummary();
+    if (grView === 'calendar') renderGRCalendar();
     if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
     if (document.getElementById('panel-tv')?.classList.contains('active')) { renderTVGetReady(); renderTVCompoundMap(); }
   });
@@ -4424,6 +4441,7 @@ window.setGRFilter = function(status, btn) {
   document.querySelectorAll('#panel-getready .filter-chip').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderGetReady();
+  if (grView === 'calendar') renderGRCalendar();
 };
 
 function getGRFiltered() {
@@ -4615,6 +4633,77 @@ function renderGetReadySummary() {
     <div class="t-stat"><div class="t-stat-num" style="color:#92400e">${wholesale}</div><div class="t-stat-label">Wholesale</div></div>
     <div class="t-stat"><div class="t-stat-num" style="color:${needsGas>0?'#dc2626':'#15803d'}">${needsGas}</div><div class="t-stat-label">Needs Gas</div></div>
     <div class="t-stat"><div class="t-stat-num" style="color:#15803d">${done}</div><div class="t-stat-label">All done ✓</div></div>`;
+}
+
+let grView = 'list'; // 'list' | 'calendar'
+let grCalMonth = new Date(); grCalMonth.setDate(1); // tracks which month the calendar is showing
+
+window.setGRView = function(view) {
+  grView = view;
+  document.getElementById('gr-view-list-btn').classList.toggle('active', view==='list');
+  document.getElementById('gr-view-cal-btn').classList.toggle('active', view==='calendar');
+  document.getElementById('gr-list-view').style.display = view==='list' ? 'block' : 'none';
+  document.getElementById('gr-calendar-view').style.display = view==='calendar' ? 'block' : 'none';
+  if (view === 'calendar') renderGRCalendar();
+};
+
+window.grCalNav = function(delta) {
+  grCalMonth.setMonth(grCalMonth.getMonth() + delta);
+  renderGRCalendar();
+};
+
+function renderGRCalendar() {
+  const grid = document.getElementById('gr-cal-grid');
+  const titleEl = document.getElementById('gr-cal-title');
+  const unschedEl = document.getElementById('gr-cal-unscheduled');
+  if (!grid) return;
+
+  const year = grCalMonth.getFullYear();
+  const month = grCalMonth.getMonth();
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  titleEl.textContent = `${monthNames[month]} ${year}`;
+
+  const rows = getGRFiltered();
+  const byDate = {};
+  const unscheduled = [];
+  rows.forEach(d => {
+    if (d.deliveryDate) (byDate[d.deliveryDate] = byDate[d.deliveryDate] || []).push(d);
+    else unscheduled.push(d);
+  });
+
+  const firstOfMonth = new Date(year, month, 1);
+  const startDow = firstOfMonth.getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const todayStr = new Date().toISOString().slice(0,10);
+
+  let html = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => `<div style="text-align:center;font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;padding:4px 0">${d}</div>`).join('');
+  for (let i=0; i<startDow; i++) html += `<div></div>`;
+
+  for (let day=1; day<=daysInMonth; day++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const deals = (byDate[dateStr] || []).slice().sort((a,b) => (a.deliveryTime||'').localeCompare(b.deliveryTime||''));
+    const isToday = dateStr === todayStr;
+    html += `<div style="min-height:90px;border:1px solid var(--border);border-radius:8px;padding:6px;background:${isToday?'#eff6ff':'var(--surface)'};${isToday?'border-color:#93c5fd':''}">
+      <div style="font-size:11px;font-weight:700;color:${isToday?'#1d4ed8':'var(--text-faint)'};margin-bottom:4px">${day}</div>
+      ${deals.map(d => {
+        const timeLabel = d.deliveryTime ? new Date('2000-01-01T'+d.deliveryTime).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}) + ' ' : '';
+        const done = grIsComplete(d);
+        return `<div onclick="openGRModal('${d.id}')" title="${d.vehicle||''}${d.customer?' - '+d.customer:''}" style="cursor:pointer;background:${done?'#f0fdf4':'#fff7ed'};border:1px solid ${done?'#86efac':'#fed7aa'};border-radius:5px;padding:2px 5px;margin-bottom:3px;font-size:10px;font-weight:700;color:${done?'#15803d':'#c2410c'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${timeLabel}${d.stock||'?'}</div>`;
+      }).join('')}
+    </div>`;
+  }
+  grid.innerHTML = html;
+
+  unschedEl.innerHTML = unscheduled.length ? `
+    <div class="section-label">No delivery date set (${unscheduled.length})</div>
+    <div class="tracker-card-grid">
+      ${unscheduled.map(d => `<div class="entry" onclick="openGRModal('${d.id}')" style="cursor:pointer">
+        <div style="flex:1">
+          <div class="entry-stock">${d.stock||'—'}</div>
+          <div class="entry-meta">${d.vehicle||''}${d.customer?' · '+d.customer:''}</div>
+        </div>
+      </div>`).join('')}
+    </div>` : '';
 }
 
 function renderGetReady() {
