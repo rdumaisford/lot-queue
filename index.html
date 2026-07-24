@@ -821,6 +821,21 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 </head>
 <body>
 
+<!-- SYSTEM ALERT — banner persists until management clears it; popup fires once per new alert -->
+<div id="alert-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9000;background:#dc2626;color:#fff;padding:10px 16px;font-size:14px;font-weight:700;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;gap:12px">
+  <span style="font-size:18px">🚨</span>
+  <span id="alert-banner-text" style="flex:1;max-width:900px"></span>
+  <button onclick="dismissAlertBanner()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">Dismiss</button>
+</div>
+<div id="alert-popup-backdrop" class="modal-backdrop" style="display:none;z-index:9500">
+  <div class="modal-card" style="max-width:420px;text-align:center;padding:28px 24px">
+    <div style="font-size:36px;margin-bottom:8px">🚨</div>
+    <div style="font-size:17px;font-weight:800;margin-bottom:10px">Alert from Management</div>
+    <div id="alert-popup-text" style="font-size:14px;color:var(--text-muted);margin-bottom:20px;line-height:1.5"></div>
+    <button onclick="closeAlertPopup()" style="width:100%;padding:12px;border:none;border-radius:var(--radius-sm);background:#dc2626;color:#fff;font-size:15px;font-weight:700;cursor:pointer">OK, got it</button>
+  </div>
+</div>
+
 <!-- Setup -->
 <div id="setup-screen">
   <div class="setup-wrap">
@@ -1544,6 +1559,20 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         </div>
       </div>
 
+      <div id="alert-settings-wrap" style="max-width:480px;display:none">
+        <div style="background:var(--surface);border:1px solid #fca5a5;border-radius:var(--radius);padding:24px;margin-top:16px">
+          <div style="font-size:15px;font-weight:600;margin-bottom:4px">🚨 Alert All</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Sends a red banner and a one-time popup to everyone currently using the app. Stays up for everyone until you clear it below.</div>
+          <div id="alert-active-status" style="display:none;background:#fef2f2;border:1px solid #fca5a5;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;font-size:13px;color:#991b1b"></div>
+          <div class="modal-form-row" style="margin-bottom:10px"><label>Alert message</label><textarea id="alert-message-input" placeholder="e.g. Lot is closed today due to weather — no test drives." style="width:100%;min-height:70px;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"></textarea></div>
+          <div style="display:flex;gap:8px">
+            <button onclick="sendAlertAll()" style="flex:1;padding:11px;border:none;border-radius:var(--radius-sm);background:#dc2626;color:#fff;font-size:14px;font-weight:700;cursor:pointer">🚨 Send to Everyone</button>
+            <button onclick="clearAlertAll()" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer">Clear Alert</button>
+          </div>
+          <div id="alert-settings-toast" class="toast" style="margin-top:10px"></div>
+        </div>
+      </div>
+
       <div style="max-width:480px">
         <div style="background:var(--surface);border:1px solid #fca5a5;border-radius:var(--radius);padding:24px;margin-top:16px">
           <div style="font-size:15px;font-weight:600;margin-bottom:4px;color:#dc2626">Danger zone</div>
@@ -1890,6 +1919,7 @@ const auth = getAuth(appFB);
 // ── State ─────────────────────────────────────────────
 let entries = {}, historyData = {}, units = {}, getReadyDeals = {}, hitchhikers = {}, testDrives = {}, compoundHistoryData = {};
 let emailSettings = {}; // {notifyAddress, publicKey, serviceId, grTemplateId, incTemplateId}
+let currentAlertState = null;
 let emailjsReady = false;
 let vehicleSpecs = {}; // stock# -> {year,trim,type,colour} — shared between Incoming and Compound so specs entered once autofill everywhere else
 let vehicleRequests = {}, vehicleReturns = {}; // one unified pickup/return flow across all lots
@@ -1956,6 +1986,8 @@ function applyPermissions() {
   auditShowTab();
   const clearHistBtn = document.getElementById('btn-clear-history');
   if (clearHistBtn) clearHistBtn.style.display = currentUser?.role === 'management' ? '' : 'none';
+  const alertWrap = document.getElementById('alert-settings-wrap');
+  if (alertWrap) alertWrap.style.display = currentUser?.role === 'management' ? 'block' : 'none';
 
   // Vehicle Appointments are for internal departments (Service, Reception)
   // plus whoever fulfills them (lot, management) — sales handles their own
@@ -2422,6 +2454,31 @@ function startApp() {
     if (emailSettings.publicKey && typeof emailjs !== 'undefined' && !emailjsReady) {
       try { emailjs.init({ publicKey: emailSettings.publicKey }); emailjsReady = true; } catch(e) {}
     }
+
+    // System-wide alert — banner persists for everyone until management
+    // clears it; the popup fires once per browser per distinct alert
+    // (tracked by its createdAt timestamp), so reloading doesn't re-nag.
+    const alert = s.alert || null;
+    currentAlertState = alert;
+    const banner = document.getElementById('alert-banner');
+    const bannerText = document.getElementById('alert-banner-text');
+    const activeStatusEl = document.getElementById('alert-active-status');
+    const hasRealAlert = alert && alert.active && alert.message && alert.message.trim();
+    if (hasRealAlert) {
+      if (bannerText) bannerText.textContent = alert.message;
+      const dismissedAt = localStorage.getItem('alert-banner-dismissed');
+      if (banner) banner.style.display = (dismissedAt == alert.createdAt) ? 'none' : 'flex';
+      if (activeStatusEl) { activeStatusEl.style.display = 'block'; activeStatusEl.innerHTML = `<strong>Currently active</strong> — sent by ${alert.createdBy||'someone'}: "${alert.message}"`; }
+      const seenAt = localStorage.getItem('alert-popup-seen');
+      if (seenAt != alert.createdAt) {
+        document.getElementById('alert-popup-text').textContent = alert.message;
+        document.getElementById('alert-popup-backdrop').style.display = 'flex';
+        localStorage.setItem('alert-popup-seen', alert.createdAt);
+      }
+    } else {
+      if (banner) banner.style.display = 'none';
+      if (activeStatusEl) activeStatusEl.style.display = 'none';
+    }
   });
 
   // Live permissions — merges Firebase overrides on top of defaults
@@ -2454,14 +2511,37 @@ function startApp() {
     try {
       const result = await runTransaction(ref(db, 'getready/'+id+'/emailSent'), curr => curr ? undefined : true);
       if (!result.committed) return; // another session already claimed this one
+
+      const financingLabel = {CASH:'Cash',COMMERCIAL_LEASE:'Commercial Lease',FINANCE:'Finance',FORD_RCL:'Ford RCL'}[d.financing] || d.financing || '';
+      const plateLabel = d.plateType === 'TRANSFER' ? 'License Plate Transfer' : 'New License Plates';
+      const gasLabel = d.needsGas ? `Needs Gas${d.gasAmount ? ' — $'+Number(d.gasAmount).toFixed(2) : ''}` : 'No Gas Needed';
+      const catLabel = {RETAIL:'Retail', ASIS:'As-Is', WHOLESALE:'Wholesale', CPO:'Certified Pre-Owned'};
+      const trades = Array.isArray(d.trades) ? d.trades.filter(t=>t && t.stock) : [d.trade1, d.trade2].filter(t=>t?.stock);
+      const tradesText = trades.length
+        ? trades.map((t,i) => `Trade ${i+1}: ${t.stock} — ${[t.year,t.make,t.model].filter(Boolean).join(' ')}${t.colour?' — '+t.colour:''}${t.vin?' — VIN '+t.vin:''}${t.kms?' — '+t.kms+' km':''} (${catLabel[t.category]||'Retail'})`).join('\n')
+        : 'None';
+      const requiredSteps = GR_CHECKLIST.filter(([key]) => d['req_'+key]).map(([,label]) => label).join(', ') || 'None selected';
+
       await sendNotificationEmail(emailSettings.grTemplateId, {
         to_email: emailSettings.grAddress,
         subject: `New Get Ready Deal — ${d.stock||'no stock #'}`,
         stock: d.stock||'',
+        dealNum: d.dealNum||'',
         vehicle: d.vehicle||'',
+        vin: d.vin||'',
         customer: d.customer||'',
         salesperson: d.salesperson||'',
+        type: d.type||'',
+        financing: financingLabel,
         deliveryDate: d.deliveryDate||'',
+        deliveryTime: d.deliveryTime||'',
+        plateType: plateLabel,
+        licensingNotes: d.licensingNotes||'(none)',
+        gasStatus: gasLabel,
+        instructions: d.instructions||'(none)',
+        notes: d.notes||'(none)',
+        requiredSteps,
+        trades: tradesText,
         message: `A new Get Ready deal was added for ${d.vehicle||d.stock||'a vehicle'}.`,
       });
     } catch(e) { console.error('Get Ready email failed:', e); }
@@ -5026,6 +5106,40 @@ window.saveSettings = async function() {
 function showSettingsToast(msg,type){const t=document.getElementById('settings-toast');t.textContent=msg;t.className='toast '+type;t.style.display='block';setTimeout(()=>{t.style.display='none';},4000);}
 function showEmailToast(msg,type){const t=document.getElementById('email-settings-toast');t.textContent=msg;t.className='toast '+type;t.style.display='block';setTimeout(()=>{t.style.display='none';},5000);}
 
+function showAlertToast(msg,type){const t=document.getElementById('alert-settings-toast');if(!t)return;t.textContent=msg;t.className='toast '+type;t.style.display='block';setTimeout(()=>{t.style.display='none';},4000);}
+
+window.sendAlertAll = async function() {
+  const msg = document.getElementById('alert-message-input').value.trim();
+  if (!msg) { showAlertToast('Type a message first.', 'error'); return; }
+  if (!confirm('Send this alert to everyone currently using the app?\n\n"'+msg+'"')) return;
+  try {
+    await update(ref(db,'settings'), { alert: { message: msg, createdBy: currentUser.name, createdAt: Date.now(), active: true } });
+    document.getElementById('alert-message-input').value = '';
+    showAlertToast('✓ Alert sent to everyone.', 'success');
+  } catch(e) { showAlertToast('Error sending — check connection.', 'error'); }
+};
+
+window.clearAlertAll = async function() {
+  if (!confirm('Clear the active alert for everyone?')) return;
+  try {
+    await update(ref(db,'settings'), { alert: { active: false, message: '' } });
+    showAlertToast('✓ Alert cleared.', 'success');
+  } catch(e) { showAlertToast('Error clearing — check connection.', 'error'); }
+};
+
+// Dismissing the banner is per-browser — it hides it for just this person
+// until a genuinely new alert comes in, without affecting anyone else or
+// clearing the alert itself (only management's Clear Alert does that).
+window.dismissAlertBanner = function() {
+  if (currentAlertState && currentAlertState.active) localStorage.setItem('alert-banner-dismissed', currentAlertState.createdAt);
+  const banner = document.getElementById('alert-banner');
+  if (banner) banner.style.display = 'none';
+};
+
+window.closeAlertPopup = function() {
+  document.getElementById('alert-popup-backdrop').style.display = 'none';
+};
+
 window.saveEmailSettings = async function() {
   const settings = {
     grAddress: document.getElementById('email-gr-address').value.trim(),
@@ -5079,7 +5193,23 @@ window.sendTestEmail = async function() {
     to_email: toAddr,
     subject: 'Test notification — Vehicle Manager',
     stock: 'TEST123',
+    dealNum: 'D-00000',
     vehicle: 'This is a test email',
+    vin: '1FTEW1E5XLF000000',
+    customer: 'Test Customer',
+    salesperson: 'Test Salesperson',
+    type: 'RETAIL',
+    financing: 'Finance',
+    deliveryDate: '2026-01-01',
+    deliveryTime: '14:00',
+    plateType: 'New License Plates',
+    licensingNotes: '(none)',
+    gasStatus: 'Needs Gas — $25.00',
+    instructions: '(none)',
+    notes: '(none)',
+    requiredSteps: 'PDI, Detail',
+    trades: 'Trade 1: A1000A — 2018 Honda Civic — Blue — 85000 km (Wholesale)',
+    count: 3,
     message: 'If you got this, your email notifications are working correctly.',
   });
   showEmailToast(ok ? '✓ Test email sent — check your inbox.' : 'Failed to send — check your EmailJS details and template.', ok ? 'success' : 'error');
