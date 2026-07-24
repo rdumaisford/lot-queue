@@ -1341,9 +1341,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     </div>
 
     <div id="gr-day-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this)closeGRDayModal()">
-      <div class="modal-card" style="max-width:420px">
+      <div class="modal-card" style="max-width:520px">
         <div class="modal-title-row"><span id="gr-day-modal-title">Deals</span><button class="modal-close" onclick="closeGRDayModal()">×</button></div>
-        <div id="gr-day-modal-list" style="display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto"></div>
+        <div id="gr-day-modal-list" style="display:flex;flex-direction:column;gap:14px;max-height:75vh;overflow-y:auto"></div>
       </div>
     </div>
 
@@ -1968,8 +1968,8 @@ const ROLE_LABELS = {lot:'Inventory Control',reception:'Reception',service:'Serv
 
 // Default permission matrix - used until Firebase settings/permissions loads (or if a role/perm is missing there)
 const DEFAULT_PERMISSIONS = {
-  lot:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false  },
-  reception:    { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:false, clearCompleted:false, getReadyEdit:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  lot:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false  },
+  reception:    { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
   service:      { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
   sales:        { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
   fandi:        { tabHome:true,  tabQueue:true,  tabTracker:false, tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
@@ -4665,17 +4665,15 @@ window.grShowDayDeals = function(dateStr) {
   const [yr,mo,dy] = dateStr.split('-').map(Number);
   const dateLabel = new Date(yr,mo-1,dy).toLocaleDateString([], {weekday:'long', month:'long', day:'numeric'});
   document.getElementById('gr-day-modal-title').textContent = dateLabel;
-  document.getElementById('gr-day-modal-list').innerHTML = deals.map(d => {
-    const timeLabel = d.deliveryTime ? new Date('2000-01-01T'+d.deliveryTime).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}) : 'No time set';
-    const done = grIsComplete(d);
-    return `<div onclick="closeGRDayModal();openGRModal('${d.id}')" style="cursor:pointer;background:${done?'#f0fdf4':'#fff7ed'};border:1px solid ${done?'#86efac':'#fed7aa'};border-radius:10px;padding:12px 14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px">
-        <span style="font-size:15px;font-weight:800;color:var(--text)">${d.stock||'—'}</span>
-        <span style="font-size:12px;font-weight:700;color:${done?'#15803d':'#c2410c'};margin-left:auto">${timeLabel}</span>
-      </div>
-      <div style="font-size:13px;color:var(--text-muted)">${d.vehicle||''}${d.customer?' · '+d.customer:''}</div>
-    </div>`;
-  }).join('');
+
+  const canEdit = perm('getReadyEdit');
+  // Duplicate detection across every deal currently loaded, same as the main list
+  const allDeals = Object.values(getReadyDeals||{});
+  const stockCounts = {};
+  allDeals.forEach(d => { const s=(d.stock||'').toUpperCase().trim(); if(s) stockCounts[s]=(stockCounts[s]||0)+1; });
+  const isDupe = (d) => { const s=(d.stock||'').toUpperCase().trim(); return s && stockCounts[s] > 1; };
+
+  document.getElementById('gr-day-modal-list').innerHTML = deals.map(d => renderGRCard(d, canEdit, isDupe)).join('');
   document.getElementById('gr-day-modal').style.display = 'flex';
 };
 
@@ -4740,26 +4738,7 @@ function renderGRCalendar() {
     </div>` : '';
 }
 
-function renderGetReady() {
-  const rows = getGRFiltered();
-  const canEdit = perm('getReadyEdit');
-  const active = rows.filter(d => !grIsComplete(d));
-  const completed = rows.filter(d => grIsComplete(d));
-  const salesFilter = currentUser?.role === 'sales' ? ' · your deals only' : '';
-  document.getElementById('gr-row-count').textContent = rows.length+' deal'+(rows.length!==1?'s':'')+' · '+active.length+' active'+salesFilter;
-
-  // Flag stock #s that appear in more than one Get Ready deal
-  const stockCounts = {};
-  rows.forEach(d => { const s=(d.stock||'').toUpperCase().trim(); if(s) stockCounts[s]=(stockCounts[s]||0)+1; });
-  const isDupe = (d) => { const s=(d.stock||'').toUpperCase().trim(); return s && stockCounts[s] > 1; };
-
-  const body = document.getElementById('gr-body');
-  if (!rows.length) {
-    body.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted);font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)">No Get Ready deals match your search.</div>`;
-    return;
-  }
-
-  function makeCard(d) {
+function renderGRCard(d, canEdit, isDupe) {
     const isComplete = grIsComplete(d);
     const typeClass = {'AS-IS':'type-as-is','RETAIL':'type-retail','WHOLESALE':'type-wholesale'}[d.type]||'';
     const typePillClass = {'AS-IS':'as-is','RETAIL':'retail','WHOLESALE':'wholesale'}[d.type]||'as-is';
@@ -4893,11 +4872,31 @@ function renderGetReady() {
     </div>`;
   }
 
+function renderGetReady() {
+  const rows = getGRFiltered();
+  const canEdit = perm('getReadyEdit');
+  const active = rows.filter(d => !grIsComplete(d));
+  const completed = rows.filter(d => grIsComplete(d));
+  const salesFilter = currentUser?.role === 'sales' ? ' · your deals only' : '';
+  document.getElementById('gr-row-count').textContent = rows.length+' deal'+(rows.length!==1?'s':'')+' · '+active.length+' active'+salesFilter;
+
+  // Flag stock #s that appear in more than one Get Ready deal
+  const stockCounts = {};
+  rows.forEach(d => { const s=(d.stock||'').toUpperCase().trim(); if(s) stockCounts[s]=(stockCounts[s]||0)+1; });
+  const isDupe = (d) => { const s=(d.stock||'').toUpperCase().trim(); return s && stockCounts[s] > 1; };
+
+  const body = document.getElementById('gr-body');
+  if (!rows.length) {
+    body.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted);font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)">No Get Ready deals match your search.</div>`;
+    return;
+  }
+
+
   let html = '';
-  if (active.length) html += active.map(makeCard).join('');
+  if (active.length) html += active.map(d => renderGRCard(d, canEdit, isDupe)).join('');
   if (completed.length) {
     html += `<div class="section-divider">✓ Ready for delivery (${completed.length})</div>`;
-    html += completed.map(makeCard).join('');
+    html += completed.map(d => renderGRCard(d, canEdit, isDupe)).join('');
   }
   body.innerHTML = html;
 }
