@@ -1340,6 +1340,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       </div>
     </div>
 
+    <div id="gr-day-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this)closeGRDayModal()">
+      <div class="modal-card" style="max-width:420px">
+        <div class="modal-title-row"><span id="gr-day-modal-title">Deals</span><button class="modal-close" onclick="closeGRDayModal()">×</button></div>
+        <div id="gr-day-modal-list" style="display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto"></div>
+      </div>
+    </div>
+
     <!-- TEST DRIVES -->
     <div id="panel-testdrive" class="panel">
       <div class="queue-toolbar">
@@ -4652,6 +4659,30 @@ window.grCalNav = function(delta) {
   renderGRCalendar();
 };
 
+window.grShowDayDeals = function(dateStr) {
+  const deals = getGRFiltered().filter(d => d.deliveryDate === dateStr).sort((a,b) => (a.deliveryTime||'').localeCompare(b.deliveryTime||''));
+  if (!deals.length) return;
+  const [yr,mo,dy] = dateStr.split('-').map(Number);
+  const dateLabel = new Date(yr,mo-1,dy).toLocaleDateString([], {weekday:'long', month:'long', day:'numeric'});
+  document.getElementById('gr-day-modal-title').textContent = dateLabel;
+  document.getElementById('gr-day-modal-list').innerHTML = deals.map(d => {
+    const timeLabel = d.deliveryTime ? new Date('2000-01-01T'+d.deliveryTime).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}) : 'No time set';
+    const done = grIsComplete(d);
+    return `<div onclick="closeGRDayModal();openGRModal('${d.id}')" style="cursor:pointer;background:${done?'#f0fdf4':'#fff7ed'};border:1px solid ${done?'#86efac':'#fed7aa'};border-radius:10px;padding:12px 14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px">
+        <span style="font-size:15px;font-weight:800;color:var(--text)">${d.stock||'—'}</span>
+        <span style="font-size:12px;font-weight:700;color:${done?'#15803d':'#c2410c'};margin-left:auto">${timeLabel}</span>
+      </div>
+      <div style="font-size:13px;color:var(--text-muted)">${d.vehicle||''}${d.customer?' · '+d.customer:''}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('gr-day-modal').style.display = 'flex';
+};
+
+window.closeGRDayModal = function() {
+  document.getElementById('gr-day-modal').style.display = 'none';
+};
+
 function renderGRCalendar() {
   const grid = document.getElementById('gr-cal-grid');
   const titleEl = document.getElementById('gr-cal-title');
@@ -4681,15 +4712,18 @@ function renderGRCalendar() {
 
   for (let day=1; day<=daysInMonth; day++) {
     const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-    const deals = (byDate[dateStr] || []).slice().sort((a,b) => (a.deliveryTime||'').localeCompare(b.deliveryTime||''));
+    const deals = byDate[dateStr] || [];
     const isToday = dateStr === todayStr;
-    html += `<div style="min-height:90px;border:1px solid var(--border);border-radius:8px;padding:6px;background:${isToday?'#eff6ff':'var(--surface)'};${isToday?'border-color:#93c5fd':''}">
-      <div style="font-size:11px;font-weight:700;color:${isToday?'#1d4ed8':'var(--text-faint)'};margin-bottom:4px">${day}</div>
-      ${deals.map(d => {
-        const timeLabel = d.deliveryTime ? new Date('2000-01-01T'+d.deliveryTime).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}) + ' ' : '';
-        const done = grIsComplete(d);
-        return `<div onclick="openGRModal('${d.id}')" title="${d.vehicle||''}${d.customer?' - '+d.customer:''}" style="cursor:pointer;background:${done?'#f0fdf4':'#fff7ed'};border:1px solid ${done?'#86efac':'#fed7aa'};border-radius:5px;padding:2px 5px;margin-bottom:3px;font-size:10px;font-weight:700;color:${done?'#15803d':'#c2410c'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${timeLabel}${d.stock||'?'}</div>`;
-      }).join('')}
+    const hasDeals = deals.length > 0;
+    // Up to 3 dots shown directly, a "+N" text instead of more dots beyond that
+    const dotsToShow = Math.min(deals.length, 3);
+    const dots = Array.from({length: dotsToShow}).map((_, i) => {
+      const done = grIsComplete(deals[i]);
+      return `<span style="width:6px;height:6px;border-radius:50%;background:${done?'#22c55e':'#f97316'};display:inline-block"></span>`;
+    }).join('');
+    html += `<div ${hasDeals?`onclick="grShowDayDeals('${dateStr}')"`:''} style="min-height:56px;border:1px solid var(--border);border-radius:8px;padding:6px;background:${isToday?'#eff6ff':'var(--surface)'};${isToday?'border-color:#93c5fd':''}${hasDeals?';cursor:pointer':''};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px">
+      <div style="font-size:12px;font-weight:700;color:${isToday?'#1d4ed8':'var(--text-faint)'}">${day}</div>
+      ${hasDeals?`<div style="display:flex;gap:3px;align-items:center">${dots}${deals.length>3?`<span style="font-size:9px;font-weight:700;color:var(--text-faint);margin-left:1px">+${deals.length-3}</span>`:''}</div>`:''}
     </div>`;
   }
   grid.innerHTML = html;
