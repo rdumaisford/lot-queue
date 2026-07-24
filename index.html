@@ -1945,15 +1945,15 @@ const ROLE_LABELS = {lot:'Inventory Control',reception:'Reception',service:'Serv
 
 // Default permission matrix - used until Firebase settings/permissions loads (or if a role/perm is missing there)
 const DEFAULT_PERMISSIONS = {
-  lot:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:true,  testDriveAdmin:true  },
+  lot:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false  },
   reception:    { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:false, clearCompleted:false, getReadyEdit:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
   service:      { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  sales:        { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:true,  testDriveAdmin:false },
+  sales:        { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
   fandi:        { tabHome:true,  tabQueue:true,  tabTracker:false, tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
   detail:       { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
   pdi:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:true,  trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
   merchandiser: { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:true,  tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:true,  trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:true,  cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  management:   { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:true,  testDriveAdmin:true  },
+  management:   { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false  },
   shuttle:      { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false },
 };
 
@@ -4471,6 +4471,9 @@ window.grToggleCustom = async function(id, idx, value) {
 
 window.toggleGRField = async function(id, field, value) {
   const updates = { [field]: value };
+  // Track who did this specific step and when — cleared if someone unchecks it
+  updates[field+'By'] = value ? currentUser.name : null;
+  updates[field+'At'] = value ? Date.now() : null;
   const d = { ...getReadyDeals[id], ...updates };
   if (grIsComplete(d) && !getReadyDeals[id].completedAt) {
     updates.completedAt = Date.now();
@@ -4652,11 +4655,15 @@ function renderGetReady() {
       if (!required && !done) return '';
       // If not required but somehow done, show greyed out
       const dimmed = !required;
-      return `<div class="gr-check-item${dimmed?' gr-check-na':''}">
+      const doneBy = d[field+'By'];
+      const doneAt = d[field+'At'];
+      const whoWhen = (done && doneBy) ? `${doneBy}${doneAt ? ' · '+new Date(doneAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : ''}` : '';
+      return `<div class="gr-check-item${dimmed?' gr-check-na':''}" ${whoWhen?`title="Done by ${whoWhen}"`:''}>
         <div class="gr-tap ${done?'on':''}" onclick="${canEdit&&required?`toggleGRField('${d.id}','${field}',${!done})`:''}" style="${(!canEdit||!required)?'pointer-events:none;':''} ${dimmed?'opacity:.4':''}">
           <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
         <span class="gr-check-label" style="${dimmed?'opacity:.4':''}">${label}</span>
+        ${whoWhen?`<span style="font-size:9px;color:var(--text-faint);display:block;width:100%;text-align:center;margin-top:1px">${whoWhen}</span>`:''}
       </div>`;
     };
 
@@ -4666,11 +4673,15 @@ function renderGetReady() {
       ? GR_CHECKLIST.map(([key,label]) => cbBtn(key, label)).join('')
       : GR_CHECKLIST.map(([key,label]) => {
           const done = d[key];
-          return `<div class="gr-check-item">
+          const doneBy = d[key+'By'];
+          const doneAt = d[key+'At'];
+          const whoWhen = (done && doneBy) ? `${doneBy}${doneAt ? ' · '+new Date(doneAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : ''}` : '';
+          return `<div class="gr-check-item" ${whoWhen?`title="Done by ${whoWhen}"`:''}>
             <div class="gr-tap ${done?'on':''}" onclick="${canEdit?`toggleGRField('${d.id}','${key}',${!done})`:''}" style="${canEdit?'':'pointer-events:none;opacity:.6'}">
               <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
             <span class="gr-check-label">${label}</span>
+            ${whoWhen?`<span style="font-size:9px;color:var(--text-faint);display:block;width:100%;text-align:center;margin-top:1px">${whoWhen}</span>`:''}
           </div>`;
         }).join('');
 
@@ -4680,7 +4691,7 @@ function renderGetReady() {
           <span style="font-size:20px">⛽</span>
           <div style="flex:1">
             <div style="font-weight:700">${d.gasFilled?'Gas Filled':'Needs Gas'}${!d.gasFilled?gasAmountBadge:''}</div>
-            <div style="font-size:11px;font-weight:400;opacity:.7">${d.gasFilled?'Tank topped up and ready':'Fuel before delivery'}</div>
+            <div style="font-size:11px;font-weight:400;opacity:.7">${d.gasFilled?`Tank topped up and ready${d.gasFilledBy?' - '+d.gasFilledBy+(d.gasFilledAt?' · '+new Date(d.gasFilledAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}):''):''}`:'Fuel before delivery'}</div>
           </div>
           ${canEdit?`<div class="gr-tap" style="width:auto;height:32px;padding:0 14px;border-radius:20px;${d.gasFilled?'background:#f1f5f9;border-color:#e2e8f0':''}" onclick="toggleGRField('${d.id}','gasFilled',${!d.gasFilled})">
             <span style="font-size:12px;font-weight:700;color:${d.gasFilled?'#94a3b8':'#991b1b'}">${d.gasFilled?'✓ Done':'Mark filled'}</span>
