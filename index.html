@@ -815,7 +815,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"/>
 <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 </head>
@@ -4488,6 +4487,10 @@ window.deleteGR = async function(id, label) {
 // real Incoming Unit — nothing moves over automatically before that, and if
 // this never gets clicked (deal falls through), the trade-in just never
 // shows up in Incoming. The deal stays flagged "On Hold" in the meantime.
+window.acknowledgeGRUpdate = async function(id) {
+  await update(ref(db,'getready/'+id), { needsAcknowledgment: false });
+};
+
 window.setGRDealStatus = async function(id, status) {
   const d = getReadyDeals[id];
   if (!d) return;
@@ -4623,6 +4626,7 @@ function renderGetReady() {
     const hasTrade = Array.isArray(d.trades) ? d.trades.some(t=>t?.stock) : !!(d.trade1?.stock || d.trade2?.stock);
     const holdBadge = d.dealStatus === 'on_hold' ? `<span class="gr-complete-badge" style="background:#94a3b8">⏸ On Hold</span>`
       : d.dealStatus === 'declined' ? `<span class="gr-complete-badge" style="background:#64748b">❌ Declined</span>` : '';
+    const updatedBadge = d.needsAcknowledgment ? `<span class="gr-complete-badge" style="background:#7c3aed">🔶 UPDATED</span>` : '';
     const canCompleteDeal = currentUser && ['sales','fandi','management'].includes(currentUser.role);
 
     const cbBtn = (field, label) => {
@@ -4680,16 +4684,17 @@ function renderGetReady() {
     const dealTrades = Array.isArray(d.trades) ? d.trades.filter(t=>t.stock) : [d.trade1, d.trade2].filter(t=>t?.stock);
     const financingLabel = ({CASH:'Cash',COMMERCIAL_LEASE:'Commercial Lease',FINANCE:'Finance',FORD_RCL:'Ford RCL'})[d.financing];
 
-    return `<div class="gr-card${isComplete?' is-complete':' '+typeClass}" id="gr-${d.id}" style="${isDupe(d)?'border-left:4px solid #dc2626':''}">
+    return `<div class="gr-card${isComplete?' is-complete':' '+typeClass}" id="gr-${d.id}" style="${d.needsAcknowledgment?'border-left:4px solid #7c3aed;background:#faf5ff':isDupe(d)?'border-left:4px solid #dc2626':''}">
       <div class="gr-card-header">
         <div class="gr-card-top">
           <span class="gr-card-stock">${d.stock||'—'}</span>
           <span class="gr-type-pill ${typePillClass}">${d.type||'—'}</span>
-          ${completeBadge}${holdBadge}${dupeBadge}
+          ${completeBadge}${holdBadge}${updatedBadge}${dupeBadge}
         </div>
         <div class="gr-card-vehicle">${d.vehicle||'—'}${d.vin?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">${d.vin}</span>`:''}</div>
         ${d.customer?`<div class="gr-card-customer">${d.customer}${d.salesperson?' · '+d.salesperson:''}</div>`:''}
         ${financingLabel?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">💳 ${financingLabel}</div>`:''}
+        ${d.needsAcknowledgment?`<div style="font-size:11px;color:#7c3aed;font-weight:700;margin-top:4px">🔶 Updated by ${d.updatedFieldsBy||'someone'} — delivery, gas, or trade-in info changed</div>`:''}
       </div>
       ${gasBanner}
       ${d.deliveryDate?`<div class="gr-delivery">📅 Delivery: <strong>${fmtGRDate(d.deliveryDate,d.deliveryTime)}</strong></div>`:''}
@@ -4726,6 +4731,7 @@ function renderGetReady() {
       </div>
       ${canEdit?`<div class="gr-card-actions">
         <button class="btn-tedit" onclick="openGRModal('${d.id}')">✎ Edit</button>
+        ${d.needsAcknowledgment ? `<button class="btn-tedit" onclick="acknowledgeGRUpdate('${d.id}')" style="background:#faf5ff;color:#7c3aed;border-color:#e9d5ff;font-weight:700">✓ Acknowledge</button>` : ''}
         ${hasTrade && !d.dealCompleted && canCompleteDeal && !d.dealStatus ? `<button class="btn-tedit" onclick="completeDealTradeIn('${d.id}')" style="background:#f0fdf4;color:#15803d;border-color:#86efac;font-weight:700">✓ Deal Completed</button>` : ''}
         ${hasTrade && d.dealCompleted ? `<span style="font-size:11px;color:#15803d;font-weight:700;display:flex;align-items:center;padding:0 8px">✓ Moved to Incoming</span>
         <button class="btn-tedit" onclick="undoDealCompleted('${d.id}')" style="background:#f8fafc;color:#64748b">↩ Undo</button>` : ''}
@@ -4946,8 +4952,18 @@ window.saveGR = async function() {
   btn.disabled = true; btn.textContent = 'Saving…';
   try {
     if (editingGRId) {
+      const oldDeal = getReadyDeals[editingGRId] || {};
+      if (hasSignificantGRChange(oldDeal, deal)) {
+        deal.needsAcknowledgment = true;
+        deal.updatedFieldsAt = Date.now();
+        deal.updatedFieldsBy = currentUser.name;
+      } else {
+        // Not a significant change — leave whatever acknowledgment state was already there alone
+        deal.needsAcknowledgment = oldDeal.needsAcknowledgment || false;
+        deal.updatedFieldsAt = oldDeal.updatedFieldsAt || null;
+        deal.updatedFieldsBy = oldDeal.updatedFieldsBy || null;
+      }
       await update(ref(db,'getready/'+editingGRId), deal);
-      sendGetReadyUpdateEmail(editingGRId, deal); // fire-and-forget — don't block closing the modal on this
     } else {
       await push(ref(db,'getready'), deal);
     }
@@ -5195,6 +5211,25 @@ function buildGREmailParams(d, subject, message) {
 // that one browser triggers it (not a shared listener every session reacts
 // to), there's no multi-session duplicate risk here the way there is for the
 // "new deal" email, so no transaction-based dedup is needed.
+// Only these count as "worth an email" — correcting a typo in notes or
+// instructions shouldn't fire off a message to the whole team. Compares the
+// deal as it was before this edit against what's about to be saved.
+function hasSignificantGRChange(oldDeal, newDeal) {
+  if ((oldDeal.deliveryDate||'') !== (newDeal.deliveryDate||'')) return true;
+  if ((oldDeal.deliveryTime||'') !== (newDeal.deliveryTime||'')) return true;
+  if (!!oldDeal.needsGas !== !!newDeal.needsGas) return true;
+  if ((oldDeal.gasAmount||'') !== (newDeal.gasAmount||'')) return true;
+
+  const oldTrades = Array.isArray(oldDeal.trades) ? oldDeal.trades : [oldDeal.trade1, oldDeal.trade2].filter(Boolean);
+  const newTrades = newDeal.trades || [];
+  const tradeKey = (t) => [t?.stock,t?.vin,t?.year,t?.make,t?.model,t?.colour,t?.kms,t?.category].join('|');
+  const oldKeys = oldTrades.filter(t=>t?.stock).map(tradeKey).sort().join(',');
+  const newKeys = newTrades.filter(t=>t?.stock).map(tradeKey).sort().join(',');
+  if (oldKeys !== newKeys) return true;
+
+  return false;
+}
+
 async function sendGetReadyUpdateEmail(id, d) {
   if (!emailSettings.grTemplateId || !emailSettings.grAddress) return; // not configured — silently skip
   try {
