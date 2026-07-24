@@ -1842,6 +1842,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <div class="modal-form-row modal-full"><label>VIN</label><input id="gr-vin" type="text" placeholder="17-digit VIN" style="font-family:monospace;letter-spacing:.05em" maxlength="17"/></div>
       <div class="modal-form-row"><label>Customer name</label><input id="gr-customer" type="text" placeholder="e.g. Brad Bodanis"/></div>
       <div class="modal-form-row"><label>Salesperson</label><input id="gr-salesperson" type="text" placeholder="e.g. Michael Prince"/></div>
+      <div class="modal-form-row"><label>F&amp;I Manager</label><input id="gr-fni" type="text" placeholder="e.g. Pat Nguyen"/></div>
       <div class="modal-form-row"><label>Type</label>
         <select id="gr-type">
           <option value="AS-IS">As-Is</option>
@@ -1968,16 +1969,16 @@ const ROLE_LABELS = {lot:'Inventory Control',reception:'Reception',service:'Serv
 
 // Default permission matrix - used until Firebase settings/permissions loads (or if a role/perm is missing there)
 const DEFAULT_PERMISSIONS = {
-  lot:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false  },
-  reception:    { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  service:      { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  sales:        { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  fandi:        { tabHome:true,  tabQueue:true,  tabTracker:false, tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  detail:       { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  pdi:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:true,  trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  merchandiser: { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:true,  tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:true,  trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:true,  cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  management:   { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false  },
-  shuttle:      { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false },
+  lot:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:false, grGasConfirm:true,  grChecklistApprove:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false  },
+  reception:    { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  service:      { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  sales:        { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  fandi:        { tabHome:true,  tabQueue:true,  tabTracker:false, tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:true,  grGasConfirm:true,  grChecklistApprove:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  detail:       { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  pdi:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:true,  trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  merchandiser: { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:true,  tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:true,  trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:true,  cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  management:   { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  grGasConfirm:true,  grChecklistApprove:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false  },
+  shuttle:      { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false },
 };
 
 let PERMISSIONS = JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS)); // live copy, overwritten by Firebase
@@ -2051,6 +2052,8 @@ const PERM_GROUPS = [
   ]},
   { label:'Get Ready', keys: [
     ['getReadyEdit','Add / edit / complete deals'],
+    ['grGasConfirm','Confirm gas filled'],
+    ['grChecklistApprove','Approve recon checklist'],
   ]},
   { label:'Test Drives', keys: [
     ['testDriveAdmin',"Mark returned / remove anyone's test drive (not just your own)"],
@@ -4455,9 +4458,12 @@ function getGRFiltered() {
   const q = document.getElementById('gr-search').value.trim().toLowerCase();
   let rows = Object.entries(getReadyDeals).map(([id,d])=>({id,...d}));
 
-  // Sales can only see their own deals (matched by salesperson name)
+  // Sales and F&I only see their own deals — matched by name against the
+  // relevant field. Lot and Management see everything, no filter applied.
   if (currentUser?.role === 'sales') {
     rows = rows.filter(d => (d.salesperson||'').toLowerCase() === (currentUser.name||'').toLowerCase());
+  } else if (currentUser?.role === 'fandi') {
+    rows = rows.filter(d => (d.fniManager||'').toLowerCase() === (currentUser.name||'').toLowerCase());
   }
 
   if (grFilterStatus === 'GAS') rows = rows.filter(d => d.needsGas && !d.gasFilled);
@@ -4666,14 +4672,14 @@ window.grShowDayDeals = function(dateStr) {
   const dateLabel = new Date(yr,mo-1,dy).toLocaleDateString([], {weekday:'long', month:'long', day:'numeric'});
   document.getElementById('gr-day-modal-title').textContent = dateLabel;
 
-  const canEdit = perm('getReadyEdit');
+  const grPerms = { full: perm('getReadyEdit'), gas: perm('grGasConfirm'), checklist: perm('grChecklistApprove') };
   // Duplicate detection across every deal currently loaded, same as the main list
   const allDeals = Object.values(getReadyDeals||{});
   const stockCounts = {};
   allDeals.forEach(d => { const s=(d.stock||'').toUpperCase().trim(); if(s) stockCounts[s]=(stockCounts[s]||0)+1; });
   const isDupe = (d) => { const s=(d.stock||'').toUpperCase().trim(); return s && stockCounts[s] > 1; };
 
-  document.getElementById('gr-day-modal-list').innerHTML = deals.map(d => renderGRCard(d, canEdit, isDupe)).join('');
+  document.getElementById('gr-day-modal-list').innerHTML = deals.map(d => renderGRCard(d, grPerms, isDupe)).join('');
   document.getElementById('gr-day-modal').style.display = 'flex';
 };
 
@@ -4738,7 +4744,10 @@ function renderGRCalendar() {
     </div>` : '';
 }
 
-function renderGRCard(d, canEdit, isDupe) {
+function renderGRCard(d, perms, isDupe) {
+    const canFull = perms.full;
+    const canGas = perms.gas;
+    const canChecklist = perms.checklist;
     const isComplete = grIsComplete(d);
     const typeClass = {'AS-IS':'type-as-is','RETAIL':'type-retail','WHOLESALE':'type-wholesale'}[d.type]||'';
     const typePillClass = {'AS-IS':'as-is','RETAIL':'retail','WHOLESALE':'wholesale'}[d.type]||'as-is';
@@ -4761,7 +4770,7 @@ function renderGRCard(d, canEdit, isDupe) {
       const doneAt = d[field+'At'];
       const whoWhen = (done && doneBy) ? `${doneBy}${doneAt ? ' · '+new Date(doneAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : ''}` : '';
       return `<div class="gr-check-item${dimmed?' gr-check-na':''}" ${whoWhen?`title="Done by ${whoWhen}"`:''}>
-        <div class="gr-tap ${done?'on':''}" onclick="${canEdit&&required?`toggleGRField('${d.id}','${field}',${!done})`:''}" style="${(!canEdit||!required)?'pointer-events:none;':''} ${dimmed?'opacity:.4':''}">
+        <div class="gr-tap ${done?'on':''}" onclick="${canChecklist&&required?`toggleGRField('${d.id}','${field}',${!done})`:''}" style="${(!canChecklist||!required)?'pointer-events:none;':''} ${dimmed?'opacity:.4':''}">
           <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
         <span class="gr-check-label" style="${dimmed?'opacity:.4':''}">${label}</span>
@@ -4779,7 +4788,7 @@ function renderGRCard(d, canEdit, isDupe) {
           const doneAt = d[key+'At'];
           const whoWhen = (done && doneBy) ? `${doneBy}${doneAt ? ' · '+new Date(doneAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : ''}` : '';
           return `<div class="gr-check-item" ${whoWhen?`title="Done by ${whoWhen}"`:''}>
-            <div class="gr-tap ${done?'on':''}" onclick="${canEdit?`toggleGRField('${d.id}','${key}',${!done})`:''}" style="${canEdit?'':'pointer-events:none;opacity:.6'}">
+            <div class="gr-tap ${done?'on':''}" onclick="${canChecklist?`toggleGRField('${d.id}','${key}',${!done})`:''}" style="${canChecklist?'':'pointer-events:none;opacity:.6'}">
               <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
             <span class="gr-check-label">${label}</span>
@@ -4795,7 +4804,7 @@ function renderGRCard(d, canEdit, isDupe) {
             <div style="font-weight:700">${d.gasFilled?'Gas Filled':'Needs Gas'}${!d.gasFilled?gasAmountBadge:''}</div>
             <div style="font-size:11px;font-weight:400;opacity:.7">${d.gasFilled?`Tank topped up and ready${d.gasFilledBy?' - '+d.gasFilledBy+(d.gasFilledAt?' · '+new Date(d.gasFilledAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}):''):''}`:'Fuel before delivery'}</div>
           </div>
-          ${canEdit?`<div class="gr-tap" style="width:auto;height:32px;padding:0 14px;border-radius:20px;${d.gasFilled?'background:#f1f5f9;border-color:#e2e8f0':''}" onclick="toggleGRField('${d.id}','gasFilled',${!d.gasFilled})">
+          ${canGas?`<div class="gr-tap" style="width:auto;height:32px;padding:0 14px;border-radius:20px;${d.gasFilled?'background:#f1f5f9;border-color:#e2e8f0':''}" onclick="toggleGRField('${d.id}','gasFilled',${!d.gasFilled})">
             <span style="font-size:12px;font-weight:700;color:${d.gasFilled?'#94a3b8':'#991b1b'}">${d.gasFilled?'✓ Done':'Mark filled'}</span>
           </div>`:'<span style="font-size:12px;font-weight:700;color:'+(d.gasFilled?'#94a3b8':'#991b1b')+'">'+(d.gasFilled?'✓ Filled':'Pending')+'</span>'}
         </div>`
@@ -4848,7 +4857,7 @@ function renderGRCard(d, canEdit, isDupe) {
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:2px">Other</div>
         ${(d.customFields||[]).filter(f=>f.label).map((f,i)=>`
           <div style="display:flex;align-items:center;gap:8px">
-            <div class="gr-tap ${f.done?'on':''}" onclick="${canEdit?`grToggleCustom('${d.id}',${i},${!f.done})`:''}">
+            <div class="gr-tap ${f.done?'on':''}" onclick="${canFull?`grToggleCustom('${d.id}',${i},${!f.done})`:''}">
               <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
             <span style="font-size:13px;color:var(--text);${f.done?'text-decoration:line-through;opacity:.5':''}">${f.label}</span>
@@ -4856,9 +4865,9 @@ function renderGRCard(d, canEdit, isDupe) {
       </div>` : ''}
       ${d.instructions?`<div style="padding:8px 16px;font-size:12px;color:#92400e;background:#fffbeb;border-bottom:1px solid var(--border)">⚠ ${d.instructions}</div>`:''}
       <div class="gr-notes">
-        <textarea placeholder="Add notes…" ${canEdit?'':'readonly'} onchange="grNotes('${d.id}',this.value)" onblur="grNotes('${d.id}',this.value)">${d.notes||''}</textarea>
+        <textarea placeholder="Add notes…" ${canFull?'':'readonly'} onchange="grNotes('${d.id}',this.value)" onblur="grNotes('${d.id}',this.value)">${d.notes||''}</textarea>
       </div>
-      ${canEdit?`<div class="gr-card-actions">
+      ${canFull?`<div class="gr-card-actions">
         <button class="btn-tedit" onclick="openGRModal('${d.id}')">✎ Edit</button>
         ${d.needsAcknowledgment ? `<button class="btn-tedit" onclick="acknowledgeGRUpdate('${d.id}')" style="background:#faf5ff;color:#7c3aed;border-color:#e9d5ff;font-weight:700">✓ Acknowledge</button>` : ''}
         ${!d.dealCompleted && canCompleteDeal && !d.dealStatus ? `<button class="btn-tedit" onclick="completeDealTradeIn('${d.id}')" style="background:#f0fdf4;color:#15803d;border-color:#86efac;font-weight:700">✓ Deal Completed</button>` : ''}
@@ -4874,11 +4883,11 @@ function renderGRCard(d, canEdit, isDupe) {
 
 function renderGetReady() {
   const rows = getGRFiltered();
-  const canEdit = perm('getReadyEdit');
+  const grPerms = { full: perm('getReadyEdit'), gas: perm('grGasConfirm'), checklist: perm('grChecklistApprove') };
   const active = rows.filter(d => !grIsComplete(d));
   const completed = rows.filter(d => grIsComplete(d));
-  const salesFilter = currentUser?.role === 'sales' ? ' · your deals only' : '';
-  document.getElementById('gr-row-count').textContent = rows.length+' deal'+(rows.length!==1?'s':'')+' · '+active.length+' active'+salesFilter;
+  const scopeFilter = ['sales','fandi'].includes(currentUser?.role) ? ' · your deals only' : '';
+  document.getElementById('gr-row-count').textContent = rows.length+' deal'+(rows.length!==1?'s':'')+' · '+active.length+' active'+scopeFilter;
 
   // Flag stock #s that appear in more than one Get Ready deal
   const stockCounts = {};
@@ -4893,10 +4902,10 @@ function renderGetReady() {
 
 
   let html = '';
-  if (active.length) html += active.map(d => renderGRCard(d, canEdit, isDupe)).join('');
+  if (active.length) html += active.map(d => renderGRCard(d, grPerms, isDupe)).join('');
   if (completed.length) {
     html += `<div class="section-divider">✓ Ready for delivery (${completed.length})</div>`;
-    html += completed.map(d => renderGRCard(d, canEdit, isDupe)).join('');
+    html += completed.map(d => renderGRCard(d, grPerms, isDupe)).join('');
   }
   body.innerHTML = html;
 }
@@ -4986,6 +4995,7 @@ window.openGRModal = function(id) {
   document.getElementById('gr-vin').value = d.vin || '';
   document.getElementById('gr-customer').value = d.customer || '';
   document.getElementById('gr-salesperson').value = d.salesperson || '';
+  document.getElementById('gr-fni').value = d.fniManager || '';
   document.getElementById('gr-type').value = d.type || 'AS-IS';
   document.getElementById('gr-financing').value = d.financing || 'CASH';
   document.getElementById('gr-delivery-date').value = d.deliveryDate || '';
@@ -5058,6 +5068,7 @@ window.saveGR = async function() {
     vin: document.getElementById('gr-vin').value.trim().toUpperCase(),
     customer: document.getElementById('gr-customer').value.trim(),
     salesperson: document.getElementById('gr-salesperson').value.trim(),
+    fniManager: document.getElementById('gr-fni').value.trim(),
     type: document.getElementById('gr-type').value,
     financing: document.getElementById('gr-financing').value,
     deliveryDate: document.getElementById('gr-delivery-date').value,
