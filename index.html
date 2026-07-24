@@ -4523,7 +4523,15 @@ window.completeDealTradeIn = async function(id) {
   if (!d) return;
   if (d.dealStatus) { alert(`This deal is currently ${d.dealStatus === 'on_hold' ? 'on hold' : 'declined'} - resume it first before completing.`); return; }
   const trades = (Array.isArray(d.trades) ? d.trades : [d.trade1, d.trade2]).filter(t => t && t.stock);
-  if (!trades.length) return;
+
+  if (!trades.length) {
+    if (!confirm('Mark this deal as completed? There are no trade-ins on this deal, so nothing will be added to Incoming Units.')) return;
+    try {
+      await update(ref(db,'getready/'+id), { dealCompleted: true, dealCompletedBy: currentUser.name, dealCompletedAt: Date.now() });
+    } catch(e) { alert('Error marking deal completed - check connection and try again.'); }
+    return;
+  }
+
   const summary = trades.map(t => `${t.stock} (${[t.year,t.make,t.model].filter(Boolean).join(' ')})`).join(', ');
   if (!confirm(`Mark this deal completed and move ${trades.length > 1 ? 'these trade-ins' : 'this trade-in'} to Incoming Units?\n\n${summary}`)) return;
 
@@ -4740,8 +4748,8 @@ function renderGetReady() {
       ${canEdit?`<div class="gr-card-actions">
         <button class="btn-tedit" onclick="openGRModal('${d.id}')">✎ Edit</button>
         ${d.needsAcknowledgment ? `<button class="btn-tedit" onclick="acknowledgeGRUpdate('${d.id}')" style="background:#faf5ff;color:#7c3aed;border-color:#e9d5ff;font-weight:700">✓ Acknowledge</button>` : ''}
-        ${hasTrade && !d.dealCompleted && canCompleteDeal && !d.dealStatus ? `<button class="btn-tedit" onclick="completeDealTradeIn('${d.id}')" style="background:#f0fdf4;color:#15803d;border-color:#86efac;font-weight:700">✓ Deal Completed</button>` : ''}
-        ${hasTrade && d.dealCompleted ? `<span style="font-size:11px;color:#15803d;font-weight:700;display:flex;align-items:center;padding:0 8px">✓ Moved to Incoming</span>
+        ${!d.dealCompleted && canCompleteDeal && !d.dealStatus ? `<button class="btn-tedit" onclick="completeDealTradeIn('${d.id}')" style="background:#f0fdf4;color:#15803d;border-color:#86efac;font-weight:700">✓ Deal Completed</button>` : ''}
+        ${d.dealCompleted ? `<span style="font-size:11px;color:#15803d;font-weight:700;display:flex;align-items:center;padding:0 8px">✓ ${hasTrade?'Moved to Incoming':'Completed'}</span>
         <button class="btn-tedit" onclick="undoDealCompleted('${d.id}')" style="background:#f8fafc;color:#64748b">↩ Undo</button>` : ''}
         ${hasTrade && !d.dealCompleted && !d.dealStatus && canCompleteDeal ? `<button class="btn-tedit" onclick="setGRDealStatus('${d.id}','on_hold')" style="background:#f8fafc;color:#64748b">⏸ Hold</button>` : ''}
         ${hasTrade && !d.dealCompleted && !d.dealStatus && canCompleteDeal ? `<button class="btn-tedit" onclick="setGRDealStatus('${d.id}','declined')" style="background:#f8fafc;color:#64748b">❌ Decline</button>` : ''}
