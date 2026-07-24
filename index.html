@@ -2505,16 +2505,23 @@ function startApp() {
   // Fires once per new Get Ready deal, from whichever open session sees it
   // first - the transaction flag prevents every other open session from also
   // sending a duplicate for the same deal.
-  async function sendGetReadyEmail(id, d) {
-    if (!emailSettings.grTemplateId || !emailSettings.grAddress) return; // not configured - silently skip
+  async function sendGetReadyEmail(id, d, retried) {
+    if (!emailSettings.grTemplateId || !emailSettings.grAddress) {
+      // Settings may just not have finished loading yet right after sign-in —
+      // give it one short retry before actually giving up and logging why.
+      if (!retried) { setTimeout(() => sendGetReadyEmail(id, d, true), 2000); return; }
+      console.warn('Get Ready email skipped - not configured (missing template ID or address) for deal', d.stock);
+      return;
+    }
     try {
       const result = await runTransaction(ref(db, 'getready/'+id+'/emailSent'), curr => curr ? undefined : true);
-      if (!result.committed) return; // another session already claimed this one
-      await sendNotificationEmail(emailSettings.grTemplateId, buildGREmailParams(
+      if (!result.committed) { console.log('Get Ready email skipped - already sent by another session for', d.stock); return; }
+      const ok = await sendNotificationEmail(emailSettings.grTemplateId, buildGREmailParams(
         d,
         `New Get Ready Deal - ${d.stock||'no stock #'}`,
         `A new Get Ready deal was added for ${d.vehicle||d.stock||'a vehicle'}.`,
       ));
+      console.log(ok ? `Get Ready email sent for ${d.stock}` : `Get Ready email FAILED to send for ${d.stock}`);
     } catch(e) { console.error('Get Ready email failed:', e); }
   }
 
@@ -5096,7 +5103,7 @@ window.saveSettings = async function() {
   btn.disabled=false;btn.textContent='Save settings';
 };
 function showSettingsToast(msg,type){const t=document.getElementById('settings-toast');t.textContent=msg;t.className='toast '+type;t.style.display='block';setTimeout(()=>{t.style.display='none';},4000);}
-function showEmailToast(msg,type){const t=document.getElementById('email-settings-toast');t.textContent=msg;t.className='toast '+type;t.style.display='block';setTimeout(()=>{t.style.display='none';},5000);}
+function showEmailToast(msg,type){const t=document.getElementById('email-settings-toast');t.textContent=msg;t.className='toast '+type;t.style.display='block';setTimeout(()=>{t.style.display='none';},type==='error'?10000:5000);}
 
 function showAlertToast(msg,type){const t=document.getElementById('alert-settings-toast');if(!t)return;t.textContent=msg;t.className='toast '+type;t.style.display='block';setTimeout(()=>{t.style.display='none';},4000);}
 
@@ -5155,10 +5162,14 @@ window.saveEmailSettings = async function() {
 // Shared send helper - every email notification in the app goes through this.
 // Callers must include to_email in params, since Get Ready and Incoming now
 // go to two different addresses. Returns true/false so callers can react.
+let lastEmailError = '';
+
 async function sendNotificationEmail(templateId, params) {
-  if (typeof emailjs === 'undefined') { console.error('EmailJS SDK not loaded.'); return false; }
+  lastEmailError = '';
+  if (typeof emailjs === 'undefined') { lastEmailError = 'EmailJS SDK not loaded (check your internet connection and reload).'; console.error(lastEmailError); return false; }
   if (!emailSettings.publicKey || !emailSettings.serviceId || !templateId) {
-    console.warn('Email notifications are not configured yet - see Settings.');
+    lastEmailError = 'Not configured - missing Public Key, Service ID, or Template ID.';
+    console.warn(lastEmailError);
     return false;
   }
   if (!emailjsReady) { emailjs.init({ publicKey: emailSettings.publicKey }); emailjsReady = true; }
@@ -5166,6 +5177,10 @@ async function sendNotificationEmail(templateId, params) {
     await emailjs.send(emailSettings.serviceId, templateId, params);
     return true;
   } catch(e) {
+    // EmailJS errors normally carry a status code and a text description -
+    // e.g. 400 "The recipients address is empty", 401/403 for a bad key or
+    // blocked origin, 404 for a template/service ID that doesn't exist.
+    lastEmailError = e?.text ? `${e.status ? e.status+': ' : ''}${e.text}` : (e?.message || String(e));
     console.error('Email send failed:', e);
     return false;
   }
@@ -5274,7 +5289,7 @@ window.sendTestEmail = async function() {
     count: 3,
     message: 'If you got this, your email notifications are working correctly.',
   });
-  showEmailToast(ok ? '✓ Test email sent - check your inbox.' : 'Failed to send - check your EmailJS details and template.', ok ? 'success' : 'error');
+  showEmailToast(ok ? '✓ Test email sent - check your inbox.' : `Failed to send: ${lastEmailError || 'unknown error - check console'}`, ok ? 'success' : 'error');
 };
 
 // Checked periodically (see the 1-second interval below) - once the
