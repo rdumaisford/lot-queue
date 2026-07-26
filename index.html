@@ -844,7 +844,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 <body>
 
 <!-- SYSTEM ALERT - banner persists until management clears it; popup fires once per new alert -->
-<div id="alert-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9000;background:#dc2626;color:#fff;padding:10px 16px;font-size:14px;font-weight:700;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;gap:12px">
+<div id="alert-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9000;background:#dc2626;color:#fff;padding:10px 16px;font-size:14px;font-weight:700;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.2);align-items:center;justify-content:center;gap:12px">
   <span style="font-size:18px">🚨</span>
   <span id="alert-banner-text" style="flex:1;max-width:900px"></span>
   <button onclick="dismissAlertBanner()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">Dismiss</button>
@@ -1128,7 +1128,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       </div>
 
       <!-- Live "someone's coming for a pickup" banner for IC/lot staff -->
-      <div id="cm-incoming-pickups-banner" style="display:none;padding:8px 16px;background:#eff6ff;border-bottom:1px solid #bfdbfe;font-size:12px;color:#1d4ed8;display:flex;gap:12px;flex-wrap:wrap;align-items:center"></div>
+      <div id="cm-incoming-pickups-banner" style="display:none;padding:8px 16px;background:#eff6ff;border-bottom:1px solid #bfdbfe;font-size:12px;color:#1d4ed8;gap:12px;flex-wrap:wrap;align-items:center"></div>
 
       <!-- Edit mode row - shown only in edit mode -->
       <div id="cm-edit-bar" style="display:none;align-items:center;gap:8px;padding:8px 16px;background:#fef9ec;border-bottom:1px solid #fcd34d;flex-wrap:wrap">
@@ -1181,7 +1181,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     <!-- AUDIT -->
     <div id="panel-audit" class="panel" style="padding:0">
       <!-- Active audit bar -->
-      <div id="audit-active-bar" style="display:none;background:#00095b;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:50">
+      <div id="audit-active-bar" style="display:none;background:#00095b;color:#fff;padding:12px 20px;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:50">
         <div>
           <div style="font-size:13px;font-weight:700" id="audit-bar-title">Audit in progress</div>
           <div style="font-size:11px;opacity:.6" id="audit-bar-sub"></div>
