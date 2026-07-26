@@ -3,6 +3,28 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<!--
+  Content-Security-Policy: this can't fully stop injected HTML/JS from running,
+  because the app relies on inline onclick="..." handlers and inline <style>
+  throughout (hence 'unsafe-inline' below) - fixing that would mean rewriting
+  every button in the app to use addEventListener instead. What this DOES do:
+  stop a stored-XSS payload (or a compromised third-party script) from phoning
+  data home to an attacker's server, stop random extra <script>/<link> tags
+  from loading off some other domain, and stop the page being framed by
+  another site (clickjacking). Only the exact outside services this app
+  actually calls are allowed below.
+-->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com https://www.gstatic.com;
+  style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com;
+  img-src 'self' data: https://*.tile.openstreetmap.org;
+  connect-src 'self' https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://api.emailjs.com https://router.project-osrm.org;
+  font-src 'self' data:;
+  frame-ancestors 'self';
+  base-uri 'self';
+  form-action 'self';
+"/>
 <title>Vehicle Manager - Barrie Ford</title>
 <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,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"/>
 <style>
@@ -844,11 +866,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div class="setup-icon"><svg viewBox="0 0 24 24"><path d="M5 11l1.5-4.5h11L19 11M19 11v5H5v-5M5 11H3v2h2M19 11h2v2h-2M7.5 16v1.5M16.5 16v1.5M7 13.5h2M15 13.5h2"/></svg></div>
         <span class="setup-title">Vehicle Manager - Barrie Ford</span>
       </div>
-      <div class="setup-sub" id="signin-mode-sub">Sign in to continue.</div>
-      <div class="setup-row" id="signup-name-row" style="display:none">
-        <label>Your name</label>
-        <input id="auth-name" type="text" placeholder="e.g. Ryan Dumais" autocomplete="name"/>
-      </div>
+      <div class="setup-sub">Sign in to continue.</div>
       <div class="setup-row">
         <label>Email</label>
         <input id="auth-email" type="email" placeholder="you@example.com" autocomplete="username"/>
@@ -858,10 +876,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <input id="auth-password" type="password" placeholder="••••••••" autocomplete="current-password"/>
       </div>
       <button class="btn-setup" id="btn-auth-submit" onclick="submitAuthForm()">Sign in</button>
-      <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:13px;flex-wrap:wrap;gap:8px">
-        <a href="#" id="toggle-auth-mode-link" onclick="toggleAuthMode();return false;" style="color:var(--ford);text-decoration:none;cursor:pointer">Need an account? Create one</a>
+      <div style="display:flex;justify-content:flex-end;margin-top:12px;font-size:13px;flex-wrap:wrap;gap:8px">
         <a href="#" onclick="forgotPassword();return false;" style="color:var(--text-muted);text-decoration:none;cursor:pointer">Forgot password?</a>
       </div>
+      <div style="font-size:12px;color:var(--text-faint);margin-top:14px;text-align:center">No account? Ask a manager to set one up for you.</div>
       <div id="signin-error" class="toast error" style="display:none;margin-top:14px"></div>
     </div>
 
@@ -1532,7 +1550,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <!-- Staff Sign-ins (email/password approvals) - management only -->
       <div id="user-mgmt-wrap" style="display:none;margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;max-width:100%">
         <div style="font-size:16px;font-weight:600;margin-bottom:4px">Staff Sign-ins</div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Approve new sign-ins and assign their role. Changes apply live - the person is let into the app automatically once approved.</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">There's no public sign-up screen - create each person's login yourself in the Firebase console (Authentication → Add user), then have them sign in here. The first time they sign in they'll show up below waiting for approval; pick their role and approve them. Changes apply live.</div>
         <div id="user-mgmt-pending"></div>
         <div id="user-mgmt-approved" style="margin-top:20px"></div>
       </div>
@@ -1921,7 +1939,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getDatabase, ref, push, get, set, onValue, update, remove, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
-import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, sendPasswordResetEmail, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getAuth, signInAnonymously, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDYj9RC-cmfcfZ6sPo_9TmF67mWeEkxkwo",
@@ -1939,6 +1957,14 @@ const auth = getAuth(appFB);
 // Human staff authenticate via email/password sign-in (see loadIdentity/watchUserApproval below).
 // TV/display kiosk screens (?display=true) use a silent anonymous session instead -
 // that's handled inside loadIdentity() since there's no person present to sign in.
+
+// Escapes text pulled from the database (names, notes, stock #s, etc.) before it's
+// dropped into innerHTML - without this, anyone who can type into those fields
+// (any signed-in staff member, or a pending/unapproved sign-up) could store HTML/JS
+// that runs in another user's browser when they view it (stored XSS).
+function esc(val) {
+  return String(val ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
 // ── State ─────────────────────────────────────────────
 let entries = {}, historyData = {}, units = {}, getReadyDeals = {}, hitchhikers = {}, testDrives = {}, compoundHistoryData = {};
@@ -2170,29 +2196,16 @@ function showSetupState(state) {
   document.getElementById('setup-denied').style.display = state==='denied' ? '' : 'none';
 }
 
-let authMode = 'signin'; // 'signin' | 'signup'
-let pendingSignupName = null; // stashed name from the create-account form, used when the users/{uid} doc is first written
-
-window.toggleAuthMode = function() {
-  authMode = authMode === 'signin' ? 'signup' : 'signin';
-  document.getElementById('signup-name-row').style.display = authMode==='signup' ? '' : 'none';
-  document.getElementById('btn-auth-submit').textContent = authMode==='signup' ? 'Create account' : 'Sign in';
-  document.getElementById('signin-mode-sub').textContent = authMode==='signup' ? 'Create an account to request access.' : 'Sign in to continue.';
-  document.getElementById('toggle-auth-mode-link').textContent = authMode==='signup' ? 'Already have an account? Sign in' : 'Need an account? Create one';
-  const errEl = document.getElementById('signin-error');
-  if (errEl) errEl.style.display = 'none';
-};
-
 function authErrorMessage(e) {
   const code = e.code || '';
-  if (code.includes('email-already-in-use')) return 'An account with that email already exists - try signing in instead.';
-  if (code.includes('weak-password')) return 'Password should be at least 6 characters.';
   if (code.includes('invalid-email')) return 'That email address looks invalid.';
   if (code.includes('user-not-found') || code.includes('wrong-password') || code.includes('invalid-credential')) return 'Incorrect email or password.';
   if (code.includes('too-many-requests')) return 'Too many attempts - please wait a moment and try again.';
   return e.message || 'Something went wrong.';
 }
 
+// There's no public sign-up flow - accounts are created by a manager in the Firebase
+// console (Authentication -> Add user). This only ever signs an existing account in.
 window.submitAuthForm = async function() {
   const email = document.getElementById('auth-email').value.trim();
   const password = document.getElementById('auth-password').value;
@@ -2202,16 +2215,7 @@ window.submitAuthForm = async function() {
   const btn = document.getElementById('btn-auth-submit');
   btn.disabled = true;
   try {
-    if (authMode === 'signup') {
-      const name = document.getElementById('auth-name').value.trim();
-      if (!name) { errEl.textContent = 'Please enter your name.'; errEl.style.display = 'block'; btn.disabled = false; return; }
-      pendingSignupName = name;
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
-      updateProfile(cred.user, { displayName: name }).catch(()=>{});
-      // onAuthStateChanged (registered in loadIdentity) picks up the new session from here.
-    } else {
-      await signInWithEmailAndPassword(auth, email, password);
-    }
+    await signInWithEmailAndPassword(auth, email, password);
   } catch (e) {
     errEl.textContent = authErrorMessage(e);
     errEl.style.display = 'block';
@@ -2269,19 +2273,21 @@ async function watchUserApproval(fbUser) {
   userApprovalUnsub = onValue(userRef, async (snap) => {
     let u = snap.val();
     if (!u) {
-      // First-ever account on a fresh project becomes management automatically,
-      // so there's always someone able to approve everyone else.
-      const existingSnap = await get(ref(db,'users'));
-      const isFirstEver = !existingSnap.val();
+      // First-ever account (the one a manager creates first in the Firebase console)
+      // becomes management automatically, so there's always someone able to approve
+      // everyone else. 'meta/hasUsers' - not the full user list - is what's checked
+      // here, because a brand-new pending account isn't allowed to read the full
+      // staff directory (see database.rules.json).
+      const hasUsersSnap = await get(ref(db,'meta/hasUsers'));
+      const isFirstEver = !hasUsersSnap.val();
       u = {
-        name: pendingSignupName || fbUser.displayName || fbUser.email || 'Unknown',
+        name: fbUser.displayName || fbUser.email || 'Unknown',
         email: fbUser.email || '',
         role: isFirstEver ? 'management' : null,
         status: isFirstEver ? 'approved' : 'pending',
         requestedAt: Date.now(),
       };
-      pendingSignupName = null;
-      await set(userRef, u);
+      await update(ref(db), { ['users/'+uid]: u, 'meta/hasUsers': true });
       return; // onValue fires again once the write lands
     }
     if (u.status === 'approved' && u.role) {
@@ -2314,8 +2320,8 @@ function renderUserManagementSection() {
     ${pending.map(u=>`
       <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:var(--radius-sm);margin-bottom:8px;flex-wrap:wrap">
         <div style="flex:1;min-width:160px">
-          <div style="font-weight:600;font-size:14px">${u.name||'-'}</div>
-          <div style="font-size:12px;color:var(--text-muted)">${u.email||''}</div>
+          <div style="font-weight:600;font-size:14px">${esc(u.name||'-')}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${esc(u.email||'')}</div>
         </div>
         <select id="role-pick-${u.uid}" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;background:var(--bg)">
           <option value="">Select role…</option>
@@ -2332,8 +2338,8 @@ function renderUserManagementSection() {
     ${others.map(u=>`
       <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap">
         <div style="flex:1;min-width:160px">
-          <div style="font-weight:600;font-size:14px">${u.name||'-'} ${u.status==='denied'?'<span style="color:#dc2626;font-size:11px;font-weight:700;margin-left:6px">DENIED</span>':''}</div>
-          <div style="font-size:12px;color:var(--text-muted)">${u.email||''}</div>
+          <div style="font-weight:600;font-size:14px">${esc(u.name||'-')} ${u.status==='denied'?'<span style="color:#dc2626;font-size:11px;font-weight:700;margin-left:6px">DENIED</span>':''}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${esc(u.email||'')}</div>
         </div>
         <select onchange="changeUserRole('${u.uid}',this.value)" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;background:var(--bg)">
           ${ALL_ROLES.map(r=>`<option value="${r}" ${u.role===r?'selected':''}>${ROLE_LABELS[r]}</option>`).join('')}
@@ -2494,7 +2500,7 @@ function startApp() {
       if (bannerText) bannerText.textContent = alert.message;
       const dismissedAt = localStorage.getItem('alert-banner-dismissed');
       if (banner) banner.style.display = (dismissedAt == alert.createdAt) ? 'none' : 'flex';
-      if (activeStatusEl) { activeStatusEl.style.display = 'block'; activeStatusEl.innerHTML = `<strong>Currently active</strong> - sent by ${alert.createdBy||'someone'}: "${alert.message}"`; }
+      if (activeStatusEl) { activeStatusEl.style.display = 'block'; activeStatusEl.innerHTML = `<strong>Currently active</strong> - sent by ${esc(alert.createdBy||'someone')}: "${esc(alert.message)}"`; }
       const seenAt = localStorage.getItem('alert-popup-seen');
       if (seenAt != alert.createdAt) {
         document.getElementById('alert-popup-text').textContent = alert.message;
@@ -2684,10 +2690,10 @@ function testDriveHTML(t) {
   return `<div class="tracker-card${t.status==='returned'?' is-complete':''}" style="${overdue?'border-left:4px solid #dc2626':''}">
     <div class="tracker-card-header">
       <div class="tracker-card-stock">
-        <span>${t.stock}</span>
+        <span>${esc(t.stock)}</span>
         ${t.status==='returned'?'<span class="complete-badge">✓ Returned</span>':''}
       </div>
-      <div class="tracker-card-vehicle">👤 ${t.customer}</div>
+      <div class="tracker-card-vehicle">👤 ${esc(t.customer)}</div>
     </div>
     <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       ${canManage && t.status==='out'
@@ -2696,9 +2702,9 @@ function testDriveHTML(t) {
       <span style="font-size:12px;color:var(--text-muted)">${t.status==='out'?'Out':'Was out'}: ${elapsed}</span>
       ${eta ? `<span style="font-size:12px;font-weight:700;color:${overdue?'#dc2626':'#1d4ed8'}">${overdue?'⚠ Overdue '+eta.text:'ETA '+eta.text}</span>` : ''}
     </div>
-    ${t.notes?`<div style="padding:8px 16px;font-size:12px;color:var(--text-muted);border-bottom:1px solid var(--border);font-style:italic">${t.notes}</div>`:''}
+    ${t.notes?`<div style="padding:8px 16px;font-size:12px;color:var(--text-muted);border-bottom:1px solid var(--border);font-style:italic">${esc(t.notes)}</div>`:''}
     <div class="tracker-card-meta">
-      <span style="font-size:12px;color:var(--text-faint)">Salesperson: ${t.salesperson}</span>
+      <span style="font-size:12px;color:var(--text-faint)">Salesperson: ${esc(t.salesperson)}</span>
     </div>
     <div class="tracker-card-actions">
       ${(t.status==='out' && canManage)?`<button class="btn-tedit" onclick="markTestDriveReturned('${t.id}')" style="background:#f0fdf4;color:#15803d;border-color:#86efac;font-weight:600">✓ Mark Returned</button>`:''}
@@ -2848,7 +2854,7 @@ function ridesInitMap() {
     const icon = L.divIcon({ html: '📍', className: 'rides-lot-icon', iconSize: [26,26], iconAnchor: [13,26] });
     L.marker([loc.lat, loc.lng], { icon })
       .addTo(ridesLeafletMap)
-      .bindPopup(`<strong>${name}</strong><br>${loc.address}`);
+      .bindPopup(`<strong>${name}</strong><br>${esc(loc.address)}`);
   });
   setTimeout(() => ridesLeafletMap.invalidateSize(), 200);
 }
@@ -3313,12 +3319,12 @@ function renderMyActiveAppointment() {
       </div>`).join('');
     const timeLabel = formatApptTime(a);
     return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px">
-      <div style="font-size:14px;font-weight:700;margin-bottom:2px">📅 ${a.stock} → ${a.department}</div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:2px">📅 ${esc(a.stock)} → ${esc(a.department)}</div>
       ${timeLabel?`<div style="font-size:12px;color:#c2410c;font-weight:700;margin-bottom:4px">${timeLabel}</div>`:''}
-      ${a.currentLocation?`<div style="font-size:12px;color:#15803d;font-weight:600;margin-bottom:4px">📍 Currently at ${a.currentLocation}</div>`:''}
-      ${a.notes?`<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">${a.notes}</div>`:''}
+      ${a.currentLocation?`<div style="font-size:12px;color:#15803d;font-weight:600;margin-bottom:4px">📍 Currently at ${esc(a.currentLocation)}</div>`:''}
+      ${a.notes?`<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">${esc(a.notes)}</div>`:''}
       <div style="display:flex;margin:10px 0">${stepperHTML}</div>
-      ${a.claimedBy?`<div style="font-size:12px;color:#1d4ed8;font-weight:700;margin-bottom:8px">🚐 ${a.claimedBy}</div>`:''}
+      ${a.claimedBy?`<div style="font-size:12px;color:#1d4ed8;font-weight:700;margin-bottom:8px">🚐 ${esc(a.claimedBy)}</div>`:''}
       ${a.status==='pending'?`<button onclick="cancelAppointment('${a.id}')" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:#991b1b;font-size:12px;cursor:pointer">Cancel</button>`:''}
     </div>`;
   }).join('');
@@ -3351,17 +3357,17 @@ function renderRidesQueueAppointments() {
     } else if (a.status === 'in_progress') {
       action = (canManage && a.claimedBy === currentUser?.name)
         ? `<button class="btn-action" onclick="setAppointmentDelivered('${a.id}')" style="background:#f0fdf4;color:#15803d;font-weight:700">✓ Delivered</button>`
-        : `<span style="font-size:12px;color:var(--text-faint)">🚐 ${a.claimedBy}</span>`;
+        : `<span style="font-size:12px;color:var(--text-faint)">🚐 ${esc(a.claimedBy)}</span>`;
     }
     const stageLabel = { pending:'Waiting for driver', in_progress:'On the way' }[a.status] || a.status;
     const timeLabel = formatApptTime(a);
     return `<div class="entry">
       <div style="flex:1">
-        <div class="entry-stock">📅 ${a.stock} → ${a.department}</div>
+        <div class="entry-stock">📅 ${esc(a.stock)} → ${esc(a.department)}</div>
         ${timeLabel?`<div style="font-size:12px;font-weight:700;color:#c2410c;margin-bottom:3px">${timeLabel}</div>`:''}
-        <div class="entry-meta" style="margin-bottom:5px">Requested by ${a.requestedBy}${a.currentLocation?' · 📍 '+a.currentLocation:''}</div>
+        <div class="entry-meta" style="margin-bottom:5px">Requested by ${esc(a.requestedBy)}${a.currentLocation?' · 📍 '+a.currentLocation:''}</div>
         <div style="font-size:13px;font-weight:700;color:#1d4ed8">${stageLabel}</div>
-        ${a.notes?`<div class="entry-notes">${a.notes}</div>`:''}
+        ${a.notes?`<div class="entry-notes">${esc(a.notes)}</div>`:''}
       </div>
       <div class="entry-actions">${action}<div class="entry-time">${timeAgo(a.ts)}</div></div>
     </div>`;
@@ -3386,19 +3392,19 @@ function renderRidesQueuePickups() {
       action = (canManage && r.claimedBy === currentUser?.name)
         ? `<button class="btn-action" onclick="setRideStatus('${r.id}','enroute')" style="background:#fff7ed;color:#c2410c;font-weight:700">🚗 Picked Up</button>
            <button class="btn-action" onclick="promptDropRide('${r.id}')" style="background:#fef2f2;color:#991b1b;font-weight:700;margin-top:4px">Drop</button>`
-        : `<span style="font-size:12px;color:var(--text-faint)">🚐 ${r.claimedBy}</span>`;
+        : `<span style="font-size:12px;color:var(--text-faint)">🚐 ${esc(r.claimedBy)}</span>`;
     } else if (r.status === 'enroute') {
       action = (canManage && r.claimedBy === currentUser?.name)
         ? `<button class="btn-action" onclick="setRideStatus('${r.id}','done')" style="background:#f0fdf4;color:#15803d;font-weight:700">✓ Done</button>
            <button class="btn-action" onclick="promptDropRide('${r.id}')" style="background:#fef2f2;color:#991b1b;font-weight:700;margin-top:4px">Drop</button>`
-        : `<span style="font-size:12px;color:var(--text-faint)">🚐 ${r.claimedBy}</span>`;
+        : `<span style="font-size:12px;color:var(--text-faint)">🚐 ${esc(r.claimedBy)}</span>`;
     }
     const stageLabel = { pending:'Waiting for driver', claimed:'Driver on route', enroute:'Ride in progress' }[r.status] || r.status;
-    const label = r.type==='vehicle' ? `🚗 ${r.stock}` : '🙋 Hitchhiker';
+    const label = r.type==='vehicle' ? `🚗 ${esc(r.stock)}` : '🙋 Hitchhiker';
     return `<div class="entry">
       <div style="flex:1">
         <div class="entry-stock">${label}</div>
-        <div class="entry-meta" style="margin-bottom:5px">${r.pickup} → ${r.dropoff} · Requested by ${r.requestedBy}</div>
+        <div class="entry-meta" style="margin-bottom:5px">${r.pickup} → ${r.dropoff} · Requested by ${esc(r.requestedBy)}</div>
         <div style="font-size:13px;font-weight:700;color:#1d4ed8">${stageLabel}</div>
         ${r.status==='pending' && r.droppedBy ? `<div style="font-size:12px;color:#991b1b;margin-top:2px">⚠️ Dropped by ${r.droppedBy}: "${r.dropReason}"</div>` : ''}
       </div>
@@ -3430,7 +3436,7 @@ function renderMyActiveRide() {
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">${mine.pickup} → ${mine.dropoff}</div>
       <div style="display:flex;margin-bottom:14px">${stepperHTML}</div>
       ${mine.status === 'pending' && mine.droppedBy ? `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:10px 12px;margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:#991b1b;margin-bottom:2px">⚠️ ${mine.droppedBy} had to drop this ride</div><div style="font-size:12px;color:#7f1d1d">"${mine.dropReason}" - waiting for another driver to pick it up</div></div>` : ''}
-      ${mine.claimedBy ? `<div style="font-size:13px;color:#1d4ed8;font-weight:700;margin-bottom:4px">🚐 Driver: ${mine.claimedBy}</div>` : ''}
+      ${mine.claimedBy ? `<div style="font-size:13px;color:#1d4ed8;font-weight:700;margin-bottom:4px">🚐 Driver: ${esc(mine.claimedBy)}</div>` : ''}
       ${mine.etaMins && (Date.now()-mine.etaTs) < 5*60*1000 ? `<div style="font-size:13px;color:#15803d;font-weight:700;margin-bottom:10px">🕐 ~${mine.etaMins} min away</div>` : ''}
       ${mine.status === 'pending' ? `<button onclick="cancelRide('${mine.id}')" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:#991b1b;font-size:13px;cursor:pointer">Cancel Request</button>` : ''}
     </div>
@@ -3462,7 +3468,7 @@ function renderDriverQueue() {
   }
 
   const bigCard = (r, big) => {
-    const label = r.type==='vehicle' ? `🚗 ${r.stock}` : '🙋 Hitchhiker';
+    const label = r.type==='vehicle' ? `🚗 ${esc(r.stock)}` : '🙋 Hitchhiker';
     const sub = r.type==='vehicle' ? 'Vehicle pickup' : 'Just needs a ride';
     let action = '';
     if (r.status === 'pending') {
@@ -3479,14 +3485,14 @@ function renderDriverQueue() {
       <div style="font-size:18px;font-weight:800;margin-bottom:2px">${label}</div>
       <div style="font-size:12px;color:rgba(255,255,255,.6);margin-bottom:6px">${sub}</div>
       <div style="font-size:14px;font-weight:700;margin-bottom:3px">📍 ${r.pickup} → ${r.dropoff}</div>
-      <div style="font-size:12px;color:rgba(255,255,255,.7);margin-bottom:10px">${r.requestedBy||''}${stageText?' · '+stageText:''}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.7);margin-bottom:10px">${esc(r.requestedBy||'')}${stageText?' · '+stageText:''}</div>
       ${action}
     </div>`;
   };
 
   const otherCard = r => `<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:11px 14px;margin-bottom:8px;opacity:.7">
       <div style="font-size:14px;font-weight:700">${r.type==='vehicle'?'🚗 '+r.stock:'🙋 Hitchhiker'} · ${r.pickup} → ${r.dropoff}</div>
-      <div style="font-size:12px;color:rgba(255,255,255,.6)">🚐 ${r.claimedBy}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.6)">🚐 ${esc(r.claimedBy)}</div>
     </div>`;
 
   // Renders one full section (mine / available / others) for a given subset,
@@ -3605,8 +3611,8 @@ function renderPendingReturns() {
     <div style="font-size:13px;font-weight:800;color:#991b1b;margin-bottom:8px">🚗 ${mine.length} vehicle${mine.length!==1?'s':''} to return to the compound</div>
     ${mine.map(p => `
       <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:12px 14px;margin-bottom:8px">
-        <div style="font-size:15px;font-weight:700;color:#7f1d1d">${p.stock} → back to ${p.returnTo}</div>
-        <div style="font-size:12px;color:#991b1b;margin-bottom:8px">Currently at ${p.currentLocation}</div>
+        <div style="font-size:15px;font-weight:700;color:#7f1d1d">${esc(p.stock)} → back to ${p.returnTo}</div>
+        <div style="font-size:12px;color:#991b1b;margin-bottom:8px">Currently at ${esc(p.currentLocation)}</div>
         <div style="display:flex;gap:8px">
           <button onclick="startVehicleReturn('${p.id}')" style="flex:1;padding:9px;border:none;border-radius:8px;background:#dc2626;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Start Return</button>
           <button onclick="dismissPendingReturn('${p.id}')" style="padding:9px 12px;border:1px solid #fca5a5;border-radius:8px;background:#fff;color:#991b1b;font-size:13px;cursor:pointer">Dismiss</button>
@@ -3655,10 +3661,10 @@ function renderTVRides() {
   const stageColor = { pending: '#94a3b8', claimed: '#f97316', enroute: '#22c55e' };
   const cardHTML = r => `
     <div style="background:#fff;border-radius:10px;padding:12px 14px;border-left:5px solid ${stageColor[r.status]||'#94a3b8'}">
-      <div style="font-size:20px;font-weight:800;color:#00095b;line-height:1;margin-bottom:4px">${r.stock}</div>
+      <div style="font-size:20px;font-weight:800;color:#00095b;line-height:1;margin-bottom:4px">${esc(r.stock)}</div>
       <div style="font-size:11px;color:#64748b;margin-bottom:4px">${r.pickup} → ${r.dropoff}</div>
       <div style="font-size:12px;font-weight:700;color:${stageColor[r.status]||'#64748b'}">${stageLabel[r.status]||r.status}</div>
-      ${r.claimedBy?`<div style="font-size:11px;color:#1d4ed8;font-weight:700;margin-top:2px">🚐 ${r.claimedBy}</div>`:''}
+      ${r.claimedBy?`<div style="font-size:11px;color:#1d4ed8;font-weight:700;margin-top:2px">🚐 ${esc(r.claimedBy)}</div>`:''}
     </div>`;
 
   listEl.innerHTML = pickups.length
@@ -3700,11 +3706,11 @@ function renderTVAppointments() {
   el.innerHTML = active.map(a => {
     const timeLabel = formatApptTime(a);
     return `<div style="background:#fff;border-radius:10px;padding:12px 14px;border-left:5px solid ${stageColor[a.status]||'#94a3b8'}">
-      <div style="font-size:18px;font-weight:800;color:#00095b;line-height:1;margin-bottom:4px">${a.stock}</div>
-      <div style="font-size:11px;color:#64748b;margin-bottom:4px">→ ${a.department}</div>
+      <div style="font-size:18px;font-weight:800;color:#00095b;line-height:1;margin-bottom:4px">${esc(a.stock)}</div>
+      <div style="font-size:11px;color:#64748b;margin-bottom:4px">→ ${esc(a.department)}</div>
       ${timeLabel?`<div style="font-size:11px;font-weight:700;color:#c2410c;margin-bottom:4px">${timeLabel}</div>`:''}
       <div style="font-size:12px;font-weight:700;color:${stageColor[a.status]||'#64748b'}">${stageLabel[a.status]||a.status}</div>
-      ${a.claimedBy?`<div style="font-size:11px;color:#1d4ed8;font-weight:700;margin-top:2px">🚐 ${a.claimedBy}</div>`:''}
+      ${a.claimedBy?`<div style="font-size:11px;color:#1d4ed8;font-weight:700;margin-top:2px">🚐 ${esc(a.claimedBy)}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -3720,8 +3726,8 @@ function renderIncomingPickupsBanner() {
   el.style.display = 'flex';
   const stageText = { claimed: 'on the way', enroute: 'in progress' };
   el.innerHTML = active.map(r => {
-    const what = r.type === 'vehicle' ? `🚗 pickup for <strong>${r.stock}</strong>` : `🙋 hitchhiker`;
-    return `<span>🚐 <strong>${r.claimedBy||'Driver'}</strong> ${stageText[r.status]} - ${what} · ${r.pickup} → ${r.dropoff}</span>`;
+    const what = r.type === 'vehicle' ? `🚗 pickup for <strong>${esc(r.stock)}</strong>` : `🙋 hitchhiker`;
+    return `<span>🚐 <strong>${esc(r.claimedBy||'Driver')}</strong> ${stageText[r.status]} - ${what} · ${r.pickup} → ${r.dropoff}</span>`;
   }).join('<span style="color:#93c5fd">|</span>');
 }
 
@@ -3794,10 +3800,10 @@ function renderTVIncoming() {
     return `<div class="tv-inc-tile ${done?'is-done':sc}">
       <div class="tv-inc-tile-body">
         <div class="tv-inc-tile-top">
-          <span class="tv-inc-tile-stock">${u.stock||'-'}</span>
+          <span class="tv-inc-tile-stock">${esc(u.stock||'-')}</span>
           <span class="tv-inc-tile-status" style="${ps}">${done?'DONE':u.status||'?'}</span>
         </div>
-        <div class="tv-inc-tile-vehicle">${u.vehicle||'-'}</div>
+        <div class="tv-inc-tile-vehicle">${esc(u.vehicle||'-')}</div>
         ${catBadge?`<div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.03em">${catBadge}</div>`:''}
       </div>
       <div class="tv-inc-tile-flags" style="padding:0 6px 6px">
@@ -3878,10 +3884,10 @@ function renderTVGetReady() {
 
     return `<div style="background:#fff;border-radius:10px;padding:12px 14px;border-left:5px solid ${border}">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-        <div style="font-size:20px;font-weight:800;color:#00095b;line-height:1">${d.stock||'-'}</div>
+        <div style="font-size:20px;font-weight:800;color:#00095b;line-height:1">${esc(d.stock||'-')}</div>
         <span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:${typeBg};color:${typeColor};text-transform:uppercase;letter-spacing:.04em;margin-left:auto;white-space:nowrap">${typeLabel}</span>
       </div>
-      ${d.vehicle?`<div style="font-size:10px;color:#64748b;margin-bottom:4px">${d.vehicle}</div>`:''}
+      ${d.vehicle?`<div style="font-size:10px;color:#64748b;margin-bottom:4px">${esc(d.vehicle)}</div>`:''}
       ${delivLabel?`<div style="font-size:11px;font-weight:700;color:#6d28d9;margin-bottom:4px">📅 ${delivLabel}</div>`:''}
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
         <span style="font-size:10px;font-weight:700;color:${gasColor}">${gasLabel}</span>
@@ -3889,7 +3895,7 @@ function renderTVGetReady() {
       </div>
       <div style="height:3px;background:#e2e8f0;border-radius:99px;margin-bottom:5px"><div style="height:100%;width:${pct}%;background:${barColor};border-radius:99px"></div></div>
       <div style="display:flex;gap:3px;flex-wrap:wrap">${dots}</div>
-      ${d.salesperson?`<div style="font-size:10px;color:#94a3b8;margin-top:4px">${d.salesperson}</div>`:''}
+      ${d.salesperson?`<div style="font-size:10px;color:#94a3b8;margin-top:4px">${esc(d.salesperson)}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -4186,10 +4192,10 @@ function renderTracker() {
       <div class="tracker-card-header">
         <div class="tracker-card-stock">
           ${canEdit?`<input type="checkbox" class="row-select row-cb" ${isSelected?'checked':''} onchange="toggleRowSelect('${u.id}',this.checked)" style="width:15px;height:15px;accent-color:var(--ford);cursor:pointer;flex-shrink:0"/>`:''}
-          <span>${u.stock||'-'}</span>
+          <span>${esc(u.stock||'-')}</span>
           ${condBadge}${completeBadge}${dupeBadge}
         </div>
-        <div class="tracker-card-vin">${u.vin||''}</div>
+        <div class="tracker-card-vin">${esc(u.vin||'')}</div>
         <div class="tracker-card-vehicle">${u.vehicle||[u.year,u.type,u.trim,u.colour].filter(Boolean).join(' · ')||''}</div>
         ${stickerBtn?`<div style="margin-top:6px">${stickerBtn}</div>`:''}
       </div>
@@ -4217,11 +4223,11 @@ function renderTracker() {
         ${u.workReq?`<span style="font-size:12px;font-family:monospace;color:var(--text-faint)">${u.workReq}</span>`:''}
       </div>
       <div class="tracker-card-notes">
-        <textarea placeholder="Add notes…" onchange="inlineNotes('${u.id}',this.value)" onblur="inlineNotes('${u.id}',this.value)">${u.notes||''}</textarea>
+        <textarea placeholder="Add notes…" onchange="inlineNotes('${u.id}',this.value)" onblur="inlineNotes('${u.id}',this.value)">${esc(u.notes||'')}</textarea>
       </div>
       ${canEdit?`<div class="tracker-card-actions">
         <button class="btn-tedit" onclick="openUnitModal('${u.id}')">✎ Edit</button>
-        <button class="btn-tdel" onclick="deleteUnit('${u.id}','${(u.stock||u.vin).replace(/'/g,"\\'")}')">✕</button>
+        <button class="btn-tdel" onclick="deleteUnit('${u.id}','${(u.stock||u.vin).replace(/"/g,'&quot;').replace(/'/g,"\\'")}')">✕</button>
       </div>`:''}
     </div>`;
   }
@@ -4737,8 +4743,8 @@ function renderGRCalendar() {
     <div class="tracker-card-grid">
       ${unscheduled.map(d => `<div class="entry" onclick="openGRModal('${d.id}')" style="cursor:pointer">
         <div style="flex:1">
-          <div class="entry-stock">${d.stock||'—'}</div>
-          <div class="entry-meta">${d.vehicle||''}${d.customer?' · '+d.customer:''}</div>
+          <div class="entry-stock">${esc(d.stock||'—')}</div>
+          <div class="entry-meta">${esc(d.vehicle||'')}${d.customer?' · '+esc(d.customer):''}</div>
         </div>
       </div>`).join('')}
     </div>` : '';
@@ -4825,28 +4831,28 @@ function renderGRCard(d, perms, isDupe) {
     return `<div class="gr-card${isComplete?' is-complete':' '+typeClass}" id="gr-${d.id}" style="${d.needsAcknowledgment?'border-left:4px solid #7c3aed;background:#faf5ff':isDupe(d)?'border-left:4px solid #dc2626':''}">
       <div class="gr-card-header">
         <div class="gr-card-top">
-          <span class="gr-card-stock">${d.stock||'-'}</span>
-          <span class="gr-type-pill ${typePillClass}">${d.type||'-'}</span>
+          <span class="gr-card-stock">${esc(d.stock||'-')}</span>
+          <span class="gr-type-pill ${typePillClass}">${esc(d.type||'-')}</span>
           ${completeBadge}${holdBadge}${updatedBadge}${dupeBadge}
         </div>
-        <div class="gr-card-vehicle">${d.vehicle||'-'}${d.vin?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">${d.vin}</span>`:''}</div>
-        ${d.customer?`<div class="gr-card-customer">${d.customer}${d.salesperson?' · '+d.salesperson:''}</div>`:''}
+        <div class="gr-card-vehicle">${esc(d.vehicle||'-')}${d.vin?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">${esc(d.vin)}</span>`:''}</div>
+        ${d.customer?`<div class="gr-card-customer">${esc(d.customer)}${d.salesperson?' · '+esc(d.salesperson):''}</div>`:''}
         ${financingLabel?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">💳 ${financingLabel}</div>`:''}
-        ${d.needsAcknowledgment?`<div style="font-size:11px;color:#7c3aed;font-weight:700;margin-top:4px">🔶 Updated by ${d.updatedFieldsBy||'someone'} - delivery, gas, or trade-in info changed</div>`:''}
+        ${d.needsAcknowledgment?`<div style="font-size:11px;color:#7c3aed;font-weight:700;margin-top:4px">🔶 Updated by ${esc(d.updatedFieldsBy||'someone')} - delivery, gas, or trade-in info changed</div>`:''}
       </div>
       ${gasBanner}
       ${d.deliveryDate?`<div class="gr-delivery">📅 Delivery: <strong>${fmtGRDate(d.deliveryDate,d.deliveryTime)}</strong></div>`:''}
-      <div style="padding:6px 16px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text-muted)">🪪 ${d.plateType==='TRANSFER'?'License Plate Transfer':'New License Plates'}${d.licensingNotes?` - ${d.licensingNotes}`:''}</div>
+      <div style="padding:6px 16px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text-muted)">🪪 ${d.plateType==='TRANSFER'?'License Plate Transfer':'New License Plates'}${d.licensingNotes?` - ${esc(d.licensingNotes)}`:''}</div>
       ${dealTrades.length ? `<div style="padding:8px 16px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px">
         <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Trade-ins</div>
         ${dealTrades.map((t,i) => `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
             <span style="background:${i%2===0?'#dbeafe':'#ede9fe'};color:${i%2===0?'#1d4ed8':'#6d28d9'};font-weight:700;padding:1px 6px;border-radius:3px;font-size:9px;flex-shrink:0">T${i+1}</span>
-            <span style="font-weight:700;color:var(--text);font-size:13px">${t.stock}</span>
+            <span style="font-weight:700;color:var(--text);font-size:13px">${esc(t.stock)}</span>
             <span style="font-size:9px;font-weight:700;color:#7c3aed;text-transform:uppercase">${({RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'})[t.category]||'Retail'}</span>
             ${t.kms?`<span style="font-size:11px;color:var(--text-faint);margin-left:auto">${Number(t.kms).toLocaleString()} km</span>`:''}
           </div>
-          <div style="font-size:11px;color:var(--text-muted)">${[t.year,t.make,t.model,t.colour].filter(Boolean).join(' · ')}${t.vin?` · ${t.vin}`:''}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${[t.year,t.make,t.model,t.colour].filter(Boolean).join(' · ')}${t.vin?` · ${esc(t.vin)}`:''}</div>
         </div>`).join('')}
       </div>` : ''}
       <div class="gr-checklist">
@@ -4865,7 +4871,7 @@ function renderGRCard(d, perms, isDupe) {
       </div>` : ''}
       ${d.instructions?`<div style="padding:8px 16px;font-size:12px;color:#92400e;background:#fffbeb;border-bottom:1px solid var(--border)">⚠ ${d.instructions}</div>`:''}
       <div class="gr-notes">
-        <textarea placeholder="Add notes…" ${canFull?'':'readonly'} onchange="grNotes('${d.id}',this.value)" onblur="grNotes('${d.id}',this.value)">${d.notes||''}</textarea>
+        <textarea placeholder="Add notes…" ${canFull?'':'readonly'} onchange="grNotes('${d.id}',this.value)" onblur="grNotes('${d.id}',this.value)">${esc(d.notes||'')}</textarea>
       </div>
       ${canFull?`<div class="gr-card-actions">
         <button class="btn-tedit" onclick="openGRModal('${d.id}')">✎ Edit</button>
@@ -4876,7 +4882,7 @@ function renderGRCard(d, perms, isDupe) {
         ${hasTrade && !d.dealCompleted && !d.dealStatus && canCompleteDeal ? `<button class="btn-tedit" onclick="setGRDealStatus('${d.id}','on_hold')" style="background:#f8fafc;color:#64748b">⏸ Hold</button>` : ''}
         ${hasTrade && !d.dealCompleted && !d.dealStatus && canCompleteDeal ? `<button class="btn-tedit" onclick="setGRDealStatus('${d.id}','declined')" style="background:#f8fafc;color:#64748b">❌ Decline</button>` : ''}
         ${hasTrade && !d.dealCompleted && d.dealStatus && canCompleteDeal ? `<button class="btn-tedit" onclick="setGRDealStatus('${d.id}',null)" style="background:#eff6ff;color:#1d4ed8;font-weight:700">▶ Resume</button>` : ''}
-        <button class="btn-tdel" onclick="deleteGR('${d.id}','${(d.stock||d.customer||'').replace(/'/g,"\\'")}')">✕</button>
+        <button class="btn-tdel" onclick="deleteGR('${d.id}','${(d.stock||d.customer||'').replace(/"/g,'&quot;').replace(/'/g,"\\'")}')">✕</button>
       </div>`:''}
     </div>`;
   }
@@ -5176,9 +5182,9 @@ function renderCompoundHistory() {
     const dt = new Date(h.ts);
     const when = dt.toLocaleDateString([],{month:'short',day:'numeric'}) + ' · ' + dt.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',hour12:true});
     return `<div style="display:grid;grid-template-columns:110px 1fr 130px;gap:0;padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px;align-items:center">
-      <div style="color:var(--text-muted)">${CM_LOT_LABELS[h.lot]||h.lot||'-'}</div>
-      <div>${h.detail||h.action||'-'}</div>
-      <div style="text-align:right"><div style="font-weight:600">${h.by||'-'}</div><div style="font-size:11px;color:var(--text-faint)">${when}</div></div>
+      <div style="color:var(--text-muted)">${esc(CM_LOT_LABELS[h.lot]||h.lot||'-')}</div>
+      <div>${esc(h.detail||h.action||'-')}</div>
+      <div style="text-align:right"><div style="font-weight:600">${esc(h.by||'-')}</div><div style="font-size:11px;color:var(--text-faint)">${when}</div></div>
     </div>`;
   }).join('');
 }
@@ -5223,7 +5229,7 @@ function renderHistory() {
       const avgColor=avg2<=MOVE_MINS?'#15803d':avg2<=MOVE_MINS*1.5?'#d97706':'#dc2626';
       const initials=a.name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
       const rankBadge=i<3?`<span style="font-size:18px">${ranks[i]}</span>`:`<span style="font-size:13px;color:var(--text-faint)">#${i+1}</span>`;
-      return `<div class="attendant-card"><div class="attendant-name"><div class="attendant-avatar">${initials}</div>${a.name}<span style="margin-left:auto">${rankBadge}</span></div><div class="attendant-stats"><div class="att-stat"><div class="att-stat-num">${a.moves}</div><div class="att-stat-label">Total moves</div></div><div class="att-stat"><div class="att-stat-num" style="color:${avgColor}">${avg2} min</div><div class="att-stat-label">Avg hold time</div></div><div class="att-stat"><div class="att-stat-num" style="color:#15803d">${a.fastest===Infinity?'-':a.fastest+' min'}</div><div class="att-stat-label">Quickest</div></div><div class="att-stat"><div class="att-stat-num" style="color:#dc2626">${a.slowest} min</div><div class="att-stat-label">Longest hold</div></div></div><div class="speed-bar-wrap"><div class="speed-bar-label"><span>Volume vs top</span><span>${a.moves} moves</span></div><div class="speed-bar-track"><div class="speed-bar-fill" style="width:${pct}%;background:${avgColor}"></div></div></div></div>`;
+      return `<div class="attendant-card"><div class="attendant-name"><div class="attendant-avatar">${initials}</div>${esc(a.name)}<span style="margin-left:auto">${rankBadge}</span></div><div class="attendant-stats"><div class="att-stat"><div class="att-stat-num">${a.moves}</div><div class="att-stat-label">Total moves</div></div><div class="att-stat"><div class="att-stat-num" style="color:${avgColor}">${avg2} min</div><div class="att-stat-label">Avg hold time</div></div><div class="att-stat"><div class="att-stat-num" style="color:#15803d">${a.fastest===Infinity?'-':a.fastest+' min'}</div><div class="att-stat-label">Quickest</div></div><div class="att-stat"><div class="att-stat-num" style="color:#dc2626">${a.slowest} min</div><div class="att-stat-label">Longest hold</div></div></div><div class="speed-bar-wrap"><div class="speed-bar-label"><span>Volume vs top</span><span>${a.moves} moves</span></div><div class="speed-bar-track"><div class="speed-bar-fill" style="width:${pct}%;background:${avgColor}"></div></div></div></div>`;
     }).join('');}
   }
   const logEl=document.getElementById('history-log');
@@ -5232,7 +5238,7 @@ function renderHistory() {
     else{logEl.innerHTML=hist.slice(0,100).map(h=>{
       const dc=h.durationMins<=MOVE_MINS?'fast':h.durationMins<=MOVE_MINS*1.5?'':'slow';
       const date=new Date(h.ts).toLocaleDateString([],{month:'short',day:'numeric'});
-      return `<div class="history-row"><div style="font-weight:600">${h.stock}</div><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--text-muted)">${h.dest}</div><div>${h.claimedBy||'-'}</div><div style="color:var(--text-muted)">${h.requestedBy||'-'}</div><div class="history-duration ${dc}">${h.durationMins} min</div><div style="font-size:12px;color:var(--text-faint)">${date}</div></div>`;
+      return `<div class="history-row"><div style="font-weight:600">${esc(h.stock)}</div><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--text-muted)">${esc(h.dest)}</div><div>${esc(h.claimedBy||'-')}</div><div style="color:var(--text-muted)">${esc(h.requestedBy||'-')}</div><div class="history-duration ${dc}">${h.durationMins} min</div><div style="font-size:12px;color:var(--text-faint)">${date}</div></div>`;
     }).join('');}
   }
 }
@@ -5333,7 +5339,7 @@ async function sendNotificationEmail(templateId, params) {
     // EmailJS errors normally carry a status code and a text description -
     // e.g. 400 "The recipients address is empty", 401/403 for a bad key or
     // blocked origin, 404 for a template/service ID that doesn't exist.
-    lastEmailError = e?.text ? `${e.status ? e.status+': ' : ''}${e.text}` : (e?.message || String(e));
+    lastEmailError = e?.text ? `${e.status ? e.status+': ' : ''}${esc(e.text)}` : (e?.message || String(e));
     console.error('Email send failed:', e);
     return false;
   }
@@ -5646,9 +5652,9 @@ window.printTodaysDrops = function() {
   const rows = drops.map((u,i) => `
     <tr style="background:${i%2===0?'#fff':'#f8fafc'}">
       <td>${u.arrived||'-'}</td>
-      <td style="font-weight:700;color:#00095b">${u.stock||'-'}</td>
-      <td style="font-size:10px;font-family:monospace;color:#64748b">${u.vin||'-'}</td>
-      <td style="font-weight:500">${u.vehicle||'-'}</td>
+      <td style="font-weight:700;color:#00095b">${esc(u.stock||'-')}</td>
+      <td style="font-size:10px;font-family:monospace;color:#64748b">${esc(u.vin||'-')}</td>
+      <td style="font-weight:500">${esc(u.vehicle||'-')}</td>
       <td style="text-align:center">${u.kms||'-'}</td>
       <td style="text-align:center">
         <span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;background:${
@@ -5660,7 +5666,7 @@ window.printTodaysDrops = function() {
       <td style="font-family:monospace;font-size:10px;color:#64748b">${u.workReq||'-'}</td>
       <td style="text-align:center">${ck(u.accessories)}</td>
       <td style="text-align:center">${ck(u.pdi)}</td>
-      <td style="max-width:160px;font-size:10px;color:#475569">${u.notes||''}</td>
+      <td style="max-width:160px;font-size:10px;color:#475569">${esc(u.notes||'')}</td>
     </tr>`).join('');
 
   const html = `<!DOCTYPE html>
@@ -5699,7 +5705,7 @@ window.printTodaysDrops = function() {
     </div>
     <div class="header-right">
       <div class="date">Today's Drops - ${todayFriendly} <span class="count-badge">${drops.length} unit${drops.length!==1?'s':''}</span></div>
-      <div class="sub">Printed ${now.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',hour12:true})} by ${currentUser?.name||'-'}</div>
+      <div class="sub">Printed ${now.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',hour12:true})} by ${esc(currentUser?.name||'-')}</div>
     </div>
   </div>
 
@@ -5819,11 +5825,11 @@ function renderHomeGrid() {
 
   grid.innerHTML = tiles.map(t => {
     const badgeNum = t.badge ? t.badge() : null;
-    return `<div class="home-tile tone-${t.tone}" onclick="switchTab('${t.name}',document.getElementById('tab-${t.name}'))">
+    return `<div class="home-tile tone-${t.tone}" onclick="switchTab('${esc(t.name)}',document.getElementById('tab-${esc(t.name)}'))">
       ${badgeNum ? `<div class="home-tile-badge">${badgeNum}</div>` : ''}
       <div class="home-tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${t.icon}</svg></div>
       <div class="home-tile-title">${t.title}</div>
-      <div class="home-tile-desc">${t.desc}</div>
+      <div class="home-tile-desc">${esc(t.desc)}</div>
     </div>`;
   }).join('');
 }
@@ -5948,7 +5954,7 @@ function cmRenderMap() {
     } else {
       whenLabel = a.status === 'in_progress' ? 'On the way' : 'ASAP';
     }
-    apptMap[stock] = { label: `📅 ${a.department} - ${whenLabel}`, status: a.status };
+    apptMap[stock] = { label: `📅 ${esc(a.department)} - ${whenLabel}`, status: a.status };
   });
   // Same purple styling applies to vehicles with an active pickup ride -
   // someone's coming for this car, same visual meaning as an appointment.
@@ -6209,13 +6215,13 @@ window.cmOpenQuickActions = function(key, ri, ci) {
   const bubbles = [];
   if (veh.note) {
     const delBtn = canDeleteNote(null) ? `<button onclick="cmDeleteLegacyNote()" class="cm-note-del" title="Remove note">✕</button>` : '';
-    bubbles.push(`<div class="cm-note-bubble"><div class="cm-note-text">${veh.note}</div><div class="cm-note-meta"><span>General note</span>${delBtn}</div></div>`);
+    bubbles.push(`<div class="cm-note-bubble"><div class="cm-note-text">${esc(veh.note)}</div><div class="cm-note-meta"><span>General note</span>${delBtn}</div></div>`);
   }
   (Array.isArray(veh.notes) ? veh.notes : []).map((n,idx)=>({...n,idx})).reverse().forEach(n => {
     const dt = new Date(n.ts);
     const when = dt.toLocaleDateString([],{month:'short',day:'numeric'}) + ' · ' + dt.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',hour12:true});
     const delBtn = canDeleteNote(n.by) ? `<button onclick="cmDeleteNote(${n.idx})" class="cm-note-del" title="Remove note">✕</button>` : '';
-    bubbles.push(`<div class="cm-note-bubble"><div class="cm-note-text">${n.text}</div><div class="cm-note-meta"><span>${n.by||'Unknown'} · ${when}</span>${delBtn}</div></div>`);
+    bubbles.push(`<div class="cm-note-bubble"><div class="cm-note-text">${esc(n.text)}</div><div class="cm-note-meta"><span>${esc(n.by||'Unknown')} · ${when}</span>${delBtn}</div></div>`);
   });
   notesListEl.innerHTML = bubbles.length ? bubbles.join('') : '<div style="font-size:12px;color:var(--text-faint)">No notes yet.</div>';
 
@@ -6239,7 +6245,7 @@ window.cmOpenQuickActions = function(key, ri, ci) {
   if (activeTdEntry) {
     const [tdId, td] = activeTdEntry;
     tdSection.innerHTML = `
-      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:8px;font-size:13px;color:#9a3412">🚗 Out on test drive - ${td.customer}</div>
+      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:8px;font-size:13px;color:#9a3412">🚗 Out on test drive - ${esc(td.customer)}</div>
       <button onclick="cmQuickMarkReturned('${tdId}')" style="width:100%;padding:10px;border:none;border-radius:var(--radius-sm);background:#15803d;color:#fff;font-size:14px;font-weight:600;cursor:pointer">✓ Mark Returned</button>`;
   } else {
     tdSection.innerHTML = `<button onclick="cmQuickStartTestDrive()" style="width:100%;padding:10px;border:none;border-radius:var(--radius-sm);background:var(--ford);color:#fff;font-size:14px;font-weight:600;cursor:pointer">🚗 Start Test Drive</button>`;
@@ -6389,10 +6395,10 @@ window.cmSpotClick = function(key, ri, ci) {
       ? `<div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px"><span style="font-size:18px">${(v.blockLabel||'').split(' ')[0]||'🚧'}</span><span style="font-size:13px;font-weight:600;color:#64748b">${v.blockLabel||'Blocked area'}</span></div>`
       : `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <span style="font-size:17px;font-weight:800;color:var(--ford)">${v.stock||'-'}</span>
+            <span style="font-size:17px;font-weight:800;color:var(--ford)">${esc(v.stock||'-')}</span>
             ${typeColour ? `<span style="font-size:13px;color:var(--text-muted)">${typeColour}</span>` : ''}
           </div>
-          ${v.note ? `<div style="font-size:12px;color:#b45309;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">📝 ${v.note}</div>` : ''}
+          ${v.note ? `<div style="font-size:12px;color:#b45309;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">📝 ${esc(v.note)}</div>` : ''}
         </div>`;
     document.getElementById('cm-f-stock').value = v.stock||'';
     document.getElementById('cm-f-year').value = v.year||'';
@@ -6972,8 +6978,8 @@ function auditRenderMap() {
           const bg = result?.status === 'confirmed' ? '#dcfce7' :
                      result?.status === 'missing' ? '#fef2f2' : '#fffbeb';
           html += `<div class="${cls}" onclick="auditOpenConfirm('${key}','${spotKey}','${lotId}')"
-            style="width:36px;height:28px;border-radius:3px;flex-shrink:0;background:${bg};cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;position:relative" title="${veh.stock||''}">
-            <div style="font-size:7px;font-weight:800;color:${result?.status==='confirmed'?'#15803d':result?.status==='missing'?'#dc2626':'#92400e'};line-height:1;text-align:center;max-width:34px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${veh.stock||''}</div>
+            style="width:36px;height:28px;border-radius:3px;flex-shrink:0;background:${bg};cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;position:relative" title="${esc(veh.stock||'')}">
+            <div style="font-size:7px;font-weight:800;color:${result?.status==='confirmed'?'#15803d':result?.status==='missing'?'#dc2626':'#92400e'};line-height:1;text-align:center;max-width:34px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(veh.stock||'')}</div>
             ${result?.status==='confirmed'?'<div style="font-size:8px">✓</div>':result?.status==='missing'?'<div style="font-size:8px">⚠</div>':''}
           </div>`;
         }
@@ -7064,14 +7070,14 @@ window.auditOpenConfirm = function(key, spotKey, lotId) {
   document.getElementById('audit-confirm-title').textContent = `Spot ${spotKey.replace('R','R').replace('-C','-')} · ${CM_LOTS[lotId]?.label}`;
   document.getElementById('audit-confirm-vehicle').innerHTML = `
     <div style="display:flex;align-items:center;gap:10px">
-      <div style="font-size:20px;font-weight:800;color:var(--ford)">${veh?.stock||'-'}</div>
+      <div style="font-size:20px;font-weight:800;color:var(--ford)">${esc(veh?.stock||'-')}</div>
       <div style="font-size:13px;color:var(--text-muted)">${[veh?.year,veh?.type,veh?.trim,veh?.colour].filter(Boolean).join(' ')}</div>
     </div>
-    ${result?.status ? `<div style="margin-top:8px;font-size:12px;color:${result.status==='confirmed'?'#15803d':'#dc2626'};font-weight:600">${result.status==='confirmed'?'✓ Already confirmed':'⚠ Flagged as issue'}${result.note?` · ${result.note}`:''}</div>` : ''}`;
+    ${result?.status ? `<div style="margin-top:8px;font-size:12px;color:${result.status==='confirmed'?'#15803d':'#dc2626'};font-weight:600">${result.status==='confirmed'?'✓ Already confirmed':'⚠ Flagged as issue'}${result.note?` · ${esc(result.note)}`:''}</div>` : ''}`;
 
   let fieldsHtml = '';
   if (req.started) fieldsHtml += `<div class="field"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="audit-f-started" ${result?.started?'checked':''} style="width:16px;height:16px;accent-color:var(--ford)"/> Vehicle started successfully</label></div>`;
-  if (req.note) fieldsHtml += `<div class="field"><label>Issue / Note</label><textarea id="audit-f-note" rows="2" placeholder="Describe any issue…" style="width:100%;padding:10px 12px;font-size:13px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;resize:vertical;box-sizing:border-box;margin-top:4px">${result?.note||''}</textarea></div>`;
+  if (req.note) fieldsHtml += `<div class="field"><label>Issue / Note</label><textarea id="audit-f-note" rows="2" placeholder="Describe any issue…" style="width:100%;padding:10px 12px;font-size:13px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;resize:vertical;box-sizing:border-box;margin-top:4px">${esc(result?.note||'')}</textarea></div>`;
   document.getElementById('audit-confirm-fields').innerHTML = fieldsHtml;
 
   document.getElementById('audit-confirm-modal').style.display = 'flex';

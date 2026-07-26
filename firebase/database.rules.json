@@ -1,0 +1,55 @@
+{
+  "rules": {
+    ".read": "auth != null && root.child('users').child(auth.uid).child('status').val() === 'approved'",
+    ".write": "auth != null && root.child('users').child(auth.uid).child('status').val() === 'approved'",
+
+    "tracker": {
+      ".read": "auth.token.firebase.sign_in_provider === 'anonymous' || (auth != null && root.child('users').child(auth.uid).child('status').val() === 'approved')"
+    },
+    "getready": {
+      ".read": "auth.token.firebase.sign_in_provider === 'anonymous' || (auth != null && root.child('users').child(auth.uid).child('status').val() === 'approved')"
+    },
+    "compound_v2": {
+      ".read": "auth.token.firebase.sign_in_provider === 'anonymous' || (auth != null && root.child('users').child(auth.uid).child('status').val() === 'approved')"
+    },
+    "testdrives": {
+      ".read": "auth.token.firebase.sign_in_provider === 'anonymous' || (auth != null && root.child('users').child(auth.uid).child('status').val() === 'approved')"
+    },
+    "rides": {
+      ".read": "auth.token.firebase.sign_in_provider === 'anonymous' || (auth != null && root.child('users').child(auth.uid).child('status').val() === 'approved')"
+    },
+    "appointments": {
+      ".read": "auth.token.firebase.sign_in_provider === 'anonymous' || (auth != null && root.child('users').child(auth.uid).child('status').val() === 'approved')"
+    },
+
+    "driverLocation": {
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid && root.child('users').child(auth.uid).child('status').val() === 'approved'"
+      }
+    },
+
+    "settings": {
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'management'"
+    },
+
+    "meta": {
+      "hasUsers": {
+        ".read": "auth != null",
+        ".write": "auth != null && newData.val() === true"
+      }
+    },
+
+    "users": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'management'",
+      "$uid": {
+        ".read": "auth.uid === $uid",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'management' || (auth.uid === $uid && ((!data.exists() && ((!root.child('users').exists() && newData.child('status').val() === 'approved' && newData.child('role').val() === 'management') || (root.child('users').exists() && newData.child('status').val() === 'pending' && !newData.hasChild('role')))) || (data.exists() && newData.child('status').val() === data.child('status').val() && newData.child('role').val() === data.child('role').val()))))",
+        ".validate": "newData.child('name').isString() && newData.child('name').val().length <= 80"
+      }
+    },
+
+    "permissions": {
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'management'"
+    }
+  }
+}
