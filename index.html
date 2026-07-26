@@ -188,9 +188,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tv-slide{position:absolute;inset:0;display:flex;flex-direction:column;min-height:0;opacity:0;pointer-events:none;transition:opacity .8s ease}
 .tv-slide.active{opacity:1;pointer-events:auto}
 .tv-slide-title{font-size:22px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#fff;margin-bottom:16px;flex-shrink:0;display:flex;align-items:center;gap:10px}
-.tv-slide-dots{display:flex;justify-content:center;gap:9px;padding-top:14px;flex-shrink:0}
-.tv-dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.25);transition:background .3s,transform .3s}
-.tv-dot.active{background:#fff;transform:scale(1.35)}
+/* Progress row under the slides - one segment per section in the rotation.
+   Past sections sit fully lit, the current one fills left-to-right over its
+   whole time on screen (so you can see how long until it moves on), and
+   sections still to come stay dim. The segment count doubles as "how many
+   sections are there" at a glance. */
+.tv-slide-progress{display:flex;align-items:center;gap:14px;padding-top:14px;flex-shrink:0}
+.tv-slide-progress-bars{flex:1;display:flex;gap:8px}
+.tv-progress-seg{flex:1;height:6px;border-radius:99px;background:rgba(255,255,255,.18);overflow:hidden}
+.tv-progress-seg-fill{display:block;height:100%;width:0%;background:#fff;border-radius:99px}
+.tv-slide-count{font-size:13px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.04em;white-space:nowrap;flex-shrink:0}
 
 .tv-incoming-summary{display:flex;gap:10px;margin-bottom:16px;flex-shrink:0}
 .tv-inc-stat{flex:1;background:rgba(255,255,255,.12);border-radius:10px;padding:14px;text-align:center}
@@ -1457,7 +1464,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
             </div>
           </div>
         </div>
-        <div class="tv-sub" id="tv-count">Connecting…</div>
+        <div class="tv-sub" id="tv-count"></div>
         <div class="tv-slides" id="tv-slides">
           <div class="tv-slide active" id="tv-slide-getready">
             <div class="tv-slide-title" id="tv-title-getready">Get Ready</div>
@@ -1474,18 +1481,21 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           </div>
           <div class="tv-slide" id="tv-slide-pickups">
             <div class="tv-slide-title" id="tv-title-rides">Pickups - Get Ready for Pickup</div>
-            <div id="tv-rides-list" class="tv-slide-grid tv-slide-grid-3"></div>
-          </div>
-          <div class="tv-slide" id="tv-slide-returns">
-            <div class="tv-slide-title">↩️ Dropoffs - Returns Coming In</div>
-            <div id="tv-returns-list" class="tv-slide-grid tv-slide-grid-3"></div>
+            <div id="tv-rides-list" class="tv-slide-grid tv-slide-grid-3" style="flex:1.1"></div>
+            <div id="tv-returns-section" style="display:flex;flex-direction:column;flex:1;min-height:0;margin-top:16px;border-top:1px solid rgba(255,255,255,.15);padding-top:16px">
+              <div class="tv-slide-title" style="font-size:16px;margin-bottom:12px">↩️ Dropoffs - Returns Coming In</div>
+              <div id="tv-returns-list" class="tv-slide-grid tv-slide-grid-3"></div>
+            </div>
           </div>
           <div class="tv-slide" id="tv-slide-appointments">
             <div class="tv-slide-title">📅 Vehicle Appointments</div>
             <div id="tv-appt-list" class="tv-slide-grid tv-slide-grid-3"></div>
           </div>
         </div>
-        <div class="tv-slide-dots" id="tv-slide-dots"></div>
+        <div class="tv-slide-progress">
+          <div class="tv-slide-progress-bars" id="tv-slide-dots"></div>
+          <div class="tv-slide-count" id="tv-slide-count"></div>
+        </div>
         <div id="tv-hint" style="position:absolute;bottom:14px;right:18px;font-size:10px;opacity:.15;color:white;user-select:none">Hold to show controls</div>
       </div>
     </div>
@@ -2153,6 +2163,25 @@ let viewParamApplied = false; // ensures ?view=shuttle only redirects once per s
 let userApprovalUnsub = null;
 let tvLocation = null; // e.g. '323 Bayview' - set via ?loc= on the TV display URL, filters its boards to that lot
 
+// ── Connection indicator (shared by the TV display and the header sync dot) ─
+// "Live" only when the browser itself has a network connection AND Firebase
+// confirms it's actually connected - either one being down turns it red, since
+// a browser with no internet at all can still be sitting on a stale "connected"
+// Firebase cache for a moment.
+let browserOnline = navigator.onLine;
+let firebaseConnected = false;
+function updateConnectionIndicator() {
+  const isLive = browserOnline && firebaseConnected;
+  const dot = document.getElementById('tv-conn-dot');
+  const label = document.getElementById('tv-conn-label');
+  if (dot) dot.style.background = isLive ? '#22c55e' : '#ef4444';
+  if (label) label.textContent = isLive ? 'Live' : (browserOnline ? 'Reconnecting…' : 'Offline');
+  const syncDot = document.getElementById('sync-dot');
+  if (syncDot) syncDot.className = 'sync-dot ' + (isLive ? 'live' : 'error');
+}
+window.addEventListener('online', () => { browserOnline = true; updateConnectionIndicator(); });
+window.addEventListener('offline', () => { browserOnline = false; updateConnectionIndicator(); });
+
 function loadIdentity() {
   const isDisplay = new URLSearchParams(window.location.search).get('display') === 'true';
   if (isDisplay) {
@@ -2165,15 +2194,17 @@ function loadIdentity() {
     }
     // TV kiosk screens have no person present to sign in - use a silent anonymous session.
     currentUser = {name:'Display', role:'display'};
-    const showTvStatus = (msg, isError) => {
+    // The connection dot up top already shows live/offline at a glance, so this
+    // line stays empty unless something's actually wrong - there's no devtools
+    // on most kiosk hardware, so real errors need to be visible on-screen.
+    const showTvStatus = (msg) => {
       const el = document.getElementById('tv-count');
-      if (el) { el.textContent = msg; el.style.color = isError ? '#fca5a5' : ''; el.style.opacity = isError ? '1' : ''; }
+      if (el) { el.textContent = msg; el.style.color = '#fca5a5'; el.style.opacity = '1'; }
     };
     signInAnonymously(auth)
-      .then(() => showTvStatus('Connected', false))
       .catch(err => {
         console.error('Firebase auth error:', err);
-        showTvStatus(`⚠ Sign-in failed: ${err.code || err.message || 'unknown error'}`, true);
+        showTvStatus(`⚠ Sign-in failed: ${err.code || err.message || 'unknown error'}`);
       });
     startApp();
     // If sign-in genuinely never resolved after a while, make that visible
@@ -2181,7 +2212,7 @@ function loadIdentity() {
     // Checks the real auth state, not a text field nothing else updates.
     setTimeout(() => {
       if (!auth.currentUser) {
-        showTvStatus('⚠ Still not connected after 10s - Firebase sign-in likely failed silently. Check network/database rules.', true);
+        showTvStatus('⚠ Still not connected after 10s - Firebase sign-in likely failed silently. Check network/database rules.');
       }
     }, 10000);
     return;
@@ -2398,15 +2429,14 @@ function startApp() {
 
   // Live connection indicator - Firebase's own built-in "am I actually connected
   // right now" signal, which is more reliable than inferring it from any one
-  // listener. Drives the dot next to the clock on the TV display.
+  // listener, combined with the browser's own online/offline state (Firebase
+  // can report "connected" from a stale cache for a moment even with no
+  // internet at all). Drives both the dot next to the clock on the TV display
+  // and the small sync dot in the regular app header - one signal, shown the
+  // same way in both places, so "green" always means the same thing.
   onValue(ref(db, '.info/connected'), (snap) => {
-    const isConnected = snap.val() === true;
-    const dot = document.getElementById('tv-conn-dot');
-    const label = document.getElementById('tv-conn-label');
-    if (dot) dot.style.background = isConnected ? '#22c55e' : '#ef4444';
-    if (label) label.textContent = isConnected ? 'Live' : 'Reconnecting…';
-    const syncDot = document.getElementById('sync-dot');
-    if (syncDot && isConnected) syncDot.className = 'sync-dot live';
+    firebaseConnected = snap.val() === true;
+    updateConnectionIndicator();
   });
 
   // Live "someone else is editing this" badges - one shared listener on the
@@ -3938,10 +3968,22 @@ function renderTVCompoundMap() {
     titleEl.innerHTML = `Compound - 700 Bayview<br><span style="font-size:9px;font-weight:600;letter-spacing:.04em;opacity:.7;text-transform:none">${total} cars &nbsp;·&nbsp; ${flagged} flagged &nbsp;·&nbsp; ${wholesale} wholesale &nbsp;·&nbsp; ${fleet} fleet &nbsp;·&nbsp; ${lease} lease return &nbsp;·&nbsp; ${appts} appts &nbsp;·&nbsp; ${gr} get ready &nbsp;·&nbsp; ${outTd} on test drive</span>`;
   }
 
-  let html = '';
-  const numCols = size.cols || 52;
-  const numRows = size.rows || 13;
+  // The configured grid (e.g. 52x13) is sized for the whole physical lot,
+  // but most of it is usually empty - showing every unused row/column just
+  // wastes screen space on a full-slide map. Trim to the actual bounding
+  // box of spots that are in use (populated, regardless of status), so the
+  // TV only shows as much grid as there's real data to show.
+  let maxRow = -1, maxCol = -1;
+  Object.keys(v).forEach(key => {
+    const m = key.match(/^R(\d+)-C(\d+)$/);
+    if (!m) return;
+    maxRow = Math.max(maxRow, parseInt(m[1], 10));
+    maxCol = Math.max(maxCol, parseInt(m[2], 10));
+  });
+  const numCols = maxCol >= 0 ? maxCol + 1 : (size.cols || 52);
+  const numRows = maxRow >= 0 ? maxRow + 1 : (size.rows || 13);
 
+  let html = '';
   html += `<div style="width:100%;display:flex;flex-direction:column;gap:1px">`;
   for (let ri = 0; ri < numRows; ri++) {
     html += `<div style="display:flex;width:100%;gap:1px">`;
@@ -3995,25 +4037,45 @@ function setupTvSlides() {
   if (!slidesWrap) return;
   // Returns are only a meaningful concept at 323 Bayview (or an unfiltered/
   // all-lots display) - same rule renderTVRides uses for what it puts in
-  // the list. If it doesn't apply here, just leave that slide out of the
-  // rotation entirely rather than showing an empty "Dropoffs" slide.
+  // the list. Pickups and Dropoffs share one slide; when returns don't
+  // apply here, the Dropoffs half of that slide is just hidden and Pickups
+  // gets the whole thing to itself.
   const showReturns = !tvLocation || tvLocation === '323 Bayview';
-  const order = ['getready', 'incoming', 'compound', 'pickups', ...(showReturns ? ['returns'] : []), 'appointments'];
-  const slides = order.map(name => document.getElementById('tv-slide-' + name)).filter(Boolean);
-  // Each slide's scrollable list, if it has one - the map sizes itself to
-  // fit and never needs to scroll.
-  const scrollTargets = { getready: 'tv-gr-list', incoming: 'tv-inc-list', pickups: 'tv-rides-list', returns: 'tv-returns-list', appointments: 'tv-appt-list' };
+  const returnsSection = document.getElementById('tv-returns-section');
+  if (returnsSection) returnsSection.style.display = showReturns ? 'flex' : 'none';
 
-  const dotsEl = document.getElementById('tv-slide-dots');
-  if (dotsEl) dotsEl.innerHTML = slides.map(() => '<span class="tv-dot"></span>').join('');
-  const dots = dotsEl ? Array.from(dotsEl.children) : [];
+  const order = ['getready', 'incoming', 'compound', 'pickups', 'appointments'];
+  const slides = order.map(name => document.getElementById('tv-slide-' + name)).filter(Boolean);
+  // Each slide's scrollable list(s), if any - the map sizes itself to fit
+  // and never needs to scroll.
+  const scrollTargets = {
+    getready: ['tv-gr-list'], incoming: ['tv-inc-list'],
+    pickups: showReturns ? ['tv-rides-list', 'tv-returns-list'] : ['tv-rides-list'],
+    appointments: ['tv-appt-list'],
+  };
+
+  const barsEl = document.getElementById('tv-slide-dots');
+  if (barsEl) barsEl.innerHTML = slides.map(() => '<span class="tv-progress-seg"><span class="tv-progress-seg-fill"></span></span>').join('');
+  const segFills = barsEl ? Array.from(barsEl.querySelectorAll('.tv-progress-seg-fill')) : [];
+  const countEl = document.getElementById('tv-slide-count');
 
   let idx = 0;
   function show(i) {
     slides.forEach((s, j) => s.classList.toggle('active', j === i));
-    dots.forEach((d, j) => d.classList.toggle('active', j === i));
-    const listId = scrollTargets[order[i]];
-    if (listId) autoScrollSlideOnce(document.getElementById(listId), TV_SLIDE_MS - 3000);
+    segFills.forEach((fill, j) => {
+      fill.style.transition = 'none';
+      fill.style.width = j < i ? '100%' : '0%';
+      if (j === i) {
+        // Force a reflow so the browser registers the 0% width before we
+        // start animating to 100%, otherwise it can just jump to the end.
+        void fill.offsetWidth;
+        fill.style.transition = `width ${TV_SLIDE_MS}ms linear`;
+        fill.style.width = '100%';
+      }
+    });
+    if (countEl) countEl.textContent = `${i + 1} / ${slides.length}`;
+    (scrollTargets[order[i]] || []).forEach(listId =>
+      autoScrollSlideOnce(document.getElementById(listId), TV_SLIDE_MS - 3000));
   }
   show(0);
   if (slides.length > 1) {
