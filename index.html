@@ -180,38 +180,46 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tv-title-icon svg{width:22px;height:22px;fill:none;stroke:var(--ford);stroke-width:2}
 .tv-clock{font-size:36px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums}
 .tv-sub{font-size:12px;color:rgba(255,255,255,.45);font-weight:700;margin-bottom:14px;text-transform:uppercase;letter-spacing:.1em;flex-shrink:0}
-.tv-body{flex:1;overflow:hidden;display:flex;flex-direction:row;gap:16px}
-.tv-col-queue{flex:1.4;overflow:hidden;display:flex;flex-direction:column;min-width:0}
-.tv-col-incoming{flex:1.2;overflow:hidden;display:flex;flex-direction:column;min-width:0;border-left:1px solid rgba(255,255,255,.15);padding-left:18px}
-.tv-col-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#fff;margin-bottom:10px;flex-shrink:0}
-.tv-incoming-summary{display:flex;gap:6px;margin-bottom:10px;flex-shrink:0}
-.tv-inc-stat{flex:1;background:rgba(255,255,255,.12);border-radius:8px;padding:8px;text-align:center}
-.tv-inc-stat-num{font-size:20px;font-weight:800;letter-spacing:-.02em;color:#fff}
-.tv-inc-stat-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.5);margin-top:1px}
 
-/* Tile grid */
-.tv-inc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;overflow-y:auto;flex:1;align-content:start}
-.tv-inc-grid::-webkit-scrollbar{width:3px}
-.tv-inc-grid::-webkit-scrollbar-track{background:transparent}
-.tv-inc-grid::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:99px}
+/* Rotating slides - one section at a time, full size, instead of every
+   section crammed into a permanent 3-column grid. Slides stack on top of
+   each other and crossfade; only the .active one is interactive/visible. */
+.tv-slides{flex:1;position:relative;min-height:0}
+.tv-slide{position:absolute;inset:0;display:flex;flex-direction:column;min-height:0;opacity:0;pointer-events:none;transition:opacity .8s ease}
+.tv-slide.active{opacity:1;pointer-events:auto}
+.tv-slide-title{font-size:22px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#fff;margin-bottom:16px;flex-shrink:0;display:flex;align-items:center;gap:10px}
+.tv-slide-dots{display:flex;justify-content:center;gap:9px;padding-top:14px;flex-shrink:0}
+.tv-dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.25);transition:background .3s,transform .3s}
+.tv-dot.active{background:#fff;transform:scale(1.35)}
 
-/* Each tile - white bg */
-.tv-inc-tile{background:#fff;border-radius:10px;overflow:hidden;color:var(--ford);display:flex;flex-direction:column}
-.tv-inc-tile.status-sold    {border-top:4px solid #dc2626}
-.tv-inc-tile.status-turnover{border-top:4px solid #d97706}
-.tv-inc-tile.status-stock   {border-top:4px solid #1d4ed8}
-.tv-inc-tile.is-done        {border-top:4px solid #15803d;opacity:.7}
-.tv-inc-tile-body{padding:8px 10px 6px;flex:1}
-.tv-inc-tile-top{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:2px}
-.tv-inc-tile-stock{font-size:17px;font-weight:800;color:var(--ford);letter-spacing:-.01em}
-.tv-inc-tile-status{font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em;flex-shrink:0}
-.tv-inc-tile-vehicle{font-size:10px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px}
+.tv-incoming-summary{display:flex;gap:10px;margin-bottom:16px;flex-shrink:0}
+.tv-inc-stat{flex:1;background:rgba(255,255,255,.12);border-radius:10px;padding:14px;text-align:center}
+.tv-inc-stat-num{font-size:32px;font-weight:800;letter-spacing:-.02em;color:#fff}
+.tv-inc-stat-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.5);margin-top:2px}
+
+/* Card grid - shared by every slide's list of pills */
+.tv-slide-grid{display:grid;gap:16px;overflow-y:hidden;flex:1;align-content:start;min-height:0}
+.tv-slide-grid-3{grid-template-columns:repeat(3,1fr)}
+.tv-slide-grid-4{grid-template-columns:repeat(4,1fr)}
+.tv-compound-wrap{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0}
+
+/* Each incoming-unit tile - white bg */
+.tv-inc-tile{background:#fff;border-radius:12px;overflow:hidden;color:var(--ford);display:flex;flex-direction:column}
+.tv-inc-tile.status-sold    {border-top:5px solid #dc2626}
+.tv-inc-tile.status-turnover{border-top:5px solid #d97706}
+.tv-inc-tile.status-stock   {border-top:5px solid #1d4ed8}
+.tv-inc-tile.is-done        {border-top:5px solid #15803d;opacity:.7}
+.tv-inc-tile-body{padding:14px 16px 11px;flex:1}
+.tv-inc-tile-top{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px}
+.tv-inc-tile-stock{font-size:26px;font-weight:800;color:var(--ford);letter-spacing:-.01em}
+.tv-inc-tile-status{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em;flex-shrink:0}
+.tv-inc-tile-vehicle{font-size:15px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:8px}
 
 /* Flag grid */
-.tv-inc-tile-flags{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
-.tv-inc-tile-flag{border-radius:4px;padding:5px 2px;display:flex;flex-direction:column;align-items:center;gap:2px}
-.tv-inc-tile-flag .ff-icon{font-size:13px;font-weight:700;line-height:1}
-.tv-inc-tile-flag .ff-label{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;line-height:1}
+.tv-inc-tile-flags{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.tv-inc-tile-flag{border-radius:6px;padding:8px 3px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.tv-inc-tile-flag .ff-icon{font-size:17px;font-weight:700;line-height:1}
+.tv-inc-tile-flag .ff-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;line-height:1}
 .ff-done-acc  {background:#dcfce7;color:#15803d}
 .ff-done-pdi  {background:#1f2937;color:#fff}
 .ff-done-photo{background:#7c3aed;color:#fff}
@@ -727,8 +735,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   .tv-clock{font-size:18px}
   .tv-stock{font-size:18px}
   .tv-dest .dest-pill{font-size:11px;padding:3px 8px}
-  .tv-col-incoming{display:none}
-  .tv-body{gap:0}
+  .tv-slide-grid-4{grid-template-columns:repeat(2,1fr)}
+  .tv-slide-grid-3{grid-template-columns:repeat(2,1fr)}
 }
 
 /* ── Compound Map ── */
@@ -1450,36 +1458,34 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           </div>
         </div>
         <div class="tv-sub" id="tv-count">Connecting…</div>
-        <div class="tv-body">
-          <!-- Col 1: Get Ready + Vehicle Appointments -->
-          <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0">
-            <div class="tv-col-title" id="tv-title-getready">Get Ready</div>
-            <div id="tv-gr-list" style="overflow-y:auto;flex:1.2;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-content:start"></div>
-            <div style="flex-direction:column;flex:1;min-height:0;margin-top:10px;border-top:1px solid rgba(255,255,255,.15);padding-top:10px;display:flex">
-              <div class="tv-col-title" style="font-size:11px">📅 Vehicle Appointments</div>
-              <div id="tv-appt-list" style="overflow-y:auto;flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start"></div>
-            </div>
+        <div class="tv-slides" id="tv-slides">
+          <div class="tv-slide active" id="tv-slide-getready">
+            <div class="tv-slide-title" id="tv-title-getready">Get Ready</div>
+            <div id="tv-gr-list" class="tv-slide-grid tv-slide-grid-4"></div>
           </div>
-          <!-- Col 2: Incoming + Compound -->
-          <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0;border-left:1px solid rgba(255,255,255,.15);padding-left:16px">
-            <div class="tv-col-title" id="tv-title-incoming">Incoming Units</div>
+          <div class="tv-slide" id="tv-slide-incoming">
+            <div class="tv-slide-title" id="tv-title-incoming">Incoming Units</div>
             <div class="tv-incoming-summary" id="tv-inc-summary"></div>
-            <div id="tv-inc-list" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;align-content:start;overflow-y:auto;flex:1"></div>
-            <div style="margin-top:10px;flex-shrink:0">
-              <div class="tv-col-title" style="margin-bottom:5px;font-size:10px" id="tv-title-compound">Compound - 700 Bayview</div>
-              <div id="tv-compound-map" style="width:100%"></div>
-            </div>
+            <div id="tv-inc-list" class="tv-slide-grid tv-slide-grid-4"></div>
           </div>
-          <!-- Col 3: Pickups & Dropoffs -->
-          <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0;border-left:1px solid rgba(255,255,255,.15);padding-left:16px">
-            <div class="tv-col-title" id="tv-title-rides">Pickups - Get Ready for Pickup</div>
-            <div id="tv-rides-list" style="overflow-y:auto;flex:1.4;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start"></div>
-            <div id="tv-returns-wrap" style="display:none;flex-direction:column;flex:1;min-height:0;margin-top:10px;border-top:1px solid rgba(255,255,255,.15);padding-top:10px">
-              <div class="tv-col-title" style="font-size:11px">↩️ Dropoffs - Returns Coming In</div>
-              <div id="tv-returns-list" style="overflow-y:auto;flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start"></div>
-            </div>
+          <div class="tv-slide" id="tv-slide-compound">
+            <div class="tv-slide-title" id="tv-title-compound">Compound - 700 Bayview</div>
+            <div id="tv-compound-map" class="tv-compound-wrap"></div>
+          </div>
+          <div class="tv-slide" id="tv-slide-pickups">
+            <div class="tv-slide-title" id="tv-title-rides">Pickups - Get Ready for Pickup</div>
+            <div id="tv-rides-list" class="tv-slide-grid tv-slide-grid-3"></div>
+          </div>
+          <div class="tv-slide" id="tv-slide-returns">
+            <div class="tv-slide-title">↩️ Dropoffs - Returns Coming In</div>
+            <div id="tv-returns-list" class="tv-slide-grid tv-slide-grid-3"></div>
+          </div>
+          <div class="tv-slide" id="tv-slide-appointments">
+            <div class="tv-slide-title">📅 Vehicle Appointments</div>
+            <div id="tv-appt-list" class="tv-slide-grid tv-slide-grid-3"></div>
           </div>
         </div>
+        <div class="tv-slide-dots" id="tv-slide-dots"></div>
         <div id="tv-hint" style="position:absolute;bottom:14px;right:18px;font-size:10px;opacity:.15;color:white;user-select:none">Hold to show controls</div>
       </div>
     </div>
@@ -3660,32 +3666,27 @@ function renderTVRides() {
   const stageLabel = { pending: 'Waiting for driver', claimed: '🚐 Driver on route', enroute: '🚗 Ride in progress' };
   const stageColor = { pending: '#94a3b8', claimed: '#f97316', enroute: '#22c55e' };
   const cardHTML = r => `
-    <div style="background:#fff;border-radius:10px;padding:12px 14px;border-left:5px solid ${stageColor[r.status]||'#94a3b8'}">
-      <div style="font-size:20px;font-weight:800;color:#00095b;line-height:1;margin-bottom:4px">${esc(r.stock)}</div>
-      <div style="font-size:11px;color:#64748b;margin-bottom:4px">${r.pickup} → ${r.dropoff}</div>
-      <div style="font-size:12px;font-weight:700;color:${stageColor[r.status]||'#64748b'}">${stageLabel[r.status]||r.status}</div>
-      ${r.claimedBy?`<div style="font-size:11px;color:#1d4ed8;font-weight:700;margin-top:2px">🚐 ${esc(r.claimedBy)}</div>`:''}
+    <div style="background:#fff;border-radius:12px;padding:16px 18px;border-left:6px solid ${stageColor[r.status]||'#94a3b8'}">
+      <div style="font-size:28px;font-weight:800;color:#00095b;line-height:1;margin-bottom:6px">${esc(r.stock)}</div>
+      <div style="font-size:14px;color:#64748b;margin-bottom:6px">${r.pickup} → ${r.dropoff}</div>
+      <div style="font-size:15px;font-weight:700;color:${stageColor[r.status]||'#64748b'}">${stageLabel[r.status]||r.status}</div>
+      ${r.claimedBy?`<div style="font-size:14px;color:#1d4ed8;font-weight:700;margin-top:4px">🚐 ${esc(r.claimedBy)}</div>`:''}
     </div>`;
 
   listEl.innerHTML = pickups.length
     ? pickups.map(cardHTML).join('')
-    : '<div class="tv-empty" style="grid-column:1/-1"><div style="font-size:40px">✓</div><p>Nothing incoming</p></div>';
+    : '<div class="tv-empty" style="grid-column:1/-1"><div style="font-size:64px">✓</div><p style="font-size:20px">Nothing incoming</p></div>';
 
   // Returns coming in - only meaningful at 323 Bayview (where the dealership
-  // return flow always sends cars back to), so this section only shows there.
-  const returnsWrap = document.getElementById('tv-returns-wrap');
+  // return flow always sends cars back to) - the slide rotator (setupTvSlides)
+  // is what decides whether the whole "Dropoffs" slide is in rotation at all;
+  // this just needs to keep the list itself filled in when it applies.
   const returnsList = document.getElementById('tv-returns-list');
-  if (returnsWrap && returnsList) {
-    const showReturns = !tvLocation || tvLocation === '323 Bayview';
-    if (!showReturns) {
-      returnsWrap.style.display = 'none';
-    } else {
-      const returns = allActive.filter(r => r.subtype === 'return' && (!tvLocation || r.dropoff === tvLocation)).sort((a,b)=>a.ts-b.ts);
-      returnsWrap.style.display = 'flex';
-      returnsList.innerHTML = returns.length
-        ? returns.map(cardHTML).join('')
-        : '<div class="tv-empty" style="grid-column:1/-1"><div style="font-size:28px">✓</div><p style="font-size:12px">None right now</p></div>';
-    }
+  if (returnsList) {
+    const returns = allActive.filter(r => r.subtype === 'return' && (!tvLocation || r.dropoff === tvLocation)).sort((a,b)=>a.ts-b.ts);
+    returnsList.innerHTML = returns.length
+      ? returns.map(cardHTML).join('')
+      : '<div class="tv-empty" style="grid-column:1/-1"><div style="font-size:64px">✓</div><p style="font-size:20px">None right now</p></div>';
   }
 }
 
@@ -3698,19 +3699,19 @@ function renderTVAppointments() {
     .filter(a => a.status !== 'delivered')
     .sort((a,b) => (a.scheduledFor||a.ts) - (b.scheduledFor||b.ts));
   if (!active.length) {
-    el.innerHTML = '<div class="tv-empty" style="grid-column:1/-1"><div style="font-size:28px">✓</div><p style="font-size:12px">None pending</p></div>';
+    el.innerHTML = '<div class="tv-empty" style="grid-column:1/-1"><div style="font-size:64px">✓</div><p style="font-size:20px">None pending</p></div>';
     return;
   }
   const stageColor = { pending: '#94a3b8', in_progress: '#f97316' };
   const stageLabel = { pending: 'Waiting for driver', in_progress: '🚐 On the way' };
   el.innerHTML = active.map(a => {
     const timeLabel = formatApptTime(a);
-    return `<div style="background:#fff;border-radius:10px;padding:12px 14px;border-left:5px solid ${stageColor[a.status]||'#94a3b8'}">
-      <div style="font-size:18px;font-weight:800;color:#00095b;line-height:1;margin-bottom:4px">${esc(a.stock)}</div>
-      <div style="font-size:11px;color:#64748b;margin-bottom:4px">→ ${esc(a.department)}</div>
-      ${timeLabel?`<div style="font-size:11px;font-weight:700;color:#c2410c;margin-bottom:4px">${timeLabel}</div>`:''}
-      <div style="font-size:12px;font-weight:700;color:${stageColor[a.status]||'#64748b'}">${stageLabel[a.status]||a.status}</div>
-      ${a.claimedBy?`<div style="font-size:11px;color:#1d4ed8;font-weight:700;margin-top:2px">🚐 ${esc(a.claimedBy)}</div>`:''}
+    return `<div style="background:#fff;border-radius:12px;padding:16px 18px;border-left:6px solid ${stageColor[a.status]||'#94a3b8'}">
+      <div style="font-size:26px;font-weight:800;color:#00095b;line-height:1;margin-bottom:6px">${esc(a.stock)}</div>
+      <div style="font-size:14px;color:#64748b;margin-bottom:6px">→ ${esc(a.department)}</div>
+      ${timeLabel?`<div style="font-size:14px;font-weight:700;color:#c2410c;margin-bottom:6px">${timeLabel}</div>`:''}
+      <div style="font-size:15px;font-weight:700;color:${stageColor[a.status]||'#64748b'}">${stageLabel[a.status]||a.status}</div>
+      ${a.claimedBy?`<div style="font-size:14px;color:#1d4ed8;font-weight:700;margin-top:4px">🚐 ${esc(a.claimedBy)}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -3756,7 +3757,7 @@ function renderTVIncoming() {
   `;
 
   if (!all.length) {
-    listEl.innerHTML = '<div style="opacity:.3;font-size:13px;text-align:center;padding:20px">No incoming units</div>';
+    listEl.innerHTML = '<div class="tv-empty" style="grid-column:1/-1"><div style="font-size:64px">✓</div><p style="font-size:20px">No incoming units</p></div>';
     return;
   }
 
@@ -3843,7 +3844,7 @@ function renderTVGetReady() {
   if (titleEl) titleEl.textContent = `Get Ready (${deals.length})`;
 
   if (!deals.length) {
-    el.innerHTML = '<div style="grid-column:1/-1;opacity:.3;font-size:13px;text-align:center;padding:20px">No active deals</div>';
+    el.innerHTML = '<div class="tv-empty" style="grid-column:1/-1"><div style="font-size:64px">✓</div><p style="font-size:20px">No active deals</p></div>';
     return;
   }
 
@@ -3879,23 +3880,23 @@ function renderTVGetReady() {
 
     // Checklist dots
     const dots = toCheck.map(([k]) =>
-      `<div style="width:8px;height:8px;border-radius:50%;background:${d[k]?'#16a34a':'#e2e8f0'}"></div>`
+      `<div style="width:10px;height:10px;border-radius:50%;background:${d[k]?'#16a34a':'#e2e8f0'}"></div>`
     ).join('');
 
-    return `<div style="background:#fff;border-radius:10px;padding:12px 14px;border-left:5px solid ${border}">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-        <div style="font-size:20px;font-weight:800;color:#00095b;line-height:1">${esc(d.stock||'-')}</div>
-        <span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:${typeBg};color:${typeColor};text-transform:uppercase;letter-spacing:.04em;margin-left:auto;white-space:nowrap">${typeLabel}</span>
+    return `<div style="background:#fff;border-radius:12px;padding:16px 18px;border-left:6px solid ${border}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+        <div style="font-size:26px;font-weight:800;color:#00095b;line-height:1">${esc(d.stock||'-')}</div>
+        <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:${typeBg};color:${typeColor};text-transform:uppercase;letter-spacing:.04em;margin-left:auto;white-space:nowrap">${typeLabel}</span>
       </div>
-      ${d.vehicle?`<div style="font-size:10px;color:#64748b;margin-bottom:4px">${esc(d.vehicle)}</div>`:''}
-      ${delivLabel?`<div style="font-size:11px;font-weight:700;color:#6d28d9;margin-bottom:4px">📅 ${delivLabel}</div>`:''}
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
-        <span style="font-size:10px;font-weight:700;color:${gasColor}">${gasLabel}</span>
-        <span style="font-size:10px;color:#94a3b8;margin-left:auto">${pct}%</span>
+      ${d.vehicle?`<div style="font-size:14px;color:#64748b;margin-bottom:6px">${esc(d.vehicle)}</div>`:''}
+      ${delivLabel?`<div style="font-size:14px;font-weight:700;color:#6d28d9;margin-bottom:6px">📅 ${delivLabel}</div>`:''}
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+        <span style="font-size:13px;font-weight:700;color:${gasColor}">${gasLabel}</span>
+        <span style="font-size:13px;color:#94a3b8;margin-left:auto">${pct}%</span>
       </div>
-      <div style="height:3px;background:#e2e8f0;border-radius:99px;margin-bottom:5px"><div style="height:100%;width:${pct}%;background:${barColor};border-radius:99px"></div></div>
-      <div style="display:flex;gap:3px;flex-wrap:wrap">${dots}</div>
-      ${d.salesperson?`<div style="font-size:10px;color:#94a3b8;margin-top:4px">${esc(d.salesperson)}</div>`:''}
+      <div style="height:5px;background:#e2e8f0;border-radius:99px;margin-bottom:7px"><div style="height:100%;width:${pct}%;background:${barColor};border-radius:99px"></div></div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">${dots}</div>
+      ${d.salesperson?`<div style="font-size:13px;color:#94a3b8;margin-top:6px">${esc(d.salesperson)}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -3981,6 +3982,68 @@ function renderTVCompoundMap() {
 
   el.innerHTML = html;
 }
+
+// ── TV rotating slides ───────────────────────────────────
+// The TV used to try to cram every section onto one screen at once, which
+// meant every single tile was squeezed down to fit. Instead, each section
+// gets the whole screen to itself for a while, then we crossfade to the
+// next one and loop forever - nobody's holding a remote, so the display
+// does the "paging through" on its own.
+const TV_SLIDE_MS = 18000;
+function setupTvSlides() {
+  const slidesWrap = document.getElementById('tv-slides');
+  if (!slidesWrap) return;
+  // Returns are only a meaningful concept at 323 Bayview (or an unfiltered/
+  // all-lots display) - same rule renderTVRides uses for what it puts in
+  // the list. If it doesn't apply here, just leave that slide out of the
+  // rotation entirely rather than showing an empty "Dropoffs" slide.
+  const showReturns = !tvLocation || tvLocation === '323 Bayview';
+  const order = ['getready', 'incoming', 'compound', 'pickups', ...(showReturns ? ['returns'] : []), 'appointments'];
+  const slides = order.map(name => document.getElementById('tv-slide-' + name)).filter(Boolean);
+  // Each slide's scrollable list, if it has one - the map sizes itself to
+  // fit and never needs to scroll.
+  const scrollTargets = { getready: 'tv-gr-list', incoming: 'tv-inc-list', pickups: 'tv-rides-list', returns: 'tv-returns-list', appointments: 'tv-appt-list' };
+
+  const dotsEl = document.getElementById('tv-slide-dots');
+  if (dotsEl) dotsEl.innerHTML = slides.map(() => '<span class="tv-dot"></span>').join('');
+  const dots = dotsEl ? Array.from(dotsEl.children) : [];
+
+  let idx = 0;
+  function show(i) {
+    slides.forEach((s, j) => s.classList.toggle('active', j === i));
+    dots.forEach((d, j) => d.classList.toggle('active', j === i));
+    const listId = scrollTargets[order[i]];
+    if (listId) autoScrollSlideOnce(document.getElementById(listId), TV_SLIDE_MS - 3000);
+  }
+  show(0);
+  if (slides.length > 1) {
+    setInterval(() => { idx = (idx + 1) % slides.length; show(idx); }, TV_SLIDE_MS);
+  }
+}
+
+// Resets a slide's list to the top and, only if its content is actually
+// taller than the space available, gently glides it down to the bottom
+// once over roughly the slide's on-screen time - just enough for a full
+// glance through a long list before the display moves on to the next
+// section. Does nothing if everything already fits on screen.
+function autoScrollSlideOnce(el, durationMs) {
+  if (!el) return;
+  el.scrollTop = 0;
+  const max = el.scrollHeight - el.clientHeight;
+  if (max <= 4) return;
+  const startDelay = 1500;
+  const start = performance.now();
+  const ease = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  function tick(now) {
+    const elapsed = now - start;
+    if (elapsed < startDelay) { requestAnimationFrame(tick); return; }
+    const t = Math.min((elapsed - startDelay) / (durationMs - startDelay), 1);
+    el.scrollTop = ease(t) * max;
+    if (t < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
 let selectedUnits = new Set();
 
 window.setTrackerFilter = function(status,btn) {
@@ -6835,6 +6898,7 @@ function cmStartListeners() {
     } else {
       cmVehicles['bayview700'] = snap.val();
       if (cmCurrentLot === 'bayview700') cmRender();
+      if (document.getElementById('panel-tv')?.classList.contains('active')) renderTVCompoundMap();
     }
   });
   onValue(ref(db, 'compound_v2/mapleview55'), snap => {
@@ -7127,6 +7191,7 @@ window.auditCancel = async function() {
 // ── /Lot Audit ─────────────────────────────────────────
 
 loadIdentity();
+setupTvSlides();
 </script>
 
 </body>
