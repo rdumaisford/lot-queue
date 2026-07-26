@@ -188,6 +188,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tv-slide{position:absolute;inset:0;display:flex;flex-direction:column;min-height:0;opacity:0;pointer-events:none;transition:opacity .8s ease}
 .tv-slide.active{opacity:1;pointer-events:auto}
 .tv-slide-title{font-size:22px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#fff;margin-bottom:16px;flex-shrink:0;display:flex;align-items:center;gap:10px}
+.tv-slide-meta{font-size:16px;font-weight:600;letter-spacing:.02em;color:rgba(255,255,255,.65);margin-top:-10px;margin-bottom:16px;flex-shrink:0}
 /* Progress row under the slides - one segment per section in the rotation.
    Past sections sit fully lit, the current one fills left-to-right over its
    whole time on screen (so you can see how long until it moves on), and
@@ -219,14 +220,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tv-inc-tile-body{padding:14px 16px 11px;flex:1}
 .tv-inc-tile-top{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px}
 .tv-inc-tile-stock{font-size:26px;font-weight:800;color:var(--ford);letter-spacing:-.01em}
-.tv-inc-tile-status{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em;flex-shrink:0}
+.tv-inc-tile-status{font-size:13px;font-weight:700;padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em;flex-shrink:0}
 .tv-inc-tile-vehicle{font-size:15px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:8px}
 
 /* Flag grid */
 .tv-inc-tile-flags{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
 .tv-inc-tile-flag{border-radius:6px;padding:8px 3px;display:flex;flex-direction:column;align-items:center;gap:3px}
 .tv-inc-tile-flag .ff-icon{font-size:17px;font-weight:700;line-height:1}
-.tv-inc-tile-flag .ff-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;line-height:1}
+.tv-inc-tile-flag .ff-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;line-height:1}
 .ff-done-acc  {background:#dcfce7;color:#15803d}
 .ff-done-pdi  {background:#1f2937;color:#fff}
 .ff-done-photo{background:#7c3aed;color:#fff}
@@ -1477,13 +1478,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           </div>
           <div class="tv-slide" id="tv-slide-compound">
             <div class="tv-slide-title" id="tv-title-compound">Compound - 700 Bayview</div>
+            <div class="tv-slide-meta" id="tv-compound-stats"></div>
             <div id="tv-compound-map" class="tv-compound-wrap"></div>
           </div>
           <div class="tv-slide" id="tv-slide-pickups">
             <div class="tv-slide-title" id="tv-title-rides">Pickups - Get Ready for Pickup</div>
             <div id="tv-rides-list" class="tv-slide-grid tv-slide-grid-3" style="flex:1.1"></div>
             <div id="tv-returns-section" style="display:flex;flex-direction:column;flex:1;min-height:0;margin-top:16px;border-top:1px solid rgba(255,255,255,.15);padding-top:16px">
-              <div class="tv-slide-title" style="font-size:16px;margin-bottom:12px">↩️ Dropoffs - Returns Coming In</div>
+              <div class="tv-slide-title">↩️ Dropoffs - Returns Coming In</div>
               <div id="tv-returns-list" class="tv-slide-grid tv-slide-grid-3"></div>
             </div>
           </div>
@@ -3813,7 +3815,7 @@ function renderTVIncoming() {
     </div>`;
   const ffNA = (label) =>
     `<div class="tv-inc-tile-flag ff-na">
-      <span class="ff-icon" style="font-size:9px">N/A</span>
+      <span class="ff-icon" style="font-size:13px">N/A</span>
       <span class="ff-label">${label}</span>
     </div>`;
 
@@ -3835,7 +3837,7 @@ function renderTVIncoming() {
           <span class="tv-inc-tile-status" style="${ps}">${done?'DONE':u.status||'?'}</span>
         </div>
         <div class="tv-inc-tile-vehicle">${esc(u.vehicle||'-')}</div>
-        ${catBadge?`<div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.03em">${catBadge}</div>`:''}
+        ${catBadge?`<div style="font-size:13px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.03em">${catBadge}</div>`:''}
       </div>
       <div class="tv-inc-tile-flags" style="padding:0 6px 6px">
         ${isUsed ? `
@@ -3916,7 +3918,7 @@ function renderTVGetReady() {
     return `<div style="background:#fff;border-radius:12px;padding:16px 18px;border-left:6px solid ${border}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
         <div style="font-size:26px;font-weight:800;color:#00095b;line-height:1">${esc(d.stock||'-')}</div>
-        <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:${typeBg};color:${typeColor};text-transform:uppercase;letter-spacing:.04em;margin-left:auto;white-space:nowrap">${typeLabel}</span>
+        <span style="font-size:13px;font-weight:700;padding:4px 10px;border-radius:20px;background:${typeBg};color:${typeColor};text-transform:uppercase;letter-spacing:.04em;margin-left:auto;white-space:nowrap">${typeLabel}</span>
       </div>
       ${d.vehicle?`<div style="font-size:14px;color:#64748b;margin-bottom:6px">${esc(d.vehicle)}</div>`:''}
       ${delivLabel?`<div style="font-size:14px;font-weight:700;color:#6d28d9;margin-bottom:6px">📅 ${delivLabel}</div>`:''}
@@ -3964,9 +3966,9 @@ function renderTVCompoundMap() {
   const outTd     = allVehs.filter(veh => tdStocks.has((veh.stock||'').toUpperCase())).length;
 
   const titleEl = document.getElementById('tv-title-compound');
-  if (titleEl) {
-    titleEl.innerHTML = `Compound - 700 Bayview<br><span style="font-size:9px;font-weight:600;letter-spacing:.04em;opacity:.7;text-transform:none">${total} cars &nbsp;·&nbsp; ${flagged} flagged &nbsp;·&nbsp; ${wholesale} wholesale &nbsp;·&nbsp; ${fleet} fleet &nbsp;·&nbsp; ${lease} lease return &nbsp;·&nbsp; ${appts} appts &nbsp;·&nbsp; ${gr} get ready &nbsp;·&nbsp; ${outTd} on test drive</span>`;
-  }
+  if (titleEl) titleEl.textContent = 'Compound - 700 Bayview';
+  const statsEl = document.getElementById('tv-compound-stats');
+  if (statsEl) statsEl.textContent = `${total} cars · ${flagged} flagged · ${wholesale} wholesale · ${fleet} fleet · ${lease} lease return · ${appts} appts · ${gr} get ready · ${outTd} on test drive`;
 
   // The configured grid (e.g. 52x13) is sized for the whole physical lot,
   // but most of it is usually empty - showing every unused row/column just
@@ -4012,14 +4014,14 @@ function renderTVCompoundMap() {
   }
   html += `</div>`;
 
-  html += `<div style="display:flex;gap:8px;margin-top:5px;flex-wrap:wrap">
-    <div style="display:flex;align-items:center;gap:3px;font-size:9px;color:rgba(255,255,255,.5)"><div style="width:10px;height:10px;border-radius:2px;background:#94a3b8;flex-shrink:0"></div>Occupied</div>
-    <div style="display:flex;align-items:center;gap:3px;font-size:9px;color:rgba(255,255,255,.5)"><div style="width:10px;height:10px;border-radius:2px;background:#7f1d1d;flex-shrink:0"></div>Flagged</div>
-    <div style="display:flex;align-items:center;gap:3px;font-size:9px;color:rgba(255,255,255,.5)"><div style="width:10px;height:10px;border-radius:2px;background:#eab308;flex-shrink:0"></div>Wholesale</div>
-    <div style="display:flex;align-items:center;gap:3px;font-size:9px;color:rgba(255,255,255,.5)"><div style="width:10px;height:10px;border-radius:2px;background:#22c55e;flex-shrink:0"></div>Fleet</div>
-    <div style="display:flex;align-items:center;gap:3px;font-size:9px;color:rgba(255,255,255,.5)"><div style="width:10px;height:10px;border-radius:2px;background:#3b82f6;flex-shrink:0"></div>Lease Return</div>
-    <div style="display:flex;align-items:center;gap:3px;font-size:9px;color:rgba(255,255,255,.5)"><div style="width:10px;height:10px;border-radius:2px;background:#a78bfa;flex-shrink:0"></div>Appt</div>
-    <div style="display:flex;align-items:center;gap:3px;font-size:9px;color:rgba(255,255,255,.5)"><div style="width:10px;height:10px;border-radius:2px;background:#34d399;flex-shrink:0"></div>Get Ready</div>
+  html += `<div style="display:flex;gap:20px;margin-top:16px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:rgba(255,255,255,.75)"><div style="width:16px;height:16px;border-radius:3px;background:#94a3b8;flex-shrink:0"></div>Occupied</div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:rgba(255,255,255,.75)"><div style="width:16px;height:16px;border-radius:3px;background:#7f1d1d;flex-shrink:0"></div>Flagged</div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:rgba(255,255,255,.75)"><div style="width:16px;height:16px;border-radius:3px;background:#eab308;flex-shrink:0"></div>Wholesale</div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:rgba(255,255,255,.75)"><div style="width:16px;height:16px;border-radius:3px;background:#22c55e;flex-shrink:0"></div>Fleet</div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:rgba(255,255,255,.75)"><div style="width:16px;height:16px;border-radius:3px;background:#3b82f6;flex-shrink:0"></div>Lease Return</div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:rgba(255,255,255,.75)"><div style="width:16px;height:16px;border-radius:3px;background:#a78bfa;flex-shrink:0"></div>Appt</div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:rgba(255,255,255,.75)"><div style="width:16px;height:16px;border-radius:3px;background:#34d399;flex-shrink:0"></div>Get Ready</div>
   </div>`;
 
   el.innerHTML = html;
