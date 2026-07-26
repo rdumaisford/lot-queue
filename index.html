@@ -866,15 +866,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div class="setup-icon"><svg viewBox="0 0 24 24"><path d="M5 11l1.5-4.5h11L19 11M19 11v5H5v-5M5 11H3v2h2M19 11h2v2h-2M7.5 16v1.5M16.5 16v1.5M7 13.5h2M15 13.5h2"/></svg></div>
         <span class="setup-title">Vehicle Manager - Barrie Ford</span>
       </div>
-      <div class="setup-sub" id="signin-mode-sub">Sign in to continue.</div>
-      <div class="setup-row" id="signup-name-row" style="display:none">
-        <label>Your name</label>
-        <input id="auth-name" type="text" placeholder="e.g. Ryan Dumais" autocomplete="name"/>
-      </div>
-      <div class="setup-row" id="signup-invite-row" style="display:none">
-        <label>Invite code</label>
-        <input id="auth-invite" type="text" placeholder="Ask your manager for this" autocomplete="off"/>
-      </div>
+      <div class="setup-sub">Sign in to continue.</div>
       <div class="setup-row">
         <label>Email</label>
         <input id="auth-email" type="email" placeholder="you@example.com" autocomplete="username"/>
@@ -884,10 +876,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <input id="auth-password" type="password" placeholder="••••••••" autocomplete="current-password"/>
       </div>
       <button class="btn-setup" id="btn-auth-submit" onclick="submitAuthForm()">Sign in</button>
-      <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:13px;flex-wrap:wrap;gap:8px">
-        <a href="#" id="toggle-auth-mode-link" onclick="toggleAuthMode();return false;" style="color:var(--ford);text-decoration:none;cursor:pointer">Need an account? Create one</a>
+      <div style="display:flex;justify-content:flex-end;margin-top:12px;font-size:13px;flex-wrap:wrap;gap:8px">
         <a href="#" onclick="forgotPassword();return false;" style="color:var(--text-muted);text-decoration:none;cursor:pointer">Forgot password?</a>
       </div>
+      <div style="font-size:12px;color:var(--text-faint);margin-top:14px;text-align:center">No account? Ask a manager to set one up for you.</div>
       <div id="signin-error" class="toast error" style="display:none;margin-top:14px"></div>
     </div>
 
@@ -1557,14 +1549,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 
       <!-- Staff Sign-ins (email/password approvals) - management only -->
       <div id="user-mgmt-wrap" style="display:none;margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;max-width:100%">
-        <div style="font-size:16px;font-weight:600;margin-bottom:4px">Sign-up Invite Code</div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Anyone creating an account has to enter this code first - it just keeps random strangers off the sign-up screen. New staff still land as "pending" below either way, so you always approve them and pick their role yourself. Share the code by text/word of mouth, not by posting it anywhere public.</div>
-        <div style="display:flex;gap:8px;max-width:420px;margin-bottom:24px">
-          <input id="signup-invite-code" type="text" placeholder="e.g. barrieford2026" style="flex:1;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/>
-          <button onclick="saveInviteCode()" style="padding:9px 16px;border:none;border-radius:var(--radius-sm);background:var(--ford);color:#fff;font-size:14px;font-weight:700;cursor:pointer">Save</button>
-        </div>
         <div style="font-size:16px;font-weight:600;margin-bottom:4px">Staff Sign-ins</div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Approve new sign-ins and assign their role. Changes apply live - the person is let into the app automatically once approved.</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">There's no public sign-up screen - create each person's login yourself in the Firebase console (Authentication → Add user), then have them sign in here. The first time they sign in they'll show up below waiting for approval; pick their role and approve them. Changes apply live.</div>
         <div id="user-mgmt-pending"></div>
         <div id="user-mgmt-approved" style="margin-top:20px"></div>
       </div>
@@ -1953,7 +1939,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getDatabase, ref, push, get, set, onValue, update, remove, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
-import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, sendPasswordResetEmail, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getAuth, signInAnonymously, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDYj9RC-cmfcfZ6sPo_9TmF67mWeEkxkwo",
@@ -2210,30 +2196,16 @@ function showSetupState(state) {
   document.getElementById('setup-denied').style.display = state==='denied' ? '' : 'none';
 }
 
-let authMode = 'signin'; // 'signin' | 'signup'
-let pendingSignupName = null; // stashed name from the create-account form, used when the users/{uid} doc is first written
-
-window.toggleAuthMode = function() {
-  authMode = authMode === 'signin' ? 'signup' : 'signin';
-  document.getElementById('signup-name-row').style.display = authMode==='signup' ? '' : 'none';
-  document.getElementById('signup-invite-row').style.display = authMode==='signup' ? '' : 'none';
-  document.getElementById('btn-auth-submit').textContent = authMode==='signup' ? 'Create account' : 'Sign in';
-  document.getElementById('signin-mode-sub').textContent = authMode==='signup' ? 'Create an account to request access.' : 'Sign in to continue.';
-  document.getElementById('toggle-auth-mode-link').textContent = authMode==='signup' ? 'Already have an account? Sign in' : 'Need an account? Create one';
-  const errEl = document.getElementById('signin-error');
-  if (errEl) errEl.style.display = 'none';
-};
-
 function authErrorMessage(e) {
   const code = e.code || '';
-  if (code.includes('email-already-in-use')) return 'An account with that email already exists - try signing in instead.';
-  if (code.includes('weak-password')) return 'Password should be at least 6 characters.';
   if (code.includes('invalid-email')) return 'That email address looks invalid.';
   if (code.includes('user-not-found') || code.includes('wrong-password') || code.includes('invalid-credential')) return 'Incorrect email or password.';
   if (code.includes('too-many-requests')) return 'Too many attempts - please wait a moment and try again.';
   return e.message || 'Something went wrong.';
 }
 
+// There's no public sign-up flow - accounts are created by a manager in the Firebase
+// console (Authentication -> Add user). This only ever signs an existing account in.
 window.submitAuthForm = async function() {
   const email = document.getElementById('auth-email').value.trim();
   const password = document.getElementById('auth-password').value;
@@ -2243,27 +2215,7 @@ window.submitAuthForm = async function() {
   const btn = document.getElementById('btn-auth-submit');
   btn.disabled = true;
   try {
-    if (authMode === 'signup') {
-      const name = document.getElementById('auth-name').value.trim();
-      if (!name) { errEl.textContent = 'Please enter your name.'; errEl.style.display = 'block'; btn.disabled = false; return; }
-      const enteredCode = document.getElementById('auth-invite').value.trim();
-      // The code is just a friction gate to keep randoms off the sign-up screen, not a hard
-      // security boundary - a determined attacker could still call the Auth API directly. The
-      // real protection is that new accounts land as 'pending' and the database rules block
-      // pending/unapproved accounts from reading any real data until a manager approves them.
-      const requiredCodeSnap = await get(ref(db, 'settings/inviteCode'));
-      const requiredCode = (requiredCodeSnap.val() || '').trim();
-      if (requiredCode && enteredCode.toLowerCase() !== requiredCode.toLowerCase()) {
-        errEl.textContent = 'That invite code is incorrect - ask your manager for the sign-up code.';
-        errEl.style.display = 'block'; btn.disabled = false; return;
-      }
-      pendingSignupName = name;
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
-      updateProfile(cred.user, { displayName: name }).catch(()=>{});
-      // onAuthStateChanged (registered in loadIdentity) picks up the new session from here.
-    } else {
-      await signInWithEmailAndPassword(auth, email, password);
-    }
+    await signInWithEmailAndPassword(auth, email, password);
   } catch (e) {
     errEl.textContent = authErrorMessage(e);
     errEl.style.display = 'block';
@@ -2321,19 +2273,21 @@ async function watchUserApproval(fbUser) {
   userApprovalUnsub = onValue(userRef, async (snap) => {
     let u = snap.val();
     if (!u) {
-      // First-ever account on a fresh project becomes management automatically,
-      // so there's always someone able to approve everyone else.
-      const existingSnap = await get(ref(db,'users'));
-      const isFirstEver = !existingSnap.val();
+      // First-ever account (the one a manager creates first in the Firebase console)
+      // becomes management automatically, so there's always someone able to approve
+      // everyone else. 'meta/hasUsers' - not the full user list - is what's checked
+      // here, because a brand-new pending account isn't allowed to read the full
+      // staff directory (see database.rules.json).
+      const hasUsersSnap = await get(ref(db,'meta/hasUsers'));
+      const isFirstEver = !hasUsersSnap.val();
       u = {
-        name: pendingSignupName || fbUser.displayName || fbUser.email || 'Unknown',
+        name: fbUser.displayName || fbUser.email || 'Unknown',
         email: fbUser.email || '',
         role: isFirstEver ? 'management' : null,
         status: isFirstEver ? 'approved' : 'pending',
         requestedAt: Date.now(),
       };
-      pendingSignupName = null;
-      await set(userRef, u);
+      await update(ref(db), { ['users/'+uid]: u, 'meta/hasUsers': true });
       return; // onValue fires again once the write lands
     }
     if (u.status === 'approved' && u.role) {
@@ -2517,9 +2471,6 @@ function startApp() {
     if(dh) dh.textContent=fmtHour(LOT_OPEN)+' – '+fmtHour(LOT_CLOSE);
     const ft=document.getElementById('f-time');
     if(ft){ ft.min=String(LOT_OPEN).padStart(2,'0')+':00'; ft.max=String(LOT_CLOSE).padStart(2,'0')+':00'; }
-
-    const inviteInput = document.getElementById('signup-invite-code');
-    if (inviteInput && !inviteInput.matches(':focus')) inviteInput.value = s.inviteCode || '';
 
     emailSettings = s.email || {};
     const eGrAddr=document.getElementById('email-gr-address'), eIncAddr=document.getElementById('email-inc-address'),
@@ -5345,13 +5296,6 @@ window.dismissAlertBanner = function() {
 
 window.closeAlertPopup = function() {
   document.getElementById('alert-popup-backdrop').style.display = 'none';
-};
-
-window.saveInviteCode = async function() {
-  const code = document.getElementById('signup-invite-code').value.trim();
-  await update(ref(db,'settings'), { inviteCode: code });
-  const t = document.getElementById('permissions-toast');
-  if (t) { t.textContent = code ? '✓ Saved - new sign-ups now need this code.' : '✓ Saved - invite code removed, sign-up is open to anyone again.'; t.className='toast success'; t.style.display='block'; setTimeout(()=>{t.style.display='none';},2500); }
 };
 
 window.saveEmailSettings = async function() {

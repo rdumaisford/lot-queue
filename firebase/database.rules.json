@@ -29,15 +29,20 @@
     },
 
     "settings": {
-      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'management'",
-      "inviteCode": {
-        ".read": true
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'management'"
+    },
+
+    "meta": {
+      "hasUsers": {
+        ".read": "auth != null",
+        ".write": "auth != null && newData.val() === true"
       }
     },
 
     "users": {
-      ".read": "auth != null",
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'management'",
       "$uid": {
+        ".read": "auth.uid === $uid",
         ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'management' || (auth.uid === $uid && ((!data.exists() && ((!root.child('users').exists() && newData.child('status').val() === 'approved' && newData.child('role').val() === 'management') || (root.child('users').exists() && newData.child('status').val() === 'pending' && !newData.hasChild('role')))) || (data.exists() && newData.child('status').val() === data.child('status').val() && newData.child('role').val() === data.child('role').val()))))",
         ".validate": "newData.child('name').isString() && newData.child('name').val().length <= 80"
       }
