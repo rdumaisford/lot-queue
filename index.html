@@ -189,6 +189,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tv-slide.active{opacity:1;pointer-events:auto}
 .tv-slide-title{font-size:22px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#fff;margin-bottom:16px;flex-shrink:0;display:flex;align-items:center;gap:10px}
 .tv-slide-meta{font-size:16px;font-weight:600;letter-spacing:.02em;color:rgba(255,255,255,.65);margin-top:-10px;margin-bottom:16px;flex-shrink:0}
+.tv-map-label{font-size:16px;font-weight:600;letter-spacing:.02em;color:rgba(255,255,255,.65);margin-bottom:12px;flex-shrink:0}
+.tv-shuttle-map{flex:1;border-radius:12px;overflow:hidden;min-height:0;background:#e2e8f0}
+.tv-shuttle-map .leaflet-container{font-family:var(--font);height:100%;width:100%}
 /* Progress row under the slides - one segment per section in the rotation.
    Past sections sit fully lit, the current one fills left-to-right over its
    whole time on screen (so you can see how long until it moves on), and
@@ -1483,10 +1486,18 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           </div>
           <div class="tv-slide" id="tv-slide-pickups">
             <div class="tv-slide-title" id="tv-title-rides">Pickups - Get Ready for Pickup</div>
-            <div id="tv-rides-list" class="tv-slide-grid tv-slide-grid-3" style="flex:1.1"></div>
-            <div id="tv-returns-section" style="display:flex;flex-direction:column;flex:1;min-height:0;margin-top:16px;border-top:1px solid rgba(255,255,255,.15);padding-top:16px">
-              <div class="tv-slide-title">↩️ Dropoffs - Returns Coming In</div>
-              <div id="tv-returns-list" class="tv-slide-grid tv-slide-grid-3"></div>
+            <div style="display:flex;gap:24px;flex:1;min-height:0">
+              <div style="flex:1.6;display:flex;flex-direction:column;min-height:0">
+                <div id="tv-rides-list" class="tv-slide-grid tv-slide-grid-2" style="flex:1.1"></div>
+                <div id="tv-returns-section" style="display:flex;flex-direction:column;flex:1;min-height:0;margin-top:16px;border-top:1px solid rgba(255,255,255,.15);padding-top:16px">
+                  <div class="tv-slide-title">↩️ Dropoffs - Returns Coming In</div>
+                  <div id="tv-returns-list" class="tv-slide-grid tv-slide-grid-2"></div>
+                </div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+                <div class="tv-map-label">🚐 Shuttle Location</div>
+                <div id="tv-shuttle-map" class="tv-shuttle-map"></div>
+              </div>
             </div>
           </div>
           <div class="tv-slide" id="tv-slide-appointments">
@@ -2473,6 +2484,7 @@ function startApp() {
   onValue(ref(db, 'driverLocation'), snap => {
     driverLocations = snap.val() || {};
     if (document.getElementById('panel-rides')?.classList.contains('active')) ridesUpdateDriverMarkers();
+    tvUpdateShuttleMarkers();
   });
 
   if (!viewParamApplied) {
@@ -2912,7 +2924,7 @@ function ridesUpdateDriverMarkers() {
       ridesDriverMarkers[uid].setLatLng([d.lat, d.lng]);
     } else {
       const icon = L.divIcon({ html: '<span class="rides-driver-icon-inner">🚐</span>', className: 'rides-driver-icon', iconSize: [32,32], iconAnchor: [16,16] });
-      ridesDriverMarkers[uid] = L.marker([d.lat, d.lng], { icon }).addTo(ridesLeafletMap).bindPopup(d.name || 'Driver');
+      ridesDriverMarkers[uid] = L.marker([d.lat, d.lng], { icon }).addTo(ridesLeafletMap).bindPopup(esc(d.name || 'Driver'));
     }
   });
   Object.keys(ridesDriverMarkers).forEach(uid => {
@@ -4025,6 +4037,52 @@ function renderTVCompoundMap() {
   </div>`;
 
   el.innerHTML = html;
+}
+
+// Live shuttle-van location on the Pickups/Dropoffs slide - same driverLocation
+// data and marker style as the driver's own "Drive" map, just its own read-only
+// map instance (Leaflet needs a dedicated container per map). The slide it
+// lives in is always laid out (crossfades use opacity, not display:none), so
+// this can init once at startup instead of waiting for the slide to be shown.
+let tvShuttleMap = null, tvShuttleMarkers = {};
+function tvInitShuttleMap() {
+  if (tvShuttleMap || typeof L === 'undefined') return;
+  const mapEl = document.getElementById('tv-shuttle-map');
+  if (!mapEl) return;
+  const lotCoords = Object.values(RIDES_LOTS).map(l => [l.lat, l.lng]);
+  tvShuttleMap = L.map(mapEl, {
+    zoomControl: false, scrollWheelZoom: false, doubleClickZoom: false,
+    touchZoom: false, boxZoom: false, keyboard: false, dragging: false, attributionControl: false,
+  }).fitBounds(lotCoords, { padding: [30, 30] });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(tvShuttleMap);
+  Object.entries(RIDES_LOTS).forEach(([name, loc]) => {
+    const icon = L.divIcon({ html: '📍', className: 'rides-lot-icon', iconSize: [26, 26], iconAnchor: [13, 26] });
+    L.marker([loc.lat, loc.lng], { icon }).addTo(tvShuttleMap).bindPopup(esc(name));
+  });
+  setTimeout(() => tvShuttleMap.invalidateSize(), 200);
+}
+
+function tvUpdateShuttleMarkers() {
+  if (!tvShuttleMap) return;
+  const seen = new Set();
+  const STALE_MS = 3 * 60 * 1000;
+  Object.entries(driverLocations || {}).forEach(([uid, d]) => {
+    const isStale = (Date.now() - d.ts) > STALE_MS;
+    if (isStale) {
+      if (tvShuttleMarkers[uid]) { tvShuttleMap.removeLayer(tvShuttleMarkers[uid]); delete tvShuttleMarkers[uid]; }
+      return;
+    }
+    seen.add(uid);
+    if (tvShuttleMarkers[uid]) {
+      tvShuttleMarkers[uid].setLatLng([d.lat, d.lng]);
+    } else {
+      const icon = L.divIcon({ html: '<span class="rides-driver-icon-inner">🚐</span>', className: 'rides-driver-icon', iconSize: [32, 32], iconAnchor: [16, 16] });
+      tvShuttleMarkers[uid] = L.marker([d.lat, d.lng], { icon }).addTo(tvShuttleMap).bindPopup(esc(d.name || 'Driver'));
+    }
+  });
+  Object.keys(tvShuttleMarkers).forEach(uid => {
+    if (!seen.has(uid)) { tvShuttleMap.removeLayer(tvShuttleMarkers[uid]); delete tvShuttleMarkers[uid]; }
+  });
 }
 
 // ── TV rotating slides ───────────────────────────────────
@@ -5686,7 +5744,7 @@ window.switchTab=function(name,btn){
   if(name==='settings'){const sc=document.getElementById('s-sound');if(sc)sc.checked=soundEnabled;renderPermissionsEditor();}
   if(name==='history') { renderHistory(); renderCompoundHistory(); }
   if(name==='tracker'){renderTracker();renderTrackerSummary();}
-  if(name==='tv'){ renderTVRides(); renderTVAppointments(); }
+  if(name==='tv'){ renderTVRides(); renderTVAppointments(); setTimeout(()=>tvShuttleMap?.invalidateSize(), 50); }
   if(name==='rides'){ ridesRenderDirectionPickers(); ridesSetViewMode(ridesMode); renderRidesTab(); }
 };
 window.exitTV=function(){
@@ -7256,6 +7314,7 @@ window.auditCancel = async function() {
 
 loadIdentity();
 setupTvSlides();
+tvInitShuttleMap();
 </script>
 
 </body>
