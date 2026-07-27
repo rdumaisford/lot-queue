@@ -220,13 +220,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tv-slide-grid{display:grid;gap:16px;overflow-y:hidden;flex:1;align-content:start;min-height:0}
 .tv-slide-grid-3{grid-template-columns:repeat(3,1fr)}
 .tv-slide-grid-4{grid-template-columns:repeat(4,1fr)}
-#tv-gr-list{grid-auto-rows:minmax(180px,auto)}
-#tv-inc-list{grid-auto-rows:minmax(165px,auto)}
-#tv-rides-list,#tv-returns-list,#tv-appt-list{grid-auto-rows:minmax(130px,auto)}
+#tv-gr-list{grid-auto-rows:minmax(200px,auto)}
+#tv-inc-list{grid-auto-rows:minmax(185px,auto)}
+#tv-rides-list,#tv-returns-list,#tv-appt-list{grid-auto-rows:minmax(150px,auto)}
 .tv-compound-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0;overflow:hidden}
 
 /* Each incoming-unit tile - white bg */
-.tv-inc-tile{background:#fff;border-radius:12px;overflow:hidden;color:var(--ford);display:flex;flex-direction:column}
+.tv-inc-tile{background:#fff;border-radius:12px;overflow:hidden;color:var(--ford);display:flex;flex-direction:column;min-height:185px}
 .tv-inc-tile.status-sold    {border-top:5px solid #dc2626}
 .tv-inc-tile.status-turnover{border-top:5px solid #d97706}
 .tv-inc-tile.status-stock   {border-top:5px solid #1d4ed8}
@@ -3721,7 +3721,7 @@ function renderTVRides() {
   const stageLabel = { pending: 'Waiting for driver', claimed: '🚐 Driver on route', enroute: '🚗 Ride in progress' };
   const stageColor = { pending: '#94a3b8', claimed: '#f97316', enroute: '#22c55e' };
   const cardHTML = r => `
-    <div style="background:#fff;border-radius:12px;padding:16px 18px;border-left:6px solid ${stageColor[r.status]||'#94a3b8'}">
+    <div style="background:#fff;border-radius:12px;padding:16px 18px;border-left:6px solid ${stageColor[r.status]||'#94a3b8'};min-height:150px;box-sizing:border-box">
       <div style="font-size:28px;font-weight:800;color:#00095b;line-height:1;margin-bottom:6px">${esc(r.stock)}</div>
       <div style="font-size:14px;color:#64748b;margin-bottom:6px">${r.pickup} → ${r.dropoff}</div>
       <div style="font-size:15px;font-weight:700;color:${stageColor[r.status]||'#64748b'}">${stageLabel[r.status]||r.status}</div>
@@ -3761,7 +3761,7 @@ function renderTVAppointments() {
   const stageLabel = { pending: 'Waiting for driver', in_progress: '🚐 On the way' };
   el.innerHTML = active.map(a => {
     const timeLabel = formatApptTime(a);
-    return `<div style="background:#fff;border-radius:12px;padding:16px 18px;border-left:6px solid ${stageColor[a.status]||'#94a3b8'}">
+    return `<div style="background:#fff;border-radius:12px;padding:16px 18px;border-left:6px solid ${stageColor[a.status]||'#94a3b8'};min-height:150px;box-sizing:border-box">
       <div style="font-size:26px;font-weight:800;color:#00095b;line-height:1;margin-bottom:6px">${esc(a.stock)}</div>
       <div style="font-size:14px;color:#64748b;margin-bottom:6px">→ ${esc(a.department)}</div>
       ${timeLabel?`<div style="font-size:14px;font-weight:700;color:#c2410c;margin-bottom:6px">${timeLabel}</div>`:''}
@@ -3776,7 +3776,12 @@ function renderTVIncoming() {
   const listEl = document.getElementById('tv-inc-list');
   if (!sumEl || !listEl) return;
 
-  const all = Object.values(units);
+  // A completed unit only stays on the TV board through the end of the day it
+  // arrived (faded, via is-done below) - a quick same-day win still gets a
+  // moment on the board, but it won't pile up as dead weight on tomorrow's
+  // screen. Still-active units always show regardless of arrival date.
+  const todayStr = new Date().toISOString().slice(0,10);
+  const all = Object.values(units).filter(u => !isUnitComplete(u) || u.arrivedDate === todayStr);
   const active = all.filter(u => !isUnitComplete(u));
   const stock    = all.filter(u=>u.status==='STOCK').length;
   const sold     = all.filter(u=>u.status==='SOLD').length;
@@ -3870,8 +3875,12 @@ function renderTVGetReady() {
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
 
+  // Same rule as Incoming Units: a deal that's done only stays on the TV
+  // board (faded) through the end of the day it was completed - otherwise
+  // completed deals would just pile up on the board forever.
+  const isCompletedToday = (d) => new Date(d.completedAt || d.ts).toDateString() === now.toDateString();
   const deals = Object.values(getReadyDeals||{})
-    .filter(d => !grIsComplete(d))
+    .filter(d => !grIsComplete(d) || isCompletedToday(d))
     .sort((a,b) => {
       const ag = (a.needsGas && a.gasFilled)?1:0, bg = (b.needsGas && b.gasFilled)?1:0;
       if (ag!==bg) return ag-bg;
@@ -3888,6 +3897,7 @@ function renderTVGetReady() {
   }
 
   el.innerHTML = deals.map(d => {
+    const isDone = grIsComplete(d);
     // Type colour
     const typeBorder = d.type==='RETAIL' ? '#8b5cf6' : d.type==='WHOLESALE' ? '#eab308' : '#3b82f6';
     const typeLabel  = d.type==='RETAIL' ? 'Retail'  : d.type==='WHOLESALE' ? 'Wholesale' : 'As-Is';
@@ -3922,10 +3932,10 @@ function renderTVGetReady() {
       `<div style="width:10px;height:10px;border-radius:50%;background:${d[k]?'#16a34a':'#e2e8f0'}"></div>`
     ).join('');
 
-    return `<div style="background:#fff;border-radius:12px;padding:16px 18px;border-left:6px solid ${border}">
+    return `<div style="background:#fff;border-radius:12px;padding:16px 18px;border-left:6px solid ${isDone?'#15803d':border};min-height:200px;box-sizing:border-box;opacity:${isDone?'.7':'1'}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
         <div style="font-size:26px;font-weight:800;color:#00095b;line-height:1">${esc(d.stock||'-')}</div>
-        <span style="font-size:13px;font-weight:700;padding:4px 10px;border-radius:20px;background:${typeBg};color:${typeColor};text-transform:uppercase;letter-spacing:.04em;margin-left:auto;white-space:nowrap">${typeLabel}</span>
+        <span style="font-size:13px;font-weight:700;padding:4px 10px;border-radius:20px;background:${isDone?'#dcfce7':typeBg};color:${isDone?'#15803d':typeColor};text-transform:uppercase;letter-spacing:.04em;margin-left:auto;white-space:nowrap">${isDone?'Done':typeLabel}</span>
       </div>
       ${d.vehicle?`<div style="font-size:14px;color:#64748b;margin-bottom:6px">${esc(d.vehicle)}</div>`:''}
       ${delivLabel?`<div style="font-size:14px;font-weight:700;color:#6d28d9;margin-bottom:6px">📅 ${delivLabel}</div>`:''}
@@ -3992,15 +4002,27 @@ function renderTVCompoundMap() {
   const numCols = maxCol >= 0 ? maxCol + 1 : (size.cols || 52);
   const numRows = maxRow >= 0 ? maxRow + 1 : (size.rows || 13);
 
-  // Sized by aspect-ratio + max-width/max-height instead of a flat width:100%,
-  // so a lot that's much taller than it is wide (many rows, few columns) scales
-  // down to fit the slide's height too, instead of running off the bottom -
-  // the same "shrink to fit both dimensions, never overflow" guarantee as
-  // every other TV slide.
+  // Sized in actual pixels (measured from the container) rather than the CSS
+  // aspect-ratio property, which some TV/kiosk browsers don't support - on
+  // one that doesn't, an unsupported aspect-ratio plus no fallback width
+  // left this with no computed size at all, i.e. it just didn't render.
+  // Computing width AND height in JS from whichever of the container's
+  // dimensions is tighter (like object-fit:contain) keeps the same "shrink
+  // to fit both dimensions, never overflow" behavior, with plain pixel
+  // widths/heights that work in any browser.
+  const gap = 1;
+  const availW = el.clientWidth || 800;
+  const availH = el.clientHeight || 400;
+  const cellSize = Math.max(3, Math.floor(Math.min(
+    (availW - gap * (numCols - 1)) / numCols,
+    (availH - gap * (numRows - 1)) / numRows
+  )));
+  const mapWidth = cellSize * numCols + gap * (numCols - 1);
+
   let html = '';
-  html += `<div style="max-width:100%;max-height:100%;aspect-ratio:${numCols}/${numRows};display:flex;flex-direction:column;gap:1px;margin:auto">`;
+  html += `<div style="width:${mapWidth}px;margin:0 auto;display:flex;flex-direction:column;gap:${gap}px">`;
   for (let ri = 0; ri < numRows; ri++) {
-    html += `<div style="display:flex;width:100%;gap:1px">`;
+    html += `<div style="display:flex;gap:${gap}px">`;
     for (let ci = 0; ci < numCols; ci++) {
       const key = `R${ri}-C${ci}`;
       const veh = v[key];
@@ -4020,7 +4042,7 @@ function renderTVCompoundMap() {
         else if (st === 'leasereturn')bg = '#3b82f6';      // blue
         else                          bg = '#94a3b8';      // solid grey-blue - occupied
       }
-      html += `<div style="flex:1;min-width:0;aspect-ratio:1;background:${bg};border-radius:1px" title="${veh?veh.stock:''}"></div>`;
+      html += `<div style="width:${cellSize}px;height:${cellSize}px;flex-shrink:0;background:${bg};border-radius:1px" title="${veh?veh.stock:''}"></div>`;
     }
     html += `</div>`;
   }
