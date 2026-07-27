@@ -870,6 +870,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"/>
 <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 </head>
 <body>
 
@@ -1891,13 +1892,23 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   <div class="modal-card">
     <div class="modal-title-row"><span id="gr-modal-title">Add Get Ready deal</span><button class="modal-close" onclick="closeGRModal()">×</button></div>
     <div id="gr-lock-banner" style="display:none;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;margin-bottom:12px"></div>
+    <div id="gr-pdf-row" style="margin-bottom:12px;padding:10px 14px;border:1px dashed var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <input type="file" id="gr-pdf-input" accept="application/pdf" style="display:none" onchange="handleGRPdfUpload(this.files[0])"/>
+      <span id="gr-pdf-status" style="font-size:13px;color:var(--text-muted);flex:1">No Get Ready sheet attached</span>
+      <button type="button" onclick="document.getElementById('gr-pdf-input').click()" style="padding:7px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer">📄 Attach / replace PDF</button>
+      <a id="gr-pdf-view-link" href="#" target="_blank" rel="noopener" style="display:none;padding:7px 14px;font-size:13px;font-weight:600;border-radius:var(--radius-sm);background:var(--ford);color:#fff;text-decoration:none">View sheet</a>
+    </div>
     <div class="modal-grid">
       <div class="modal-form-row"><label>Stock #</label><input id="gr-stock" type="text" placeholder="e.g. A1402"/></div>
       <div class="modal-form-row"><label>Deal #</label><input id="gr-deal" type="text" placeholder="e.g. 6463159"/></div>
       <div class="modal-form-row modal-full"><label>Vehicle</label><input id="gr-vehicle" type="text" placeholder="e.g. 2025 Bronco Sport"/></div>
       <div class="modal-form-row modal-full"><label>VIN</label><input id="gr-vin" type="text" placeholder="17-digit VIN" style="font-family:monospace;letter-spacing:.05em" maxlength="17"/></div>
       <div class="modal-form-row"><label>Customer name</label><input id="gr-customer" type="text" placeholder="e.g. Brad Bodanis"/></div>
+      <div class="modal-form-row"><label>Customer phone</label><input id="gr-phone" type="tel" placeholder="e.g. 705-555-0123"/></div>
+      <div class="modal-form-row"><label>Customer email</label><input id="gr-email" type="email" placeholder="e.g. name@email.com"/></div>
+      <div class="modal-form-row"><label>DMS deal #</label><input id="gr-dms-id" type="text" placeholder="e.g. 212669"/></div>
       <div class="modal-form-row"><label>Salesperson</label><input id="gr-salesperson" type="text" placeholder="e.g. Michael Prince"/></div>
+      <div class="modal-form-row"><label>Desk Manager</label><input id="gr-desk-manager" type="text" placeholder="e.g. Jesse Di Domizio"/></div>
       <div class="modal-form-row"><label>F&amp;I Manager</label><input id="gr-fni" type="text" placeholder="e.g. Pat Nguyen"/></div>
       <div class="modal-form-row"><label>Type</label>
         <select id="gr-type">
@@ -1978,6 +1989,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getDatabase, ref, push, get, set, onValue, update, remove, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 import { getAuth, signInAnonymously, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDYj9RC-cmfcfZ6sPo_9TmF67mWeEkxkwo",
@@ -1992,6 +2004,7 @@ const firebaseConfig = {
 const appFB = initializeApp(firebaseConfig);
 const db = getDatabase(appFB);
 const auth = getAuth(appFB);
+const storage = getStorage(appFB);
 // Human staff authenticate via email/password sign-in (see loadIdentity/watchUserApproval below).
 // TV/display kiosk screens (?display=true) use a silent anonymous session instead -
 // that's handled inside loadIdentity() since there's no person present to sign in.
@@ -2594,6 +2607,7 @@ function startApp() {
 
   onValue(ref(db,'vehicleSpecs'), snap=>{
     vehicleSpecs = snap.val()||{};
+    renderTVGetReady(); // Get Ready's TV descriptor is looked up from here, not stored on the deal itself
   });
 
   // Fires once per new Get Ready deal, from whichever open session sees it
@@ -3848,7 +3862,7 @@ function renderTVIncoming() {
           <span class="tv-inc-tile-stock">${esc(u.stock||'-')}</span>
           <span class="tv-inc-tile-status" style="${ps}">${done?'DONE':u.status||'?'}</span>
         </div>
-        <div class="tv-inc-tile-vehicle">${esc(u.vehicle||'-')}</div>
+        <div class="tv-inc-tile-vehicle">${esc([u.trim, u.colour].filter(Boolean).join(' · ') || u.vehicle || '-')}</div>
         ${catBadge?`<div style="font-size:13px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.03em">${catBadge}</div>`:''}
       </div>
       <div class="tv-inc-tile-flags" style="padding:0 6px 6px">
@@ -3932,12 +3946,18 @@ function renderTVGetReady() {
       `<div style="width:10px;height:10px;border-radius:50%;background:${d[k]?'#16a34a':'#e2e8f0'}"></div>`
     ).join('');
 
+    // Trim/colour from the shared vehicle specs registry (same lookup Incoming
+    // and the Compound Map use) - falls back to the deal's own free-text
+    // Vehicle field when no spec has been entered for this stock #.
+    const spec = vehicleSpecs[(d.stock||'').toUpperCase().trim()];
+    const descriptor = (spec && [spec.trim, spec.colour].filter(Boolean).join(' · ')) || d.vehicle || '';
+
     return `<div style="background:#fff;border-radius:12px;padding:16px 18px;border-left:6px solid ${isDone?'#15803d':border};min-height:200px;box-sizing:border-box;opacity:${isDone?'.7':'1'}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
         <div style="font-size:26px;font-weight:800;color:#00095b;line-height:1">${esc(d.stock||'-')}</div>
         <span style="font-size:13px;font-weight:700;padding:4px 10px;border-radius:20px;background:${isDone?'#dcfce7':typeBg};color:${isDone?'#15803d':typeColor};text-transform:uppercase;letter-spacing:.04em;margin-left:auto;white-space:nowrap">${isDone?'Done':typeLabel}</span>
       </div>
-      ${d.vehicle?`<div style="font-size:14px;color:#64748b;margin-bottom:6px">${esc(d.vehicle)}</div>`:''}
+      ${descriptor?`<div style="font-size:14px;color:#64748b;margin-bottom:6px">${esc(descriptor)}</div>`:''}
       ${delivLabel?`<div style="font-size:14px;font-weight:700;color:#6d28d9;margin-bottom:6px">📅 ${delivLabel}</div>`:''}
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
         <span style="font-size:13px;font-weight:700;color:${gasColor}">${gasLabel}</span>
@@ -5093,7 +5113,9 @@ function renderGRCard(d, perms, isDupe) {
         </div>
         <div class="gr-card-vehicle">${esc(d.vehicle||'-')}${d.vin?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">${esc(d.vin)}</span>`:''}</div>
         ${d.customer?`<div class="gr-card-customer">${esc(d.customer)}${d.salesperson?' · '+esc(d.salesperson):''}</div>`:''}
+        ${(d.phone||d.email)?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">${d.phone?'📞 '+esc(d.phone):''}${d.phone&&d.email?' · ':''}${d.email?'✉️ '+esc(d.email):''}</div>`:''}
         ${financingLabel?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">💳 ${financingLabel}</div>`:''}
+        ${d.pdfUrl?`<div style="margin-top:4px"><a href="${esc(d.pdfUrl)}" target="_blank" rel="noopener" style="font-size:11px;font-weight:600;color:var(--ford);text-decoration:none">📄 ${esc(d.pdfFileName||'Get Ready sheet')}</a></div>`:''}
         ${d.needsAcknowledgment?`<div style="font-size:11px;color:#7c3aed;font-weight:700;margin-top:4px">🔶 Updated by ${esc(d.updatedFieldsBy||'someone')} - delivery, gas, or trade-in info changed</div>`:''}
       </div>
       ${gasBanner}
@@ -5256,7 +5278,11 @@ window.openGRModal = function(id) {
   document.getElementById('gr-vehicle').value = d.vehicle || '';
   document.getElementById('gr-vin').value = d.vin || '';
   document.getElementById('gr-customer').value = d.customer || '';
+  document.getElementById('gr-phone').value = d.phone || '';
+  document.getElementById('gr-email').value = d.email || '';
+  document.getElementById('gr-dms-id').value = d.dmsId || '';
   document.getElementById('gr-salesperson').value = d.salesperson || '';
+  document.getElementById('gr-desk-manager').value = d.deskManager || '';
   document.getElementById('gr-fni').value = d.fniManager || '';
   document.getElementById('gr-type').value = d.type || 'AS-IS';
   document.getElementById('gr-financing').value = d.financing || 'CASH';
@@ -5290,6 +5316,12 @@ window.openGRModal = function(id) {
   // Custom fields
   grCustomFields = Array.isArray(d.customFields) ? d.customFields.map(f=>({...f})) : [];
   grRenderCustomFields();
+  // Get Ready sheet PDF - start clean each time the modal opens; if this deal
+  // already has one attached, it shows as a "view" link until replaced.
+  grPendingPdfFile = null;
+  grExistingPdfUrl = d.pdfUrl || null;
+  document.getElementById('gr-pdf-input').value = '';
+  updateGRPdfRowUI();
   document.getElementById('gr-modal').style.display = 'flex';
   setTimeout(()=>document.getElementById('gr-stock').focus(), 100);
 
@@ -5320,6 +5352,141 @@ window.closeGRModal = function() {
   stopWatchingLock();
   if (editingGRId) releaseLock('getready', editingGRId);
   editingGRId = null;
+  grPendingPdfFile = null;
+  grExistingPdfUrl = null;
+};
+
+// Get Ready sheet PDF upload/parse - lets staff attach the dealership's own
+// fillable "Digital Get Ready" PDF (from the DMS) instead of retyping it.
+// The file itself is uploaded to Firebase Storage on save; its form fields
+// are read client-side (via pdf-lib) purely to pre-fill this modal.
+let grPendingPdfFile = null; // File staged for upload when saveGR() runs
+let grExistingPdfUrl = null; // pdfUrl already on the deal being edited, unless replaced
+
+function updateGRPdfRowUI() {
+  const status = document.getElementById('gr-pdf-status');
+  const link = document.getElementById('gr-pdf-view-link');
+  if (grPendingPdfFile) {
+    status.textContent = 'Ready to upload: ' + grPendingPdfFile.name;
+    link.style.display = 'none';
+  } else if (grExistingPdfUrl) {
+    status.textContent = 'Get Ready sheet attached';
+    link.style.display = 'inline-block';
+    link.href = grExistingPdfUrl;
+  } else {
+    status.textContent = 'No Get Ready sheet attached';
+    link.style.display = 'none';
+  }
+}
+
+function pdfFieldText(form, name) {
+  try { return (form.getTextField(name).getText() || '').trim(); } catch(e) { return ''; }
+}
+function pdfFieldChecked(form, name) {
+  try { return form.getCheckBox(name).isChecked(); } catch(e) { return false; }
+}
+function fillGRIfEmpty(id, value) {
+  const el = document.getElementById(id);
+  if (el && !el.value.trim() && value) el.value = value;
+}
+// DMS export uses "YYYY/MM/DD"; the <input type=date> needs "YYYY-MM-DD".
+function pdfDateToInput(s) {
+  const m = /^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/.exec((s||'').trim());
+  if (!m) return '';
+  return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+}
+// DMS export uses "h:mm AM/PM"; the <input type=time> needs 24-hour "HH:MM".
+function pdfTimeToInput(s) {
+  const m = /^(\d{1,2}):(\d{2})\s*([AP]M)$/i.exec((s||'').trim());
+  if (!m) return '';
+  let h = parseInt(m[1],10);
+  const ap = m[3].toUpperCase();
+  if (ap === 'AM') { if (h===12) h=0; } else if (h!==12) h+=12;
+  return `${String(h).padStart(2,'0')}:${m[2]}`;
+}
+
+// Maps the Get Ready sheet's raw checkbox field names to this app's
+// checklist keys - confirmed stable across multiple real deal PDFs (same
+// template, same field positions each time), so this can be hardcoded.
+const GR_PDF_CHECKLIST_MAP = {
+  'Check Box23':'pdi', 'Check Box24':'leather', 'Check Box25':'lof', 'Check Box26':'fabric',
+  'Check Box27':'detail', 'Check Box28':'module', 'Check Box29':'paint', 'Check Box30':'safety',
+};
+
+// Only ever called for a brand-new (not-yet-saved) deal, so it's safe to
+// fill every field outright - there's nothing hand-entered yet to clobber.
+function applyGRPdfFields(form) {
+  fillGRIfEmpty('gr-stock', pdfFieldText(form,'StockNum').toUpperCase());
+  fillGRIfEmpty('gr-deal', pdfFieldText(form,'DealID'));
+  fillGRIfEmpty('gr-vehicle', pdfFieldText(form,'Model'));
+  fillGRIfEmpty('gr-customer', pdfFieldText(form,'FullName'));
+  fillGRIfEmpty('gr-phone', pdfFieldText(form,'ContactPhone'));
+  fillGRIfEmpty('gr-email', pdfFieldText(form,'Email'));
+  fillGRIfEmpty('gr-dms-id', pdfFieldText(form,'custDMSID'));
+  fillGRIfEmpty('gr-salesperson', pdfFieldText(form,'SALESPERSONSNAME'));
+  fillGRIfEmpty('gr-desk-manager', pdfFieldText(form,'SalesManagerName'));
+  fillGRIfEmpty('gr-fni', pdfFieldText(form,'FIManagerName'));
+  fillGRIfEmpty('gr-delivery-date', pdfDateToInput(pdfFieldText(form,'DeliveryDate')));
+  fillGRIfEmpty('gr-delivery-time', pdfTimeToInput(pdfFieldText(form,'Deliverytime_time')));
+
+  if (pdfFieldChecked(form,'Cash_ck')) document.getElementById('gr-financing').value = 'CASH';
+  else if (pdfFieldChecked(form,'Finance_ck')) document.getElementById('gr-financing').value = 'FINANCE';
+  else if (pdfFieldChecked(form,'leaseck')) document.getElementById('gr-financing').value = 'FORD_RCL';
+
+  // A checked box on the sheet means this step is required for this vehicle
+  // (never actual completion - see the note on the checklist UI below).
+  Object.entries(GR_PDF_CHECKLIST_MAP).forEach(([boxName, key]) => {
+    if (pdfFieldChecked(form, boxName)) {
+      const cb = document.getElementById('gr-c-'+key);
+      if (cb) cb.checked = true;
+    }
+  });
+
+  const accessoryLines = [];
+  for (let i = 1; i <= 7; i++) {
+    const item = pdfFieldText(form, 'AccessoriesRow'+i);
+    if (!item) continue;
+    const supplier = pdfFieldText(form, 'SupplierRow'+i);
+    const amount = pdfFieldText(form, 'AmountRow'+i);
+    const po = pdfFieldText(form, 'PO  RORow'+i);
+    accessoryLines.push([item, supplier, amount, po].filter(Boolean).join(' — '));
+  }
+  fillGRIfEmpty('gr-instructions', accessoryLines.join('\n'));
+  fillGRIfEmpty('gr-notes-field', pdfFieldText(form, 'Remarks_'));
+
+  // Trade-ins - the sheet's own field names use index 2/3 for trade 1/2.
+  [['stocknum2','tr2','colo2','odemeterkm2','tradetype2'], ['stocknum3','tr3','colo3','odemeterkm3','tradetype3']]
+    .forEach(([stockKey, ymmKey, colourKey, kmsKey, typeKey], i) => {
+      const stock = pdfFieldText(form, stockKey);
+      if (!stock || (grTrades[i] && grTrades[i].stock)) return;
+      const parts = pdfFieldText(form, ymmKey).split('/');
+      const year = (parts[0]||'').trim();
+      const make = (parts[1]||'').trim();
+      const model = parts.slice(2).join('/').trim();
+      const typeRaw = pdfFieldText(form, typeKey).toUpperCase().replace(/[\s-]/g,'');
+      const category = ['RETAIL','WHOLESALE','ASIS','CPO'].includes(typeRaw) ? typeRaw : 'RETAIL';
+      grTrades[i] = { stock: stock.toUpperCase(), vin:'', year, make, model, colour: pdfFieldText(form, colourKey), kms: pdfFieldText(form, kmsKey), category };
+    });
+  grRenderTradeSlots();
+}
+
+window.handleGRPdfUpload = async function(file) {
+  if (!file) return;
+  if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+    alert('Please choose a PDF file.');
+    return;
+  }
+  grPendingPdfFile = file;
+  updateGRPdfRowUI();
+  if (editingGRId) return; // Editing an existing deal - just attach the file, don't touch already-entered fields.
+  try {
+    const bytes = await file.arrayBuffer();
+    const pdfDoc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+    applyGRPdfFields(pdfDoc.getForm());
+  } catch(e) {
+    console.error(e);
+    alert('Sheet attached, but its fields could not be read automatically - please fill in the details by hand.');
+  }
 };
 
 window.saveGR = async function() {
@@ -5329,7 +5496,11 @@ window.saveGR = async function() {
     vehicle: document.getElementById('gr-vehicle').value.trim(),
     vin: document.getElementById('gr-vin').value.trim().toUpperCase(),
     customer: document.getElementById('gr-customer').value.trim(),
+    phone: document.getElementById('gr-phone').value.trim(),
+    email: document.getElementById('gr-email').value.trim(),
+    dmsId: document.getElementById('gr-dms-id').value.trim(),
     salesperson: document.getElementById('gr-salesperson').value.trim(),
+    deskManager: document.getElementById('gr-desk-manager').value.trim(),
     fniManager: document.getElementById('gr-fni').value.trim(),
     type: document.getElementById('gr-type').value,
     financing: document.getElementById('gr-financing').value,
@@ -5373,6 +5544,28 @@ window.saveGR = async function() {
   const btn = document.getElementById('gr-save-btn');
   btn.disabled = true; btn.textContent = 'Saving…';
   try {
+    // A new deal needs its key up front so an uploaded PDF can be filed at a
+    // path tied to that deal, even before the deal record itself exists yet.
+    const newRef = editingGRId ? null : push(ref(db,'getready'));
+    const targetId = editingGRId || newRef.key;
+
+    if (grPendingPdfFile) {
+      btn.textContent = 'Uploading sheet…';
+      const fileRef = storageRef(storage, 'getready-pdfs/' + targetId + '.pdf');
+      await uploadBytes(fileRef, grPendingPdfFile, { contentType: 'application/pdf' });
+      deal.pdfUrl = await getDownloadURL(fileRef);
+      deal.pdfFileName = grPendingPdfFile.name;
+      deal.pdfUploadedAt = Date.now();
+      deal.pdfUploadedBy = currentUser.name;
+    } else if (grExistingPdfUrl) {
+      const old = editingGRId ? (getReadyDeals[editingGRId] || {}) : {};
+      deal.pdfUrl = grExistingPdfUrl;
+      deal.pdfFileName = old.pdfFileName || null;
+      deal.pdfUploadedAt = old.pdfUploadedAt || null;
+      deal.pdfUploadedBy = old.pdfUploadedBy || null;
+    }
+    btn.textContent = 'Saving…';
+
     if (editingGRId) {
       const oldDeal = getReadyDeals[editingGRId] || {};
       if (hasSignificantGRChange(oldDeal, deal)) {
@@ -5387,10 +5580,10 @@ window.saveGR = async function() {
       }
       await update(ref(db,'getready/'+editingGRId), deal);
     } else {
-      await push(ref(db,'getready'), deal);
+      await set(newRef, deal);
     }
     closeGRModal();
-  } catch(e) { alert('Error saving - check your connection.'); }
+  } catch(e) { console.error(e); alert('Error saving - check your connection.'); }
   btn.disabled = false; btn.textContent = editingGRId ? 'Save changes' : 'Add Get Ready deal';
 };
 
