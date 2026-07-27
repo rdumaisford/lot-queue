@@ -185,7 +185,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
    section crammed into a permanent 3-column grid. Slides stack on top of
    each other and crossfade; only the .active one is interactive/visible. */
 .tv-slides{flex:1;position:relative;min-height:0}
-.tv-slide{position:absolute;inset:0;display:flex;flex-direction:column;min-height:0;opacity:0;pointer-events:none;transition:opacity .8s ease}
+.tv-slide{position:absolute;inset:0;display:flex;flex-direction:column;min-height:0;overflow:hidden;opacity:0;pointer-events:none;transition:opacity .8s ease}
 .tv-slide.active{opacity:1;pointer-events:auto}
 .tv-slide-title{font-size:22px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#fff;margin-bottom:16px;flex-shrink:0;display:flex;align-items:center;gap:10px}
 .tv-slide-meta{font-size:16px;font-weight:600;letter-spacing:.02em;color:rgba(255,255,255,.65);margin-top:-10px;margin-bottom:16px;flex-shrink:0}
@@ -209,10 +209,21 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tv-inc-stat-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.5);margin-top:2px}
 
 /* Card grid - shared by every slide's list of pills */
+/* CSS Grid's "auto" row sizing has no floor - without a minmax() floor, rows
+   will silently squash smaller and smaller to cram everything in rather than
+   overflow, which is how a busy day (50+ units) turned into a wall of
+   unreadable, overlapping slivers instead of a scrolling list. Each grid
+   below gets a floor matched to its own card's natural height, so cards
+   never shrink below readable size - once there's more content than fits,
+   the grid genuinely overflows (clipped by the slide) and the auto-scroll
+   in setupTvSlides takes over instead. */
 .tv-slide-grid{display:grid;gap:16px;overflow-y:hidden;flex:1;align-content:start;min-height:0}
 .tv-slide-grid-3{grid-template-columns:repeat(3,1fr)}
 .tv-slide-grid-4{grid-template-columns:repeat(4,1fr)}
-.tv-compound-wrap{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0}
+#tv-gr-list{grid-auto-rows:minmax(180px,auto)}
+#tv-inc-list{grid-auto-rows:minmax(165px,auto)}
+#tv-rides-list,#tv-returns-list,#tv-appt-list{grid-auto-rows:minmax(130px,auto)}
+.tv-compound-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0;overflow:hidden}
 
 /* Each incoming-unit tile - white bg */
 .tv-inc-tile{background:#fff;border-radius:12px;overflow:hidden;color:var(--ford);display:flex;flex-direction:column}
@@ -1146,8 +1157,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <span style="margin-left:8px;color:var(--text-faint)">· No date on record defaults to today (green)</span>
       </div>
 
-      <!-- Live "someone's coming for a pickup" banner for IC/lot staff -->
-      <div id="cm-incoming-pickups-banner" style="display:none;padding:8px 16px;background:#eff6ff;border-bottom:1px solid #bfdbfe;font-size:12px;color:#1d4ed8;gap:12px;flex-wrap:wrap;align-items:center"></div>
 
       <!-- Edit mode row - shown only in edit mode -->
       <div id="cm-edit-bar" style="display:none;align-items:center;gap:8px;padding:8px 16px;background:#fef9ec;border-bottom:1px solid #fcd34d;flex-wrap:wrap">
@@ -2466,7 +2475,8 @@ function startApp() {
     rides = snap.val() || {};
     if (document.getElementById('panel-rides')?.classList.contains('active')) renderRidesTab();
     if (document.getElementById('panel-tv')?.classList.contains('active')) { renderTVRides(); renderTVCompoundMap(); }
-    if (document.getElementById('panel-compound')?.classList.contains('active')) { renderIncomingPickupsBanner(); cmRenderMap(); }
+    if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
+    tvUpdateShuttleRoutes();
   });
 
   onValue(ref(db, 'appointments'), snap => {
@@ -2485,6 +2495,7 @@ function startApp() {
     driverLocations = snap.val() || {};
     if (document.getElementById('panel-rides')?.classList.contains('active')) ridesUpdateDriverMarkers();
     tvUpdateShuttleMarkers();
+    tvUpdateShuttleRoutes();
   });
 
   if (!viewParamApplied) {
@@ -2576,7 +2587,7 @@ function startApp() {
 
   onValue(ref(db,'tracker'), snap=>{
     units = snap.val()||{};
-    document.getElementById('tc-tracker').textContent = Object.keys(units).length;
+    document.getElementById('tc-tracker').textContent = Object.values(units).filter(u=>!isUnitComplete(u)).length;
     renderTracker(); renderTrackerSummary();
     renderTVIncoming();
   });
@@ -3760,22 +3771,6 @@ function renderTVAppointments() {
   }).join('');
 }
 
-// A live "someone's on the way" banner for IC/lot staff, right on the Vehicle
-// Locator screen - shows any ride that's actually moving (claimed or enroute),
-// hitchhikers included, so staff know who's about to show up and why.
-function renderIncomingPickupsBanner() {
-  const el = document.getElementById('cm-incoming-pickups-banner');
-  if (!el) return;
-  const active = Object.values(rides||{}).filter(r => ['claimed','enroute'].includes(r.status));
-  if (!active.length) { el.style.display = 'none'; return; }
-  el.style.display = 'flex';
-  const stageText = { claimed: 'on the way', enroute: 'in progress' };
-  el.innerHTML = active.map(r => {
-    const what = r.type === 'vehicle' ? `🚗 pickup for <strong>${esc(r.stock)}</strong>` : `🙋 hitchhiker`;
-    return `<span>🚐 <strong>${esc(r.claimedBy||'Driver')}</strong> ${stageText[r.status]} - ${what} · ${r.pickup} → ${r.dropoff}</span>`;
-  }).join('<span style="color:#93c5fd">|</span>');
-}
-
 function renderTVIncoming() {
   const sumEl  = document.getElementById('tv-inc-summary');
   const listEl = document.getElementById('tv-inc-list');
@@ -3997,8 +3992,13 @@ function renderTVCompoundMap() {
   const numCols = maxCol >= 0 ? maxCol + 1 : (size.cols || 52);
   const numRows = maxRow >= 0 ? maxRow + 1 : (size.rows || 13);
 
+  // Sized by aspect-ratio + max-width/max-height instead of a flat width:100%,
+  // so a lot that's much taller than it is wide (many rows, few columns) scales
+  // down to fit the slide's height too, instead of running off the bottom -
+  // the same "shrink to fit both dimensions, never overflow" guarantee as
+  // every other TV slide.
   let html = '';
-  html += `<div style="width:100%;display:flex;flex-direction:column;gap:1px">`;
+  html += `<div style="max-width:100%;max-height:100%;aspect-ratio:${numCols}/${numRows};display:flex;flex-direction:column;gap:1px;margin:auto">`;
   for (let ri = 0; ri < numRows; ri++) {
     html += `<div style="display:flex;width:100%;gap:1px">`;
     for (let ci = 0; ci < numCols; ci++) {
@@ -4082,6 +4082,49 @@ function tvUpdateShuttleMarkers() {
   });
   Object.keys(tvShuttleMarkers).forEach(uid => {
     if (!seen.has(uid)) { tvShuttleMap.removeLayer(tvShuttleMarkers[uid]); delete tvShuttleMarkers[uid]; }
+  });
+}
+
+// Draws the actual driving route (same free OSRM routing the driver's own
+// "Drive" map uses) from wherever the van currently is to wherever it's
+// headed next - the pickup while a ride is 'claimed', the dropoff once
+// 'enroute'. Matched to a driver by name (driverLocation only records a
+// name, not which ride they're on), and throttled the same 15s as the
+// driver's own map so a passive TV viewer doesn't hammer the free routing
+// service on every GPS ping.
+let tvRouteControls = {}; // rideId -> { control, destKey, lastCalcTs }
+const TV_ROUTE_THROTTLE_MS = 15000;
+function tvUpdateShuttleRoutes() {
+  if (!tvShuttleMap || typeof L === 'undefined' || !L.Routing) return;
+  const activeRides = Object.entries(rides || {}).filter(([id, r]) => r.type === 'vehicle' && ['claimed', 'enroute'].includes(r.status));
+  const seen = new Set();
+  activeRides.forEach(([id, r]) => {
+    const driverEntry = Object.values(driverLocations || {}).find(d => d.name === r.claimedBy);
+    const destName = r.status === 'claimed' ? r.pickup : r.dropoff;
+    const dest = RIDES_LOTS[destName];
+    if (!driverEntry || !dest) return;
+    seen.add(id);
+    const destKey = id + '_' + destName;
+    const now = Date.now();
+    const waypoints = [L.latLng(driverEntry.lat, driverEntry.lng), L.latLng(dest.lat, dest.lng)];
+    let entry = tvRouteControls[id];
+    if (!entry) {
+      const control = L.Routing.control({
+        waypoints,
+        router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
+        lineOptions: { styles: [{ color: '#2563eb', weight: 5, opacity: 0.85 }] },
+        show: false, addWaypoints: false, draggableWaypoints: false, fitSelectedRoutes: false,
+        createMarker: () => null, // the van/lot markers are already drawn separately
+      }).addTo(tvShuttleMap);
+      tvRouteControls[id] = { control, destKey, lastCalcTs: now };
+    } else if (destKey !== entry.destKey || (now - entry.lastCalcTs) >= TV_ROUTE_THROTTLE_MS) {
+      entry.destKey = destKey;
+      entry.lastCalcTs = now;
+      entry.control.setWaypoints(waypoints);
+    }
+  });
+  Object.keys(tvRouteControls).forEach(id => {
+    if (!seen.has(id)) { tvShuttleMap.removeControl(tvRouteControls[id].control); delete tvRouteControls[id]; }
   });
 }
 
@@ -4407,6 +4450,7 @@ function renderTracker() {
         ${u.kms?`<span style="font-size:12px;color:var(--text-faint)">${u.kms} km</span>`:''}
         ${u.workReq?`<span style="font-size:12px;font-family:monospace;color:var(--text-faint)">${u.workReq}</span>`:''}
       </div>
+      ${u.ts?`<div style="font-size:11px;color:var(--text-faint);padding:0 16px 8px">Added ${timeAgo(u.ts)} by ${esc(u.createdBy||u.updatedBy||'Unknown')}</div>`:''}
       <div class="tracker-card-notes">
         <textarea placeholder="Add notes…" onchange="inlineNotes('${u.id}',this.value)" onblur="inlineNotes('${u.id}',this.value)">${esc(u.notes||'')}</textarea>
       </div>
@@ -4598,7 +4642,11 @@ window.saveUnit = async function() {
     icMoved: unitCondition==='new' ? document.getElementById('m-ic').checked : document.getElementById('m-ic-used').checked,
     fileReceived: unitCondition==='used' ? document.getElementById('m-file-received').checked : false,
     updatedBy:currentUser.name,
-    ts:editingUnitId?(units[editingUnitId]?.ts||Date.now()):Date.now()
+    ts:editingUnitId?(units[editingUnitId]?.ts||Date.now()):Date.now(),
+    // Who first added this unit - unlike updatedBy (which changes every edit),
+    // this is set once and carried forward so the card can always show who
+    // originally brought it into the tracker.
+    createdBy:editingUnitId?(units[editingUnitId]?.createdBy||units[editingUnitId]?.updatedBy||currentUser.name):currentUser.name
   };
   const isNoPhoto = unit.status === 'TURNOVER' || unit.status === 'SOLD';
   if (isNoPhoto) { unit.photo = true; unit.photoNA = true; }
@@ -4789,6 +4837,7 @@ window.completeDealTradeIn = async function(id) {
         accessories: false, pdi: false, photo: false,
         icMoved: false, fileReceived: false,
         updatedBy: currentUser.name,
+        createdBy: currentUser.name,
         ts: Date.now(),
       };
       await push(ref(db,'tracker'), unit);
@@ -5803,7 +5852,6 @@ setInterval(()=>{
   const homePanel = document.getElementById('panel-home');
   if (homePanel && homePanel.classList.contains('active')) renderHomeGrid();
   if (document.getElementById('panel-rides')?.classList.contains('active')) renderRidesTab();
-  if (document.getElementById('panel-compound')?.classList.contains('active')) renderIncomingPickupsBanner();
 },1000);
 
 setInterval(() => { if (currentUser) checkAndSendDailyDigest(); }, 60000);
@@ -7041,7 +7089,6 @@ window.switchTab = function(name, btn) {
     document.getElementById('main-wrap').style.padding = '0';
     document.getElementById('main-wrap').style.maxWidth = 'none';
     cmRender();
-    renderIncomingPickupsBanner();
   } else if (name === 'audit') {
     auditRender();
   } else {
