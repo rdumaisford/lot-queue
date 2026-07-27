@@ -1910,7 +1910,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <div class="modal-form-row"><label>Stock #</label><input id="gr-stock" type="text" placeholder="e.g. A1402"/></div>
       <div class="modal-form-row"><label>Deal #</label><input id="gr-deal" type="text" placeholder="e.g. 6463159"/></div>
       <div class="modal-form-row modal-full"><label>Vehicle</label><input id="gr-vehicle" type="text" placeholder="e.g. 2025 Bronco Sport"/></div>
-      <div class="modal-form-row modal-full"><label>VIN</label><input id="gr-vin" type="text" placeholder="17-digit VIN" style="font-family:monospace;letter-spacing:.05em" maxlength="17"/></div>
+      <div class="modal-form-row"><label>VIN</label><input id="gr-vin" type="text" placeholder="17-digit VIN" style="font-family:monospace;letter-spacing:.05em" maxlength="17"/></div>
+      <div class="modal-form-row"><label>Last 6 of VIN</label><input id="gr-vin6" type="text" placeholder="e.g. E45978" style="font-family:monospace;letter-spacing:.05em" maxlength="6"/></div>
       <div class="modal-form-row"><label>Customer name</label><input id="gr-customer" type="text" placeholder="e.g. Brad Bodanis"/></div>
       <div class="modal-form-row"><label>Customer phone</label><input id="gr-phone" type="tel" placeholder="e.g. 705-555-0123"/></div>
       <div class="modal-form-row"><label>Customer email</label><input id="gr-email" type="email" placeholder="e.g. name@email.com"/></div>
@@ -2049,7 +2050,7 @@ let denyTargetId = null;
 let grFilterStatus = 'ALL', editingGRId = null;
 
 // ── Roles & Permissions (Firebase-backed, editable in Settings) ──
-const ALL_ROLES = ['lot','reception','service','sales','fandi','detail','pdi','merchandiser','management','shuttle'];
+const ALL_ROLES = ['lot','reception','service','sales','fandi','detail','pdi','merchandiser','management','shuttle','display'];
 const ROLE_LABELS = {lot:'Inventory Control',reception:'Reception',service:'Service',sales:'Sales',fandi:'F&I',detail:'Detail',pdi:'PDI',merchandiser:'Merchandiser',management:'Management',display:'Display',shuttle:'Shuttle Driver'};
 
 // Default permission matrix - used until Firebase settings/permissions loads (or if a role/perm is missing there)
@@ -2225,16 +2226,24 @@ function updateConnectionIndicator() {
 window.addEventListener('online', () => { browserOnline = true; updateConnectionIndicator(); });
 window.addEventListener('offline', () => { browserOnline = false; updateConnectionIndicator(); });
 
+// Shared by both TV entry points below: the anonymous ?display=true kiosk
+// mode, and a real logged-in "Display" role account - either way, ?loc= on
+// the URL is what tells a given physical TV which lot to filter its boards
+// to (no ?loc= = unfiltered, shows everything).
+function applyTvLocationFromUrl() {
+  const locParam = new URLSearchParams(window.location.search).get('loc');
+  const locMap = { '55mapleview':'55 Mapleview', '323bayview':'323 Bayview', '700bayview':'700 Bayview' };
+  tvLocation = locMap[locParam] || null;
+  if (tvLocation) {
+    const badgeEl = document.getElementById('tv-loc-badge');
+    if (badgeEl) badgeEl.textContent = '- ' + tvLocation;
+  }
+}
+
 function loadIdentity() {
   const isDisplay = new URLSearchParams(window.location.search).get('display') === 'true';
   if (isDisplay) {
-    const locParam = new URLSearchParams(window.location.search).get('loc');
-    const locMap = { '55mapleview':'55 Mapleview', '323bayview':'323 Bayview', '700bayview':'700 Bayview' };
-    tvLocation = locMap[locParam] || null; // no ?loc= = unfiltered, shows everything (old behavior)
-    if (tvLocation) {
-      const badgeEl = document.getElementById('tv-loc-badge');
-      if (badgeEl) badgeEl.textContent = '- ' + tvLocation;
-    }
+    applyTvLocationFromUrl();
     // TV kiosk screens have no person present to sign in - use a silent anonymous session.
     currentUser = {name:'Display', role:'display'};
     // The connection dot up top already shows live/offline at a glance, so this
@@ -2372,6 +2381,10 @@ async function watchUserApproval(fbUser) {
     }
     if (u.status === 'approved' && u.role) {
       currentUser = { name: u.name, role: u.role, uid, email: u.email };
+      // A real "Display" account works the same as any TV kiosk once signed
+      // in - applyPermissions() (called from startApp() below) already sends
+      // display-role accounts straight to the TV tab and locks them there.
+      if (u.role === 'display') applyTvLocationFromUrl();
       document.getElementById('setup-screen').style.display = 'none';
       document.getElementById('app').style.display = 'block';
       startApp();
@@ -5119,7 +5132,7 @@ function renderGRCard(d, perms, isDupe) {
           <span class="gr-type-pill ${typePillClass}">${esc(d.type||'-')}</span>
           ${completeBadge}${holdBadge}${updatedBadge}${dupeBadge}
         </div>
-        <div class="gr-card-vehicle">${esc(d.vehicle||'-')}${d.vin?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">${esc(d.vin)}</span>`:''}</div>
+        <div class="gr-card-vehicle">${esc(d.vehicle||'-')}${d.vin?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">${esc(d.vin)}</span>`:d.vin6?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">…${esc(d.vin6)}</span>`:''}</div>
         ${d.customer?`<div class="gr-card-customer">${esc(d.customer)}${d.salesperson?' · '+esc(d.salesperson):''}</div>`:''}
         ${(d.phone||d.email)?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">${d.phone?'📞 '+esc(d.phone):''}${d.phone&&d.email?' · ':''}${d.email?'✉️ '+esc(d.email):''}</div>`:''}
         ${financingLabel?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">💳 ${financingLabel}</div>`:''}
@@ -5285,6 +5298,7 @@ window.openGRModal = function(id) {
   document.getElementById('gr-deal').value = d.dealNum || '';
   document.getElementById('gr-vehicle').value = d.vehicle || '';
   document.getElementById('gr-vin').value = d.vin || '';
+  document.getElementById('gr-vin6').value = d.vin6 || '';
   document.getElementById('gr-customer').value = d.customer || '';
   document.getElementById('gr-phone').value = d.phone || '';
   document.getElementById('gr-email').value = d.email || '';
@@ -5292,7 +5306,7 @@ window.openGRModal = function(id) {
   document.getElementById('gr-salesperson').value = d.salesperson || '';
   document.getElementById('gr-desk-manager').value = d.deskManager || '';
   document.getElementById('gr-fni').value = d.fniManager || '';
-  document.getElementById('gr-type').value = d.type || 'AS-IS';
+  document.getElementById('gr-type').value = d.type || 'RETAIL';
   document.getElementById('gr-financing').value = d.financing || 'CASH';
   document.getElementById('gr-delivery-date').value = d.deliveryDate || '';
   document.getElementById('gr-delivery-time').value = d.deliveryTime || '';
@@ -5434,6 +5448,7 @@ function applyGRPdfFields(form) {
   fillGRIfEmpty('gr-salesperson', pdfFieldText(form,'SALESPERSONSNAME'));
   fillGRIfEmpty('gr-desk-manager', pdfFieldText(form,'SalesManagerName'));
   fillGRIfEmpty('gr-fni', pdfFieldText(form,'FIManagerName'));
+  fillGRIfEmpty('gr-vin6', pdfFieldText(form,'LastSixtVin').toUpperCase());
   fillGRIfEmpty('gr-delivery-date', pdfDateToInput(pdfFieldText(form,'DeliveryDate')));
   fillGRIfEmpty('gr-delivery-time', pdfTimeToInput(pdfFieldText(form,'Deliverytime_time')));
 
@@ -5450,16 +5465,29 @@ function applyGRPdfFields(form) {
     }
   });
 
-  const accessoryLines = [];
+  // The gas amount box sits at the bottom-right of the checklist grid (its
+  // own checkboxes there carry no printed label and showed no consistent
+  // signal across real deals, so they're left alone) - a value here (e.g.
+  // "GAS $50") is what actually indicates gas is needed and for how much.
+  const gasText = pdfFieldText(form, 'Text34');
+  const gasAmountMatch = /([\d,]+(?:\.\d{2})?)/.exec(gasText);
+  if (gasAmountMatch) {
+    setGRGasNeeded(true);
+    fillGRIfEmpty('gr-gas-amount', gasAmountMatch[1].replace(/,/g,''));
+  }
+
+  // Each accessory line becomes its own checkbox in the Custom checklist,
+  // rather than one wall of text someone has to read to know what's left -
+  // guarded against duplicates in case a sheet gets attached more than once.
   for (let i = 1; i <= 7; i++) {
     const item = pdfFieldText(form, 'AccessoriesRow'+i);
     if (!item) continue;
     const supplier = pdfFieldText(form, 'SupplierRow'+i);
     const amount = pdfFieldText(form, 'AmountRow'+i);
     const po = pdfFieldText(form, 'PO  RORow'+i);
-    accessoryLines.push([item, supplier, amount, po].filter(Boolean).join(' — '));
+    const label = [item, supplier, amount, po].filter(Boolean).join(' — ');
+    if (!grCustomFields.some(f => f.label === label)) window.grAddCustomField(label, false);
   }
-  fillGRIfEmpty('gr-instructions', accessoryLines.join('\n'));
   fillGRIfEmpty('gr-notes-field', pdfFieldText(form, 'Remarks_'));
 
   // Trade-ins - the sheet's own field names use index 2/3 for trade 1/2.
@@ -5503,6 +5531,7 @@ window.saveGR = async function() {
     dealNum: document.getElementById('gr-deal').value.trim(),
     vehicle: document.getElementById('gr-vehicle').value.trim(),
     vin: document.getElementById('gr-vin').value.trim().toUpperCase(),
+    vin6: document.getElementById('gr-vin6').value.trim().toUpperCase(),
     customer: document.getElementById('gr-customer').value.trim(),
     phone: document.getElementById('gr-phone').value.trim(),
     email: document.getElementById('gr-email').value.trim(),
