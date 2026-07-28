@@ -3912,17 +3912,20 @@ function renderTVIncoming() {
   const todayStr = new Date().toISOString().slice(0,10);
   const all = Object.values(units).filter(u => !isUnitComplete(u) || u.arrivedDate === todayStr);
   const active = all.filter(u => !isUnitComplete(u));
-  const stock    = all.filter(u=>u.status==='STOCK').length;
-  const sold     = all.filter(u=>u.status==='SOLD').length;
-  const turnover = all.filter(u=>u.status==='TURNOVER').length;
+  // Every count here is "still to be completed" - a finished unit drops out
+  // immediately, even though its (faded) tile stays on the board below
+  // through the end of the day it was completed.
+  const stock    = active.filter(u=>u.status==='STOCK').length;
+  const sold     = active.filter(u=>u.status==='SOLD').length;
+  const turnover = active.filter(u=>u.status==='TURNOVER').length;
   const pdiLeft  = active.filter(u=>!u.pdi).length;
 
   // Update column title with count
   const incTitle = document.getElementById('tv-title-incoming');
-  if (incTitle) incTitle.textContent = `Incoming Units (${all.length})`;
+  if (incTitle) incTitle.textContent = `Incoming Units (${active.length})`;
 
   sumEl.innerHTML = `
-    <div class="tv-inc-stat"><div class="tv-inc-stat-num">${all.length}</div><div class="tv-inc-stat-label">Total</div></div>
+    <div class="tv-inc-stat"><div class="tv-inc-stat-num">${active.length}</div><div class="tv-inc-stat-label">Total</div></div>
     <div class="tv-inc-stat"><div class="tv-inc-stat-num" style="color:#6eb4ff">${stock}</div><div class="tv-inc-stat-label">Stock</div></div>
     <div class="tv-inc-stat"><div class="tv-inc-stat-num" style="color:#fbbf24">${turnover}</div><div class="tv-inc-stat-label">Turnover</div></div>
     <div class="tv-inc-stat"><div class="tv-inc-stat-num" style="color:#f87171">${sold}</div><div class="tv-inc-stat-label">Sold</div></div>
@@ -4041,11 +4044,11 @@ function renderTVGetReady() {
       `<div style="width:10px;height:10px;border-radius:50%;background:${d[k]?'#16a34a':'#e2e8f0'}"></div>`
     ).join('');
 
-    // Trim/colour from the shared vehicle specs registry (same lookup Incoming
-    // and the Compound Map use) - falls back to the deal's own free-text
-    // Vehicle field when no spec has been entered for this stock #.
+    // Model/trim/colour from the shared vehicle specs registry (same lookup
+    // Incoming and the Compound Map use) - falls back to the deal's own
+    // free-text Vehicle field when no spec has been entered for this stock #.
     const spec = vehicleSpecs[(d.stock||'').toUpperCase().trim()];
-    const descriptor = (spec && [spec.trim, spec.colour].filter(Boolean).join(' · ')) || d.vehicle || '';
+    const descriptor = (spec && [spec.type, spec.trim, spec.colour].filter(Boolean).join(' · ')) || d.vehicle || '';
 
     return `<div style="background:#fff;border-radius:12px;padding:16px 18px;border-left:6px solid ${isDone?'#15803d':border};min-height:200px;box-sizing:border-box;opacity:${isDone?'.7':'1'}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
@@ -4630,8 +4633,11 @@ function renderTrackerSummary() {
     }
   });
   const active = all.filter(u=>!isUnitComplete(u));
-  const total=all.length, stock=all.filter(u=>u.status==='STOCK').length;
-  const sold=all.filter(u=>u.status==='SOLD').length, to=all.filter(u=>u.status==='TURNOVER').length;
+  // Total/Stock/Sold/Turnover are all "still to be completed" counts - a
+  // finished unit drops out of them immediately, same as the other
+  // remaining-work stats below (only "All done" further down counts them).
+  const total=active.length, stock=active.filter(u=>u.status==='STOCK').length;
+  const sold=active.filter(u=>u.status==='SOLD').length, to=active.filter(u=>u.status==='TURNOVER').length;
   const pdiLeft=active.filter(u=>!u.pdi).length;
   const icLeft=active.filter(u=>!u.icMoved).length;
   const photoLeft=active.filter(u=>!u.photo).length;
