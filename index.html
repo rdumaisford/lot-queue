@@ -2210,6 +2210,7 @@ window.resetPermissionsToDefault = async function() {
 let allUsers = {};
 let viewParamApplied = false; // ensures ?view=shuttle only redirects once per session
 let userApprovalUnsub = null;
+let identityBootstrapping = false; // true while this account's one-time users/{uid} record is being created - see reloadForUpdateIfSafe()
 let tvLocation = null; // e.g. '323 Bayview' - set via ?loc= on the TV display URL, filters its boards to that lot
 
 // ── Connection indicator (shared by the TV display and the header sync dot) ─
@@ -2381,7 +2382,18 @@ async function watchUserApproval(fbUser) {
         status: isFirstEver ? 'approved' : 'pending',
         requestedAt: Date.now(),
       };
-      await update(ref(db), { ['users/'+uid]: u, 'meta/hasUsers': true });
+      // A forced reload (see the update-checker at the bottom of this script)
+      // landing in the middle of this write would abandon it - the account
+      // would be left signed into Firebase Auth with no matching users/{uid}
+      // record at all, and no obvious sign anything went wrong. This flag
+      // tells that reload logic to wait until this write has actually landed.
+      identityBootstrapping = true;
+      try {
+        await update(ref(db), { ['users/'+uid]: u, 'meta/hasUsers': true });
+      } finally {
+        identityBootstrapping = false;
+        reloadForUpdateIfSafe(); // pick up a deploy that was waiting on this write, if any
+      }
       return; // onValue fires again once the write lands
     }
     if (u.status === 'approved' && u.role) {
@@ -7639,6 +7651,10 @@ async function checkForAppUpdate() {
 }
 function reloadForUpdateIfSafe() {
   if (!appUpdatePending) return;
+  // Never interrupt a brand-new account's one-time "create my user record"
+  // write - reloading mid-write abandons it, leaving a real signed-in
+  // Firebase Auth account with no matching users/{uid} record at all.
+  if (identityBootstrapping) return;
   const isDisplay = new URLSearchParams(location.search).get('display') === 'true';
   const modalOpen = Array.from(document.querySelectorAll('.modal-backdrop'))
     .some(m => getComputedStyle(m).display !== 'none');
