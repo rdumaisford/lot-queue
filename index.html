@@ -1612,7 +1612,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <button onclick="resetPermissionsToDefault()" style="padding:7px 14px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text-muted);cursor:pointer;white-space:nowrap">Reset to defaults</button>
         </div>
         <div id="permissions-toast" class="toast" style="margin:12px 0 0"></div>
-        <div id="permissions-editor" style="margin-top:16px;overflow-x:auto"></div>
+        <div style="font-size:12px;color:var(--text-faint);margin-top:12px">Display accounts aren't shown here - they're always locked to TV Display only and can't be given any other access.</div>
+        <div id="permissions-editor" style="margin-top:8px;overflow-x:auto"></div>
       </div>
 
       <div style="max-width:480px">
@@ -2149,7 +2150,11 @@ const PERM_GROUPS = [
 function renderPermissionsEditor() {
   const el = document.getElementById('permissions-editor');
   if (!el) return;
-  const roles = ALL_ROLES;
+  // Display accounts are hardcoded to TV-only access (see perm()) regardless
+  // of what's stored here, specifically so a kiosk device can never end up
+  // with more than view access no matter how the matrix gets edited - so
+  // there's nothing real to show/edit for it in this table.
+  const roles = ALL_ROLES.filter(r => r !== 'display');
 
   let html = '<table style="border-collapse:collapse;font-size:12px;min-width:760px">';
   html += '<thead><tr><th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--border);position:sticky;left:0;background:var(--surface);min-width:170px"></th>';
@@ -2205,6 +2210,7 @@ window.resetPermissionsToDefault = async function() {
 let allUsers = {};
 let viewParamApplied = false; // ensures ?view=shuttle only redirects once per session
 let userApprovalUnsub = null;
+let identityBootstrapping = false; // true while this account's one-time users/{uid} record is being created - see reloadForUpdateIfSafe()
 let tvLocation = null; // e.g. '323 Bayview' - set via ?loc= on the TV display URL, filters its boards to that lot
 
 // ── Connection indicator (shared by the TV display and the header sync dot) ─
@@ -2376,7 +2382,18 @@ async function watchUserApproval(fbUser) {
         status: isFirstEver ? 'approved' : 'pending',
         requestedAt: Date.now(),
       };
-      await update(ref(db), { ['users/'+uid]: u, 'meta/hasUsers': true });
+      // A forced reload (see the update-checker at the bottom of this script)
+      // landing in the middle of this write would abandon it - the account
+      // would be left signed into Firebase Auth with no matching users/{uid}
+      // record at all, and no obvious sign anything went wrong. This flag
+      // tells that reload logic to wait until this write has actually landed.
+      identityBootstrapping = true;
+      try {
+        await update(ref(db), { ['users/'+uid]: u, 'meta/hasUsers': true });
+      } finally {
+        identityBootstrapping = false;
+        reloadForUpdateIfSafe(); // pick up a deploy that was waiting on this write, if any
+      }
       return; // onValue fires again once the write lands
     }
     if (u.status === 'approved' && u.role) {
@@ -7634,6 +7651,10 @@ async function checkForAppUpdate() {
 }
 function reloadForUpdateIfSafe() {
   if (!appUpdatePending) return;
+  // Never interrupt a brand-new account's one-time "create my user record"
+  // write - reloading mid-write abandons it, leaving a real signed-in
+  // Firebase Auth account with no matching users/{uid} record at all.
+  if (identityBootstrapping) return;
   const isDisplay = new URLSearchParams(location.search).get('display') === 'true';
   const modalOpen = Array.from(document.querySelectorAll('.modal-backdrop'))
     .some(m => getComputedStyle(m).display !== 'none');
