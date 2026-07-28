@@ -1596,8 +1596,29 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 
       <!-- Staff Sign-ins (email/password approvals) - management only -->
       <div id="user-mgmt-wrap" style="display:none;margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;max-width:100%">
+        <div style="font-size:16px;font-weight:600;margin-bottom:4px">Add a staff account</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Creates the login and approves it in one step, with whatever role you pick - no separate approval step, and no need to touch the Firebase console.</div>
+        <div class="modal-grid" style="margin-bottom:10px">
+          <div class="modal-form-row"><label>Name</label><input id="newstaff-name" type="text" placeholder="e.g. Lobby TV, or a person's name"/></div>
+          <div class="modal-form-row"><label>Email</label><input id="newstaff-email" type="email" placeholder="e.g. display-700bayview@barrieford.com"/></div>
+          <div class="modal-form-row modal-full"><label>Password</label>
+            <div style="display:flex;gap:8px">
+              <input id="newstaff-password" type="text" placeholder="At least 6 characters" style="flex:1;font-family:monospace"/>
+              <button type="button" onclick="generateStaffPassword()" style="padding:9px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer;white-space:nowrap">Generate</button>
+            </div>
+          </div>
+          <div class="modal-form-row"><label>Role</label>
+            <select id="newstaff-role"></select>
+          </div>
+        </div>
+        <button onclick="createStaffAccount()" id="newstaff-btn" style="padding:11px 18px;font-size:14px;font-weight:600;background:var(--ford);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer">Create account</button>
+        <div id="newstaff-result" style="display:none;margin-top:14px;padding:12px 16px;background:#f0fdf4;border:1px solid #86efac;border-radius:var(--radius-sm);font-size:13px;color:#15803d"></div>
+      </div>
+
+      <!-- Staff Sign-ins (email/password approvals) - management only -->
+      <div id="user-mgmt-pending-wrap" style="display:none;margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;max-width:100%">
         <div style="font-size:16px;font-weight:600;margin-bottom:4px">Staff Sign-ins</div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">There's no public sign-up screen - create each person's login yourself in the Firebase console (Authentication → Add user), then have them sign in here. The first time they sign in they'll show up below waiting for approval; pick their role and approve them. Changes apply live.</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Accounts created some other way (e.g. directly in the Firebase console) show up here waiting for approval the first time they sign in.</div>
         <div id="user-mgmt-pending"></div>
         <div id="user-mgmt-approved" style="margin-top:20px"></div>
       </div>
@@ -1998,7 +2019,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getDatabase, ref, push, get, set, onValue, update, remove, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
-import { getAuth, signInAnonymously, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getAuth, signInAnonymously, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 
 const firebaseConfig = {
@@ -2018,6 +2039,15 @@ const storage = getStorage(appFB);
 // Human staff authenticate via email/password sign-in (see loadIdentity/watchUserApproval below).
 // TV/display kiosk screens (?display=true) use a silent anonymous session instead -
 // that's handled inside loadIdentity() since there's no person present to sign in.
+
+// A second, independent Firebase app instance used only for creating new staff
+// accounts from Settings (see createStaffAccount() below). Firebase's client
+// SDK signs the app into whatever account it just created - calling
+// createUserWithEmailAndPassword on the SAME auth instance as the currently
+// signed-in manager would kick that manager out of their own session. Using
+// a second app/auth instance keeps account creation fully isolated from it.
+const adminAppFB = initializeApp(firebaseConfig, 'staff-provisioning');
+const adminAuth = getAuth(adminAppFB);
 
 // Escapes text pulled from the database (names, notes, stock #s, etc.) before it's
 // dropped into innerHTML - without this, anyone who can type into those fields
@@ -2415,6 +2445,50 @@ async function watchUserApproval(fbUser) {
   });
 }
 
+// ── Add a staff account directly (management only) ─────
+window.generateStaffPassword = function() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  let pw = '';
+  for (let i = 0; i < 12; i++) pw += chars[Math.floor(Math.random() * chars.length)];
+  document.getElementById('newstaff-password').value = pw;
+};
+
+window.createStaffAccount = async function() {
+  const name = document.getElementById('newstaff-name').value.trim();
+  const email = document.getElementById('newstaff-email').value.trim();
+  const password = document.getElementById('newstaff-password').value;
+  const role = document.getElementById('newstaff-role').value;
+  if (!name || !email || !password || !role) { alert('Please fill in every field.'); return; }
+  if (password.length < 6) { alert('Password needs to be at least 6 characters.'); return; }
+
+  const btn = document.getElementById('newstaff-btn');
+  btn.disabled = true; btn.textContent = 'Creating…';
+  const resultEl = document.getElementById('newstaff-result');
+  resultEl.style.display = 'none';
+  try {
+    // Created on the secondary auth instance so this never touches (or signs
+    // out) the management account that's creating it.
+    const cred = await createUserWithEmailAndPassword(adminAuth, email, password);
+    await set(ref(db, 'users/'+cred.user.uid), {
+      name, email, role, status: 'approved',
+      approvedBy: currentUser.name, approvedAt: Date.now(), requestedAt: Date.now(),
+    });
+    await signOut(adminAuth); // tidy up the secondary session - irrelevant to the manager's own
+    resultEl.style.display = 'block';
+    resultEl.innerHTML = `✓ Account created as <strong>${ROLE_LABELS[role]}</strong>.<br>Email: <code>${esc(email)}</code><br>Password: <code>${esc(password)}</code><br>Save this password now - it won't be shown again. Sign into the device/browser this account is for with these credentials.`;
+    document.getElementById('newstaff-name').value = '';
+    document.getElementById('newstaff-email').value = '';
+    document.getElementById('newstaff-password').value = '';
+  } catch(e) {
+    const msg = e.code === 'auth/email-already-in-use' ? 'That email already has an account.'
+      : e.code === 'auth/invalid-email' ? 'That email address looks invalid.'
+      : e.code === 'auth/weak-password' ? 'Password is too weak - try a longer one.'
+      : (e.message || 'Something went wrong.');
+    alert('Error creating account: ' + msg);
+  }
+  btn.disabled = false; btn.textContent = 'Create account';
+};
+
 // ── Staff Sign-ins admin panel (management only) ───────
 function renderUserManagementSection() {
   const pendingEl = document.getElementById('user-mgmt-pending');
@@ -2560,6 +2634,10 @@ function startApp() {
 
   const userMgmtWrap = document.getElementById('user-mgmt-wrap');
   if (userMgmtWrap) userMgmtWrap.style.display = (role === 'management') ? '' : 'none';
+  const userMgmtPendingWrap = document.getElementById('user-mgmt-pending-wrap');
+  if (userMgmtPendingWrap) userMgmtPendingWrap.style.display = (role === 'management') ? '' : 'none';
+  const newStaffRoleSel = document.getElementById('newstaff-role');
+  if (newStaffRoleSel) newStaffRoleSel.innerHTML = ALL_ROLES.map(r=>`<option value="${r}">${ROLE_LABELS[r]}</option>`).join('');
   if (role === 'management') {
     onValue(ref(db,'users'), snap=>{
       allUsers = snap.val()||{};
@@ -2607,7 +2685,12 @@ function startApp() {
     const banner = document.getElementById('alert-banner');
     const bannerText = document.getElementById('alert-banner-text');
     const activeStatusEl = document.getElementById('alert-active-status');
-    const hasRealAlert = alert && alert.active && alert.message && alert.message.trim();
+    // TV kiosks (both the ?display=true anonymous mode and a real logged-in
+    // Display account) have no one present to click "Dismiss" or "OK, got
+    // it" - showing either would just permanently cover part of the screen
+    // with no way to clear it, so both are skipped there entirely.
+    const isTvViewer = currentUser && currentUser.role === 'display';
+    const hasRealAlert = !isTvViewer && alert && alert.active && alert.message && alert.message.trim();
     if (hasRealAlert) {
       if (bannerText) bannerText.textContent = alert.message;
       const dismissedAt = localStorage.getItem('alert-banner-dismissed');
