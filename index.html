@@ -228,34 +228,27 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tv-slide-grid{display:grid;gap:16px;overflow-y:hidden;flex:1;align-content:start;min-height:0}
 .tv-slide-grid-3{grid-template-columns:repeat(3,1fr)}
 .tv-slide-grid-4{grid-template-columns:repeat(4,1fr)}
+.tv-slide-grid-6{grid-template-columns:repeat(6,1fr)}
 #tv-gr-list{grid-auto-rows:minmax(200px,auto)}
-#tv-inc-list{grid-auto-rows:minmax(185px,auto)}
+#tv-inc-list{grid-auto-rows:minmax(80px,auto);gap:10px}
 #tv-rides-list,#tv-returns-list,#tv-appt-list{grid-auto-rows:minmax(150px,auto)}
 .tv-compound-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0;overflow:hidden}
 
-/* Each incoming-unit tile - white bg */
-.tv-inc-tile{background:#fff;border-radius:12px;overflow:hidden;color:var(--ford);display:flex;flex-direction:column;min-height:185px}
+/* Each incoming-unit tile - white bg, deliberately compact (stock, status,
+   vehicle, done-dots only) so far more of them fit on screen at once. */
+.tv-inc-tile{background:#fff;border-radius:10px;overflow:hidden;color:var(--ford);padding:10px 14px;min-height:80px;box-sizing:border-box}
 .tv-inc-tile.status-sold    {border-top:5px solid #dc2626}
 .tv-inc-tile.status-turnover{border-top:5px solid #d97706}
 .tv-inc-tile.status-stock   {border-top:5px solid #1d4ed8}
 .tv-inc-tile.is-done        {border-top:5px solid #15803d;opacity:.7}
-.tv-inc-tile-body{padding:14px 16px 11px;flex:1}
-.tv-inc-tile-top{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px}
-.tv-inc-tile-stock{font-size:26px;font-weight:800;color:var(--ford);letter-spacing:-.01em}
-.tv-inc-tile-status{font-size:13px;font-weight:700;padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em;flex-shrink:0}
-.tv-inc-tile-vehicle{font-size:15px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:8px}
-
-/* Flag grid */
-.tv-inc-tile-flags{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
-.tv-inc-tile-flag{border-radius:6px;padding:8px 3px;display:flex;flex-direction:column;align-items:center;gap:3px}
-.tv-inc-tile-flag .ff-icon{font-size:17px;font-weight:700;line-height:1}
-.tv-inc-tile-flag .ff-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;line-height:1}
-.ff-done-acc  {background:#dcfce7;color:#15803d}
-.ff-done-pdi  {background:#1f2937;color:#fff}
-.ff-done-photo{background:#7c3aed;color:#fff}
-.ff-done-ic   {background:#c2410c;color:#fff}
-.ff-pend      {background:#f1f5f9;color:#cbd5e1}
-.ff-na        {background:#f8fafc;color:#cbd5e1}
+.tv-inc-tile-top{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:3px}
+.tv-inc-tile-stock{font-size:22px;font-weight:800;color:var(--ford);letter-spacing:-.01em;line-height:1.1}
+.tv-inc-tile-status{font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em;flex-shrink:0}
+.tv-inc-tile-vehicle{font-size:13px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:7px}
+.tv-inc-tile-dots{display:flex;gap:6px}
+.tv-inc-tile-dot{width:11px;height:11px;border-radius:50%;background:#e2e8f0;flex-shrink:0;box-sizing:border-box}
+.tv-inc-tile-dot.done{background:#16a34a}
+.tv-inc-tile-dot.na{background:transparent;border:1.5px solid #e2e8f0}
 
 .tv-section-label{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#fff;margin:12px 0 8px;flex-shrink:0}
 .tv-grid{display:flex;flex-direction:column;gap:0}
@@ -767,6 +760,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   .tv-dest .dest-pill{font-size:11px;padding:3px 8px}
   .tv-slide-grid-4{grid-template-columns:repeat(2,1fr)}
   .tv-slide-grid-3{grid-template-columns:repeat(2,1fr)}
+  .tv-slide-grid-6{grid-template-columns:repeat(3,1fr)}
 }
 
 /* ── Compound Map ── */
@@ -1495,7 +1489,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <div class="tv-slide" id="tv-slide-incoming">
             <div class="tv-slide-title" id="tv-title-incoming">Incoming Units</div>
             <div class="tv-incoming-summary" id="tv-inc-summary"></div>
-            <div id="tv-inc-list" class="tv-slide-grid tv-slide-grid-4"></div>
+            <div id="tv-inc-list" class="tv-slide-grid tv-slide-grid-6"></div>
           </div>
           <div class="tv-slide" id="tv-slide-compound">
             <div class="tv-slide-title" id="tv-title-compound">Compound - 700 Bayview</div>
@@ -3955,48 +3949,28 @@ function renderTVIncoming() {
   };
   const statusCls = {STOCK:'status-stock',SOLD:'status-sold',TURNOVER:'status-turnover'};
 
-  const ff = (label, done, doneClass) =>
-    `<div class="tv-inc-tile-flag ${done?doneClass:'ff-pend'}">
-      <span class="ff-icon">${done?'✓':'✗'}</span>
-      <span class="ff-label">${label}</span>
-    </div>`;
-  const ffNA = (label) =>
-    `<div class="tv-inc-tile-flag ff-na">
-      <span class="ff-icon" style="font-size:13px">N/A</span>
-      <span class="ff-label">${label}</span>
-    </div>`;
-
-  const catLabel = { RETAIL:'Retail', FLEET:'Fleet', TRADEIN:'Trade-In', AUCTION:'Auction' };
-  const subLabel = { RETAIL:'Retail', ASIS:'As-Is', WHOLESALE:'Wholesale', CPO:'CPO' };
+  // Each checklist item is a plain dot now instead of an icon+label card -
+  // green once done, dim grey while pending, and a faint ring for one that
+  // doesn't even apply to this unit (e.g. Photo when photoRequired() is
+  // false) - packs far more tiles on screen at once without losing the
+  // at-a-glance "how close is this one" signal.
+  const dot = (done, na) => `<span class="tv-inc-tile-dot${done?' done':na?' na':''}"></span>`;
 
   let html = sorted.map(u => {
     const ps  = statusPillStyle[u.status]||statusPillStyle.OTHER;
     const sc  = statusCls[u.status]||'';
     const done = isUnitComplete(u);
     const isUsed = u.condition === 'used';
-    const catBadge = isUsed
-      ? [catLabel[u.category], subLabel[u.subcategory]].filter(Boolean).join(' · ')
-      : catLabel[u.category] || '';
+    const dots = isUsed
+      ? [dot(u.fileReceived), dot(u.icMoved)]
+      : [dot(u.accessories), dot(u.pdi), photoRequired(u)?dot(u.photo):dot(false,true), dot(u.icMoved)];
     return `<div class="tv-inc-tile ${done?'is-done':sc}">
-      <div class="tv-inc-tile-body">
-        <div class="tv-inc-tile-top">
-          <span class="tv-inc-tile-stock">${esc(u.stock||'-')}</span>
-          <span class="tv-inc-tile-status" style="${ps}">${done?'DONE':u.status||'?'}</span>
-        </div>
-        <div class="tv-inc-tile-vehicle">${esc([u.trim, u.colour].filter(Boolean).join(' · ') || u.vehicle || '-')}</div>
-        ${catBadge?`<div style="font-size:13px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.03em">${catBadge}</div>`:''}
+      <div class="tv-inc-tile-top">
+        <span class="tv-inc-tile-stock">${esc(u.stock||'-')}</span>
+        <span class="tv-inc-tile-status" style="${ps}">${done?'DONE':u.status||'?'}</span>
       </div>
-      <div class="tv-inc-tile-flags" style="padding:0 6px 6px">
-        ${isUsed ? `
-          ${ff('File Rec\'d',u.fileReceived,'ff-done-acc')}
-          ${ff('IC',u.icMoved,'ff-done-ic')}
-        ` : `
-          ${ff('Acc',u.accessories,'ff-done-acc')}
-          ${ff('PDI',u.pdi,'ff-done-pdi')}
-          ${photoRequired(u)?ff('Photo',u.photo,'ff-done-photo'):ffNA('Photo')}
-          ${ff('IC',u.icMoved,'ff-done-ic')}
-        `}
-      </div>
+      <div class="tv-inc-tile-vehicle">${esc([u.trim, u.colour].filter(Boolean).join(' · ') || u.vehicle || '-')}</div>
+      <div class="tv-inc-tile-dots">${dots.join('')}</div>
     </div>`;
   }).join('');
 
