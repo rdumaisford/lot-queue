@@ -6044,6 +6044,7 @@ function buildGREmailParams(d, subject, message) {
     notes: d.notes||'(none)',
     requiredSteps,
     trades: tradesText,
+    pdfLink: d.pdfUrl || '',
     message,
   };
 }
