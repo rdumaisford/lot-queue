@@ -1137,7 +1137,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div style="display:flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
           <button id="cm-lot-btn-bayview700" onclick="cmSwitchLot('bayview700')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--ford);color:#fff">700 Bayview</button>
           <button id="cm-lot-btn-bayview323" onclick="cmSwitchLot('bayview323')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">323 Bayview</button>
-          <button id="cm-lot-btn-mapleview55" onclick="cmSwitchLot('mapleview55')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">55 Mapleview</button>
+        </div>
+        <!-- Zoom - mainly for mobile, where the map's own hold-to-drag touch
+             handling blocks the browser's native pinch-to-zoom gesture. -->
+        <div style="display:flex;align-items:center;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+          <button onclick="cmZoomOut()" title="Zoom out" style="padding:6px 12px;font-size:15px;font-weight:700;border:none;border-right:1px solid var(--border);cursor:pointer;background:var(--surface);color:var(--text)">−</button>
+          <span id="cm-zoom-label" onclick="cmZoomReset()" title="Reset zoom" style="padding:6px 8px;font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;min-width:38px;text-align:center">100%</span>
+          <button onclick="cmZoomIn()" title="Zoom in" style="padding:6px 12px;font-size:15px;font-weight:700;border:none;border-left:1px solid var(--border);cursor:pointer;background:var(--surface);color:var(--text)">+</button>
         </div>
         <!-- Stats -->
         <div id="cm-stats" style="display:flex;gap:14px;font-size:13px;flex-wrap:wrap"></div>
@@ -1271,7 +1277,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
             <label style="display:flex;align-items:center;gap:8px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" id="audit-lot-bayview700" checked style="width:16px;height:16px;accent-color:var(--ford)"/> 700 Bayview</label>
             <label style="display:flex;align-items:center;gap:8px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" id="audit-lot-bayview323" style="width:16px;height:16px;accent-color:var(--ford)"/> 323 Bayview</label>
-            <label style="display:flex;align-items:center;gap:8px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" id="audit-lot-mapleview55" style="width:16px;height:16px;accent-color:var(--ford)"/> 55 Mapleview</label>
           </div>
         </div>
 
@@ -1645,7 +1650,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <div style="font-size:15px;font-weight:600;margin-bottom:4px">Quick Links</div>
           <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Opens a dedicated view in a new tab - handy for setting up a kiosk tablet or TV screen.</div>
           <div style="display:flex;flex-direction:column;gap:8px">
-            <button onclick="openDisplayLink('55mapleview')" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px">📺 Display - 55 Mapleview (dealership)</button>
             <button onclick="openDisplayLink('323bayview')" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px">📺 Display - 323 Bayview (off-site lot)</button>
             <button onclick="openDisplayLink()" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px">📺 Display - unfiltered (shows everything)</button>
             <button onclick="openDriveLink()" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px">🚐 Driver Dashboard (sign in, jumps straight to Drive)</button>
@@ -6412,7 +6416,6 @@ function renderHomeGrid() {
 const CM_LOTS = {
   bayview700:  { label: '700 Bayview' },
   bayview323:  { label: '323 Bayview' },
-  mapleview55: { label: '55 Mapleview' },
 };
 
 // Real layout from CSV - 13 parking rows × 52 cols
@@ -7421,7 +7424,6 @@ function cmStartListeners() {
     cmGridSize = {
       bayview700:  { rows: meta.bayview700?.rows  || 13, cols: meta.bayview700?.cols  || 52 },
       bayview323:  { rows: meta.bayview323?.rows  || 10, cols: meta.bayview323?.cols  || 30 },
-      mapleview55: { rows: meta.mapleview55?.rows || 10, cols: meta.mapleview55?.cols || 30 },
     };
     if (document.getElementById('panel-compound')?.classList.contains('active')) cmRender();
   });
@@ -7440,10 +7442,6 @@ function cmStartListeners() {
       if (cmCurrentLot === 'bayview700') cmRender();
       if (document.getElementById('panel-tv')?.classList.contains('active')) renderTVCompoundMap();
     }
-  });
-  onValue(ref(db, 'compound_v2/mapleview55'), snap => {
-    cmVehicles['mapleview55'] = snap.val() || {};
-    if (cmCurrentLot === 'mapleview55') cmRender();
   });
   onValue(ref(db, 'compound_v2/bayview323'), snap => {
     cmVehicles['bayview323'] = snap.val() || {};
@@ -7480,6 +7478,35 @@ function cmInit() {
   const legend = document.getElementById('cm-legend-details');
   if (legend && window.innerWidth <= 768) legend.open = false;
 }
+
+// ── Zoom (mainly for mobile) ────────────────────────────
+// Uses the (widely-supported, if non-standard) CSS "zoom" property rather
+// than transform:scale() - zoom changes the element's actual layout size,
+// so the map's existing overflow:auto scroll container adapts to it
+// automatically. transform:scale() only changes what's painted, leaving
+// the scrollable area sized for the un-zoomed content and cutting off
+// whatever the zoom made bigger.
+let cmZoomLevel = 1;
+const CM_ZOOM_MIN = 0.5, CM_ZOOM_MAX = 1.75, CM_ZOOM_STEP = 0.15;
+
+function cmApplyZoom() {
+  const mapEl = document.getElementById('cm-map');
+  if (mapEl) mapEl.style.zoom = cmZoomLevel;
+  const label = document.getElementById('cm-zoom-label');
+  if (label) label.textContent = Math.round(cmZoomLevel * 100) + '%';
+}
+window.cmZoomIn = function() {
+  cmZoomLevel = Math.min(CM_ZOOM_MAX, +(cmZoomLevel + CM_ZOOM_STEP).toFixed(2));
+  cmApplyZoom();
+};
+window.cmZoomOut = function() {
+  cmZoomLevel = Math.max(CM_ZOOM_MIN, +(cmZoomLevel - CM_ZOOM_STEP).toFixed(2));
+  cmApplyZoom();
+};
+window.cmZoomReset = function() {
+  cmZoomLevel = 1;
+  cmApplyZoom();
+};
 
 // ── /Compound Map ─────────────────────────────────────
 
@@ -7635,7 +7662,7 @@ window.auditOpenStart = function() {
 };
 
 window.auditStart = async function() {
-  const lots = ['bayview700','bayview323','mapleview55'].filter(id => document.getElementById(`audit-lot-${id}`)?.checked);
+  const lots = ['bayview700','bayview323'].filter(id => document.getElementById(`audit-lot-${id}`)?.checked);
   if (!lots.length) { alert('Select at least one lot.'); return; }
 
   const requirements = {
