@@ -1374,7 +1374,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <button class="filter-chip" onclick="setGRFilter('AS-IS',this)">As-Is</button>
         <button class="filter-chip" onclick="setGRFilter('RETAIL',this)">Retail</button>
         <button class="filter-chip" onclick="setGRFilter('WHOLESALE',this)">Wholesale</button>
-        <button class="filter-chip" onclick="setGRFilter('GAS',this)">Needs Gas</button>
+        <button class="filter-chip" onclick="setGRFilter('GAS',this)">Needs Gas/Charge</button>
         <span id="gr-row-count" style="font-size:13px;color:var(--text-muted);white-space:nowrap"></span>
         <button class="btn-add-unit" id="btn-add-getready" onclick="openGRModal()" style="display:none;margin-left:auto">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
@@ -1988,10 +1988,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       </div>
     </div>
     <div class="modal-form-row modal-full" style="margin-top:10px">
-      <label>Gas</label>
+      <label>Gas / Charge</label>
       <div style="display:flex;gap:8px;margin-top:4px;margin-bottom:8px">
-        <button type="button" id="gr-gas-yes-btn" onclick="setGRGasNeeded(true)" class="toggle-btn active" style="flex:1;padding:9px;border-radius:8px;font-size:13px">⛽ Gas</button>
-        <button type="button" id="gr-gas-no-btn" onclick="setGRGasNeeded(false)" class="toggle-btn" style="flex:1;padding:9px;border-radius:8px;font-size:13px">No Gas</button>
+        <button type="button" id="gr-fuel-gas-btn" onclick="setGRFuelStatus('gas')" class="toggle-btn active" style="flex:1;padding:9px;border-radius:8px;font-size:13px">⛽ Gas</button>
+        <button type="button" id="gr-fuel-charge-btn" onclick="setGRFuelStatus('charge')" class="toggle-btn" style="flex:1;padding:9px;border-radius:8px;font-size:13px">🔌 Charge</button>
+        <button type="button" id="gr-fuel-none-btn" onclick="setGRFuelStatus('none')" class="toggle-btn" style="flex:1;padding:9px;border-radius:8px;font-size:13px">Not Needed</button>
       </div>
       <div id="gr-gas-amount-row">
         <input id="gr-gas-amount" type="number" min="0" step="0.01" placeholder="Amount ($)" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/>
@@ -2176,7 +2177,7 @@ const PERM_GROUPS = [
   ]},
   { label:'Get Ready', keys: [
     ['getReadyEdit','Add / edit / complete deals'],
-    ['grGasConfirm','Confirm gas filled'],
+    ['grGasConfirm','Confirm gas filled / charged'],
     ['grChecklistApprove','Approve recon checklist'],
   ]},
   { label:'Test Drives', keys: [
@@ -4007,7 +4008,7 @@ function renderTVGetReady() {
   const deals = Object.values(getReadyDeals||{})
     .filter(d => !grIsComplete(d) || isCompletedToday(d))
     .sort((a,b) => {
-      const ag = (a.needsGas && a.gasFilled)?1:0, bg = (b.needsGas && b.gasFilled)?1:0;
+      const ag = (grEffectiveFuelStatus(a)!=='none' && a.gasFilled)?1:0, bg = (grEffectiveFuelStatus(b)!=='none' && b.gasFilled)?1:0;
       if (ag!==bg) return ag-bg;
       const at = a.deliveryDate ? new Date(a.deliveryDate).getTime() : Infinity;
       const bt = b.deliveryDate ? new Date(b.deliveryDate).getTime() : Infinity;
@@ -4044,9 +4045,12 @@ function renderTVGetReady() {
     const pct = toCheck.length ? Math.round((done/toCheck.length)*100) : 100;
     const barColor = pct===100?'#16a34a':pct>60?'#f59e0b':'#1d4ed8';
 
-    // Gas
-    const gasColor = d.needsGas ? (d.gasFilled ? '#16a34a' : '#dc2626') : '#16a34a';
-    const gasLabel = d.needsGas ? (d.gasFilled ? '✓ Gas' : '⛽ Gas') : '✓ Gas';
+    // Gas / Charge
+    const fuelStatus = grEffectiveFuelStatus(d);
+    const gasColor = fuelStatus==='none' ? '#16a34a' : d.gasFilled ? '#16a34a' : '#dc2626';
+    const gasLabel = fuelStatus==='none' ? '✓ Gas'
+      : fuelStatus==='charge' ? (d.gasFilled ? '✓ Charge' : '🔌 Charge')
+      : (d.gasFilled ? '✓ Gas' : '⛽ Gas');
 
     const delivLabel = d.deliveryDate
       ? new Date(d.deliveryDate+'T12:00').toLocaleDateString('en-CA',{month:'short',day:'numeric'})
@@ -4838,7 +4842,7 @@ function grIsComplete(d) {
   const toCheck = required.length > 0 ? required : GR_CHECKLIST;
   const checklistDone = toCheck.every(([key]) => d[key]);
   const customDone = (d.customFields||[]).filter(f=>f.label).every(f=>f.done);
-  return checklistDone && customDone && (!d.needsGas || d.gasFilled);
+  return checklistDone && customDone && (grEffectiveFuelStatus(d)==='none' || d.gasFilled);
 }
 
 window.setGRFilter = function(status, btn) {
@@ -4861,16 +4865,16 @@ function getGRFiltered() {
     rows = rows.filter(d => (d.fniManager||'').toLowerCase() === (currentUser.name||'').toLowerCase());
   }
 
-  if (grFilterStatus === 'GAS') rows = rows.filter(d => d.needsGas && !d.gasFilled);
+  if (grFilterStatus === 'GAS') rows = rows.filter(d => grEffectiveFuelStatus(d) !== 'none' && !d.gasFilled);
   else if (grFilterStatus !== 'ALL') rows = rows.filter(d => d.type === grFilterStatus);
   if (q) rows = rows.filter(d => [d.stock,d.dealNum,d.vehicle,d.vin,d.customer,d.salesperson,d.notes].join(' ').toLowerCase().includes(q));
   rows.sort((a,b) => {
     // Fully complete → very bottom
     const ac = grIsComplete(a)?2:0, bc = grIsComplete(b)?2:0;
     if (ac!==bc) return ac-bc;
-    // Gas filled (but not fully complete) → below incomplete
-    const ag = (!grIsComplete(a) && a.needsGas && a.gasFilled)?1:0;
-    const bg = (!grIsComplete(b) && b.needsGas && b.gasFilled)?1:0;
+    // Gas filled/charged (but not fully complete) → below incomplete
+    const ag = (!grIsComplete(a) && grEffectiveFuelStatus(a)!=='none' && a.gasFilled)?1:0;
+    const bg = (!grIsComplete(b) && grEffectiveFuelStatus(b)!=='none' && b.gasFilled)?1:0;
     if (ag!==bg) return ag-bg;
     const at = a.deliveryDate ? new Date(a.deliveryDate).getTime() : Infinity;
     const bt = b.deliveryDate ? new Date(b.deliveryDate).getTime() : Infinity;
@@ -5031,7 +5035,7 @@ function renderGetReadySummary() {
   const asIs = all.filter(d=>d.type==='AS-IS').length;
   const retail = all.filter(d=>d.type==='RETAIL').length;
   const wholesale = all.filter(d=>d.type==='WHOLESALE').length;
-  const needsGas = all.filter(d=>d.needsGas && !d.gasFilled).length;
+  const needsGas = all.filter(d=>grEffectiveFuelStatus(d)!=='none' && !d.gasFilled).length;
   const done = all.filter(d=>grIsComplete(d)).length;
   const el = document.getElementById('gr-summary');
   if (!el) return;
@@ -5040,7 +5044,7 @@ function renderGetReadySummary() {
     <div class="t-stat"><div class="t-stat-num" style="color:#1d4ed8">${asIs}</div><div class="t-stat-label">As-Is</div></div>
     <div class="t-stat"><div class="t-stat-num" style="color:#6d28d9">${retail}</div><div class="t-stat-label">Retail</div></div>
     <div class="t-stat"><div class="t-stat-num" style="color:#92400e">${wholesale}</div><div class="t-stat-label">Wholesale</div></div>
-    <div class="t-stat"><div class="t-stat-num" style="color:${needsGas>0?'#dc2626':'#15803d'}">${needsGas}</div><div class="t-stat-label">Needs Gas</div></div>
+    <div class="t-stat"><div class="t-stat-num" style="color:${needsGas>0?'#dc2626':'#15803d'}">${needsGas}</div><div class="t-stat-label">Needs Gas/Charge</div></div>
     <div class="t-stat"><div class="t-stat-num" style="color:#15803d">${done}</div><div class="t-stat-label">All done ✓</div></div>`;
 }
 
@@ -5192,23 +5196,30 @@ function renderGRCard(d, perms, isDupe) {
           </div>`;
         }).join('');
 
+    // Gas / Charge - three states: a gas vehicle needing fuel (with a $
+    // amount), an EV needing a charge (no amount - charging isn't billed
+    // per-fill the way gas is), or neither needed at all.
+    const fuelStatus = grEffectiveFuelStatus(d);
     const gasAmountBadge = d.gasAmount ? `<span style="font-size:15px;font-weight:800;color:#991b1b;background:#fff;border:1px solid #fca5a5;border-radius:6px;padding:1px 8px;margin-left:6px">$${Number(d.gasAmount).toFixed(2)}</span>` : '';
-    const gasBanner = d.needsGas
-      ? `<div class="gr-gas-banner ${d.gasFilled?'no-gas-needed':''}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px">
-          <span style="font-size:20px">⛽</span>
+    const fuelTheme = fuelStatus==='charge'
+      ? { icon:'🔌', needLabel:'Needs Charging', doneLabel:'Charged', doneDetail:'Charged and ready', color:'#5b21b6', bg:'#f5f3ff' }
+      : { icon:'⛽', needLabel:'Needs Gas', doneLabel:'Gas Filled', doneDetail:'Tank topped up and ready', color:'#991b1b', bg:'#fef2f2' };
+    const gasBanner = fuelStatus !== 'none'
+      ? `<div class="gr-gas-banner ${d.gasFilled?'no-gas-needed':''}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${d.gasFilled?'':'background:'+fuelTheme.bg}">
+          <span style="font-size:20px">${fuelTheme.icon}</span>
           <div style="flex:1">
-            <div style="font-weight:700">${d.gasFilled?'Gas Filled':'Needs Gas'}${!d.gasFilled?gasAmountBadge:''}</div>
-            <div style="font-size:11px;font-weight:400;opacity:.7">${d.gasFilled?`Tank topped up and ready${d.gasFilledBy?' - '+d.gasFilledBy+(d.gasFilledAt?' · '+new Date(d.gasFilledAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}):''):''}`:'Fuel before delivery'}</div>
+            <div style="font-weight:700;color:${d.gasFilled?'':fuelTheme.color}">${d.gasFilled?fuelTheme.doneLabel:fuelTheme.needLabel}${(!d.gasFilled && fuelStatus==='gas')?gasAmountBadge:''}</div>
+            <div style="font-size:11px;font-weight:400;opacity:.7">${d.gasFilled?`${fuelTheme.doneDetail}${d.gasFilledBy?' - '+d.gasFilledBy+(d.gasFilledAt?' · '+new Date(d.gasFilledAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}):''):''}`:'Before delivery'}</div>
           </div>
           ${canGas?`<div class="gr-tap" style="width:auto;height:32px;padding:0 14px;border-radius:20px;${d.gasFilled?'background:#f1f5f9;border-color:#e2e8f0':''}" onclick="toggleGRField('${d.id}','gasFilled',${!d.gasFilled})">
-            <span style="font-size:12px;font-weight:700;color:${d.gasFilled?'#94a3b8':'#991b1b'}">${d.gasFilled?'✓ Done':'Mark filled'}</span>
-          </div>`:'<span style="font-size:12px;font-weight:700;color:'+(d.gasFilled?'#94a3b8':'#991b1b')+'">'+(d.gasFilled?'✓ Filled':'Pending')+'</span>'}
+            <span style="font-size:12px;font-weight:700;color:${d.gasFilled?'#94a3b8':fuelTheme.color}">${d.gasFilled?'✓ Done':'Mark done'}</span>
+          </div>`:'<span style="font-size:12px;font-weight:700;color:'+(d.gasFilled?'#94a3b8':fuelTheme.color)+'">'+(d.gasFilled?'✓ Done':'Pending')+'</span>'}
         </div>`
       : `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:#f0fdf4;border-bottom:2px solid #86efac;font-size:14px;font-weight:700;color:#15803d">
           <span style="font-size:20px">⛽</span>
           <div style="flex:1">
-            <div>No Gas Needed</div>
-            <div style="font-size:11px;font-weight:400;opacity:.7">Full tank confirmed</div>
+            <div>No Gas/Charge Needed</div>
+            <div style="font-size:11px;font-weight:400;opacity:.7">Ready as-is</div>
           </div>
           <span style="font-size:18px">✓</span>
         </div>`;
@@ -5407,7 +5418,7 @@ window.openGRModal = function(id) {
   document.getElementById('gr-notes-field').value = d.notes || '';
   document.getElementById('gr-licensing-notes').value = d.licensingNotes || '';
   setGRPlateType(d.plateType || 'NEW');
-  setGRGasNeeded(id ? (d.needsGas || false) : true);
+  setGRFuelStatus(id ? grEffectiveFuelStatus(d) : 'gas');
   document.getElementById('gr-gas-amount').value = d.gasAmount || '';
   // Required-steps checkboxes reflect which steps are REQUIRED for this deal
   // (req_key), never actual completion - actual progress only ever changes
@@ -5447,7 +5458,7 @@ window.openGRModal = function(id) {
 };
 
 let grPlateType = 'NEW';
-let grGasNeeded = true;
+let grFuelStatus = 'gas'; // 'gas' | 'charge' | 'none'
 
 window.setGRPlateType = function(type) {
   grPlateType = type;
@@ -5455,11 +5466,20 @@ window.setGRPlateType = function(type) {
   document.getElementById('gr-plate-transfer-btn').classList.toggle('active', type==='TRANSFER');
 };
 
-window.setGRGasNeeded = function(needed) {
-  grGasNeeded = needed;
-  document.getElementById('gr-gas-yes-btn').classList.toggle('active', needed);
-  document.getElementById('gr-gas-no-btn').classList.toggle('active', !needed);
-  document.getElementById('gr-gas-amount-row').style.display = needed ? 'block' : 'none';
+// A deal saved before this 3-way selector existed only has the old
+// needsGas boolean - this is how every read site derives the same
+// 'gas'/'charge'/'none' status for both old and new deals alike.
+function grEffectiveFuelStatus(d) {
+  if (d.fuelStatus === 'gas' || d.fuelStatus === 'charge' || d.fuelStatus === 'none') return d.fuelStatus;
+  return d.needsGas ? 'gas' : 'none';
+}
+
+window.setGRFuelStatus = function(status) {
+  grFuelStatus = status;
+  document.getElementById('gr-fuel-gas-btn').classList.toggle('active', status==='gas');
+  document.getElementById('gr-fuel-charge-btn').classList.toggle('active', status==='charge');
+  document.getElementById('gr-fuel-none-btn').classList.toggle('active', status==='none');
+  document.getElementById('gr-gas-amount-row').style.display = status==='gas' ? 'block' : 'none';
 };
 
 window.closeGRModal = function() {
@@ -5565,7 +5585,7 @@ function applyGRPdfFields(form) {
   const gasText = pdfFieldText(form, 'Text34');
   const gasAmountMatch = /([\d,]+(?:\.\d{2})?)/.exec(gasText);
   if (gasAmountMatch) {
-    setGRGasNeeded(true);
+    setGRFuelStatus('gas');
     fillGRIfEmpty('gr-gas-amount', gasAmountMatch[1].replace(/,/g,''));
   }
 
@@ -5640,8 +5660,8 @@ window.saveGR = async function() {
     notes: document.getElementById('gr-notes-field').value.trim(),
     plateType: grPlateType,
     licensingNotes: document.getElementById('gr-licensing-notes').value.trim(),
-    needsGas: grGasNeeded,
-    gasAmount: grGasNeeded ? document.getElementById('gr-gas-amount').value.trim() : '',
+    fuelStatus: grFuelStatus,
+    gasAmount: grFuelStatus==='gas' ? document.getElementById('gr-gas-amount').value.trim() : '',
     trades: grTrades.map(t => ({
       stock: (t.stock||'').trim().toUpperCase(),
       vin: (t.vin||'').trim().toUpperCase(),
@@ -5929,7 +5949,10 @@ async function sendNotificationEmail(templateId, params) {
 function buildGREmailParams(d, subject, message) {
   const financingLabel = {CASH:'Cash',COMMERCIAL_LEASE:'Commercial Lease',FINANCE:'Finance',FORD_RCL:'Ford RCL'}[d.financing] || d.financing || '';
   const plateLabel = d.plateType === 'TRANSFER' ? 'License Plate Transfer' : 'New License Plates';
-  const gasLabel = d.needsGas ? `Needs Gas${d.gasAmount ? ' - $'+Number(d.gasAmount).toFixed(2) : ''}` : 'No Gas Needed';
+  const fuelStatus = grEffectiveFuelStatus(d);
+  const gasLabel = fuelStatus==='gas' ? `Needs Gas${d.gasAmount ? ' - $'+Number(d.gasAmount).toFixed(2) : ''}`
+    : fuelStatus==='charge' ? 'Needs Charging'
+    : 'No Gas/Charge Needed';
   const catLabel = {RETAIL:'Retail', ASIS:'As-Is', WHOLESALE:'Wholesale', CPO:'Certified Pre-Owned'};
   const trades = Array.isArray(d.trades) ? d.trades.filter(t=>t && t.stock) : [d.trade1, d.trade2].filter(t=>t?.stock);
   const tradesText = trades.length
@@ -5970,7 +5993,7 @@ function buildGREmailParams(d, subject, message) {
 function hasSignificantGRChange(oldDeal, newDeal) {
   if ((oldDeal.deliveryDate||'') !== (newDeal.deliveryDate||'')) return true;
   if ((oldDeal.deliveryTime||'') !== (newDeal.deliveryTime||'')) return true;
-  if (!!oldDeal.needsGas !== !!newDeal.needsGas) return true;
+  if (grEffectiveFuelStatus(oldDeal) !== grEffectiveFuelStatus(newDeal)) return true;
   if ((oldDeal.gasAmount||'') !== (newDeal.gasAmount||'')) return true;
 
   const oldTrades = Array.isArray(oldDeal.trades) ? oldDeal.trades : [oldDeal.trade1, oldDeal.trade2].filter(Boolean);
