@@ -1939,8 +1939,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <div class="modal-form-row"><label>Stock #</label><input id="gr-stock" type="text" placeholder="e.g. A1402"/></div>
       <div class="modal-form-row"><label>Deal #</label><input id="gr-deal" type="text" placeholder="e.g. 6463159"/></div>
       <div class="modal-form-row modal-full"><label>Vehicle</label><input id="gr-vehicle" type="text" placeholder="e.g. 2025 Bronco Sport"/></div>
-      <div class="modal-form-row"><label>VIN</label><input id="gr-vin" type="text" placeholder="17-digit VIN" style="font-family:monospace;letter-spacing:.05em" maxlength="17"/></div>
-      <div class="modal-form-row"><label>Last 6 of VIN</label><input id="gr-vin6" type="text" placeholder="e.g. E45978" style="font-family:monospace;letter-spacing:.05em" maxlength="6"/></div>
+      <div class="modal-form-row modal-full"><label>VIN (last 6, or full if handy)</label><input id="gr-vin" type="text" placeholder="e.g. E45978" style="font-family:monospace;letter-spacing:.05em" maxlength="17"/></div>
       <div class="modal-form-row"><label>Customer name</label><input id="gr-customer" type="text" placeholder="e.g. Brad Bodanis"/></div>
       <div class="modal-form-row"><label>Customer phone</label><input id="gr-phone" type="tel" placeholder="e.g. 705-555-0123"/></div>
       <div class="modal-form-row"><label>Customer email</label><input id="gr-email" type="email" placeholder="e.g. name@email.com"/></div>
@@ -1981,9 +1980,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 
     <!-- Trade-ins -->
     <div style="margin-top:10px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
-      <div style="padding:8px 14px;background:var(--bg);border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Trade-ins</div>
+      <div style="padding:8px 14px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <span style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Trade-ins</span>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;text-transform:none;letter-spacing:0">
+          <input type="checkbox" id="gr-no-tradein" onchange="grToggleNoTradeIn(this.checked)" style="width:15px;height:15px;accent-color:var(--ford);cursor:pointer"/> No Trade-In
+        </label>
+      </div>
       <div id="gr-trades-list"></div>
-      <div style="padding:10px 14px;border-top:1px solid var(--border)">
+      <div id="gr-trades-add-row" style="padding:10px 14px;border-top:1px solid var(--border)">
         <button type="button" onclick="grAddTradeSlot()" style="padding:7px 14px;font-size:13px;font-weight:600;border:1px dashed var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text-muted);cursor:pointer;width:100%">+ Add another trade-in</button>
       </div>
     </div>
@@ -4045,11 +4049,14 @@ function renderTVGetReady() {
     const pct = toCheck.length ? Math.round((done/toCheck.length)*100) : 100;
     const barColor = pct===100?'#16a34a':pct>60?'#f59e0b':'#1d4ed8';
 
-    // Gas / Charge
+    // Gas / Charge - charging gets its own "in progress" colour/label since
+    // it takes a while, unlike a quick gas fill-up.
     const fuelStatus = grEffectiveFuelStatus(d);
-    const gasColor = fuelStatus==='none' ? '#16a34a' : d.gasFilled ? '#16a34a' : '#dc2626';
+    const gasColor = fuelStatus==='none' ? '#16a34a'
+      : fuelStatus==='charge' ? (d.gasFilled ? '#16a34a' : d.chargeInProgress ? '#b45309' : '#dc2626')
+      : (d.gasFilled ? '#16a34a' : '#dc2626');
     const gasLabel = fuelStatus==='none' ? '✓ Gas'
-      : fuelStatus==='charge' ? (d.gasFilled ? '✓ Charge' : '🔌 Charge')
+      : fuelStatus==='charge' ? (d.gasFilled ? '✓ Charge' : d.chargeInProgress ? '🔋 Charging' : '🔌 Charge')
       : (d.gasFilled ? '✓ Gas' : '⛽ Gas');
 
     const delivLabel = d.deliveryDate
@@ -4915,6 +4922,17 @@ window.toggleGRField = async function(id, field, value) {
   await update(ref(db,'getready/'+id), updates);
 };
 
+// A charge doesn't complete the deal on its own (only gasFilled does, via
+// toggleGRField above) - this just marks the middle "plugged in, not done
+// yet" stage so it's distinguishable on the card and TV from "not started".
+window.setGRChargeInProgress = async function(id, value) {
+  await update(ref(db,'getready/'+id), {
+    chargeInProgress: value,
+    chargeInProgressBy: value ? currentUser.name : null,
+    chargeInProgressAt: value ? Date.now() : null,
+  });
+};
+
 window.grNotes = async function(id, value) {
   await update(ref(db,'getready/'+id), { notes: value, updatedBy: currentUser.name });
 };
@@ -5196,26 +5214,17 @@ function renderGRCard(d, perms, isDupe) {
           </div>`;
         }).join('');
 
-    // Gas / Charge - three states: a gas vehicle needing fuel (with a $
-    // amount), an EV needing a charge (no amount - charging isn't billed
-    // per-fill the way gas is), or neither needed at all.
+    // Gas / Charge - a gas vehicle needing fuel is a quick done/not-done
+    // (with a $ amount); an EV needing a charge takes a while, so it gets
+    // its own 3rd "in progress" stage between not-started and done;
+    // otherwise neither is needed at all.
     const fuelStatus = grEffectiveFuelStatus(d);
     const gasAmountBadge = d.gasAmount ? `<span style="font-size:15px;font-weight:800;color:#991b1b;background:#fff;border:1px solid #fca5a5;border-radius:6px;padding:1px 8px;margin-left:6px">$${Number(d.gasAmount).toFixed(2)}</span>` : '';
-    const fuelTheme = fuelStatus==='charge'
-      ? { icon:'🔌', needLabel:'Needs Charging', doneLabel:'Charged', doneDetail:'Charged and ready', color:'#5b21b6', bg:'#f5f3ff' }
-      : { icon:'⛽', needLabel:'Needs Gas', doneLabel:'Gas Filled', doneDetail:'Tank topped up and ready', color:'#991b1b', bg:'#fef2f2' };
-    const gasBanner = fuelStatus !== 'none'
-      ? `<div class="gr-gas-banner ${d.gasFilled?'no-gas-needed':''}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${d.gasFilled?'':'background:'+fuelTheme.bg}">
-          <span style="font-size:20px">${fuelTheme.icon}</span>
-          <div style="flex:1">
-            <div style="font-weight:700;color:${d.gasFilled?'':fuelTheme.color}">${d.gasFilled?fuelTheme.doneLabel:fuelTheme.needLabel}${(!d.gasFilled && fuelStatus==='gas')?gasAmountBadge:''}</div>
-            <div style="font-size:11px;font-weight:400;opacity:.7">${d.gasFilled?`${fuelTheme.doneDetail}${d.gasFilledBy?' - '+d.gasFilledBy+(d.gasFilledAt?' · '+new Date(d.gasFilledAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}):''):''}`:'Before delivery'}</div>
-          </div>
-          ${canGas?`<div class="gr-tap" style="width:auto;height:32px;padding:0 14px;border-radius:20px;${d.gasFilled?'background:#f1f5f9;border-color:#e2e8f0':''}" onclick="toggleGRField('${d.id}','gasFilled',${!d.gasFilled})">
-            <span style="font-size:12px;font-weight:700;color:${d.gasFilled?'#94a3b8':fuelTheme.color}">${d.gasFilled?'✓ Done':'Mark done'}</span>
-          </div>`:'<span style="font-size:12px;font-weight:700;color:'+(d.gasFilled?'#94a3b8':fuelTheme.color)+'">'+(d.gasFilled?'✓ Done':'Pending')+'</span>'}
-        </div>`
-      : `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:#f0fdf4;border-bottom:2px solid #86efac;font-size:14px;font-weight:700;color:#15803d">
+    const doneWhoWhen = d.gasFilledBy ? ' - '+d.gasFilledBy+(d.gasFilledAt?' · '+new Date(d.gasFilledAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}):'') : '';
+
+    let gasBanner;
+    if (fuelStatus === 'none') {
+      gasBanner = `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:#f0fdf4;border-bottom:2px solid #86efac;font-size:14px;font-weight:700;color:#15803d">
           <span style="font-size:20px">⛽</span>
           <div style="flex:1">
             <div>No Gas/Charge Needed</div>
@@ -5223,6 +5232,36 @@ function renderGRCard(d, perms, isDupe) {
           </div>
           <span style="font-size:18px">✓</span>
         </div>`;
+    } else if (fuelStatus === 'gas') {
+      gasBanner = `<div class="gr-gas-banner ${d.gasFilled?'no-gas-needed':''}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${d.gasFilled?'':'background:#fef2f2'}">
+          <span style="font-size:20px">⛽</span>
+          <div style="flex:1">
+            <div style="font-weight:700;color:${d.gasFilled?'':'#991b1b'}">${d.gasFilled?'Gas Filled':'Needs Gas'}${!d.gasFilled?gasAmountBadge:''}</div>
+            <div style="font-size:11px;font-weight:400;opacity:.7">${d.gasFilled?`Tank topped up and ready${doneWhoWhen}`:'Before delivery'}</div>
+          </div>
+          ${canGas?`<div class="gr-tap" style="width:auto;height:32px;padding:0 14px;border-radius:20px;${d.gasFilled?'background:#f1f5f9;border-color:#e2e8f0':''}" onclick="toggleGRField('${d.id}','gasFilled',${!d.gasFilled})">
+            <span style="font-size:12px;font-weight:700;color:${d.gasFilled?'#94a3b8':'#991b1b'}">${d.gasFilled?'✓ Done':'Mark done'}</span>
+          </div>`:'<span style="font-size:12px;font-weight:700;color:'+(d.gasFilled?'#94a3b8':'#991b1b')+'">'+(d.gasFilled?'✓ Done':'Pending')+'</span>'}
+        </div>`;
+    } else {
+      // charge
+      const stage = d.gasFilled ? 'done' : d.chargeInProgress ? 'inprogress' : 'notstarted';
+      const stageInfo = {
+        notstarted: { label:'Needs Charging', detail:'Before delivery', color:'#5b21b6', bg:'#f5f3ff', action:'▶ Start Charging', onclick:`setGRChargeInProgress('${d.id}',true)` },
+        inprogress: { label:'Charging in Progress', detail:'Plugged in - check back soon', color:'#b45309', bg:'#fffbeb', action:'✓ Mark Complete', onclick:`toggleGRField('${d.id}','gasFilled',true)` },
+        done:       { label:'Charging Completed', detail:`Charged and ready${doneWhoWhen}`, color:'', bg:'', action:'✓ Done', onclick:`toggleGRField('${d.id}','gasFilled',false)` },
+      }[stage];
+      gasBanner = `<div class="gr-gas-banner ${stage==='done'?'no-gas-needed':''}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${stage==='done'?'':'background:'+stageInfo.bg}">
+          <span style="font-size:20px">${stage==='inprogress'?'🔋':'🔌'}</span>
+          <div style="flex:1">
+            <div style="font-weight:700;color:${stage==='done'?'':stageInfo.color}">${stageInfo.label}</div>
+            <div style="font-size:11px;font-weight:400;opacity:.7">${stageInfo.detail}</div>
+          </div>
+          ${canGas?`<div class="gr-tap" style="width:auto;height:32px;padding:0 14px;border-radius:20px;${stage==='done'?'background:#f1f5f9;border-color:#e2e8f0':''}" onclick="${stageInfo.onclick}">
+            <span style="font-size:12px;font-weight:700;color:${stage==='done'?'#94a3b8':stageInfo.color}">${stageInfo.action}</span>
+          </div>`:`<span style="font-size:12px;font-weight:700;color:${stage==='done'?'#94a3b8':stageInfo.color}">${stage==='done'?'✓ Done':stage==='inprogress'?'In Progress':'Pending'}</span>`}
+        </div>`;
+    }
 
     // Backward-compatible: pull from the new trades[] array if present,
     // otherwise fall back to the old trade1/trade2 shape for existing deals.
@@ -5337,9 +5376,22 @@ window.grSetTradeField = function(i, field, value) {
   if (grTrades[i]) grTrades[i][field] = value;
 };
 
+window.grToggleNoTradeIn = function(checked) {
+  grTrades = checked ? [] : [{ stock:'', vin:'', year:'', make:'', model:'', colour:'', kms:'', category:'RETAIL' }];
+  grRenderTradeSlots();
+};
+
 function grRenderTradeSlots() {
   const el = document.getElementById('gr-trades-list');
   if (!el) return;
+  const noTradeCb = document.getElementById('gr-no-tradein');
+  if (noTradeCb) noTradeCb.checked = grTrades.length === 0;
+  const addRow = document.getElementById('gr-trades-add-row');
+  if (addRow) addRow.style.display = grTrades.length === 0 ? 'none' : 'block';
+  if (grTrades.length === 0) {
+    el.innerHTML = `<div style="padding:14px;text-align:center;font-size:12px;color:var(--text-faint)">No trade-in on this deal</div>`;
+    return;
+  }
   el.innerHTML = grTrades.map((t, i) => `
     <div style="padding:10px 14px;${i < grTrades.length-1 ? 'border-bottom:1px solid var(--border)' : ''}">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -5401,8 +5453,7 @@ window.openGRModal = function(id) {
   document.getElementById('gr-stock').value = d.stock || '';
   document.getElementById('gr-deal').value = d.dealNum || '';
   document.getElementById('gr-vehicle').value = d.vehicle || '';
-  document.getElementById('gr-vin').value = d.vin || '';
-  document.getElementById('gr-vin6').value = d.vin6 || '';
+  document.getElementById('gr-vin').value = d.vin || d.vin6 || '';
   document.getElementById('gr-customer').value = d.customer || '';
   document.getElementById('gr-phone').value = d.phone || '';
   document.getElementById('gr-email').value = d.email || '';
@@ -5561,7 +5612,7 @@ function applyGRPdfFields(form) {
   fillGRIfEmpty('gr-salesperson', pdfFieldText(form,'SALESPERSONSNAME'));
   fillGRIfEmpty('gr-desk-manager', pdfFieldText(form,'SalesManagerName'));
   fillGRIfEmpty('gr-fni', pdfFieldText(form,'FIManagerName'));
-  fillGRIfEmpty('gr-vin6', pdfFieldText(form,'LastSixtVin').toUpperCase());
+  fillGRIfEmpty('gr-vin', pdfFieldText(form,'LastSixtVin').toUpperCase());
   fillGRIfEmpty('gr-delivery-date', pdfDateToInput(pdfFieldText(form,'DeliveryDate')));
   fillGRIfEmpty('gr-delivery-time', pdfTimeToInput(pdfFieldText(form,'Deliverytime_time')));
 
@@ -5644,7 +5695,6 @@ window.saveGR = async function() {
     dealNum: document.getElementById('gr-deal').value.trim(),
     vehicle: document.getElementById('gr-vehicle').value.trim(),
     vin: document.getElementById('gr-vin').value.trim().toUpperCase(),
-    vin6: document.getElementById('gr-vin6').value.trim().toUpperCase(),
     customer: document.getElementById('gr-customer').value.trim(),
     phone: document.getElementById('gr-phone').value.trim(),
     email: document.getElementById('gr-email').value.trim(),
@@ -5688,9 +5738,12 @@ window.saveGR = async function() {
   });
   if (editingGRId) deal.gasFilled = getReadyDeals[editingGRId]?.gasFilled || false;
   else deal.gasFilled = false;
+  if (editingGRId) deal.chargeInProgress = getReadyDeals[editingGRId]?.chargeInProgress || false;
+  else deal.chargeInProgress = false;
   if (editingGRId) deal.dealCompleted = getReadyDeals[editingGRId]?.dealCompleted || false;
 
   if (!deal.stock) { alert('Please enter a Stock #.'); return; }
+  if (!deal.deliveryDate || !deal.deliveryTime) { alert('Please enter a delivery date and time.'); return; }
   const btn = document.getElementById('gr-save-btn');
   btn.disabled = true; btn.textContent = 'Saving…';
   try {
