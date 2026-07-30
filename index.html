@@ -1141,10 +1141,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         </div>
         <!-- Stats -->
         <div id="cm-stats" style="display:flex;gap:14px;font-size:13px;flex-wrap:wrap"></div>
-        <!-- Search -->
+        <!-- Search - searches every compound, not just this one; a match
+             elsewhere shows as a clickable "Located in..." pill below it. -->
         <div style="position:relative;margin-left:auto">
           <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-faint);font-size:12px">🔍</span>
           <input id="cm-search" type="text" placeholder="Search stock #…" oninput="cmSearch(this.value)" style="padding:6px 10px 6px 28px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);background:var(--bg);color:var(--text);outline:none;width:160px"/>
+          <button id="cm-search-elsewhere" onclick="cmGoToElsewhereMatch()" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;white-space:nowrap;padding:6px 10px;font-size:12px;font-weight:600;border:1px solid #93c5fd;border-radius:var(--radius-sm);background:#eff6ff;color:#1d4ed8;cursor:pointer;z-index:10;text-align:left"></button>
         </div>
         <button id="cm-heatmap-btn" onclick="cmToggleHeatmap()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer">🌡️ Age Heatmap</button>
         <button id="cm-edit-btn" onclick="cmToggleEdit()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid #fcd34d;border-radius:var(--radius-sm);background:#fef9ec;color:#b45309;cursor:pointer;display:none">✏️ Edit</button>
@@ -1186,25 +1188,32 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <span style="font-size:11px;color:#b45309;margin-left:auto">Click spots to select multiple · drag to move</span>
       </div>
 
-      <!-- Legend -->
-      <div style="display:flex;align-items:center;gap:14px;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--bg);font-size:11px;color:var(--text-muted);flex-wrap:wrap">
-        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#eff6ff;border:1.5px solid #1d4ed8"></div>Occupied</div>
-        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#7f1d1d;border:1.5px solid #991b1b"></div>Flagged</div>
-        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fefce8;border:1.5px solid #ca8a04"></div>Wholesale</div>
-        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f0fdf4;border:1.5px solid #15803d"></div>Fleet</div>
-        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#eff6ff;border:2px solid #1d4ed8"></div>Lease Return</div>
-        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f0fdf4;border:1.5px solid #16a34a"></div>Get Ready</div>
-        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f3e8ff;border:1.5px solid #7c3aed"></div>Appointment</div>
-        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fff7ed;border:1.5px solid #ea580c"></div>Out - Test Drive</div>
-        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fef2f2;border:1.5px solid #dc2626"></div>⚠ Duplicate stock #</div>
-        <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#e2e8f0;border:1.5px dashed #94a3b8"></div>Blocked</div>
-        <span style="color:var(--text-faint);margin-left:8px">🖐 Hold a car ~3s to move it</span>
-        <span style="color:var(--text-faint)">· Tap a car for gas / wash / test drive</span>
-        <span id="cm-edit-hint" style="display:none;color:#b45309;font-weight:600;margin-left:8px">✏️ Edit mode - click any spot to edit</span>
-      </div>
+      <!-- Legend - collapsible so it's one tap to reclaim this space for the
+           map itself on a phone, where it otherwise wraps onto several lines. -->
+      <details id="cm-legend-details" open style="border-bottom:1px solid var(--border);background:var(--bg)">
+        <summary style="padding:6px 16px;font-size:11px;font-weight:700;color:var(--text-muted);cursor:pointer;user-select:none">Legend</summary>
+        <div style="display:flex;align-items:center;gap:14px;padding:0 16px 8px;font-size:11px;color:var(--text-muted);flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#eff6ff;border:1.5px solid #1d4ed8"></div>Occupied</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#7f1d1d;border:1.5px solid #991b1b"></div>Flagged</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fefce8;border:1.5px solid #ca8a04"></div>Wholesale</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f0fdf4;border:1.5px solid #15803d"></div>Fleet</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#eff6ff;border:2px solid #1d4ed8"></div>Lease Return</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f0fdf4;border:1.5px solid #16a34a"></div>Get Ready</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f3e8ff;border:1.5px solid #7c3aed"></div>Appointment</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fff7ed;border:1.5px solid #ea580c"></div>Out - Test Drive</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fef2f2;border:1.5px solid #dc2626"></div>⚠ Duplicate stock #</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#e2e8f0;border:1.5px dashed #94a3b8"></div>Blocked</div>
+          <span style="color:var(--text-faint);margin-left:8px">🖐 Hold a car ~3s to move it</span>
+          <span style="color:var(--text-faint)">· Tap a car for gas / wash / test drive</span>
+          <span id="cm-edit-hint" style="display:none;color:#b45309;font-weight:600;margin-left:8px">✏️ Edit mode - click any spot to edit</span>
+        </div>
+      </details>
 
-      <!-- The actual map grid -->
-      <div style="overflow:auto;padding:12px;flex:1;height:calc(100vh - 130px)">
+      <!-- The actual map grid - flex:1 alone lets it correctly claim whatever
+           space is actually left after the toolbar/legend above it, instead
+           of a fixed height guessing how tall those are (very wrong once
+           they wrap onto several lines, which is normal on a phone). -->
+      <div style="overflow:auto;padding:12px;flex:1;min-height:0">
         <div id="cm-map" style="display:inline-block;min-width:100%"></div>
       </div>
     </div>
@@ -7080,25 +7089,54 @@ window.cmCloseSpot = function() {
 };
 
 let cmSearchQuery = '';
+let cmElsewhereLot = null; // set when the search only matched a *different* compound
+
+function cmMatchingKeys(lotId, query) {
+  const v = cmVehicles[lotId]||{};
+  return Object.entries(v).filter(([,veh]) =>
+    (veh.stock||'').toLowerCase().includes(query)||
+    (veh.type||'').toLowerCase().includes(query)||
+    (veh.colour||'').toLowerCase().includes(query)||
+    (veh.note||'').toLowerCase().includes(query)||
+    (veh.desc||'').toLowerCase().includes(query)
+  ).map(([key])=>key);
+}
 
 function cmApplySearchHighlight() {
   document.querySelectorAll('.cm-spot').forEach(el => el.classList.remove('cm-hi','cm-dim'));
-  if (!cmSearchQuery) return;
-  const v = cmVehicles[cmCurrentLot]||{};
-  const matched = new Set();
-  Object.entries(v).forEach(([key,veh]) => {
-    if ((veh.stock||'').toLowerCase().includes(cmSearchQuery)||
-        (veh.type||'').toLowerCase().includes(cmSearchQuery)||
-        (veh.colour||'').toLowerCase().includes(cmSearchQuery)||
-        (veh.note||'').toLowerCase().includes(cmSearchQuery)||
-        (veh.desc||'').toLowerCase().includes(cmSearchQuery)) matched.add(key);
-  });
+  cmElsewhereLot = null;
+  const elsewhereEl = document.getElementById('cm-search-elsewhere');
+  if (!cmSearchQuery) { if (elsewhereEl) elsewhereEl.style.display = 'none'; return; }
+  const matched = new Set(cmMatchingKeys(cmCurrentLot, cmSearchQuery));
   document.querySelectorAll('.cm-spot').forEach(el => {
     const key = el.dataset.cmKey;
     if (!key) return;
     el.classList.add(matched.has(key) ? 'cm-hi' : 'cm-dim');
   });
+  // Not on this compound's board - check the other two before giving up,
+  // so a car parked at a different lot still turns up instead of just
+  // coming back empty.
+  if (matched.size === 0 && elsewhereEl) {
+    const otherLot = Object.keys(CM_LOTS).find(id => id !== cmCurrentLot && cmMatchingKeys(id, cmSearchQuery).length > 0);
+    if (otherLot) {
+      cmElsewhereLot = otherLot;
+      elsewhereEl.style.display = 'block';
+      elsewhereEl.textContent = `📍 Located in ${CM_LOTS[otherLot].label} →`;
+      return;
+    }
+  }
+  elsewhereEl.style.display = 'none';
 }
+
+window.cmGoToElsewhereMatch = function() {
+  if (!cmElsewhereLot) return;
+  const query = cmSearchQuery;
+  window.cmSwitchLot(cmElsewhereLot);
+  cmSearchQuery = query;
+  document.getElementById('cm-search').value = query;
+  cmRenderMap(); // re-applies the highlight for the new lot, since cmSwitchLot cleared it
+  cmScrollToFirstMatch();
+};
 
 // Scrolls the map to bring the first matching spot into view, Excel "Find"
 // style. Only called when the user actually types a new search - not from
@@ -7434,7 +7472,14 @@ window.switchTab = function(name, btn) {
 };
 
 // Rewrite cmInit
-function cmInit() { cmStartListeners(); }
+function cmInit() {
+  cmStartListeners();
+  // Collapsed by default on a phone, where the legend's 10 items would
+  // otherwise wrap onto several lines and push the map itself half off
+  // screen - it's still one tap away via the "Legend" summary.
+  const legend = document.getElementById('cm-legend-details');
+  if (legend && window.innerWidth <= 768) legend.open = false;
+}
 
 // ── /Compound Map ─────────────────────────────────────
 
