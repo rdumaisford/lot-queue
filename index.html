@@ -7895,6 +7895,14 @@ function reloadForUpdateIfSafe() {
   // Firebase Auth account with no matching users/{uid} record at all.
   if (identityBootstrapping) return;
   const isDisplay = new URLSearchParams(location.search).get('display') === 'true';
+  // Never interrupt the sign-in screen either - someone mid-type on the
+  // email/password form (very easy to trigger on mobile, e.g. switching
+  // away to a password manager and back fires visibilitychange right as
+  // they're about to submit) would get wiped out and have to start over,
+  // which looks exactly like "randomly logged out and can't log back in."
+  const setupScreen = document.getElementById('setup-screen');
+  const setupScreenVisible = setupScreen && getComputedStyle(setupScreen).display !== 'none';
+  if (!isDisplay && setupScreenVisible) return;
   const modalOpen = Array.from(document.querySelectorAll('.modal-backdrop'))
     .some(m => getComputedStyle(m).display !== 'none');
   // TV kiosks have no one present to interrupt - reload right away. Signed-in
