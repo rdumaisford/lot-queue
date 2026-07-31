@@ -771,18 +771,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spots-wrap{display:flex;gap:3px;flex-wrap:nowrap;align-items:center;padding:2px 0}
 .cm-spot{width:68px;height:46px;border-radius:5px;border:1.5px solid #cbd5e1;background:#f1f5f9;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;flex-shrink:0;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;transition:box-shadow .12s,transform .12s;overflow:hidden}
 .cm-spot:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.12)}
-.cm-spot.occupied{background:#eff6ff;border-color:#1d4ed8}
-.cm-spot.occupied .cm-spot-num{color:#1d4ed8}
-.cm-spot.flag{background:#7f1d1d;border-color:#991b1b;border-width:2px}
-.cm-spot.flag .cm-spot-num{color:#fca5a5}
-.cm-spot.flag .cm-spot-stock{color:#fecaca}
-.cm-spot.flag .cm-spot-desc{color:#fca5a5}
+.cm-spot.new{background:#eff6ff;border-color:#1d4ed8}
+.cm-spot.new .cm-spot-num{color:#1d4ed8}
+.cm-spot.used{background:#f1f5f9;border-color:#64748b}
+.cm-spot.used .cm-spot-num{color:#475569}
 .cm-spot.wholesale{background:#fefce8;border-color:#ca8a04}
 .cm-spot.wholesale .cm-spot-num{color:#a16207}
 .cm-spot.fleet{background:#f0fdf4;border-color:#15803d}
 .cm-spot.fleet .cm-spot-num{color:#15803d}
-.cm-spot.leasereturn{background:#eff6ff;border-color:#1d4ed8;border-width:2px}
-.cm-spot.leasereturn .cm-spot-num{color:#1d4ed8}
+.cm-spot.leasereturn{background:#f5f3ff;border-color:#7c3aed;border-width:2px}
+.cm-spot.leasereturn .cm-spot-num{color:#7c3aed}
+.cm-spot.cm-flagged{border-color:#dc2626!important;border-width:2px}
 .cm-spot.void{background:#d1d5db;border-color:#d1d5db;cursor:default}
 .cm-spot.void *{display:none!important}
 .cm-spot.blocked{background:#e2e8f0;border-color:#94a3b8;border-style:dashed;cursor:default}.cm-spot.empty{background:#f8fafc;border-color:#e2e8f0}
@@ -845,6 +844,19 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot-flag{font-size:8px;line-height:1;background:rgba(255,255,255,.85);border-radius:2px;padding:1px 2px}
 .cm-del-spot{position:absolute;top:1px;right:1px;width:13px;height:13px;border-radius:50%;background:#ef4444;color:#fff;font-size:9px;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:3;line-height:1}
 .cm-edit-active .cm-del-spot{display:flex}
+.cm-row-label.cm-row-del{cursor:pointer;flex-direction:column;gap:0;color:#dc2626;font-weight:800;border-radius:3px}
+.cm-row-label.cm-row-del:hover{background:#fef2f2}
+.cm-row-label.cm-row-del span{font-size:7px;color:#94a3b8;font-weight:700}
+.cm-col-del{display:flex;align-items:center;justify-content:center;gap:2px;cursor:pointer;font-size:8px;font-weight:700;color:#94a3b8;border-radius:3px}
+.cm-col-del:hover{background:#fef2f2}
+.cm-col-del .cm-col-del-x{color:#dc2626;font-weight:800}
+
+/* ── Freeform layout builder (323 Bayview NEW) ── */
+#fl-canvas{position:relative;width:1800px;height:1100px;background-image:radial-gradient(circle,#cbd5e1 1px,transparent 1px);background-size:24px 24px;transform-origin:top left}
+.fl-spot{position:absolute;box-sizing:border-box;background:#eff6ff;border:2px solid #1d4ed8;border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;font-size:11px;font-weight:700;color:#1d4ed8;overflow:hidden}
+.fl-spot:active{cursor:grabbing}
+.fl-spot.fl-selected{border-color:#f59e0b;border-width:3px;box-shadow:0 0 0 2px #fef3c7}
+/* ── /Freeform layout builder ── */
 /* ── /Compound Map ── */
 
 /* ── Audit ── */
@@ -1151,10 +1163,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div style="display:flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
           <button id="cm-lot-btn-bayview700" onclick="cmSwitchLot('bayview700')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--ford);color:#fff">700 Bayview</button>
           <button id="cm-lot-btn-bayview323" onclick="cmSwitchLot('bayview323')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">323 Bayview</button>
+          <button id="cm-lot-btn-bayview323new" onclick="cmSwitchLot('bayview323new')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">323 Bayview (NEW)</button>
         </div>
         <!-- Zoom - mainly for mobile, where the map's own hold-to-drag touch
              handling blocks the browser's native pinch-to-zoom gesture. -->
-        <div style="display:flex;align-items:center;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+        <div id="cm-grid-zoom" style="display:flex;align-items:center;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
           <button onclick="cmZoomOut()" title="Zoom out" style="padding:6px 12px;font-size:15px;font-weight:700;border:none;border-right:1px solid var(--border);cursor:pointer;background:var(--surface);color:var(--text)">−</button>
           <span id="cm-zoom-label" onclick="cmZoomReset()" title="Reset zoom" style="padding:6px 8px;font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;min-width:38px;text-align:center">100%</span>
           <button onclick="cmZoomIn()" title="Zoom in" style="padding:6px 12px;font-size:15px;font-weight:700;border:none;border-left:1px solid var(--border);cursor:pointer;background:var(--surface);color:var(--text)">+</button>
@@ -1163,14 +1176,27 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div id="cm-stats" style="display:flex;gap:14px;font-size:13px;flex-wrap:wrap"></div>
         <!-- Search - searches every compound, not just this one; a match
              elsewhere shows as a clickable "Located in..." pill below it. -->
-        <div style="position:relative;margin-left:auto">
+        <div id="cm-grid-search-wrap" style="position:relative;margin-left:auto">
           <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-faint);font-size:12px">🔍</span>
           <input id="cm-search" type="text" placeholder="Search stock #…" oninput="cmSearch(this.value)" style="padding:6px 10px 6px 28px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);background:var(--bg);color:var(--text);outline:none;width:160px"/>
           <button id="cm-search-elsewhere" onclick="cmGoToElsewhereMatch()" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;white-space:nowrap;padding:6px 10px;font-size:12px;font-weight:600;border:1px solid #93c5fd;border-radius:var(--radius-sm);background:#eff6ff;color:#1d4ed8;cursor:pointer;z-index:10;text-align:left"></button>
         </div>
         <button id="cm-heatmap-btn" onclick="cmToggleHeatmap()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer">🌡️ Age Heatmap</button>
         <button id="cm-edit-btn" onclick="cmToggleEdit()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid #fcd34d;border-radius:var(--radius-sm);background:#fef9ec;color:#b45309;cursor:pointer;display:none">✏️ Edit</button>
-        <button onclick="cmOpenQR()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer">🖨 QR</button>
+        <button id="cm-qr-btn" onclick="cmOpenQR()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer">🖨 QR</button>
+        <!-- Freeform layout builder toolbar - shown only for the 323 Bayview
+             (NEW) lot, which has no rows/cols/heatmap/QR/search since there
+             are no vehicles on it yet, just the physical layout being built. -->
+        <div id="cm-freeform-toolbar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap">
+          <button id="fl-add-btn" onclick="flAddSpot()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid #86efac;border-radius:var(--radius-sm);background:#f0fdf4;color:#15803d;cursor:pointer">+ Add Spot</button>
+          <span id="fl-spot-count" style="font-size:13px;color:var(--text-muted);font-weight:600"></span>
+          <div style="display:flex;align-items:center;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+            <button onclick="flZoomOut()" title="Zoom out" style="padding:6px 12px;font-size:15px;font-weight:700;border:none;border-right:1px solid var(--border);cursor:pointer;background:var(--surface);color:var(--text)">−</button>
+            <span id="fl-zoom-label" onclick="flZoomReset()" title="Reset zoom" style="padding:6px 8px;font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;min-width:38px;text-align:center">100%</span>
+            <button onclick="flZoomIn()" title="Zoom in" style="padding:6px 12px;font-size:15px;font-weight:700;border:none;border-left:1px solid var(--border);cursor:pointer;background:var(--surface);color:var(--text)">+</button>
+          </div>
+          <span style="font-size:11px;color:var(--text-faint)">Drag a spot to move it · click a spot to edit its size/rotation/label · blank space isn't a spot - nothing can be assigned there</span>
+        </div>
       </div>
 
       <!-- Age heatmap legend - shown only while heatmap mode is active -->
@@ -1205,7 +1231,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <button onclick="cmMarkSelected('clear')" style="padding:4px 10px;font-size:12px;font-weight:600;border:1px solid #86efac;border-radius:var(--radius-sm);background:#f0fdf4;color:#15803d;cursor:pointer">✓ Clear spots</button>
           <button onclick="cmClearSelection()" style="padding:4px 10px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text-muted);cursor:pointer">✕ Deselect</button>
         </div>
-        <span style="font-size:11px;color:#b45309;margin-left:auto">Click spots to select multiple · drag to move</span>
+        <span style="font-size:11px;color:#b45309;margin-left:auto">Click spots to select multiple · drag a selected spot to move the group · ✕ on a row/column number removes it</span>
       </div>
 
       <!-- Legend - collapsible so it's one tap to reclaim this space for the
@@ -1213,11 +1239,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <details id="cm-legend-details" open style="border-bottom:1px solid var(--border);background:var(--bg)">
         <summary style="padding:6px 16px;font-size:11px;font-weight:700;color:var(--text-muted);cursor:pointer;user-select:none">Legend</summary>
         <div style="display:flex;align-items:center;gap:14px;padding:0 16px 8px;font-size:11px;color:var(--text-muted);flex-wrap:wrap">
-          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#eff6ff;border:1.5px solid #1d4ed8"></div>Occupied</div>
-          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#7f1d1d;border:1.5px solid #991b1b"></div>Flagged</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#eff6ff;border:1.5px solid #1d4ed8"></div>New</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f1f5f9;border:1.5px solid #64748b"></div>Used</div>
           <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fefce8;border:1.5px solid #ca8a04"></div>Wholesale</div>
           <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f0fdf4;border:1.5px solid #15803d"></div>Fleet</div>
-          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#eff6ff;border:2px solid #1d4ed8"></div>Lease Return</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f5f3ff;border:2px solid #7c3aed"></div>Lease Return</div>
+          <div style="display:flex;align-items:center;gap:5px"><span style="font-size:13px">🚩</span>Flagged (checkbox or has a note)</div>
           <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f0fdf4;border:1.5px solid #16a34a"></div>Get Ready</div>
           <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f3e8ff;border:1.5px solid #7c3aed"></div>Appointment</div>
           <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fff7ed;border:1.5px solid #ea580c"></div>Out - Test Drive</div>
@@ -1233,8 +1260,49 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
            space is actually left after the toolbar/legend above it, instead
            of a fixed height guessing how tall those are (very wrong once
            they wrap onto several lines, which is normal on a phone). -->
-      <div style="overflow:auto;padding:12px;flex:1;min-height:0">
+      <div id="cm-map-wrap" style="overflow:auto;padding:12px;flex:1;min-height:0">
         <div id="cm-map" style="display:inline-block;min-width:100%"></div>
+      </div>
+
+      <!-- Freeform layout builder for 323 Bayview (NEW) - a blank canvas you
+           place spots onto one at a time (any position/size/rotation), rather
+           than a fixed rows×cols grid. Space with no spot on it is just
+           background (drive lane, fence, whatever) - it isn't interactive and
+           nothing can ever be assigned to it. No vehicles here yet - this is
+           layout-only for now. -->
+      <div id="cm-freeform-wrap" style="display:none;flex:1;min-height:0">
+        <div id="fl-canvas-outer" style="flex:1;overflow:auto;position:relative;background:var(--bg)">
+          <div id="fl-canvas"></div>
+        </div>
+        <div id="fl-side-panel" style="display:none;width:230px;flex-shrink:0;border-left:1px solid var(--border);background:var(--surface);padding:16px;overflow-y:auto">
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:12px">Spot properties</div>
+          <div class="field" style="margin-bottom:12px">
+            <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)">Label</label>
+            <input id="fl-f-label" type="text" oninput="flUpdateSelected('label', this.value)" style="width:100%;margin-top:4px;padding:8px 10px;font-size:14px;font-family:var(--font);font-weight:700;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+            <div class="field">
+              <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)">Width</label>
+              <input id="fl-f-w" type="number" min="20" max="1000" oninput="flUpdateSelected('w', +this.value)" style="width:100%;margin-top:4px;padding:8px 10px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/>
+            </div>
+            <div class="field">
+              <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)">Height</label>
+              <input id="fl-f-h" type="number" min="20" max="1000" oninput="flUpdateSelected('h', +this.value)" style="width:100%;margin-top:4px;padding:8px 10px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/>
+            </div>
+          </div>
+          <div class="field" style="margin-bottom:8px">
+            <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)">Rotation (°)</label>
+            <input id="fl-f-rot" type="number" min="0" max="359" oninput="flUpdateSelected('rot', +this.value)" style="width:100%;margin-top:4px;padding:8px 10px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
+            <button onclick="flSetRotation(0)" style="flex:1;padding:6px 4px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer">↔ 0°</button>
+            <button onclick="flSetRotation(90)" style="flex:1;padding:6px 4px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer">↕ 90°</button>
+            <button onclick="flSetRotation(45)" style="flex:1;padding:6px 4px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer">◤ 45°</button>
+            <button onclick="flSetRotation(315)" style="flex:1;padding:6px 4px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer">◥ -45°</button>
+          </div>
+          <button onclick="flDuplicateSelected()" style="width:100%;padding:9px;margin-bottom:8px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer">⧉ Duplicate spot</button>
+          <button onclick="flDeleteSelected()" style="width:100%;padding:9px;font-size:13px;font-weight:700;border:1px solid #fca5a5;border-radius:var(--radius-sm);background:#fef2f2;color:#dc2626;cursor:pointer">🗑 Delete spot</button>
+        </div>
       </div>
     </div>
 
@@ -1803,16 +1871,20 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       </div>
     </div>
     <div class="field">
-      <label>Status</label>
-      <select id="cm-f-status" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none" onchange="document.getElementById('cm-block-label-field').style.display=this.value==='blocked'?'':'none'">
-        <option value="occupied">Occupied</option>
-        <option value="flag">🚩 Flagged</option>
+      <label>Type</label>
+      <select id="cm-f-status" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none" onchange="document.getElementById('cm-block-label-field').style.display=this.value==='blocked'?'':'none';document.getElementById('cm-flagged-field').style.display=(this.value==='void'||this.value==='blocked')?'none':''">
+        <option value="new">New</option>
+        <option value="used">Used</option>
         <option value="wholesale">Wholesale</option>
         <option value="fleet">Fleet</option>
         <option value="leasereturn">Lease Return / Return to Ford</option>
         <option value="void">⬛ Grey out (no text)</option>
         <option value="blocked">Blocked - Building / Fence / Driveway</option>
       </select>
+    </div>
+    <div class="field" id="cm-flagged-field" style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="cm-f-flagged" style="width:16px;height:16px;margin:0"/>
+      <label for="cm-f-flagged" style="margin:0;text-transform:none;letter-spacing:0;font-size:13px;font-weight:600;color:var(--text);cursor:pointer">🚩 Flagged <span style="font-weight:400;color:var(--text-faint)">(a note also flags it automatically)</span></label>
     </div>
     <div class="field" id="cm-block-label-field" style="display:none">
       <label>Block label</label>
@@ -2149,7 +2221,12 @@ function applyPermissions() {
   const grAddBtn = document.getElementById('btn-add-getready');
   if (grAddBtn) grAddBtn.style.display = perm('getReadyEdit') ? 'flex' : 'none';
   const cmEditBtn = document.getElementById('cm-edit-btn');
-  if (cmEditBtn) cmEditBtn.style.display = perm('compoundEdit') ? '' : 'none';
+  // The freeform 323 Bayview (NEW) lot has no separate Edit toggle - it's
+  // shown/hidden by cmSwitchLot instead, so don't let a permission refresh
+  // (e.g. a live role change) pop it back on top of that lot's own toolbar.
+  if (cmEditBtn) cmEditBtn.style.display = (perm('compoundEdit') && cmCurrentLot !== 'bayview323new') ? '' : 'none';
+  const flAddBtn = document.getElementById('fl-add-btn');
+  if (flAddBtn) flAddBtn.style.display = perm('compoundEdit') ? '' : 'none';
   auditShowTab();
   const clearHistBtn = document.getElementById('btn-clear-history');
   if (clearHistBtn) clearHistBtn.style.display = currentUser?.role === 'management' ? '' : 'none';
@@ -4180,7 +4257,7 @@ function renderTVCompoundMap() {
   // Compute stats for title
   const allVehs = Object.values(v).filter(veh => veh && veh.stock && veh.status !== 'void' && veh.status !== 'blocked');
   const total     = allVehs.length;
-  const flagged   = allVehs.filter(veh => veh.status === 'flag').length;
+  const flagged   = allVehs.filter(veh => cmIsFlagged(veh)).length;
   const wholesale = allVehs.filter(veh => veh.status === 'wholesale').length;
   const fleet     = allVehs.filter(veh => veh.status === 'fleet').length;
   const lease     = allVehs.filter(veh => veh.status === 'leasereturn').length;
@@ -4235,18 +4312,19 @@ function renderTVCompoundMap() {
       let bg = 'rgba(255,255,255,.06)'; // empty
       if (veh) {
         const s = (veh.stock||'').toUpperCase();
-        const st = veh.status || 'occupied';
+        const st = veh.status;
         if (st === 'void') bg = 'rgba(255,255,255,.03)';
         else if (st === 'blocked') bg = 'rgba(255,255,255,.1)';
         else if (dupeStocks.has(s.trim())) bg = '#dc2626';   // red - duplicate stock #, data error
         else if (tdStocks.has(s))    bg = '#fb923c';        // orange - out on test drive
         else if (apptStocks.has(s)) bg = '#a78bfa';        // purple - appointment
         else if (grStocks.has(s))   bg = '#34d399';        // green - get ready
-        else if (st === 'flag')       bg = '#7f1d1d';      // dark red - flagged
+        else if (cmIsFlagged(veh))    bg = '#7f1d1d';      // dark red - flagged
         else if (st === 'wholesale')  bg = '#eab308';      // yellow
         else if (st === 'fleet')      bg = '#22c55e';      // green
-        else if (st === 'leasereturn')bg = '#3b82f6';      // blue
-        else                          bg = '#94a3b8';      // solid grey-blue - occupied
+        else if (st === 'leasereturn')bg = '#7c3aed';      // purple
+        else if (st === 'used')       bg = '#64748b';      // slate
+        else                          bg = '#3b82f6';      // blue - new (and legacy fallback)
       }
       html += `<div style="width:${cellSize}px;height:${cellSize}px;flex-shrink:0;background:${bg};border-radius:1px" title="${veh?veh.stock:''}"></div>`;
     }
@@ -4255,11 +4333,12 @@ function renderTVCompoundMap() {
   html += `</div>`;
 
   html += `<div style="display:flex;gap:20px;margin-top:16px;flex-wrap:wrap">
-    <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:rgba(255,255,255,.75)"><div style="width:16px;height:16px;border-radius:3px;background:#94a3b8;flex-shrink:0"></div>Occupied</div>
-    <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:rgba(255,255,255,.75)"><div style="width:16px;height:16px;border-radius:3px;background:#7f1d1d;flex-shrink:0"></div>Flagged</div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:rgba(255,255,255,.75)"><div style="width:16px;height:16px;border-radius:3px;background:#3b82f6;flex-shrink:0"></div>New</div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:rgba(255,255,255,.75)"><div style="width:16px;height:16px;border-radius:3px;background:#64748b;flex-shrink:0"></div>Used</div>
     <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:rgba(255,255,255,.75)"><div style="width:16px;height:16px;border-radius:3px;background:#eab308;flex-shrink:0"></div>Wholesale</div>
     <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:rgba(255,255,255,.75)"><div style="width:16px;height:16px;border-radius:3px;background:#22c55e;flex-shrink:0"></div>Fleet</div>
-    <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:rgba(255,255,255,.75)"><div style="width:16px;height:16px;border-radius:3px;background:#3b82f6;flex-shrink:0"></div>Lease Return</div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:rgba(255,255,255,.75)"><div style="width:16px;height:16px;border-radius:3px;background:#7c3aed;flex-shrink:0"></div>Lease Return</div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:rgba(255,255,255,.75)"><div style="width:16px;height:16px;border-radius:3px;background:#7f1d1d;flex-shrink:0"></div>Flagged</div>
     <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:rgba(255,255,255,.75)"><div style="width:16px;height:16px;border-radius:3px;background:#a78bfa;flex-shrink:0"></div>Appt</div>
     <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:rgba(255,255,255,.75)"><div style="width:16px;height:16px;border-radius:3px;background:#34d399;flex-shrink:0"></div>Get Ready</div>
   </div>`;
@@ -6577,6 +6656,7 @@ function renderHomeGrid() {
 const CM_LOTS = {
   bayview700:  { label: '700 Bayview' },
   bayview323:  { label: '323 Bayview' },
+  bayview323new: { label: '323 Bayview (NEW)' },
 };
 
 // Real layout from CSV - 13 parking rows × 52 cols
@@ -6622,6 +6702,14 @@ let cmSelected = new Set();
 let cmGridSize = {};  // { lotId: { rows, cols } } - loaded from Firebase
 let cmVehicles = {}; // { lotId: { 'R0-C0': {stock,desc,status}, ... } }
 
+// Freeform layout builder (323 Bayview NEW) - spots are placed anywhere on an
+// open canvas instead of a fixed rows×cols grid. { spotId: {x,y,w,h,rot,label} }.
+// No vehicle data here yet - layout only.
+let flSpots = {};
+let flSelected = null;
+let flZoomLevel = 1;
+const FL_ZOOM_MIN = 0.4, FL_ZOOM_MAX = 1.5, FL_ZOOM_STEP = 0.15;
+
 // Parse seed data: stock is first token, desc is rest
 function cmParseSeed(str) {
   if (!str) return null;
@@ -6633,7 +6721,7 @@ function cmParseSeed(str) {
   const parts = s.split(' ');
   const stock = parts[0];
   const desc = parts.slice(1).join(' ');
-  return { stock, desc, status: 'occupied' };
+  return { stock, desc, status: 'new' };
 }
 
 function cmRender() {
@@ -6648,12 +6736,27 @@ function cmRender() {
   });
 }
 
+// Vehicle type shown/edited on a spot - New/Used/Wholesale/Fleet/Lease Return.
+// Falls back to 'new' for legacy data written before this field existed
+// (old plain "occupied" assignments and the old "flag" status, which is now
+// the separate flagged checkbox below).
+function cmTypeClass(status) {
+  return ['new','used','wholesale','fleet','leasereturn','void','blocked'].includes(status) ? status : 'new';
+}
+
+// A spot is flagged if the checkbox is set, or - same as before this was a
+// checkbox - it carries a note, since a note on a spot always meant "look at
+// this car." Also covers legacy data still carrying the old 'flag' status.
+function cmIsFlagged(veh) {
+  return !!(veh && (veh.flagged || veh.status === 'flag' || (veh.note && String(veh.note).trim())));
+}
+
 function cmRenderStats() {
   const el = document.getElementById('cm-stats');
   if (!el) return;
   const v = cmVehicles[cmCurrentLot] || {};
   const total = cmCurrentLot === 'bayview700' ? CM_BAYVIEW700_SEED.reduce((a,r)=>a+r.length,0) : 200;
-  const occupied = Object.values(v).filter(x=>x.status==='occupied').length;
+  const occupied = Object.values(v).filter(x=>x.stock && !['blocked','void','special','reserved'].includes(x.status)).length;
   const reserved = Object.values(v).filter(x=>x.status==='reserved').length;
   const special  = Object.values(v).filter(x=>x.status==='special').length;
   const empty = total - occupied - reserved - special;
@@ -6737,10 +6840,14 @@ function cmRenderMap() {
   mapEl.className = `cm-grid${cmEditMode?' cm-edit-active':''}`;
 
   let html = '';
-  // Column header numbers
+  // Column header numbers - in edit mode every column gets a ✕ to remove
+  // just that column (not only the last one), since a real lot's layout
+  // rarely changes only at the far edge.
   html += `<div style="display:flex;gap:0;margin-bottom:2px;padding-left:28px">`;
   for (let ci=0; ci<numCols; ci++) {
-    if ((ci+1) % 5 === 0) {
+    if (cmEditMode) {
+      html += `<div class="cm-col-del" style="width:68px;flex-shrink:0;margin:0 1.5px" onclick="cmRemoveColAt(${ci})" title="Remove column ${ci+1}"><span>${ci+1}</span><span class="cm-col-del-x">✕</span></div>`;
+    } else if ((ci+1) % 5 === 0) {
       html += `<div style="width:68px;text-align:center;font-size:8px;font-weight:700;color:#94a3b8;flex-shrink:0;margin:0 1.5px">${ci+1}</div>`;
     } else {
       html += `<div style="width:68px;flex-shrink:0;margin:0 1.5px"></div>`;
@@ -6750,7 +6857,9 @@ function cmRenderMap() {
 
   for (let ri=0; ri<numRows; ri++) {
     html += `<div class="cm-parking-row">`;
-    html += `<div class="cm-row-label">R${ri+1}</div>`;
+    html += cmEditMode
+      ? `<div class="cm-row-label cm-row-del" onclick="cmRemoveRowAt(${ri})" title="Remove row ${ri+1}">✕<span>R${ri+1}</span></div>`
+      : `<div class="cm-row-label">R${ri+1}</div>`;
     html += `<div class="cm-spots-wrap">`;
     for (let ci=0; ci<numCols; ci++) {
       const key = `R${ri}-C${ci}`;
@@ -6768,7 +6877,8 @@ function cmRenderMap() {
       } else if (!veh && cmEditMode) {
         const sel = cmSelected.has(key);
         html += `<div class="cm-spot empty${sel?' cm-selected':''}" data-cm-key="${key}"
-          onclick="cmSelectSpot(event,'${key}',${ri},${ci})">
+          onclick="cmSelectSpot(event,'${key}',${ri},${ci})"
+          onpointerdown="cmGroupPointerDown(event,'${key}')" oncontextmenu="return false">
           <div class="cm-spot-num">${ci+1}</div>
           ${sel?'<div style="font-size:10px;color:#f59e0b;font-weight:800">✓</div>':'<div style="font-size:14px;color:#cbd5e1;margin-top:2px">+</div>'}
         </div>`;
@@ -6777,13 +6887,14 @@ function cmRenderMap() {
         const typeLine = [veh.year, veh.type, veh.trim, veh.colour].filter(Boolean).join(' ').substring(0,18);
         const isBlocked = veh.status === 'blocked';
         const isVoid = veh.status === 'void';
-        const cls = isDupe && !isBlocked && !isVoid ? 'cm-duplicate' : onTd && !isBlocked && !isVoid ? 'ontestdrive' : appt && !isBlocked && !isVoid ? 'appointed' : gr && !isBlocked && !isVoid ? 'getready' : veh.status;
+        const isFlagged = !isBlocked && !isVoid && cmIsFlagged(veh);
+        const cls = isDupe && !isBlocked && !isVoid ? 'cm-duplicate' : onTd && !isBlocked && !isVoid ? 'ontestdrive' : appt && !isBlocked && !isVoid ? 'appointed' : gr && !isBlocked && !isVoid ? 'getready' : cmTypeClass(veh.status);
 
         if (isVoid) {
           // Void - completely inert in normal mode, selectable/deletable in edit mode only
           html += `<div class="cm-spot void${cmEditMode&&cmSelected.has(key)?' cm-selected':''}" data-cm-key="${key}"
             style="cursor:${cmEditMode?'pointer':'default'}"
-            ${cmEditMode?`onclick="cmSelectSpot(event,'${key}',${ri},${ci})"`:''}>
+            ${cmEditMode?`onclick="cmSelectSpot(event,'${key}',${ri},${ci})" onpointerdown="cmGroupPointerDown(event,'${key}')" oncontextmenu="return false"`:''}>
             ${cmEditMode ? `<div class="cm-del-spot" style="display:flex" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
             ${cmEditMode&&cmSelected.has(key)?'<div style="font-size:10px;color:#f59e0b;font-weight:800;position:absolute;inset:0;display:flex;align-items:center;justify-content:center">✓</div>':''}
           </div>`;
@@ -6791,7 +6902,7 @@ function cmRenderMap() {
           // Blocked (drive lane, no parking, gatehouse etc) - inert in normal mode
           html += `<div class="cm-spot blocked${cmEditMode&&cmSelected.has(key)?' cm-selected':''}" data-cm-key="${key}"
             style="cursor:${cmEditMode?'pointer':'default'}"
-            ${cmEditMode?`onclick="cmSelectSpot(event,'${key}',${ri},${ci})"`:''}>
+            ${cmEditMode?`onclick="cmSelectSpot(event,'${key}',${ri},${ci})" onpointerdown="cmGroupPointerDown(event,'${key}')" oncontextmenu="return false"`:''}>
             ${cmEditMode ? `<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
             <div class="cm-spot-num" style="${cmEditMode?'':'opacity:.5'}">${cmEditMode?ci+1:''}</div>
             <div class="cm-spot-stock">${(veh.blockLabel||'').split(' ').slice(0,1).join(' ')}</div>
@@ -6808,13 +6919,14 @@ function cmRenderMap() {
           const lockInfo = activeLockFor('compound', `${cmCurrentLot}_${key}`);
           const lockCls = lockInfo ? ' cm-locked-by-other' : '';
           const extraStyle = `${canDrag?'touch-action:none;':''}${heatStyleVar}`;
-          html += `<div class="cm-spot ${cls}${selCls}${heatCls}${lockCls}" data-cm-key="${key}"
+          html += `<div class="cm-spot ${cls}${isFlagged?' cm-flagged':''}${selCls}${heatCls}${lockCls}" data-cm-key="${key}"
             onclick="${cmEditMode?`cmSelectSpot(event,'${key}',${ri},${ci})`:`cmOpenQuickActions('${key}',${ri},${ci})`}"
             ${canDrag?`onpointerdown="cmSpotPointerDown(event,'${key}')" oncontextmenu="return false"`:''}
+            ${cmEditMode?`onpointerdown="cmGroupPointerDown(event,'${key}')" oncontextmenu="return false"`:''}
             ${extraStyle?`style="${extraStyle}"`:''}>
             ${cmEditMode ? `<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
             ${(veh.note || (Array.isArray(veh.notes) && veh.notes.length)) && !cmEditMode ? `<div class="cm-spot-note"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
-            ${!cmEditMode && (veh.needsGas || veh.needsWash || veh.atDealership) ? `<div class="cm-spot-flags">${veh.needsGas?'<span class="cm-spot-flag" title="Needs gas">⛽</span>':''}${veh.needsWash?'<span class="cm-spot-flag" title="Needs wash">🧼</span>':''}${veh.atDealership?'<span class="cm-spot-flag" title="At dealership - needs to return to 323 Bayview" style="background:#fecaca">🏢</span>':''}</div>` : ''}
+            ${!cmEditMode && (isFlagged || veh.needsGas || veh.needsWash || veh.atDealership) ? `<div class="cm-spot-flags">${isFlagged?'<span class="cm-spot-flag" title="Flagged" style="background:#fecaca;color:#7f1d1d">🚩</span>':''}${veh.needsGas?'<span class="cm-spot-flag" title="Needs gas">⛽</span>':''}${veh.needsWash?'<span class="cm-spot-flag" title="Needs wash">🧼</span>':''}${veh.atDealership?'<span class="cm-spot-flag" title="At dealership - needs to return to 323 Bayview" style="background:#fecaca">🏢</span>':''}</div>` : ''}
             <div class="cm-spot-num">${ci+1}</div>
             <div class="cm-spot-stock">${stock}</div>
             <div class="cm-spot-desc">${lockInfo ? `🔒 ${lockInfo.lockedBy}` : heatOn ? (ageDays!=null ? `${ageDays}d on lot` : 'no arrival date') : typeLine}</div>
@@ -6840,11 +6952,32 @@ window.cmSwitchLot = function(id) {
   cmEditMode = false;
   cmSelected.clear();
   cmSearchQuery = '';
+  flSelected = null;
   const editBar = document.getElementById('cm-edit-bar');
   if (editBar) editBar.style.display = 'none';
   cmUpdateEditBtn();
   document.getElementById('cm-search').value = '';
+
+  // The freeform layout builder (323 Bayview NEW) is a different kind of
+  // screen entirely - no rows/cols/heatmap/QR/search, since there's no
+  // vehicle data to search or print QR codes for yet. Swap the toolbar and
+  // map area for its own instead of trying to force it into the grid UI.
+  const isFreeform = id === 'bayview323new';
+  document.getElementById('cm-grid-zoom').style.display = isFreeform ? 'none' : '';
+  document.getElementById('cm-stats').style.display = isFreeform ? 'none' : '';
+  document.getElementById('cm-grid-search-wrap').style.display = isFreeform ? 'none' : '';
+  document.getElementById('cm-heatmap-btn').style.display = isFreeform ? 'none' : '';
+  document.getElementById('cm-qr-btn').style.display = isFreeform ? 'none' : '';
+  document.getElementById('cm-edit-btn').style.display = isFreeform ? 'none' : (perm('compoundEdit') ? '' : 'none');
+  document.getElementById('cm-freeform-toolbar').style.display = isFreeform ? 'flex' : 'none';
+  document.getElementById('cm-legend-details').style.display = isFreeform ? 'none' : '';
+  document.getElementById('cm-map-wrap').style.display = isFreeform ? 'none' : '';
+  document.getElementById('cm-freeform-wrap').style.display = isFreeform ? 'flex' : 'none';
+  document.getElementById('fl-side-panel').style.display = 'none';
+  document.getElementById('fl-add-btn').style.display = perm('compoundEdit') ? '' : 'none';
+
   cmRender();
+  if (isFreeform) flRender();
 };
 
 window.cmToggleEdit = function() {
@@ -7102,13 +7235,24 @@ window.cmLookupSpecsForSpot = function() {
   const stock = document.getElementById('cm-f-stock').value.trim().toUpperCase();
   if (!stock) return;
   const spec = vehicleSpecs[stock];
-  if (!spec) return;
-  const yearEl = document.getElementById('cm-f-year'), trimEl = document.getElementById('cm-f-trim'),
-        typeEl = document.getElementById('cm-f-type'), colourEl = document.getElementById('cm-f-colour');
-  if (yearEl && !yearEl.value && spec.year) yearEl.value = spec.year;
-  if (trimEl && !trimEl.value && spec.trim) trimEl.value = spec.trim;
-  if (typeEl && !typeEl.value && spec.type) typeEl.value = spec.type;
-  if (colourEl && !colourEl.value && spec.colour) colourEl.value = spec.colour;
+  if (spec) {
+    const yearEl = document.getElementById('cm-f-year'), trimEl = document.getElementById('cm-f-trim'),
+          typeEl = document.getElementById('cm-f-type'), colourEl = document.getElementById('cm-f-colour');
+    if (yearEl && !yearEl.value && spec.year) yearEl.value = spec.year;
+    if (trimEl && !trimEl.value && spec.trim) trimEl.value = spec.trim;
+    if (typeEl && !typeEl.value && spec.type) typeEl.value = spec.type;
+    if (colourEl && !colourEl.value && spec.colour) colourEl.value = spec.colour;
+  }
+  // Tether the spot's Type to the matching Incoming unit's New/Used condition -
+  // punching in a stock # already tracked in Incoming shouldn't require
+  // re-picking New vs Used by hand. Only nudges it off the default ('new');
+  // never overrides a deliberate Wholesale/Fleet/Lease Return pick.
+  const incomingUnit = Object.values(units).find(u => (u.stock||'').toUpperCase().trim() === stock);
+  const statusEl = document.getElementById('cm-f-status');
+  if (incomingUnit && statusEl && statusEl.value === 'new' &&
+      (incomingUnit.condition === 'new' || incomingUnit.condition === 'used')) {
+    statusEl.value = incomingUnit.condition;
+  }
 };
 
 window.cmSpotClick = function(key, ri, ci) {
@@ -7143,10 +7287,13 @@ window.cmSpotClick = function(key, ri, ci) {
     document.getElementById('cm-f-trim').value = v.trim||'';
     document.getElementById('cm-f-type').value = v.type||'';
     document.getElementById('cm-f-colour').value = v.colour||'';
-    document.getElementById('cm-f-status').value = v.status||'occupied';
+    document.getElementById('cm-f-status').value = cmTypeClass(v.status);
+    document.getElementById('cm-f-flagged').checked = cmIsFlagged(v);
     document.getElementById('cm-f-note').value = v.note||'';
     document.getElementById('cm-f-date-added').value = v.dateAdded || new Date().toISOString().slice(0,10);
     document.getElementById('cm-f-block-label').value = v.blockLabel||'🏢 Building';
+    const isVoidSpot = v.status === 'void';
+    document.getElementById('cm-flagged-field').style.display = (isVoidSpot||isBlocked) ? 'none' : '';
     if (isBlocked) {
       blockField.style.display = '';
       if (stockField) stockField.style.display = 'none';
@@ -7161,7 +7308,9 @@ window.cmSpotClick = function(key, ri, ci) {
     document.getElementById('cm-f-trim').value = '';
     document.getElementById('cm-f-type').value = '';
     document.getElementById('cm-f-colour').value = '';
-    document.getElementById('cm-f-status').value = 'occupied';
+    document.getElementById('cm-f-status').value = 'new';
+    document.getElementById('cm-f-flagged').checked = false;
+    document.getElementById('cm-flagged-field').style.display = '';
     document.getElementById('cm-f-note').value = '';
     document.getElementById('cm-f-date-added').value = new Date().toISOString().slice(0,10);
     document.getElementById('cm-f-block-label').value = '🏢 Building';
@@ -7209,6 +7358,7 @@ window.cmSaveSpot = async function() {
     type:    document.getElementById('cm-f-type').value.trim(),
     colour:  document.getElementById('cm-f-colour').value.trim(),
     status,
+    flagged: document.getElementById('cm-f-flagged').checked,
     note:    document.getElementById('cm-f-note').value.trim(),
     dateAdded: dateAddedInput || todayStr, // never leave this blank - heatmap needs it
   };
@@ -7347,6 +7497,10 @@ window.cmOpenQR = function() {
 window.cmSelectSpot = function(e, key, ri, ci) {
   if (!perm('compoundEdit')) return;
   e.stopPropagation();
+  // The tail end of a completed group-drag gesture (see cmGroupPointerDown
+  // below) fires a click on the same spot right after - without this, that
+  // click would immediately toggle the very selection that was just dragged.
+  if (cmGroupSuppressClick) { cmGroupSuppressClick = false; return; }
   if (cmSelected.has(key)) {
     cmSelected.delete(key);
   } else {
@@ -7444,6 +7598,57 @@ window.cmRemoveCol = async function() {
   await update(ref(db, `compound_meta/${cmCurrentLot}`), { rows: cur.rows, cols: cur.cols - 1 });
   logCompoundChange(cmCurrentLot, 'resize', `Removed last column (now ${cur.cols - 1} cols)`);
 };
+
+// Removing an arbitrary row/column (not just the last one) means every row
+// below (or column to the right of) it has to shift over by one to close the
+// gap - done as a single atomic multi-path update so the grid never briefly
+// renders with a duplicated or missing row while listeners catch up.
+window.cmRemoveRowAt = async function(targetRow) {
+  if (!perm('compoundEdit')) return;
+  const cur = cmGridSize[cmCurrentLot] || { rows: 10, cols: 30 };
+  if (cur.rows <= 1) return;
+  const v = cmVehicles[cmCurrentLot] || {};
+  const occupied = [];
+  for (let ci = 0; ci < cur.cols; ci++) { if (v[`R${targetRow}-C${ci}`]?.stock) occupied.push(v[`R${targetRow}-C${ci}`].stock); }
+  if (occupied.length && !confirm(`Row ${targetRow+1} has ${occupied.length} spot${occupied.length!==1?'s':''} in use (${occupied.slice(0,5).join(', ')}${occupied.length>5?'…':''}).\n\nRemove this row anyway? Those spots will be cleared and every row below it shifts up.`)) return;
+  const updates = {};
+  for (let ri = targetRow; ri < cur.rows - 1; ri++) {
+    for (let ci = 0; ci < cur.cols; ci++) {
+      updates[`compound_v2/${cmCurrentLot}/R${ri}-C${ci}`] = v[`R${ri+1}-C${ci}`] || null;
+    }
+  }
+  for (let ci = 0; ci < cur.cols; ci++) updates[`compound_v2/${cmCurrentLot}/R${cur.rows-1}-C${ci}`] = null;
+  updates[`compound_meta/${cmCurrentLot}/rows`] = cur.rows - 1;
+  updates[`compound_meta/${cmCurrentLot}/cols`] = cur.cols;
+  await update(ref(db), updates);
+  logCompoundChange(cmCurrentLot, 'resize', `Removed row ${targetRow+1} (now ${cur.rows - 1} rows)`);
+  cmSelected.clear();
+  cmUpdateSelectionUI();
+};
+
+window.cmRemoveColAt = async function(targetCol) {
+  if (!perm('compoundEdit')) return;
+  const cur = cmGridSize[cmCurrentLot] || { rows: 10, cols: 30 };
+  if (cur.cols <= 1) return;
+  const v = cmVehicles[cmCurrentLot] || {};
+  const occupied = [];
+  for (let ri = 0; ri < cur.rows; ri++) { if (v[`R${ri}-C${targetCol}`]?.stock) occupied.push(v[`R${ri}-C${targetCol}`].stock); }
+  if (occupied.length && !confirm(`Column ${targetCol+1} has ${occupied.length} spot${occupied.length!==1?'s':''} in use (${occupied.slice(0,5).join(', ')}${occupied.length>5?'…':''}).\n\nRemove this column anyway? Those spots will be cleared and every column to the right shifts left.`)) return;
+  const updates = {};
+  for (let ci = targetCol; ci < cur.cols - 1; ci++) {
+    for (let ri = 0; ri < cur.rows; ri++) {
+      updates[`compound_v2/${cmCurrentLot}/R${ri}-C${ci}`] = v[`R${ri}-C${ci+1}`] || null;
+    }
+  }
+  for (let ri = 0; ri < cur.rows; ri++) updates[`compound_v2/${cmCurrentLot}/R${ri}-C${cur.cols-1}`] = null;
+  updates[`compound_meta/${cmCurrentLot}/rows`] = cur.rows;
+  updates[`compound_meta/${cmCurrentLot}/cols`] = cur.cols - 1;
+  await update(ref(db), updates);
+  logCompoundChange(cmCurrentLot, 'resize', `Removed column ${targetCol+1} (now ${cur.cols - 1} cols)`);
+  cmSelected.clear();
+  cmUpdateSelectionUI();
+};
+
 window.cmHandleSearch = window.cmSearch;
 window.cmAddSpot = ()=>{};
 window.cmDeleteSpot = ()=>{};
@@ -7577,6 +7782,99 @@ async function cmPointerUp(e) {
   logCompoundChange(cmCurrentLot, 'drag', desc);
 }
 
+// ── Group drag (edit mode) - drag any already-selected spot to move every
+// selected spot together, offset by the same row/col delta. Unlike the
+// single-vehicle hold-to-drag above, this only arms on movement (no 3s hold)
+// since selecting the cells first is already a deliberate, separate step.
+let cmGroupDragKey = null;
+let cmGroupDragStartX = 0, cmGroupDragStartY = 0;
+let cmGroupDragMoved = false;
+let cmGroupDragOverEl = null;
+let cmGroupSuppressClick = false;
+
+window.cmGroupPointerDown = function(e, key) {
+  if (!cmEditMode || !perm('compoundEdit') || !cmSelected.has(key)) return;
+  cmGroupDragKey = key;
+  cmGroupDragStartX = e.clientX;
+  cmGroupDragStartY = e.clientY;
+  cmGroupDragMoved = false;
+  document.addEventListener('pointermove', cmGroupPointerMove);
+  document.addEventListener('pointerup', cmGroupPointerUp, { once: true });
+  document.addEventListener('pointercancel', cmGroupPointerCancel, { once: true });
+};
+
+function cmGroupPointerMove(e) {
+  if (!cmGroupDragKey) return;
+  if (!cmGroupDragMoved) {
+    const dx = e.clientX - cmGroupDragStartX, dy = e.clientY - cmGroupDragStartY;
+    if (Math.sqrt(dx*dx + dy*dy) < CM_MOVE_CANCEL_PX) return;
+    cmGroupDragMoved = true;
+    document.querySelectorAll('.cm-spot.cm-selected').forEach(el => el.classList.add('cm-armed'));
+  }
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const spotEl = el ? el.closest('.cm-spot') : null;
+  if (cmGroupDragOverEl && cmGroupDragOverEl !== spotEl) cmGroupDragOverEl.classList.remove('cm-drag-over');
+  if (spotEl) { spotEl.classList.add('cm-drag-over'); cmGroupDragOverEl = spotEl; }
+  else cmGroupDragOverEl = null;
+}
+
+function cmGroupPointerCancel() {
+  document.removeEventListener('pointermove', cmGroupPointerMove);
+  document.querySelectorAll('.cm-spot.cm-armed').forEach(el => el.classList.remove('cm-armed'));
+  if (cmGroupDragOverEl) cmGroupDragOverEl.classList.remove('cm-drag-over');
+  cmGroupDragKey = null; cmGroupDragOverEl = null; cmGroupDragMoved = false;
+}
+
+async function cmGroupPointerUp() {
+  document.removeEventListener('pointermove', cmGroupPointerMove);
+  document.removeEventListener('pointercancel', cmGroupPointerCancel);
+  document.querySelectorAll('.cm-spot.cm-armed').forEach(el => el.classList.remove('cm-armed'));
+  if (cmGroupDragOverEl) cmGroupDragOverEl.classList.remove('cm-drag-over');
+
+  const anchorKey = cmGroupDragKey;
+  const destKey = cmGroupDragOverEl ? cmGroupDragOverEl.dataset.cmKey : null;
+  const moved = cmGroupDragMoved;
+  cmGroupDragKey = null; cmGroupDragOverEl = null; cmGroupDragMoved = false;
+  if (!moved || !destKey || destKey === anchorKey) return; // a plain tap - let the click toggle selection as usual
+
+  // The click event this same gesture is about to fire on the (now stale)
+  // anchor element must not also toggle its selection - see cmSelectSpot.
+  cmGroupSuppressClick = true;
+  setTimeout(() => { cmGroupSuppressClick = false; }, 0);
+
+  const [, arStr, acStr] = anchorKey.match(/R(\d+)-C(\d+)/);
+  const [, drStr, dcStr] = destKey.match(/R(\d+)-C(\d+)/);
+  const deltaR = Number(drStr) - Number(arStr);
+  const deltaC = Number(dcStr) - Number(acStr);
+
+  const cur = cmGridSize[cmCurrentLot] || { rows: 10, cols: 30 };
+  const movingKeys = [...cmSelected];
+  const destKeys = movingKeys.map(key => {
+    const [, rStr, cStr] = key.match(/R(\d+)-C(\d+)/);
+    const nr = Number(rStr) + deltaR, nc = Number(cStr) + deltaC;
+    return { nr, nc, key: `R${nr}-C${nc}` };
+  });
+  if (destKeys.some(d => d.nr < 0 || d.nr >= cur.rows || d.nc < 0 || d.nc >= cur.cols)) {
+    alert("Can't move there - part of the group would land outside the grid.");
+    return;
+  }
+
+  const v = cmVehicles[cmCurrentLot] || {};
+  const movingSet = new Set(movingKeys);
+  const overwritten = destKeys.map(d => d.key).filter(k => !movingSet.has(k) && v[k]);
+  if (overwritten.length && !confirm(`This will overwrite ${overwritten.length} occupied spot${overwritten.length!==1?'s':''} outside the selection. Continue?`)) return;
+
+  const updates = {};
+  movingKeys.forEach(key => { updates[`compound_v2/${cmCurrentLot}/${key}`] = null; });
+  movingKeys.forEach((key, i) => { updates[`compound_v2/${cmCurrentLot}/${destKeys[i].key}`] = v[key] || null; });
+  await update(ref(db), updates);
+  logCompoundChange(cmCurrentLot, 'move-group', `Moved ${movingKeys.length} spot${movingKeys.length!==1?'s':''} as a group (${deltaR>=0?'+':''}${deltaR} row${Math.abs(deltaR)!==1?'s':''}, ${deltaC>=0?'+':''}${deltaC} col${Math.abs(deltaC)!==1?'s':''})`);
+
+  cmSelected = new Set(destKeys.map(d => d.key));
+  cmUpdateSelectionUI();
+  cmRenderMap();
+}
+
 // Fix cmStartListeners - always store data and render regardless of active tab
 function cmStartListeners() {
   // Grid size
@@ -7607,6 +7905,10 @@ function cmStartListeners() {
   onValue(ref(db, 'compound_v2/bayview323'), snap => {
     cmVehicles['bayview323'] = snap.val() || {};
     if (cmCurrentLot === 'bayview323') cmRender();
+  });
+  onValue(ref(db, 'compound_layout/bayview323new'), snap => {
+    flSpots = snap.val() || {};
+    if (cmCurrentLot === 'bayview323new') flRender();
   });
 }
 
@@ -7668,6 +7970,177 @@ window.cmZoomReset = function() {
   cmZoomLevel = 1;
   cmApplyZoom();
 };
+
+// ── Freeform layout builder (323 Bayview NEW) ──────────
+// Spots live at 'compound_layout/bayview323new/{id}' as {x,y,w,h,rot,label},
+// positioned in the canvas's own unzoomed pixel space (see #fl-canvas CSS).
+// No vehicle/status fields yet - this only builds the physical layout.
+const FL_PATH = 'compound_layout/bayview323new';
+
+// Full rebuild - only for when the spot list itself changes (add/remove/load),
+// never during an active drag or a side-panel edit, both of which patch the
+// DOM directly instead so they don't fight with a render wiping out the very
+// element a drag is in the middle of moving.
+function flRender() {
+  const canvas = document.getElementById('fl-canvas');
+  if (!canvas) return;
+  const ids = Object.keys(flSpots);
+  const countEl = document.getElementById('fl-spot-count');
+  if (countEl) countEl.textContent = `${ids.length} spot${ids.length!==1?'s':''}`;
+  if (flSelected && !flSpots[flSelected]) flSelected = null;
+  canvas.innerHTML = ids.map(id => {
+    const s = flSpots[id];
+    return `<div class="fl-spot${id===flSelected?' fl-selected':''}" data-id="${id}"
+      style="left:${s.x}px;top:${s.y}px;width:${s.w}px;height:${s.h}px;transform:rotate(${s.rot||0}deg)">${esc(s.label||'')}</div>`;
+  }).join('');
+  flPopulateSidePanel();
+}
+
+function flApplySelectionClass() {
+  document.querySelectorAll('#fl-canvas .fl-spot').forEach(el => {
+    el.classList.toggle('fl-selected', el.dataset.id === flSelected);
+  });
+}
+
+function flPatchSpotElement(id) {
+  const el = document.querySelector(`#fl-canvas .fl-spot[data-id="${id}"]`);
+  const s = flSpots[id];
+  if (!el || !s) return;
+  el.style.left = s.x+'px'; el.style.top = s.y+'px';
+  el.style.width = s.w+'px'; el.style.height = s.h+'px';
+  el.style.transform = `rotate(${s.rot||0}deg)`;
+  el.textContent = s.label||'';
+}
+
+function flPopulateSidePanel() {
+  const panel = document.getElementById('fl-side-panel');
+  if (!panel) return;
+  const s = flSelected ? flSpots[flSelected] : null;
+  if (!s) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  document.getElementById('fl-f-label').value = s.label||'';
+  document.getElementById('fl-f-w').value = s.w;
+  document.getElementById('fl-f-h').value = s.h;
+  document.getElementById('fl-f-rot').value = s.rot||0;
+}
+
+window.flAddSpot = function() {
+  if (!perm('compoundEdit')) return;
+  const count = Object.keys(flSpots).length;
+  const newRef = push(ref(db, FL_PATH));
+  flSelected = newRef.key; // set before the write so the listener's render already shows it selected
+  set(newRef, {
+    x: 40 + (count % 10) * 70,
+    y: 40 + Math.floor(count / 10) * 70,
+    w: 90, h: 50, rot: 0,
+    label: String(count + 1),
+  });
+};
+
+window.flSelectSpot = function(id) {
+  if (!perm('compoundEdit')) return;
+  flSelected = id;
+  flApplySelectionClass();
+  flPopulateSidePanel();
+};
+
+window.flUpdateSelected = async function(field, value) {
+  if (!flSelected || !perm('compoundEdit')) return;
+  if ((field === 'w' || field === 'h') && (!value || value < 20)) return; // ignore blank/too-small while typing
+  if (field === 'rot') value = ((Math.round(value) % 360) + 360) % 360;
+  flSpots[flSelected] = { ...flSpots[flSelected], [field]: value };
+  flPatchSpotElement(flSelected);
+  await update(ref(db, `${FL_PATH}/${flSelected}`), { [field]: value });
+};
+
+window.flSetRotation = function(deg) {
+  if (!flSelected) return;
+  document.getElementById('fl-f-rot').value = deg;
+  flUpdateSelected('rot', deg);
+};
+
+window.flDuplicateSelected = async function() {
+  if (!flSelected || !perm('compoundEdit')) return;
+  const s = flSpots[flSelected];
+  if (!s) return;
+  const newRef = push(ref(db, FL_PATH));
+  flSelected = newRef.key;
+  await set(newRef, { ...s, x: s.x + 20, y: s.y + 20 });
+};
+
+window.flDeleteSelected = async function() {
+  if (!flSelected || !perm('compoundEdit')) return;
+  if (!confirm('Delete this spot?')) return;
+  const id = flSelected;
+  flSelected = null;
+  await remove(ref(db, `${FL_PATH}/${id}`));
+};
+
+// Drag-to-move - delegated so it keeps working across re-renders without
+// re-attaching a listener per spot. Click-drag only touches x/y; size and
+// rotation are set from the side panel once a spot is selected.
+(function flInitDrag() {
+  const outer = document.getElementById('fl-canvas-outer');
+  if (!outer) return;
+  outer.addEventListener('pointerdown', (e) => {
+    const spotEl = e.target.closest('.fl-spot');
+    if (!spotEl) {
+      if (e.target.id === 'fl-canvas' || e.target === outer) {
+        flSelected = null;
+        flApplySelectionClass();
+        flPopulateSidePanel();
+      }
+      return;
+    }
+    if (!perm('compoundEdit')) return;
+    const id = spotEl.dataset.id;
+    flSelectSpot(id);
+    const startSpot = flSpots[id];
+    if (!startSpot) return;
+    e.preventDefault();
+    const startX = e.clientX, startY = e.clientY;
+    let moved = false;
+    spotEl.setPointerCapture(e.pointerId);
+    const onMove = (ev) => {
+      const dx = (ev.clientX - startX) / flZoomLevel;
+      const dy = (ev.clientY - startY) / flZoomLevel;
+      if (Math.abs(dx) > 2 || Math.abs(dy) > 2) moved = true;
+      const nx = Math.max(0, startSpot.x + dx);
+      const ny = Math.max(0, startSpot.y + dy);
+      spotEl.style.left = nx+'px'; spotEl.style.top = ny+'px';
+      flSpots[id] = { ...flSpots[id], x: nx, y: ny };
+    };
+    const onUp = async () => {
+      spotEl.removeEventListener('pointermove', onMove);
+      if (moved) {
+        await update(ref(db, `${FL_PATH}/${id}`), { x: flSpots[id].x, y: flSpots[id].y });
+        flPopulateSidePanel();
+      }
+    };
+    spotEl.addEventListener('pointermove', onMove);
+    spotEl.addEventListener('pointerup', onUp, { once: true });
+  });
+})();
+
+function flApplyZoom() {
+  const el = document.getElementById('fl-canvas');
+  if (el) el.style.zoom = flZoomLevel;
+  const label = document.getElementById('fl-zoom-label');
+  if (label) label.textContent = Math.round(flZoomLevel * 100) + '%';
+}
+window.flZoomIn = function() {
+  flZoomLevel = Math.min(FL_ZOOM_MAX, +(flZoomLevel + FL_ZOOM_STEP).toFixed(2));
+  flApplyZoom();
+};
+window.flZoomOut = function() {
+  flZoomLevel = Math.max(FL_ZOOM_MIN, +(flZoomLevel - FL_ZOOM_STEP).toFixed(2));
+  flApplyZoom();
+};
+window.flZoomReset = function() {
+  flZoomLevel = 1;
+  flApplyZoom();
+};
+// ── /Freeform layout builder ───────────────────────────
 
 // ── /Compound Map ─────────────────────────────────────
 
