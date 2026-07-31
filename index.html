@@ -845,6 +845,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot-flag{font-size:8px;line-height:1;background:rgba(255,255,255,.85);border-radius:2px;padding:1px 2px}
 .cm-del-spot{position:absolute;top:1px;right:1px;width:13px;height:13px;border-radius:50%;background:#ef4444;color:#fff;font-size:9px;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:3;line-height:1}
 .cm-edit-active .cm-del-spot{display:flex}
+.cm-row-label.cm-row-del{cursor:pointer;flex-direction:column;gap:0;color:#dc2626;font-weight:800;border-radius:3px}
+.cm-row-label.cm-row-del:hover{background:#fef2f2}
+.cm-row-label.cm-row-del span{font-size:7px;color:#94a3b8;font-weight:700}
+.cm-col-del{display:flex;align-items:center;justify-content:center;gap:2px;cursor:pointer;font-size:8px;font-weight:700;color:#94a3b8;border-radius:3px}
+.cm-col-del:hover{background:#fef2f2}
+.cm-col-del .cm-col-del-x{color:#dc2626;font-weight:800}
 /* ── /Compound Map ── */
 
 /* ── Audit ── */
@@ -1205,7 +1211,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <button onclick="cmMarkSelected('clear')" style="padding:4px 10px;font-size:12px;font-weight:600;border:1px solid #86efac;border-radius:var(--radius-sm);background:#f0fdf4;color:#15803d;cursor:pointer">✓ Clear spots</button>
           <button onclick="cmClearSelection()" style="padding:4px 10px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text-muted);cursor:pointer">✕ Deselect</button>
         </div>
-        <span style="font-size:11px;color:#b45309;margin-left:auto">Click spots to select multiple · drag to move</span>
+        <span style="font-size:11px;color:#b45309;margin-left:auto">Click spots to select multiple · drag a selected spot to move the group · ✕ on a row/column number removes it</span>
       </div>
 
       <!-- Legend - collapsible so it's one tap to reclaim this space for the
@@ -6737,10 +6743,14 @@ function cmRenderMap() {
   mapEl.className = `cm-grid${cmEditMode?' cm-edit-active':''}`;
 
   let html = '';
-  // Column header numbers
+  // Column header numbers - in edit mode every column gets a ✕ to remove
+  // just that column (not only the last one), since a real lot's layout
+  // rarely changes only at the far edge.
   html += `<div style="display:flex;gap:0;margin-bottom:2px;padding-left:28px">`;
   for (let ci=0; ci<numCols; ci++) {
-    if ((ci+1) % 5 === 0) {
+    if (cmEditMode) {
+      html += `<div class="cm-col-del" style="width:68px;flex-shrink:0;margin:0 1.5px" onclick="cmRemoveColAt(${ci})" title="Remove column ${ci+1}"><span>${ci+1}</span><span class="cm-col-del-x">✕</span></div>`;
+    } else if ((ci+1) % 5 === 0) {
       html += `<div style="width:68px;text-align:center;font-size:8px;font-weight:700;color:#94a3b8;flex-shrink:0;margin:0 1.5px">${ci+1}</div>`;
     } else {
       html += `<div style="width:68px;flex-shrink:0;margin:0 1.5px"></div>`;
@@ -6750,7 +6760,9 @@ function cmRenderMap() {
 
   for (let ri=0; ri<numRows; ri++) {
     html += `<div class="cm-parking-row">`;
-    html += `<div class="cm-row-label">R${ri+1}</div>`;
+    html += cmEditMode
+      ? `<div class="cm-row-label cm-row-del" onclick="cmRemoveRowAt(${ri})" title="Remove row ${ri+1}">✕<span>R${ri+1}</span></div>`
+      : `<div class="cm-row-label">R${ri+1}</div>`;
     html += `<div class="cm-spots-wrap">`;
     for (let ci=0; ci<numCols; ci++) {
       const key = `R${ri}-C${ci}`;
@@ -6768,7 +6780,8 @@ function cmRenderMap() {
       } else if (!veh && cmEditMode) {
         const sel = cmSelected.has(key);
         html += `<div class="cm-spot empty${sel?' cm-selected':''}" data-cm-key="${key}"
-          onclick="cmSelectSpot(event,'${key}',${ri},${ci})">
+          onclick="cmSelectSpot(event,'${key}',${ri},${ci})"
+          onpointerdown="cmGroupPointerDown(event,'${key}')" oncontextmenu="return false">
           <div class="cm-spot-num">${ci+1}</div>
           ${sel?'<div style="font-size:10px;color:#f59e0b;font-weight:800">✓</div>':'<div style="font-size:14px;color:#cbd5e1;margin-top:2px">+</div>'}
         </div>`;
@@ -6783,7 +6796,7 @@ function cmRenderMap() {
           // Void - completely inert in normal mode, selectable/deletable in edit mode only
           html += `<div class="cm-spot void${cmEditMode&&cmSelected.has(key)?' cm-selected':''}" data-cm-key="${key}"
             style="cursor:${cmEditMode?'pointer':'default'}"
-            ${cmEditMode?`onclick="cmSelectSpot(event,'${key}',${ri},${ci})"`:''}>
+            ${cmEditMode?`onclick="cmSelectSpot(event,'${key}',${ri},${ci})" onpointerdown="cmGroupPointerDown(event,'${key}')" oncontextmenu="return false"`:''}>
             ${cmEditMode ? `<div class="cm-del-spot" style="display:flex" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
             ${cmEditMode&&cmSelected.has(key)?'<div style="font-size:10px;color:#f59e0b;font-weight:800;position:absolute;inset:0;display:flex;align-items:center;justify-content:center">✓</div>':''}
           </div>`;
@@ -6791,7 +6804,7 @@ function cmRenderMap() {
           // Blocked (drive lane, no parking, gatehouse etc) - inert in normal mode
           html += `<div class="cm-spot blocked${cmEditMode&&cmSelected.has(key)?' cm-selected':''}" data-cm-key="${key}"
             style="cursor:${cmEditMode?'pointer':'default'}"
-            ${cmEditMode?`onclick="cmSelectSpot(event,'${key}',${ri},${ci})"`:''}>
+            ${cmEditMode?`onclick="cmSelectSpot(event,'${key}',${ri},${ci})" onpointerdown="cmGroupPointerDown(event,'${key}')" oncontextmenu="return false"`:''}>
             ${cmEditMode ? `<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
             <div class="cm-spot-num" style="${cmEditMode?'':'opacity:.5'}">${cmEditMode?ci+1:''}</div>
             <div class="cm-spot-stock">${(veh.blockLabel||'').split(' ').slice(0,1).join(' ')}</div>
@@ -6811,6 +6824,7 @@ function cmRenderMap() {
           html += `<div class="cm-spot ${cls}${selCls}${heatCls}${lockCls}" data-cm-key="${key}"
             onclick="${cmEditMode?`cmSelectSpot(event,'${key}',${ri},${ci})`:`cmOpenQuickActions('${key}',${ri},${ci})`}"
             ${canDrag?`onpointerdown="cmSpotPointerDown(event,'${key}')" oncontextmenu="return false"`:''}
+            ${cmEditMode?`onpointerdown="cmGroupPointerDown(event,'${key}')" oncontextmenu="return false"`:''}
             ${extraStyle?`style="${extraStyle}"`:''}>
             ${cmEditMode ? `<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
             ${(veh.note || (Array.isArray(veh.notes) && veh.notes.length)) && !cmEditMode ? `<div class="cm-spot-note"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
@@ -7347,6 +7361,10 @@ window.cmOpenQR = function() {
 window.cmSelectSpot = function(e, key, ri, ci) {
   if (!perm('compoundEdit')) return;
   e.stopPropagation();
+  // The tail end of a completed group-drag gesture (see cmGroupPointerDown
+  // below) fires a click on the same spot right after - without this, that
+  // click would immediately toggle the very selection that was just dragged.
+  if (cmGroupSuppressClick) { cmGroupSuppressClick = false; return; }
   if (cmSelected.has(key)) {
     cmSelected.delete(key);
   } else {
@@ -7444,6 +7462,57 @@ window.cmRemoveCol = async function() {
   await update(ref(db, `compound_meta/${cmCurrentLot}`), { rows: cur.rows, cols: cur.cols - 1 });
   logCompoundChange(cmCurrentLot, 'resize', `Removed last column (now ${cur.cols - 1} cols)`);
 };
+
+// Removing an arbitrary row/column (not just the last one) means every row
+// below (or column to the right of) it has to shift over by one to close the
+// gap - done as a single atomic multi-path update so the grid never briefly
+// renders with a duplicated or missing row while listeners catch up.
+window.cmRemoveRowAt = async function(targetRow) {
+  if (!perm('compoundEdit')) return;
+  const cur = cmGridSize[cmCurrentLot] || { rows: 10, cols: 30 };
+  if (cur.rows <= 1) return;
+  const v = cmVehicles[cmCurrentLot] || {};
+  const occupied = [];
+  for (let ci = 0; ci < cur.cols; ci++) { if (v[`R${targetRow}-C${ci}`]?.stock) occupied.push(v[`R${targetRow}-C${ci}`].stock); }
+  if (occupied.length && !confirm(`Row ${targetRow+1} has ${occupied.length} spot${occupied.length!==1?'s':''} in use (${occupied.slice(0,5).join(', ')}${occupied.length>5?'…':''}).\n\nRemove this row anyway? Those spots will be cleared and every row below it shifts up.`)) return;
+  const updates = {};
+  for (let ri = targetRow; ri < cur.rows - 1; ri++) {
+    for (let ci = 0; ci < cur.cols; ci++) {
+      updates[`compound_v2/${cmCurrentLot}/R${ri}-C${ci}`] = v[`R${ri+1}-C${ci}`] || null;
+    }
+  }
+  for (let ci = 0; ci < cur.cols; ci++) updates[`compound_v2/${cmCurrentLot}/R${cur.rows-1}-C${ci}`] = null;
+  updates[`compound_meta/${cmCurrentLot}/rows`] = cur.rows - 1;
+  updates[`compound_meta/${cmCurrentLot}/cols`] = cur.cols;
+  await update(ref(db), updates);
+  logCompoundChange(cmCurrentLot, 'resize', `Removed row ${targetRow+1} (now ${cur.rows - 1} rows)`);
+  cmSelected.clear();
+  cmUpdateSelectionUI();
+};
+
+window.cmRemoveColAt = async function(targetCol) {
+  if (!perm('compoundEdit')) return;
+  const cur = cmGridSize[cmCurrentLot] || { rows: 10, cols: 30 };
+  if (cur.cols <= 1) return;
+  const v = cmVehicles[cmCurrentLot] || {};
+  const occupied = [];
+  for (let ri = 0; ri < cur.rows; ri++) { if (v[`R${ri}-C${targetCol}`]?.stock) occupied.push(v[`R${ri}-C${targetCol}`].stock); }
+  if (occupied.length && !confirm(`Column ${targetCol+1} has ${occupied.length} spot${occupied.length!==1?'s':''} in use (${occupied.slice(0,5).join(', ')}${occupied.length>5?'…':''}).\n\nRemove this column anyway? Those spots will be cleared and every column to the right shifts left.`)) return;
+  const updates = {};
+  for (let ci = targetCol; ci < cur.cols - 1; ci++) {
+    for (let ri = 0; ri < cur.rows; ri++) {
+      updates[`compound_v2/${cmCurrentLot}/R${ri}-C${ci}`] = v[`R${ri}-C${ci+1}`] || null;
+    }
+  }
+  for (let ri = 0; ri < cur.rows; ri++) updates[`compound_v2/${cmCurrentLot}/R${ri}-C${cur.cols-1}`] = null;
+  updates[`compound_meta/${cmCurrentLot}/rows`] = cur.rows;
+  updates[`compound_meta/${cmCurrentLot}/cols`] = cur.cols - 1;
+  await update(ref(db), updates);
+  logCompoundChange(cmCurrentLot, 'resize', `Removed column ${targetCol+1} (now ${cur.cols - 1} cols)`);
+  cmSelected.clear();
+  cmUpdateSelectionUI();
+};
+
 window.cmHandleSearch = window.cmSearch;
 window.cmAddSpot = ()=>{};
 window.cmDeleteSpot = ()=>{};
@@ -7575,6 +7644,99 @@ async function cmPointerUp(e) {
     ? `Swapped ${srcData.stock} (${srcKey}) with ${destVeh.stock} (${destKey})`
     : `Moved ${srcData.stock} from ${srcKey} to ${destKey}`;
   logCompoundChange(cmCurrentLot, 'drag', desc);
+}
+
+// ── Group drag (edit mode) - drag any already-selected spot to move every
+// selected spot together, offset by the same row/col delta. Unlike the
+// single-vehicle hold-to-drag above, this only arms on movement (no 3s hold)
+// since selecting the cells first is already a deliberate, separate step.
+let cmGroupDragKey = null;
+let cmGroupDragStartX = 0, cmGroupDragStartY = 0;
+let cmGroupDragMoved = false;
+let cmGroupDragOverEl = null;
+let cmGroupSuppressClick = false;
+
+window.cmGroupPointerDown = function(e, key) {
+  if (!cmEditMode || !perm('compoundEdit') || !cmSelected.has(key)) return;
+  cmGroupDragKey = key;
+  cmGroupDragStartX = e.clientX;
+  cmGroupDragStartY = e.clientY;
+  cmGroupDragMoved = false;
+  document.addEventListener('pointermove', cmGroupPointerMove);
+  document.addEventListener('pointerup', cmGroupPointerUp, { once: true });
+  document.addEventListener('pointercancel', cmGroupPointerCancel, { once: true });
+};
+
+function cmGroupPointerMove(e) {
+  if (!cmGroupDragKey) return;
+  if (!cmGroupDragMoved) {
+    const dx = e.clientX - cmGroupDragStartX, dy = e.clientY - cmGroupDragStartY;
+    if (Math.sqrt(dx*dx + dy*dy) < CM_MOVE_CANCEL_PX) return;
+    cmGroupDragMoved = true;
+    document.querySelectorAll('.cm-spot.cm-selected').forEach(el => el.classList.add('cm-armed'));
+  }
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const spotEl = el ? el.closest('.cm-spot') : null;
+  if (cmGroupDragOverEl && cmGroupDragOverEl !== spotEl) cmGroupDragOverEl.classList.remove('cm-drag-over');
+  if (spotEl) { spotEl.classList.add('cm-drag-over'); cmGroupDragOverEl = spotEl; }
+  else cmGroupDragOverEl = null;
+}
+
+function cmGroupPointerCancel() {
+  document.removeEventListener('pointermove', cmGroupPointerMove);
+  document.querySelectorAll('.cm-spot.cm-armed').forEach(el => el.classList.remove('cm-armed'));
+  if (cmGroupDragOverEl) cmGroupDragOverEl.classList.remove('cm-drag-over');
+  cmGroupDragKey = null; cmGroupDragOverEl = null; cmGroupDragMoved = false;
+}
+
+async function cmGroupPointerUp() {
+  document.removeEventListener('pointermove', cmGroupPointerMove);
+  document.removeEventListener('pointercancel', cmGroupPointerCancel);
+  document.querySelectorAll('.cm-spot.cm-armed').forEach(el => el.classList.remove('cm-armed'));
+  if (cmGroupDragOverEl) cmGroupDragOverEl.classList.remove('cm-drag-over');
+
+  const anchorKey = cmGroupDragKey;
+  const destKey = cmGroupDragOverEl ? cmGroupDragOverEl.dataset.cmKey : null;
+  const moved = cmGroupDragMoved;
+  cmGroupDragKey = null; cmGroupDragOverEl = null; cmGroupDragMoved = false;
+  if (!moved || !destKey || destKey === anchorKey) return; // a plain tap - let the click toggle selection as usual
+
+  // The click event this same gesture is about to fire on the (now stale)
+  // anchor element must not also toggle its selection - see cmSelectSpot.
+  cmGroupSuppressClick = true;
+  setTimeout(() => { cmGroupSuppressClick = false; }, 0);
+
+  const [, arStr, acStr] = anchorKey.match(/R(\d+)-C(\d+)/);
+  const [, drStr, dcStr] = destKey.match(/R(\d+)-C(\d+)/);
+  const deltaR = Number(drStr) - Number(arStr);
+  const deltaC = Number(dcStr) - Number(acStr);
+
+  const cur = cmGridSize[cmCurrentLot] || { rows: 10, cols: 30 };
+  const movingKeys = [...cmSelected];
+  const destKeys = movingKeys.map(key => {
+    const [, rStr, cStr] = key.match(/R(\d+)-C(\d+)/);
+    const nr = Number(rStr) + deltaR, nc = Number(cStr) + deltaC;
+    return { nr, nc, key: `R${nr}-C${nc}` };
+  });
+  if (destKeys.some(d => d.nr < 0 || d.nr >= cur.rows || d.nc < 0 || d.nc >= cur.cols)) {
+    alert("Can't move there - part of the group would land outside the grid.");
+    return;
+  }
+
+  const v = cmVehicles[cmCurrentLot] || {};
+  const movingSet = new Set(movingKeys);
+  const overwritten = destKeys.map(d => d.key).filter(k => !movingSet.has(k) && v[k]);
+  if (overwritten.length && !confirm(`This will overwrite ${overwritten.length} occupied spot${overwritten.length!==1?'s':''} outside the selection. Continue?`)) return;
+
+  const updates = {};
+  movingKeys.forEach(key => { updates[`compound_v2/${cmCurrentLot}/${key}`] = null; });
+  movingKeys.forEach((key, i) => { updates[`compound_v2/${cmCurrentLot}/${destKeys[i].key}`] = v[key] || null; });
+  await update(ref(db), updates);
+  logCompoundChange(cmCurrentLot, 'move-group', `Moved ${movingKeys.length} spot${movingKeys.length!==1?'s':''} as a group (${deltaR>=0?'+':''}${deltaR} row${Math.abs(deltaR)!==1?'s':''}, ${deltaC>=0?'+':''}${deltaC} col${Math.abs(deltaC)!==1?'s':''})`);
+
+  cmSelected = new Set(destKeys.map(d => d.key));
+  cmUpdateSelectionUI();
+  cmRenderMap();
 }
 
 // Fix cmStartListeners - always store data and render regardless of active tab
