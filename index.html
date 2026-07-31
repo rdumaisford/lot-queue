@@ -852,10 +852,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-col-del .cm-col-del-x{color:#dc2626;font-weight:800}
 
 /* ── Freeform layout builder (323 Bayview NEW) ── */
-#fl-canvas{position:relative;width:1800px;height:1100px;background-image:radial-gradient(circle,#cbd5e1 1px,transparent 1px);background-size:24px 24px;transform-origin:top left}
-.fl-spot{position:absolute;box-sizing:border-box;background:#eff6ff;border:2px solid #1d4ed8;border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;font-size:11px;font-weight:700;color:#1d4ed8;overflow:hidden}
-.fl-spot:active{cursor:grabbing}
-.fl-spot.fl-selected{border-color:#f59e0b;border-width:3px;box-shadow:0 0 0 2px #fef3c7}
+/* Spots reuse .cm-spot (type colours, flagged/dupe/appt/etc overlays) with
+   position/size/rotation set inline per spot, in real feet (see FL_PX_PER_FT
+   in JS) - actual width/height/background-size are set from JS since they
+   depend on the property's real dimensions, not fixed here. Dot grid is one
+   dot per 5ft for visual alignment. */
+#fl-canvas{position:relative;background-image:radial-gradient(circle,#cbd5e1 1px,transparent 1px);transform-origin:top left}
+/* Buildings/fences/other fixtures - never a vehicle colour, always this
+   dashed architectural look so they read as "not a parking spot" at a glance. */
+.cm-spot.fl-object{background:#e2e8f0;border-color:#94a3b8;border-style:dashed;color:#475569}
 /* ── /Freeform layout builder ── */
 /* ── /Compound Map ── */
 
@@ -1172,6 +1177,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <span id="cm-zoom-label" onclick="cmZoomReset()" title="Reset zoom" style="padding:6px 8px;font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;min-width:38px;text-align:center">100%</span>
           <button onclick="cmZoomIn()" title="Zoom in" style="padding:6px 12px;font-size:15px;font-weight:700;border:none;border-left:1px solid var(--border);cursor:pointer;background:var(--surface);color:var(--text)">+</button>
         </div>
+        <!-- Freeform (323 Bayview NEW) has its own canvas, so it needs its own
+             zoom control targeting #fl-canvas instead of #cm-map. Shown in
+             both Normal and Edit mode - useful either way. -->
+        <div id="cm-fl-zoom" style="display:none;align-items:center;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+          <button onclick="flZoomOut()" title="Zoom out" style="padding:6px 12px;font-size:15px;font-weight:700;border:none;border-right:1px solid var(--border);cursor:pointer;background:var(--surface);color:var(--text)">−</button>
+          <span id="fl-zoom-label" onclick="flZoomReset()" title="Reset zoom" style="padding:6px 8px;font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;min-width:38px;text-align:center">100%</span>
+          <button onclick="flZoomIn()" title="Zoom in" style="padding:6px 12px;font-size:15px;font-weight:700;border:none;border-left:1px solid var(--border);cursor:pointer;background:var(--surface);color:var(--text)">+</button>
+        </div>
         <!-- Stats -->
         <div id="cm-stats" style="display:flex;gap:14px;font-size:13px;flex-wrap:wrap"></div>
         <!-- Search - searches every compound, not just this one; a match
@@ -1184,19 +1197,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <button id="cm-heatmap-btn" onclick="cmToggleHeatmap()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer">🌡️ Age Heatmap</button>
         <button id="cm-edit-btn" onclick="cmToggleEdit()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid #fcd34d;border-radius:var(--radius-sm);background:#fef9ec;color:#b45309;cursor:pointer;display:none">✏️ Edit</button>
         <button id="cm-qr-btn" onclick="cmOpenQR()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer">🖨 QR</button>
-        <!-- Freeform layout builder toolbar - shown only for the 323 Bayview
-             (NEW) lot, which has no rows/cols/heatmap/QR/search since there
-             are no vehicles on it yet, just the physical layout being built. -->
-        <div id="cm-freeform-toolbar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap">
-          <button id="fl-add-btn" onclick="flAddSpot()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid #86efac;border-radius:var(--radius-sm);background:#f0fdf4;color:#15803d;cursor:pointer">+ Add Spot</button>
-          <span id="fl-spot-count" style="font-size:13px;color:var(--text-muted);font-weight:600"></span>
-          <div style="display:flex;align-items:center;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
-            <button onclick="flZoomOut()" title="Zoom out" style="padding:6px 12px;font-size:15px;font-weight:700;border:none;border-right:1px solid var(--border);cursor:pointer;background:var(--surface);color:var(--text)">−</button>
-            <span id="fl-zoom-label" onclick="flZoomReset()" title="Reset zoom" style="padding:6px 8px;font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;min-width:38px;text-align:center">100%</span>
-            <button onclick="flZoomIn()" title="Zoom in" style="padding:6px 12px;font-size:15px;font-weight:700;border:none;border-left:1px solid var(--border);cursor:pointer;background:var(--surface);color:var(--text)">+</button>
-          </div>
-          <span style="font-size:11px;color:var(--text-faint)">Drag a spot to move it · click a spot to edit its size/rotation/label · blank space isn't a spot - nothing can be assigned there</span>
-        </div>
       </div>
 
       <!-- Age heatmap legend - shown only while heatmap mode is active -->
@@ -1232,6 +1232,18 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <button onclick="cmClearSelection()" style="padding:4px 10px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text-muted);cursor:pointer">✕ Deselect</button>
         </div>
         <span style="font-size:11px;color:#b45309;margin-left:auto">Click spots to select multiple · drag a selected spot to move the group · ✕ on a row/column number removes it</span>
+      </div>
+
+      <!-- Freeform (323 Bayview NEW) edit bar - physical layout only (add/
+           move/resize/rotate/delete the spot itself). Assigning a vehicle to
+           an existing spot always happens in Normal mode instead, same as
+           the grid, so clearing a car here never risks deleting the space. -->
+      <div id="fl-edit-bar" style="display:none;align-items:center;gap:8px;padding:8px 16px;background:#fef9ec;border-bottom:1px solid #fcd34d;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:700;color:#b45309">✏️ Edit Mode - Layout</span>
+        <button id="fl-add-btn" onclick="flAddSpot()" style="padding:4px 10px;font-size:12px;font-weight:600;border:1px solid #86efac;border-radius:var(--radius-sm);background:#f0fdf4;color:#15803d;cursor:pointer">+ Add Spot</button>
+        <button id="fl-addobj-btn" onclick="flAddObject()" style="padding:4px 10px;font-size:12px;font-weight:600;border:1px solid #94a3b8;border-radius:var(--radius-sm);background:#e2e8f0;color:#475569;cursor:pointer">+ Add Object</button>
+        <span id="fl-spot-count" style="font-size:12px;color:#b45309;font-weight:700"></span>
+        <span style="font-size:11px;color:#b45309;margin-left:auto">Drag a spot to move it · click a spot to edit size/rotation/label · ✕ deletes the spot · blank space isn't a spot, nothing can be assigned there</span>
       </div>
 
       <!-- Legend - collapsible so it's one tap to reclaim this space for the
@@ -1282,12 +1294,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
             <div class="field">
-              <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)">Width</label>
-              <input id="fl-f-w" type="number" min="20" max="1000" oninput="flUpdateSelected('w', +this.value)" style="width:100%;margin-top:4px;padding:8px 10px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/>
+              <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)">Width (ft)</label>
+              <input id="fl-f-w" type="number" min="1" max="500" step="0.5" oninput="flUpdateSelected('w', +this.value)" style="width:100%;margin-top:4px;padding:8px 10px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/>
             </div>
             <div class="field">
-              <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)">Height</label>
-              <input id="fl-f-h" type="number" min="20" max="1000" oninput="flUpdateSelected('h', +this.value)" style="width:100%;margin-top:4px;padding:8px 10px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/>
+              <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)">Height (ft)</label>
+              <input id="fl-f-h" type="number" min="1" max="500" step="0.5" oninput="flUpdateSelected('h', +this.value)" style="width:100%;margin-top:4px;padding:8px 10px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/>
             </div>
           </div>
           <div class="field" style="margin-bottom:8px">
@@ -1300,8 +1312,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
             <button onclick="flSetRotation(45)" style="flex:1;padding:6px 4px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer">◤ 45°</button>
             <button onclick="flSetRotation(315)" style="flex:1;padding:6px 4px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer">◥ -45°</button>
           </div>
-          <button onclick="flDuplicateSelected()" style="width:100%;padding:9px;margin-bottom:8px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer">⧉ Duplicate spot</button>
-          <button onclick="flDeleteSelected()" style="width:100%;padding:9px;font-size:13px;font-weight:700;border:1px solid #fca5a5;border-radius:var(--radius-sm);background:#fef2f2;color:#dc2626;cursor:pointer">🗑 Delete spot</button>
+          <button onclick="flDuplicateSelected()" style="width:100%;padding:9px;margin-bottom:8px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer">⧉ Duplicate</button>
+          <button onclick="flDeleteSelected()" style="width:100%;padding:9px;font-size:13px;font-weight:700;border:1px solid #fca5a5;border-radius:var(--radius-sm);background:#fef2f2;color:#dc2626;cursor:pointer">🗑 Delete</button>
         </div>
       </div>
     </div>
@@ -2221,12 +2233,11 @@ function applyPermissions() {
   const grAddBtn = document.getElementById('btn-add-getready');
   if (grAddBtn) grAddBtn.style.display = perm('getReadyEdit') ? 'flex' : 'none';
   const cmEditBtn = document.getElementById('cm-edit-btn');
-  // The freeform 323 Bayview (NEW) lot has no separate Edit toggle - it's
-  // shown/hidden by cmSwitchLot instead, so don't let a permission refresh
-  // (e.g. a live role change) pop it back on top of that lot's own toolbar.
-  if (cmEditBtn) cmEditBtn.style.display = (perm('compoundEdit') && cmCurrentLot !== 'bayview323new') ? '' : 'none';
+  if (cmEditBtn) cmEditBtn.style.display = cmCanEditLayout() ? '' : 'none';
   const flAddBtn = document.getElementById('fl-add-btn');
-  if (flAddBtn) flAddBtn.style.display = perm('compoundEdit') ? '' : 'none';
+  if (flAddBtn) flAddBtn.style.display = cmCanEditLayout() ? '' : 'none';
+  const flAddObjBtn = document.getElementById('fl-addobj-btn');
+  if (flAddObjBtn) flAddObjBtn.style.display = cmCanEditLayout() ? '' : 'none';
   auditShowTab();
   const clearHistBtn = document.getElementById('btn-clear-history');
   if (clearHistBtn) clearHistBtn.style.display = currentUser?.role === 'management' ? '' : 'none';
@@ -6703,10 +6714,11 @@ let cmGridSize = {};  // { lotId: { rows, cols } } - loaded from Firebase
 let cmVehicles = {}; // { lotId: { 'R0-C0': {stock,desc,status}, ... } }
 
 // Freeform layout builder (323 Bayview NEW) - spots are placed anywhere on an
-// open canvas instead of a fixed rows×cols grid. { spotId: {x,y,w,h,rot,label} }.
-// No vehicle data here yet - layout only.
-let flSpots = {};
-let flSelected = null;
+// open canvas instead of a fixed rows×cols grid. Vehicle data lives in the
+// same cmVehicles['bayview323new'] used everywhere else in Compound Map;
+// each record just carries extra x/y/w/h/rot/label fields for its physical
+// shape alongside the usual stock/year/trim/type/colour/status/etc.
+let flSelected = null; // spot id currently selected for layout editing (Edit mode only)
 let flZoomLevel = 1;
 const FL_ZOOM_MIN = 0.4, FL_ZOOM_MAX = 1.5, FL_ZOOM_STEP = 0.15;
 
@@ -6751,6 +6763,14 @@ function cmIsFlagged(veh) {
   return !!(veh && (veh.flagged || veh.status === 'flag' || (veh.note && String(veh.note).trim())));
 }
 
+// Grid spots are always "Spot R#-C#"; freeform spots (323 Bayview NEW) have
+// no row/col - use whatever label the spot was given in the layout builder.
+function cmSpotTitle(key, veh) {
+  const m = key.match(/^R(\d+)-C(\d+)$/);
+  if (m) return `Spot R${parseInt(m[1],10)+1}-${parseInt(m[2],10)+1}`;
+  return `Spot ${veh?.label || key}`;
+}
+
 function cmRenderStats() {
   const el = document.getElementById('cm-stats');
   if (!el) return;
@@ -6766,19 +6786,9 @@ function cmRenderStats() {
     <span style="display:flex;align-items:center;gap:4px"><b style="color:#15803d">${empty}</b><span style="color:var(--text-muted)">empty</span></span>`;
 }
 
-function cmRenderMap() {
-  // Never rebuild the map mid-gesture - the periodic re-render (for live
-  // appointment/get-ready timers) would replace the exact DOM node someone is
-  // currently holding down, silently killing the hold-to-drag interaction.
-  // We catch up once the gesture finishes (see cmHoldPointerUp/cmPointerUp).
-  if (cmGestureMode) return;
-  const mapEl = document.getElementById('cm-map');
-  if (!mapEl) return;
-  const v = cmVehicles[cmCurrentLot] || {};
-  const seed = cmCurrentLot === 'bayview700' ? CM_BAYVIEW700_SEED : null;
-  const numCols = cmGridSize[cmCurrentLot]?.cols || (cmCurrentLot === 'bayview700' ? 52 : 30);
-  const numRows = cmGridSize[cmCurrentLot]?.rows || (cmCurrentLot === 'bayview700' ? 13 : 10);
-
+// Shared by both renderers (grid and freeform) - stock# lookups for
+// appointment/get-ready/test-drive overlays and cross-lot duplicate detection.
+function cmBuildOverlayMaps() {
   // Build stock# → appointment lookup from live Vehicle Appointments
   const apptMap = {};
   Object.values(appointments||{}).forEach(a => {
@@ -6835,6 +6845,23 @@ function cmRenderMap() {
     });
   });
 
+  return { apptMap, grMap, tdMap, stockSpotCounts };
+}
+
+function cmRenderMap() {
+  // Never rebuild the map mid-gesture - the periodic re-render (for live
+  // appointment/get-ready timers) would replace the exact DOM node someone is
+  // currently holding down, silently killing the hold-to-drag interaction.
+  // We catch up once the gesture finishes (see cmHoldPointerUp/cmPointerUp).
+  if (cmGestureMode) return;
+  const mapEl = document.getElementById('cm-map');
+  if (!mapEl) return;
+  const v = cmVehicles[cmCurrentLot] || {};
+  const seed = cmCurrentLot === 'bayview700' ? CM_BAYVIEW700_SEED : null;
+  const numCols = cmGridSize[cmCurrentLot]?.cols || (cmCurrentLot === 'bayview700' ? 52 : 30);
+  const numRows = cmGridSize[cmCurrentLot]?.rows || (cmCurrentLot === 'bayview700' ? 13 : 10);
+
+  const { apptMap, grMap, tdMap, stockSpotCounts } = cmBuildOverlayMaps();
   const ageMap = cmHeatmapMode ? cmBuildAgeMap() : null;
 
   mapEl.className = `cm-grid${cmEditMode?' cm-edit-active':''}`;
@@ -6953,41 +6980,53 @@ window.cmSwitchLot = function(id) {
   cmSelected.clear();
   cmSearchQuery = '';
   flSelected = null;
-  const editBar = document.getElementById('cm-edit-bar');
-  if (editBar) editBar.style.display = 'none';
+  document.getElementById('cm-edit-bar').style.display = 'none';
+  document.getElementById('fl-edit-bar').style.display = 'none';
+  document.getElementById('fl-side-panel').style.display = 'none';
   cmUpdateEditBtn();
   document.getElementById('cm-search').value = '';
 
-  // The freeform layout builder (323 Bayview NEW) is a different kind of
-  // screen entirely - no rows/cols/heatmap/QR/search, since there's no
-  // vehicle data to search or print QR codes for yet. Swap the toolbar and
-  // map area for its own instead of trying to force it into the grid UI.
+  // 323 Bayview (NEW) is the freeform layout builder - same vehicle
+  // assignment, autofill, heatmap and search as the grid lots (all of that
+  // is shared, keyed off cmCurrentLot generically), just a different map
+  // area (an open canvas instead of a rows×cols grid) and no QR codes yet.
   const isFreeform = id === 'bayview323new';
   document.getElementById('cm-grid-zoom').style.display = isFreeform ? 'none' : '';
+  document.getElementById('cm-fl-zoom').style.display = isFreeform ? 'flex' : 'none';
   document.getElementById('cm-stats').style.display = isFreeform ? 'none' : '';
-  document.getElementById('cm-grid-search-wrap').style.display = isFreeform ? 'none' : '';
-  document.getElementById('cm-heatmap-btn').style.display = isFreeform ? 'none' : '';
   document.getElementById('cm-qr-btn').style.display = isFreeform ? 'none' : '';
-  document.getElementById('cm-edit-btn').style.display = isFreeform ? 'none' : (perm('compoundEdit') ? '' : 'none');
-  document.getElementById('cm-freeform-toolbar').style.display = isFreeform ? 'flex' : 'none';
-  document.getElementById('cm-legend-details').style.display = isFreeform ? 'none' : '';
+  document.getElementById('cm-edit-btn').style.display = cmCanEditLayout() ? '' : 'none';
   document.getElementById('cm-map-wrap').style.display = isFreeform ? 'none' : '';
   document.getElementById('cm-freeform-wrap').style.display = isFreeform ? 'flex' : 'none';
-  document.getElementById('fl-side-panel').style.display = 'none';
-  document.getElementById('fl-add-btn').style.display = perm('compoundEdit') ? '' : 'none';
 
   cmRender();
   if (isFreeform) flRender();
 };
 
+// Layout editing (rows/cols on the grids; adding/moving/resizing/deleting
+// spots or objects on the freeform 323 Bayview (NEW) lot) needs compoundEdit
+// as usual - but reshaping the freeform lot's physical map is a bigger call
+// than day-to-day vehicle assignment, so that one additionally requires the
+// management role. The two grid lots keep their existing compoundEdit-based
+// access (lot, merchandiser, management).
+function cmCanEditLayout() {
+  if (!perm('compoundEdit')) return false;
+  if (cmCurrentLot === 'bayview323new') return currentUser?.role === 'management';
+  return true;
+}
+
 window.cmToggleEdit = function() {
-  if (!perm('compoundEdit')) return;
+  if (!cmCanEditLayout()) return;
   cmEditMode = !cmEditMode;
   cmSelected.clear();
+  flSelected = null;
   cmUpdateEditBtn();
-  const editBar = document.getElementById('cm-edit-bar');
-  if (editBar) editBar.style.display = cmEditMode ? 'flex' : 'none';
-  cmRender();
+  const isFreeform = cmCurrentLot === 'bayview323new';
+  document.getElementById('cm-edit-bar').style.display = (cmEditMode && !isFreeform) ? 'flex' : 'none';
+  document.getElementById('fl-edit-bar').style.display = (cmEditMode && isFreeform) ? 'flex' : 'none';
+  document.getElementById('fl-side-panel').style.display = 'none';
+  cmRenderStats();
+  if (isFreeform) flRender(); else cmRenderMap();
 };
 
 // ── Age Heatmap - colours each spot by how long that stock # has been on the
@@ -7003,7 +7042,7 @@ window.cmToggleHeatmap = function() {
     btn.style.color = cmHeatmapMode ? '#991b1b' : 'var(--text)';
   }
   if (legend) legend.style.display = cmHeatmapMode ? 'flex' : 'none';
-  cmRenderMap();
+  if (cmCurrentLot === 'bayview323new') flRender(); else cmRenderMap();
 };
 
 function cmBuildAgeMap() {
@@ -7070,7 +7109,7 @@ window.cmOpenQuickActions = function(key, ri, ci) {
   cmQuickKey = key;
 
   document.getElementById('cm-quick-title').textContent = veh.stock;
-  document.getElementById('cm-quick-vehicle-desc').textContent = [veh.year, veh.type, veh.trim, veh.colour].filter(Boolean).join(' ') || `Spot R${ri+1}-${ci+1}`;
+  document.getElementById('cm-quick-vehicle-desc').textContent = [veh.year, veh.type, veh.trim, veh.colour].filter(Boolean).join(' ') || cmSpotTitle(key, veh);
 
   const stockUpperForDupe = (veh.stock||'').toUpperCase().trim();
   let dupeCount = 0;
@@ -7259,7 +7298,7 @@ window.cmSpotClick = function(key, ri, ci) {
   if (!perm('compoundEdit')) return; // view-only roles can already see stock # / info directly on the map
   cmActiveKey = key;
   const v = (cmVehicles[cmCurrentLot]||{})[key];
-  document.getElementById('cm-spot-title').textContent = `Spot R${ri+1}-${ci+1}`;
+  document.getElementById('cm-spot-title').textContent = cmSpotTitle(key, v);
   const clearBtn = document.getElementById('cm-clear-btn');
   const blockField = document.getElementById('cm-block-label-field');
   const stockField = document.getElementById('cm-f-stock').closest('.field');
@@ -7270,7 +7309,13 @@ window.cmSpotClick = function(key, ri, ci) {
   if (stockField) stockField.style.display = '';
   if (typeRow) typeRow.style.display = '';
 
-  if (v) {
+  // A freeform spot's record always exists (it carries the physical
+  // x/y/w/h/rot/label even when no car is assigned there yet), unlike a grid
+  // cell where "no record" is what means empty - so "has a vehicle in it"
+  // has to be judged by content (stock, or a blocked/void marker), not just
+  // by whether a record exists at all.
+  const hasContent = v && (v.stock || v.status === 'blocked' || v.status === 'void');
+  if (hasContent) {
     const isBlocked = v.status === 'blocked';
     const typeColour = [v.year, v.type, v.trim, v.colour].filter(Boolean).join(' · ');
     document.getElementById('cm-spot-current').innerHTML = isBlocked
@@ -7325,24 +7370,35 @@ window.cmSpotClick = function(key, ri, ci) {
   watchLock('compound', lockId, state => bindLockUI(document.getElementById('cm-lock-banner'), document.getElementById('cm-save-btn'), state));
 };
 
+// Freeform spots (323 Bayview NEW) carry their physical x/y/w/h/rot/label in
+// the same record as the vehicle fields - every save below uses set(), which
+// replaces the whole record, so those have to be explicitly copied forward
+// each time or assigning a car would silently delete the parking space's shape.
+function cmCarryLayoutFields(data, prevVeh) {
+  if (cmCurrentLot === 'bayview323new' && prevVeh) {
+    ['x','y','w','h','rot','label'].forEach(f => { if (prevVeh[f] !== undefined) data[f] = prevVeh[f]; });
+  }
+  return data;
+}
+
 window.cmSaveSpot = async function() {
   if (!perm('compoundEdit')) return;
   const key = cmActiveKey;
   const prevVeh = (cmVehicles[cmCurrentLot]||{})[key];
   const status = document.getElementById('cm-f-status').value;
   if (status === 'blocked') {
-    const data = {
+    const data = cmCarryLayoutFields({
       stock: document.getElementById('cm-f-block-label').value,
       blockLabel: document.getElementById('cm-f-block-label').value,
       status: 'blocked',
-    };
+    }, prevVeh);
     await set(ref(db, `compound_v2/${cmCurrentLot}/${key}`), data);
     logCompoundChange(cmCurrentLot, 'blocked', `Marked ${key} as ${data.blockLabel}${prevVeh?.stock?` (was ${prevVeh.stock})`:''}`);
     cmCloseSpot();
     return;
   }
   if (status === 'void') {
-    await set(ref(db, `compound_v2/${cmCurrentLot}/${key}`), { stock: '', status: 'void' });
+    await set(ref(db, `compound_v2/${cmCurrentLot}/${key}`), cmCarryLayoutFields({ stock: '', status: 'void' }, prevVeh));
     logCompoundChange(cmCurrentLot, 'void', `Marked ${key} as void/grey${prevVeh?.stock?` (was ${prevVeh.stock})`:''}`);
     cmCloseSpot();
     return;
@@ -7351,7 +7407,7 @@ window.cmSaveSpot = async function() {
   if (!stock) { alert('Enter a stock number.'); return; }
   const todayStr = new Date().toISOString().slice(0,10);
   const dateAddedInput = document.getElementById('cm-f-date-added').value;
-  const data = {
+  const data = cmCarryLayoutFields({
     stock,
     year:    document.getElementById('cm-f-year').value.trim(),
     trim:    document.getElementById('cm-f-trim').value.trim(),
@@ -7361,7 +7417,7 @@ window.cmSaveSpot = async function() {
     flagged: document.getElementById('cm-f-flagged').checked,
     note:    document.getElementById('cm-f-note').value.trim(),
     dateAdded: dateAddedInput || todayStr, // never leave this blank - heatmap needs it
-  };
+  }, prevVeh);
   // Carry over the quick-flag gas/wash markers and comment thread when it's the
   // same vehicle - a full edit shouldn't silently clear flags/notes someone
   // set from the map.
@@ -7392,7 +7448,19 @@ window.cmClearSpot = async function() {
 window.cmClearKey = async function(key) {
   if (!perm('compoundEdit')) return;
   const prevVeh = (cmVehicles[cmCurrentLot]||{})[key];
-  await remove(ref(db, `compound_v2/${cmCurrentLot}/${key}`));
+  if (cmCurrentLot === 'bayview323new') {
+    // A freeform spot's record IS the physical parking space (it carries
+    // x/y/w/h/rot/label) - clearing the vehicle must never delete that space.
+    // Deleting the space itself is a separate action, only available in Edit
+    // mode. Strip just the vehicle-related fields, nothing else.
+    await update(ref(db, `compound_v2/${cmCurrentLot}/${key}`), {
+      stock: null, year: null, trim: null, type: null, colour: null, status: null,
+      flagged: null, note: null, notes: null, dateAdded: null,
+      needsGas: null, needsWash: null, atDealership: null, blockLabel: null,
+    });
+  } else {
+    await remove(ref(db, `compound_v2/${cmCurrentLot}/${key}`));
+  }
   logCompoundChange(cmCurrentLot, 'clear', `Cleared ${key}${prevVeh?.stock?` (removed ${prevVeh.stock})`:''}`);
 };
 
@@ -7906,8 +7974,8 @@ function cmStartListeners() {
     cmVehicles['bayview323'] = snap.val() || {};
     if (cmCurrentLot === 'bayview323') cmRender();
   });
-  onValue(ref(db, 'compound_layout/bayview323new'), snap => {
-    flSpots = snap.val() || {};
+  onValue(ref(db, 'compound_v2/bayview323new'), snap => {
+    cmVehicles['bayview323new'] = snap.val() || {};
     if (cmCurrentLot === 'bayview323new') flRender();
   });
 }
@@ -7972,50 +8040,152 @@ window.cmZoomReset = function() {
 };
 
 // ── Freeform layout builder (323 Bayview NEW) ──────────
-// Spots live at 'compound_layout/bayview323new/{id}' as {x,y,w,h,rot,label},
-// positioned in the canvas's own unzoomed pixel space (see #fl-canvas CSS).
-// No vehicle/status fields yet - this only builds the physical layout.
-const FL_PATH = 'compound_layout/bayview323new';
+// Spots live at 'compound_v2/bayview323new/{id}' - the exact same collection
+// and vehicle fields (stock/year/trim/type/colour/status/flagged/note/
+// dateAdded/needsGas/needsWash/atDealership/notes) as the grid lots, just
+// with extra x/y/w/h/rot/label fields for the spot's physical shape. That's
+// what makes assignment, autofill, heatmap, search and duplicate detection
+// all work here automatically - they already key off cmVehicles[cmCurrentLot]
+// generically, not off the grid's row/col structure.
+//
+// Normal mode click → same assign modal / quick-actions as the grid (a car).
+// Edit mode click → select for layout editing - move/resize/rotate/delete
+// the physical spot itself. Keeping these separate means clearing a vehicle
+// never risks deleting the parking space (see cmClearKey), and reshaping the
+// lot never risks touching a vehicle assignment (see cmCarryLayoutFields).
+const FL_LOT = 'bayview323new';
 
-// Full rebuild - only for when the spot list itself changes (add/remove/load),
-// never during an active drag or a side-panel edit, both of which patch the
-// DOM directly instead so they don't fight with a render wiping out the very
-// element a drag is in the middle of moving.
+// Everything on this lot is stored in real-world FEET, not pixels - x/y/w/h
+// on a spot or object record are all feet. FL_PX_PER_FT is purely a display
+// scale for turning those into an on-screen size; the underlying data never
+// changes if that scale is later adjusted. Canvas size is a placeholder
+// until the actual property dimensions are set - update FL_LOT_WIDTH_FT/
+// FL_LOT_DEPTH_FT once known.
+const FL_PX_PER_FT = 8;
+const FL_LOT_WIDTH_FT = 400, FL_LOT_DEPTH_FT = 250;
+function flFtToPx(ft) { return (ft||0) * FL_PX_PER_FT; }
+
+function flApplyCanvasSize() {
+  const canvas = document.getElementById('fl-canvas');
+  if (!canvas) return;
+  canvas.style.width = flFtToPx(FL_LOT_WIDTH_FT) + 'px';
+  canvas.style.height = flFtToPx(FL_LOT_DEPTH_FT) + 'px';
+  const grid5ft = flFtToPx(5);
+  canvas.style.backgroundSize = `${grid5ft}px ${grid5ft}px`; // one dot per 5ft
+}
+
 function flRender() {
   const canvas = document.getElementById('fl-canvas');
   if (!canvas) return;
-  const ids = Object.keys(flSpots);
+  flApplyCanvasSize();
+  const v = cmVehicles[FL_LOT] || {};
+  const ids = Object.keys(v);
   const countEl = document.getElementById('fl-spot-count');
-  if (countEl) countEl.textContent = `${ids.length} spot${ids.length!==1?'s':''}`;
-  if (flSelected && !flSpots[flSelected]) flSelected = null;
-  canvas.innerHTML = ids.map(id => {
-    const s = flSpots[id];
-    return `<div class="fl-spot${id===flSelected?' fl-selected':''}" data-id="${id}"
-      style="left:${s.x}px;top:${s.y}px;width:${s.w}px;height:${s.h}px;transform:rotate(${s.rot||0}deg)">${esc(s.label||'')}</div>`;
-  }).join('');
+  if (countEl) countEl.textContent = `${ids.length} item${ids.length!==1?'s':''}`;
+  if (flSelected && !v[flSelected]) flSelected = null;
+
+  const { apptMap, grMap, tdMap, stockSpotCounts } = cmBuildOverlayMaps();
+  const ageMap = cmHeatmapMode ? cmBuildAgeMap() : null;
+
+  canvas.innerHTML = ids.map(id => flSpotHtml(id, v[id], { apptMap, grMap, tdMap, stockSpotCounts, ageMap })).join('');
+  cmApplySearchHighlight();
   flPopulateSidePanel();
 }
 
+function flSpotHtml(id, veh, maps) {
+  const posStyle = `position:absolute;left:${flFtToPx(veh.x)}px;top:${flFtToPx(veh.y)}px;width:${flFtToPx(veh.w)}px;height:${flFtToPx(veh.h)}px;transform:rotate(${veh.rot||0}deg);`;
+
+  if (veh.kind === 'object') {
+    // A building, fence, or other fixture - purely a visual landmark to
+    // match the map to the real property. Never assignable, no vehicle
+    // fields at all; only touched via layout editing like a spot's shape.
+    const selCls = (cmEditMode && flSelected === id) ? ' cm-selected' : '';
+    return `<div class="cm-spot fl-object${selCls}" data-cm-key="${id}"
+      style="${posStyle}${cmEditMode?'cursor:pointer;touch-action:none':'cursor:default'}" ${cmEditMode?'oncontextmenu="return false"':''}>
+      ${cmEditMode ? `<div class="cm-del-spot" style="display:flex" onclick="event.stopPropagation();flDeleteSpot('${id}')">✕</div>` : ''}
+      <div class="cm-spot-stock">${esc(veh.label||'')}</div>
+    </div>`;
+  }
+
+  if (cmEditMode) {
+    // Layout editing only - what vehicle (if any) is assigned isn't touched
+    // here, just shown for context so it's obvious what you're moving.
+    const selCls = flSelected === id ? ' cm-selected' : '';
+    const label = veh.stock || veh.label || '';
+    return `<div class="cm-spot ${cmTypeClass(veh.status)}${selCls}" data-cm-key="${id}"
+      style="${posStyle}cursor:pointer;touch-action:none" oncontextmenu="return false">
+      <div class="cm-del-spot" style="display:flex" onclick="event.stopPropagation();flDeleteSpot('${id}')">✕</div>
+      <div class="cm-spot-stock">${esc(label)}</div>
+    </div>`;
+  }
+
+  const isBlocked = veh.status === 'blocked';
+  const isVoid = veh.status === 'void';
+  if (!veh.stock && !isBlocked && !isVoid) {
+    // An empty physical spot - click to assign a car, same as an empty grid cell.
+    return `<div class="cm-spot empty" data-cm-key="${id}" style="${posStyle}" onclick="cmSpotClick('${id}',0,0)">
+      <div class="cm-spot-stock" style="opacity:.35;font-weight:600">${esc(veh.label||'')}</div>
+    </div>`;
+  }
+  if (isVoid) {
+    return `<div class="cm-spot void" data-cm-key="${id}" style="${posStyle}"></div>`;
+  }
+  if (isBlocked) {
+    return `<div class="cm-spot blocked" data-cm-key="${id}" style="${posStyle}">
+      <div class="cm-spot-stock">${esc((veh.blockLabel||'').split(' ').slice(0,1).join(' '))}</div>
+      <div class="cm-spot-desc" style="font-size:7px">${esc((veh.blockLabel||'').split(' ').slice(1).join(' '))}</div>
+    </div>`;
+  }
+
+  const { apptMap, grMap, tdMap, stockSpotCounts, ageMap } = maps;
+  const stockUpper = (veh.stock||'').toUpperCase().trim();
+  const appt = apptMap[stockUpper], gr = grMap[stockUpper], onTd = tdMap[stockUpper];
+  const isDupe = (stockSpotCounts[stockUpper]||0) > 1;
+  const isFlagged = cmIsFlagged(veh);
+  const cls = isDupe ? 'cm-duplicate' : onTd ? 'ontestdrive' : appt ? 'appointed' : gr ? 'getready' : cmTypeClass(veh.status);
+  const ageDays = ageMap ? ageMap[stockUpper] : null;
+  const heatOn = cmHeatmapMode && !isDupe;
+  const heatCls = heatOn ? ' cm-heatmap-active' : '';
+  const heatStyleVar = heatOn ? `--heat-color:${ageDays!=null ? cmAgeColor(ageDays) : '#cbd5e1'};` : '';
+  const lockInfo = activeLockFor('compound', `${FL_LOT}_${id}`);
+  const lockCls = lockInfo ? ' cm-locked-by-other' : '';
+  const stock = (veh.stock||'').substring(0,10);
+  const typeLine = [veh.year, veh.type, veh.trim, veh.colour].filter(Boolean).join(' ').substring(0,18);
+
+  return `<div class="cm-spot ${cls}${isFlagged?' cm-flagged':''}${heatCls}${lockCls}" data-cm-key="${id}"
+    style="${posStyle}${heatStyleVar}" onclick="cmOpenQuickActions('${id}',0,0)">
+    ${(veh.note || (Array.isArray(veh.notes) && veh.notes.length)) ? `<div class="cm-spot-note"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
+    ${(isFlagged || veh.needsGas || veh.needsWash || veh.atDealership) ? `<div class="cm-spot-flags">${isFlagged?'<span class="cm-spot-flag" title="Flagged" style="background:#fecaca;color:#7f1d1d">🚩</span>':''}${veh.needsGas?'<span class="cm-spot-flag" title="Needs gas">⛽</span>':''}${veh.needsWash?'<span class="cm-spot-flag" title="Needs wash">🧼</span>':''}${veh.atDealership?'<span class="cm-spot-flag" title="At dealership - needs to return to 323 Bayview" style="background:#fecaca">🏢</span>':''}</div>` : ''}
+    <div class="cm-spot-stock">${esc(stock)}</div>
+    <div class="cm-spot-desc">${lockInfo ? `🔒 ${esc(lockInfo.lockedBy)}` : heatOn ? (ageDays!=null ? `${ageDays}d on lot` : 'no arrival date') : esc(typeLine)}</div>
+    ${isDupe ? '<div class="cm-spot-dupe">⚠ DUPLICATE</div>' : ''}
+    ${!heatOn && onTd && !isDupe ? '<div class="cm-spot-td">🚗 Out - Test Drive</div>' : ''}
+    ${!heatOn && appt && !onTd && !isDupe ? `<div class="cm-spot-appt">${appt.label}</div>` : ''}
+    ${!heatOn && gr && !appt && !onTd && !isDupe ? `<div class="cm-spot-gr">${gr.label}</div>` : ''}
+  </div>`;
+}
+
 function flApplySelectionClass() {
-  document.querySelectorAll('#fl-canvas .fl-spot').forEach(el => {
-    el.classList.toggle('fl-selected', el.dataset.id === flSelected);
+  document.querySelectorAll('#fl-canvas .cm-spot').forEach(el => {
+    el.classList.toggle('cm-selected', el.dataset.cmKey === flSelected);
   });
 }
 
 function flPatchSpotElement(id) {
-  const el = document.querySelector(`#fl-canvas .fl-spot[data-id="${id}"]`);
-  const s = flSpots[id];
+  const el = document.querySelector(`#fl-canvas .cm-spot[data-cm-key="${id}"]`);
+  const s = (cmVehicles[FL_LOT]||{})[id];
   if (!el || !s) return;
-  el.style.left = s.x+'px'; el.style.top = s.y+'px';
-  el.style.width = s.w+'px'; el.style.height = s.h+'px';
+  el.style.left = flFtToPx(s.x)+'px'; el.style.top = flFtToPx(s.y)+'px';
+  el.style.width = flFtToPx(s.w)+'px'; el.style.height = flFtToPx(s.h)+'px';
   el.style.transform = `rotate(${s.rot||0}deg)`;
-  el.textContent = s.label||'';
+  const stockEl = el.querySelector('.cm-spot-stock');
+  if (stockEl) stockEl.textContent = s.stock || s.label || '';
 }
 
 function flPopulateSidePanel() {
   const panel = document.getElementById('fl-side-panel');
   if (!panel) return;
-  const s = flSelected ? flSpots[flSelected] : null;
+  const s = (cmEditMode && flSelected) ? (cmVehicles[FL_LOT]||{})[flSelected] : null;
   if (!s) { panel.style.display = 'none'; return; }
   panel.style.display = 'block';
   document.getElementById('fl-f-label').value = s.label||'';
@@ -8024,33 +8194,53 @@ function flPopulateSidePanel() {
   document.getElementById('fl-f-rot').value = s.rot||0;
 }
 
+// A standard parking spot here - 9ft × 18ft.
 window.flAddSpot = function() {
-  if (!perm('compoundEdit')) return;
-  const count = Object.keys(flSpots).length;
-  const newRef = push(ref(db, FL_PATH));
+  if (!cmCanEditLayout() || !cmEditMode) return;
+  const count = Object.values(cmVehicles[FL_LOT]||{}).filter(s=>s.kind!=='object').length;
+  const newRef = push(ref(db, `compound_v2/${FL_LOT}`));
   flSelected = newRef.key; // set before the write so the listener's render already shows it selected
   set(newRef, {
-    x: 40 + (count % 10) * 70,
-    y: 40 + Math.floor(count / 10) * 70,
-    w: 90, h: 50, rot: 0,
+    x: 5 + (count % 10) * 12,
+    y: 5 + Math.floor(count / 10) * 22,
+    w: 9, h: 18, rot: 0,
     label: String(count + 1),
   });
+  logCompoundChange(FL_LOT, 'resize', `Added spot ${count + 1}`);
+};
+
+// A building, fence, or other non-parking fixture - never assignable, just
+// there so the map matches the real property. Default size is a placeholder;
+// resize it to the real footprint from the side panel.
+window.flAddObject = function() {
+  if (!cmCanEditLayout() || !cmEditMode) return;
+  const count = Object.values(cmVehicles[FL_LOT]||{}).filter(s=>s.kind==='object').length;
+  const newRef = push(ref(db, `compound_v2/${FL_LOT}`));
+  flSelected = newRef.key;
+  set(newRef, {
+    kind: 'object',
+    x: 10 + count * 5,
+    y: 10 + count * 5,
+    w: 20, h: 20, rot: 0,
+    label: 'Building',
+  });
+  logCompoundChange(FL_LOT, 'resize', `Added object`);
 };
 
 window.flSelectSpot = function(id) {
-  if (!perm('compoundEdit')) return;
+  if (!cmCanEditLayout() || !cmEditMode) return;
   flSelected = id;
   flApplySelectionClass();
   flPopulateSidePanel();
 };
 
 window.flUpdateSelected = async function(field, value) {
-  if (!flSelected || !perm('compoundEdit')) return;
-  if ((field === 'w' || field === 'h') && (!value || value < 20)) return; // ignore blank/too-small while typing
+  if (!flSelected || !cmCanEditLayout() || !cmEditMode) return;
+  if ((field === 'w' || field === 'h') && (!value || value < 1)) return; // ignore blank/too-small while typing (feet)
   if (field === 'rot') value = ((Math.round(value) % 360) + 360) % 360;
-  flSpots[flSelected] = { ...flSpots[flSelected], [field]: value };
+  cmVehicles[FL_LOT][flSelected] = { ...cmVehicles[FL_LOT][flSelected], [field]: value };
   flPatchSpotElement(flSelected);
-  await update(ref(db, `${FL_PATH}/${flSelected}`), { [field]: value });
+  await update(ref(db, `compound_v2/${FL_LOT}/${flSelected}`), { [field]: value });
 };
 
 window.flSetRotation = function(deg) {
@@ -8059,61 +8249,84 @@ window.flSetRotation = function(deg) {
   flUpdateSelected('rot', deg);
 };
 
+// Duplicates the physical spot/object only (position/size/rotation/kind) -
+// never the vehicle in it, since the same car can't be parked in two places.
 window.flDuplicateSelected = async function() {
-  if (!flSelected || !perm('compoundEdit')) return;
-  const s = flSpots[flSelected];
+  if (!flSelected || !cmCanEditLayout() || !cmEditMode) return;
+  const s = (cmVehicles[FL_LOT]||{})[flSelected];
   if (!s) return;
-  const newRef = push(ref(db, FL_PATH));
+  const newRef = push(ref(db, `compound_v2/${FL_LOT}`));
   flSelected = newRef.key;
-  await set(newRef, { ...s, x: s.x + 20, y: s.y + 20 });
+  const dup = { x: s.x + 2, y: s.y + 2, w: s.w, h: s.h, rot: s.rot||0, label: s.label||'' };
+  if (s.kind) dup.kind = s.kind;
+  await set(newRef, dup);
+  logCompoundChange(FL_LOT, 'resize', `Duplicated ${s.kind==='object'?'object':'spot'} ${s.label||flSelected}`);
 };
 
-window.flDeleteSelected = async function() {
-  if (!flSelected || !perm('compoundEdit')) return;
-  if (!confirm('Delete this spot?')) return;
-  const id = flSelected;
-  flSelected = null;
-  await remove(ref(db, `${FL_PATH}/${id}`));
+window.flDeleteSpot = async function(id) {
+  if (!cmCanEditLayout() || !cmEditMode) return;
+  const s = (cmVehicles[FL_LOT]||{})[id];
+  const isObject = s?.kind === 'object';
+  const msg = s?.stock
+    ? `This spot has ${s.stock} assigned. Delete it anyway? The vehicle assignment will be lost too - there's no way to keep the car parked here after the spot itself is gone.`
+    : `Delete this ${isObject ? 'object' : 'spot'}?`;
+  if (!confirm(msg)) return;
+  if (flSelected === id) flSelected = null;
+  await remove(ref(db, `compound_v2/${FL_LOT}/${id}`));
+  logCompoundChange(FL_LOT, 'clear', `Deleted ${isObject?'object':'spot'} ${s?.label||id}${s?.stock?` (removed ${s.stock})`:''}`);
+};
+
+window.flDeleteSelected = function() {
+  if (!flSelected) return;
+  flDeleteSpot(flSelected);
 };
 
 // Drag-to-move - delegated so it keeps working across re-renders without
 // re-attaching a listener per spot. Click-drag only touches x/y; size and
-// rotation are set from the side panel once a spot is selected.
+// rotation are set from the side panel once a spot is selected. Edit mode
+// only - in Normal mode a spot's own onclick handles vehicle actions instead.
 (function flInitDrag() {
   const outer = document.getElementById('fl-canvas-outer');
   if (!outer) return;
   outer.addEventListener('pointerdown', (e) => {
-    const spotEl = e.target.closest('.fl-spot');
+    // Let the ✕ delete button's own click handler fire undisturbed - without
+    // this, this same pointerdown bubbles up from it, starts a drag/selection
+    // on the spot underneath, and setPointerCapture()/preventDefault() below
+    // would swallow the click the icon depends on before it ever happens.
+    if (e.target.closest('.cm-del-spot')) return;
+    const spotEl = e.target.closest('.cm-spot');
     if (!spotEl) {
-      if (e.target.id === 'fl-canvas' || e.target === outer) {
+      if (cmEditMode && (e.target.id === 'fl-canvas' || e.target === outer)) {
         flSelected = null;
         flApplySelectionClass();
         flPopulateSidePanel();
       }
       return;
     }
-    if (!perm('compoundEdit')) return;
-    const id = spotEl.dataset.id;
+    if (!cmEditMode || !cmCanEditLayout()) return;
+    const id = spotEl.dataset.cmKey;
     flSelectSpot(id);
-    const startSpot = flSpots[id];
+    const startSpot = (cmVehicles[FL_LOT]||{})[id];
     if (!startSpot) return;
     e.preventDefault();
     const startX = e.clientX, startY = e.clientY;
     let moved = false;
     spotEl.setPointerCapture(e.pointerId);
     const onMove = (ev) => {
-      const dx = (ev.clientX - startX) / flZoomLevel;
-      const dy = (ev.clientY - startY) / flZoomLevel;
-      if (Math.abs(dx) > 2 || Math.abs(dy) > 2) moved = true;
-      const nx = Math.max(0, startSpot.x + dx);
-      const ny = Math.max(0, startSpot.y + dy);
-      spotEl.style.left = nx+'px'; spotEl.style.top = ny+'px';
-      flSpots[id] = { ...flSpots[id], x: nx, y: ny };
+      // Pointer deltas are screen px; the data itself is feet, so divide out
+      // both the on-screen zoom and the feet→px display scale to get there.
+      const dxPx = (ev.clientX - startX) / flZoomLevel;
+      const dyPx = (ev.clientY - startY) / flZoomLevel;
+      if (Math.abs(dxPx) > 2 || Math.abs(dyPx) > 2) moved = true;
+      const nx = Math.max(0, Math.round((startSpot.x + dxPx / FL_PX_PER_FT) * 10) / 10);
+      const ny = Math.max(0, Math.round((startSpot.y + dyPx / FL_PX_PER_FT) * 10) / 10);
+      spotEl.style.left = flFtToPx(nx)+'px'; spotEl.style.top = flFtToPx(ny)+'px';
+      cmVehicles[FL_LOT][id] = { ...cmVehicles[FL_LOT][id], x: nx, y: ny };
     };
     const onUp = async () => {
       spotEl.removeEventListener('pointermove', onMove);
       if (moved) {
-        await update(ref(db, `${FL_PATH}/${id}`), { x: flSpots[id].x, y: flSpots[id].y });
+        await update(ref(db, `compound_v2/${FL_LOT}/${id}`), { x: cmVehicles[FL_LOT][id].x, y: cmVehicles[FL_LOT][id].y });
         flPopulateSidePanel();
       }
     };
