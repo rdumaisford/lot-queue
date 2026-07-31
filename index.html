@@ -822,6 +822,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot.cm-locked-by-other .cm-spot-desc{color:#1d4ed8!important;font-weight:700}
 @keyframes dupeBadgeBlink{0%,49%{opacity:1}50%,100%{opacity:.2}}
 .dupe-blink{animation:dupeBadgeBlink .8s steps(1) infinite}
+@keyframes grChargeOverdueBlink{0%,49%{background:#fffbeb}50%,100%{background:#fecaca}}
+.gr-charge-overdue{animation:grChargeOverdueBlink 1s steps(1) infinite}
 .cm-note-bubble{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:8px 12px}
 .cm-note-text{font-size:13px;color:var(--text);white-space:pre-wrap;word-break:break-word}
 .cm-note-meta{font-size:11px;color:var(--text-faint);margin-top:3px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -4050,13 +4052,18 @@ function renderTVGetReady() {
     const barColor = pct===100?'#16a34a':pct>60?'#f59e0b':'#1d4ed8';
 
     // Gas / Charge - charging gets its own "in progress" colour/label since
-    // it takes a while, unlike a quick gas fill-up.
+    // it takes a while, unlike a quick gas fill-up. Past 12 hours in
+    // progress, it blinks red - that's almost always someone forgetting to
+    // go unplug/finish it, and the TV board is exactly where that should
+    // catch someone's eye.
     const fuelStatus = grEffectiveFuelStatus(d);
+    const CHARGE_OVERDUE_MS = 12 * 60 * 60 * 1000;
+    const chargeOverdue = fuelStatus==='charge' && !d.gasFilled && d.chargeInProgress && d.chargeInProgressAt && (Date.now() - d.chargeInProgressAt > CHARGE_OVERDUE_MS);
     const gasColor = fuelStatus==='none' ? '#16a34a'
-      : fuelStatus==='charge' ? (d.gasFilled ? '#16a34a' : d.chargeInProgress ? '#b45309' : '#dc2626')
+      : fuelStatus==='charge' ? (d.gasFilled ? '#16a34a' : chargeOverdue ? '#dc2626' : d.chargeInProgress ? '#b45309' : '#dc2626')
       : (d.gasFilled ? '#16a34a' : '#dc2626');
     const gasLabel = fuelStatus==='none' ? '✓ Gas'
-      : fuelStatus==='charge' ? (d.gasFilled ? '✓ Charge' : d.chargeInProgress ? '🔋 Charging' : '🔌 Charge')
+      : fuelStatus==='charge' ? (d.gasFilled ? '✓ Charge' : chargeOverdue ? '⚠️ Charging 12h+' : d.chargeInProgress ? '🔋 Charging' : '🔌 Charge')
       : (d.gasFilled ? '✓ Gas' : '⛽ Gas');
 
     const delivLabel = d.deliveryDate
@@ -4082,7 +4089,7 @@ function renderTVGetReady() {
       ${descriptor?`<div style="font-size:14px;color:#64748b;margin-bottom:6px">${esc(descriptor)}</div>`:''}
       ${delivLabel?`<div style="font-size:14px;font-weight:700;color:#6d28d9;margin-bottom:6px">📅 ${delivLabel}</div>`:''}
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
-        <span style="font-size:13px;font-weight:700;color:${gasColor}">${gasLabel}</span>
+        <span class="${chargeOverdue?'gr-charge-overdue':''}" style="font-size:13px;font-weight:700;color:${gasColor};padding:${chargeOverdue?'2px 8px':'0'};border-radius:6px">${gasLabel}</span>
         <span style="font-size:13px;color:#94a3b8;margin-left:auto">${pct}%</span>
       </div>
       <div style="height:5px;background:#e2e8f0;border-radius:99px;margin-bottom:7px"><div style="height:100%;width:${pct}%;background:${barColor};border-radius:99px"></div></div>
@@ -5246,15 +5253,20 @@ function renderGRCard(d, perms, isDupe) {
     } else {
       // charge
       const stage = d.gasFilled ? 'done' : d.chargeInProgress ? 'inprogress' : 'notstarted';
+      // A charge sitting in-progress for 12+ hours almost always means
+      // someone forgot to go unplug/finish it - the blink is meant to be
+      // hard to miss on both the card and the TV board.
+      const CHARGE_OVERDUE_MS = 12 * 60 * 60 * 1000;
+      const chargeOverdue = stage === 'inprogress' && d.chargeInProgressAt && (Date.now() - d.chargeInProgressAt > CHARGE_OVERDUE_MS);
       const stageInfo = {
         notstarted: { label:'Needs Charging', detail:'Before delivery', color:'#5b21b6', bg:'#f5f3ff', action:'▶ Start Charging', onclick:`setGRChargeInProgress('${d.id}',true)` },
-        inprogress: { label:'Charging in Progress', detail:'Plugged in - check back soon', color:'#b45309', bg:'#fffbeb', action:'✓ Mark Complete', onclick:`toggleGRField('${d.id}','gasFilled',true)` },
+        inprogress: { label: chargeOverdue ? '⚠ Charging Over 12hrs - Go Check!' : 'Charging in Progress', detail:'Plugged in - check back soon', color:'#b45309', bg:'#fffbeb', action:'✓ Mark Complete', onclick:`toggleGRField('${d.id}','gasFilled',true)` },
         done:       { label:'Charging Completed', detail:`Charged and ready${doneWhoWhen}`, color:'', bg:'', action:'✓ Done', onclick:`toggleGRField('${d.id}','gasFilled',false)` },
       }[stage];
-      gasBanner = `<div class="gr-gas-banner ${stage==='done'?'no-gas-needed':''}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${stage==='done'?'':'background:'+stageInfo.bg}">
-          <span style="font-size:20px">${stage==='inprogress'?'🔋':'🔌'}</span>
+      gasBanner = `<div class="gr-gas-banner ${stage==='done'?'no-gas-needed':''} ${chargeOverdue?'gr-charge-overdue':''}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${stage==='done'?'':'background:'+stageInfo.bg}">
+          <span style="font-size:20px">${stage==='inprogress'?(chargeOverdue?'⚠️':'🔋'):'🔌'}</span>
           <div style="flex:1">
-            <div style="font-weight:700;color:${stage==='done'?'':stageInfo.color}">${stageInfo.label}</div>
+            <div style="font-weight:700;color:${stage==='done'?'':chargeOverdue?'#dc2626':stageInfo.color}">${stageInfo.label}</div>
             <div style="font-size:11px;font-weight:400;opacity:.7">${stageInfo.detail}</div>
           </div>
           ${canGas?`<div class="gr-tap" style="width:auto;height:32px;padding:0 14px;border-radius:20px;${stage==='done'?'background:#f1f5f9;border-color:#e2e8f0':''}" onclick="${stageInfo.onclick}">
@@ -6032,6 +6044,7 @@ function buildGREmailParams(d, subject, message) {
     notes: d.notes||'(none)',
     requiredSteps,
     trades: tradesText,
+    pdfLink: d.pdfUrl || '',
     message,
   };
 }
@@ -6274,6 +6287,21 @@ setInterval(()=>{
   if (homePanel && homePanel.classList.contains('active')) renderHomeGrid();
   if (document.getElementById('panel-rides')?.classList.contains('active')) renderRidesTab();
 },1000);
+
+// Re-checks Get Ready's charging-overdue blink (12hr+ in progress) against
+// the clock, not just against data changes - otherwise a charge that
+// crosses the 12-hour mark while the screen just sits there open would
+// never actually start blinking until something else changed the deal.
+// 30s is plenty for a threshold measured in hours.
+setInterval(() => {
+  if (!currentUser) return;
+  const active = document.activeElement;
+  const isGRFocused = active && (active.tagName === 'TEXTAREA' || active.closest('.gr-card'));
+  if (!isGRFocused && document.getElementById('panel-getready')?.classList.contains('active')) {
+    renderGetReady();
+  }
+  if (document.getElementById('panel-tv')?.classList.contains('active')) renderTVGetReady();
+}, 30000);
 
 setInterval(() => { if (currentUser) checkAndSendDailyDigest(); }, 60000);
 // Also check once shortly after sign-in, in case the digest time already
@@ -7867,6 +7895,14 @@ function reloadForUpdateIfSafe() {
   // Firebase Auth account with no matching users/{uid} record at all.
   if (identityBootstrapping) return;
   const isDisplay = new URLSearchParams(location.search).get('display') === 'true';
+  // Never interrupt the sign-in screen either - someone mid-type on the
+  // email/password form (very easy to trigger on mobile, e.g. switching
+  // away to a password manager and back fires visibilitychange right as
+  // they're about to submit) would get wiped out and have to start over,
+  // which looks exactly like "randomly logged out and can't log back in."
+  const setupScreen = document.getElementById('setup-screen');
+  const setupScreenVisible = setupScreen && getComputedStyle(setupScreen).display !== 'none';
+  if (!isDisplay && setupScreenVisible) return;
   const modalOpen = Array.from(document.querySelectorAll('.modal-backdrop'))
     .some(m => getComputedStyle(m).display !== 'none');
   // TV kiosks have no one present to interrupt - reload right away. Signed-in
