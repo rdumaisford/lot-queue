@@ -8063,15 +8063,17 @@ const FL_LOT = 'bayview323new';
 // FL_LOT_DEPTH_FT once known.
 const FL_PX_PER_FT = 8;
 const FL_LOT_WIDTH_FT = 400, FL_LOT_DEPTH_FT = 250;
+const FL_SNAP_FT = 0.25; // spots snap to a quarter-foot so they can sit flush against each other
 function flFtToPx(ft) { return (ft||0) * FL_PX_PER_FT; }
+function flSnapFt(ft) { return Math.round(ft / FL_SNAP_FT) * FL_SNAP_FT; }
 
 function flApplyCanvasSize() {
   const canvas = document.getElementById('fl-canvas');
   if (!canvas) return;
   canvas.style.width = flFtToPx(FL_LOT_WIDTH_FT) + 'px';
   canvas.style.height = flFtToPx(FL_LOT_DEPTH_FT) + 'px';
-  const grid5ft = flFtToPx(5);
-  canvas.style.backgroundSize = `${grid5ft}px ${grid5ft}px`; // one dot per 5ft
+  const grid1ft = flFtToPx(1);
+  canvas.style.backgroundSize = `${grid1ft}px ${grid1ft}px`; // one dot per foot
 }
 
 function flRender() {
@@ -8237,6 +8239,7 @@ window.flSelectSpot = function(id) {
 window.flUpdateSelected = async function(field, value) {
   if (!flSelected || !cmCanEditLayout() || !cmEditMode) return;
   if ((field === 'w' || field === 'h') && (!value || value < 1)) return; // ignore blank/too-small while typing (feet)
+  if (field === 'w' || field === 'h') value = flSnapFt(value); // same quarter-foot grid as position, so edges still line up
   if (field === 'rot') value = ((Math.round(value) % 360) + 360) % 360;
   cmVehicles[FL_LOT][flSelected] = { ...cmVehicles[FL_LOT][flSelected], [field]: value };
   flPatchSpotElement(flSelected);
@@ -8318,8 +8321,8 @@ window.flDeleteSelected = function() {
       const dxPx = (ev.clientX - startX) / flZoomLevel;
       const dyPx = (ev.clientY - startY) / flZoomLevel;
       if (Math.abs(dxPx) > 2 || Math.abs(dyPx) > 2) moved = true;
-      const nx = Math.max(0, Math.round((startSpot.x + dxPx / FL_PX_PER_FT) * 10) / 10);
-      const ny = Math.max(0, Math.round((startSpot.y + dyPx / FL_PX_PER_FT) * 10) / 10);
+      const nx = Math.max(0, flSnapFt(startSpot.x + dxPx / FL_PX_PER_FT));
+      const ny = Math.max(0, flSnapFt(startSpot.y + dyPx / FL_PX_PER_FT));
       spotEl.style.left = flFtToPx(nx)+'px'; spotEl.style.top = flFtToPx(ny)+'px';
       cmVehicles[FL_LOT][id] = { ...cmVehicles[FL_LOT][id], x: nx, y: ny };
     };
