@@ -1293,11 +1293,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
            background (drive lane, fence, whatever) - it isn't interactive and
            nothing can ever be assigned to it. No vehicles here yet - this is
            layout-only for now. -->
-      <div id="cm-freeform-wrap" style="display:none;flex:1;min-height:0">
-        <div id="fl-canvas-outer" style="flex:1;overflow:auto;position:relative;background:var(--bg);padding:60px">
+      <!-- fl-canvas-outer always fills this whole area, panel or no panel -
+           the side panel floats on top instead of squeezing it, so opening
+           it (which happens the instant you select anything) never shrinks
+           the scrollable viewport or shifts what's reachable near the far
+           edge of a wide property. -->
+      <div id="cm-freeform-wrap" style="display:none;flex:1;min-height:0;position:relative">
+        <div id="fl-canvas-outer" style="position:absolute;inset:0;overflow:auto;background:var(--bg);padding:60px">
           <div id="fl-canvas"></div>
         </div>
-        <div id="fl-side-panel" style="display:none;width:230px;flex-shrink:0;border-left:1px solid var(--border);background:var(--surface);padding:16px;overflow-y:auto">
+        <div id="fl-side-panel" style="display:none;position:absolute;top:0;right:0;bottom:0;width:230px;border-left:1px solid var(--border);background:var(--surface);padding:16px;overflow-y:auto;box-shadow:-6px 0 16px rgba(0,0,0,.1);z-index:5">
           <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:12px">Spot properties</div>
           <div class="field" style="margin-bottom:12px">
             <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)">Label</label>
@@ -7008,7 +7013,7 @@ window.cmSwitchLot = function(id) {
   document.getElementById('cm-qr-btn').style.display = isFreeform ? 'none' : '';
   document.getElementById('cm-edit-btn').style.display = cmCanEditLayout() ? '' : 'none';
   document.getElementById('cm-map-wrap').style.display = isFreeform ? 'none' : '';
-  document.getElementById('cm-freeform-wrap').style.display = isFreeform ? 'flex' : 'none';
+  document.getElementById('cm-freeform-wrap').style.display = isFreeform ? 'block' : 'none';
 
   cmRender();
   if (isFreeform) flRender();
