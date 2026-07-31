@@ -850,6 +850,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-col-del{display:flex;align-items:center;justify-content:center;gap:2px;cursor:pointer;font-size:8px;font-weight:700;color:#94a3b8;border-radius:3px}
 .cm-col-del:hover{background:#fef2f2}
 .cm-col-del .cm-col-del-x{color:#dc2626;font-weight:800}
+
+/* ── Freeform layout builder (323 Bayview NEW) ── */
+#fl-canvas{position:relative;width:1800px;height:1100px;background-image:radial-gradient(circle,#cbd5e1 1px,transparent 1px);background-size:24px 24px;transform-origin:top left}
+.fl-spot{position:absolute;box-sizing:border-box;background:#eff6ff;border:2px solid #1d4ed8;border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;font-size:11px;font-weight:700;color:#1d4ed8;overflow:hidden}
+.fl-spot:active{cursor:grabbing}
+.fl-spot.fl-selected{border-color:#f59e0b;border-width:3px;box-shadow:0 0 0 2px #fef3c7}
+/* ── /Freeform layout builder ── */
 /* ── /Compound Map ── */
 
 /* ── Audit ── */
@@ -1156,10 +1163,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div style="display:flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
           <button id="cm-lot-btn-bayview700" onclick="cmSwitchLot('bayview700')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--ford);color:#fff">700 Bayview</button>
           <button id="cm-lot-btn-bayview323" onclick="cmSwitchLot('bayview323')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">323 Bayview</button>
+          <button id="cm-lot-btn-bayview323new" onclick="cmSwitchLot('bayview323new')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">323 Bayview (NEW)</button>
         </div>
         <!-- Zoom - mainly for mobile, where the map's own hold-to-drag touch
              handling blocks the browser's native pinch-to-zoom gesture. -->
-        <div style="display:flex;align-items:center;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+        <div id="cm-grid-zoom" style="display:flex;align-items:center;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
           <button onclick="cmZoomOut()" title="Zoom out" style="padding:6px 12px;font-size:15px;font-weight:700;border:none;border-right:1px solid var(--border);cursor:pointer;background:var(--surface);color:var(--text)">−</button>
           <span id="cm-zoom-label" onclick="cmZoomReset()" title="Reset zoom" style="padding:6px 8px;font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;min-width:38px;text-align:center">100%</span>
           <button onclick="cmZoomIn()" title="Zoom in" style="padding:6px 12px;font-size:15px;font-weight:700;border:none;border-left:1px solid var(--border);cursor:pointer;background:var(--surface);color:var(--text)">+</button>
@@ -1168,14 +1176,27 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div id="cm-stats" style="display:flex;gap:14px;font-size:13px;flex-wrap:wrap"></div>
         <!-- Search - searches every compound, not just this one; a match
              elsewhere shows as a clickable "Located in..." pill below it. -->
-        <div style="position:relative;margin-left:auto">
+        <div id="cm-grid-search-wrap" style="position:relative;margin-left:auto">
           <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-faint);font-size:12px">🔍</span>
           <input id="cm-search" type="text" placeholder="Search stock #…" oninput="cmSearch(this.value)" style="padding:6px 10px 6px 28px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);background:var(--bg);color:var(--text);outline:none;width:160px"/>
           <button id="cm-search-elsewhere" onclick="cmGoToElsewhereMatch()" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;white-space:nowrap;padding:6px 10px;font-size:12px;font-weight:600;border:1px solid #93c5fd;border-radius:var(--radius-sm);background:#eff6ff;color:#1d4ed8;cursor:pointer;z-index:10;text-align:left"></button>
         </div>
         <button id="cm-heatmap-btn" onclick="cmToggleHeatmap()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer">🌡️ Age Heatmap</button>
         <button id="cm-edit-btn" onclick="cmToggleEdit()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid #fcd34d;border-radius:var(--radius-sm);background:#fef9ec;color:#b45309;cursor:pointer;display:none">✏️ Edit</button>
-        <button onclick="cmOpenQR()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer">🖨 QR</button>
+        <button id="cm-qr-btn" onclick="cmOpenQR()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer">🖨 QR</button>
+        <!-- Freeform layout builder toolbar - shown only for the 323 Bayview
+             (NEW) lot, which has no rows/cols/heatmap/QR/search since there
+             are no vehicles on it yet, just the physical layout being built. -->
+        <div id="cm-freeform-toolbar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap">
+          <button id="fl-add-btn" onclick="flAddSpot()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid #86efac;border-radius:var(--radius-sm);background:#f0fdf4;color:#15803d;cursor:pointer">+ Add Spot</button>
+          <span id="fl-spot-count" style="font-size:13px;color:var(--text-muted);font-weight:600"></span>
+          <div style="display:flex;align-items:center;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+            <button onclick="flZoomOut()" title="Zoom out" style="padding:6px 12px;font-size:15px;font-weight:700;border:none;border-right:1px solid var(--border);cursor:pointer;background:var(--surface);color:var(--text)">−</button>
+            <span id="fl-zoom-label" onclick="flZoomReset()" title="Reset zoom" style="padding:6px 8px;font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;min-width:38px;text-align:center">100%</span>
+            <button onclick="flZoomIn()" title="Zoom in" style="padding:6px 12px;font-size:15px;font-weight:700;border:none;border-left:1px solid var(--border);cursor:pointer;background:var(--surface);color:var(--text)">+</button>
+          </div>
+          <span style="font-size:11px;color:var(--text-faint)">Drag a spot to move it · click a spot to edit its size/rotation/label · blank space isn't a spot - nothing can be assigned there</span>
+        </div>
       </div>
 
       <!-- Age heatmap legend - shown only while heatmap mode is active -->
@@ -1239,8 +1260,49 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
            space is actually left after the toolbar/legend above it, instead
            of a fixed height guessing how tall those are (very wrong once
            they wrap onto several lines, which is normal on a phone). -->
-      <div style="overflow:auto;padding:12px;flex:1;min-height:0">
+      <div id="cm-map-wrap" style="overflow:auto;padding:12px;flex:1;min-height:0">
         <div id="cm-map" style="display:inline-block;min-width:100%"></div>
+      </div>
+
+      <!-- Freeform layout builder for 323 Bayview (NEW) - a blank canvas you
+           place spots onto one at a time (any position/size/rotation), rather
+           than a fixed rows×cols grid. Space with no spot on it is just
+           background (drive lane, fence, whatever) - it isn't interactive and
+           nothing can ever be assigned to it. No vehicles here yet - this is
+           layout-only for now. -->
+      <div id="cm-freeform-wrap" style="display:none;flex:1;min-height:0">
+        <div id="fl-canvas-outer" style="flex:1;overflow:auto;position:relative;background:var(--bg)">
+          <div id="fl-canvas"></div>
+        </div>
+        <div id="fl-side-panel" style="display:none;width:230px;flex-shrink:0;border-left:1px solid var(--border);background:var(--surface);padding:16px;overflow-y:auto">
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:12px">Spot properties</div>
+          <div class="field" style="margin-bottom:12px">
+            <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)">Label</label>
+            <input id="fl-f-label" type="text" oninput="flUpdateSelected('label', this.value)" style="width:100%;margin-top:4px;padding:8px 10px;font-size:14px;font-family:var(--font);font-weight:700;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+            <div class="field">
+              <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)">Width</label>
+              <input id="fl-f-w" type="number" min="20" max="1000" oninput="flUpdateSelected('w', +this.value)" style="width:100%;margin-top:4px;padding:8px 10px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/>
+            </div>
+            <div class="field">
+              <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)">Height</label>
+              <input id="fl-f-h" type="number" min="20" max="1000" oninput="flUpdateSelected('h', +this.value)" style="width:100%;margin-top:4px;padding:8px 10px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/>
+            </div>
+          </div>
+          <div class="field" style="margin-bottom:8px">
+            <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)">Rotation (°)</label>
+            <input id="fl-f-rot" type="number" min="0" max="359" oninput="flUpdateSelected('rot', +this.value)" style="width:100%;margin-top:4px;padding:8px 10px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
+            <button onclick="flSetRotation(0)" style="flex:1;padding:6px 4px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer">↔ 0°</button>
+            <button onclick="flSetRotation(90)" style="flex:1;padding:6px 4px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer">↕ 90°</button>
+            <button onclick="flSetRotation(45)" style="flex:1;padding:6px 4px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer">◤ 45°</button>
+            <button onclick="flSetRotation(315)" style="flex:1;padding:6px 4px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer">◥ -45°</button>
+          </div>
+          <button onclick="flDuplicateSelected()" style="width:100%;padding:9px;margin-bottom:8px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer">⧉ Duplicate spot</button>
+          <button onclick="flDeleteSelected()" style="width:100%;padding:9px;font-size:13px;font-weight:700;border:1px solid #fca5a5;border-radius:var(--radius-sm);background:#fef2f2;color:#dc2626;cursor:pointer">🗑 Delete spot</button>
+        </div>
       </div>
     </div>
 
@@ -2159,7 +2221,12 @@ function applyPermissions() {
   const grAddBtn = document.getElementById('btn-add-getready');
   if (grAddBtn) grAddBtn.style.display = perm('getReadyEdit') ? 'flex' : 'none';
   const cmEditBtn = document.getElementById('cm-edit-btn');
-  if (cmEditBtn) cmEditBtn.style.display = perm('compoundEdit') ? '' : 'none';
+  // The freeform 323 Bayview (NEW) lot has no separate Edit toggle - it's
+  // shown/hidden by cmSwitchLot instead, so don't let a permission refresh
+  // (e.g. a live role change) pop it back on top of that lot's own toolbar.
+  if (cmEditBtn) cmEditBtn.style.display = (perm('compoundEdit') && cmCurrentLot !== 'bayview323new') ? '' : 'none';
+  const flAddBtn = document.getElementById('fl-add-btn');
+  if (flAddBtn) flAddBtn.style.display = perm('compoundEdit') ? '' : 'none';
   auditShowTab();
   const clearHistBtn = document.getElementById('btn-clear-history');
   if (clearHistBtn) clearHistBtn.style.display = currentUser?.role === 'management' ? '' : 'none';
@@ -6589,6 +6656,7 @@ function renderHomeGrid() {
 const CM_LOTS = {
   bayview700:  { label: '700 Bayview' },
   bayview323:  { label: '323 Bayview' },
+  bayview323new: { label: '323 Bayview (NEW)' },
 };
 
 // Real layout from CSV - 13 parking rows × 52 cols
@@ -6633,6 +6701,14 @@ let cmActiveKey = null;
 let cmSelected = new Set();
 let cmGridSize = {};  // { lotId: { rows, cols } } - loaded from Firebase
 let cmVehicles = {}; // { lotId: { 'R0-C0': {stock,desc,status}, ... } }
+
+// Freeform layout builder (323 Bayview NEW) - spots are placed anywhere on an
+// open canvas instead of a fixed rows×cols grid. { spotId: {x,y,w,h,rot,label} }.
+// No vehicle data here yet - layout only.
+let flSpots = {};
+let flSelected = null;
+let flZoomLevel = 1;
+const FL_ZOOM_MIN = 0.4, FL_ZOOM_MAX = 1.5, FL_ZOOM_STEP = 0.15;
 
 // Parse seed data: stock is first token, desc is rest
 function cmParseSeed(str) {
@@ -6876,11 +6952,32 @@ window.cmSwitchLot = function(id) {
   cmEditMode = false;
   cmSelected.clear();
   cmSearchQuery = '';
+  flSelected = null;
   const editBar = document.getElementById('cm-edit-bar');
   if (editBar) editBar.style.display = 'none';
   cmUpdateEditBtn();
   document.getElementById('cm-search').value = '';
+
+  // The freeform layout builder (323 Bayview NEW) is a different kind of
+  // screen entirely - no rows/cols/heatmap/QR/search, since there's no
+  // vehicle data to search or print QR codes for yet. Swap the toolbar and
+  // map area for its own instead of trying to force it into the grid UI.
+  const isFreeform = id === 'bayview323new';
+  document.getElementById('cm-grid-zoom').style.display = isFreeform ? 'none' : '';
+  document.getElementById('cm-stats').style.display = isFreeform ? 'none' : '';
+  document.getElementById('cm-grid-search-wrap').style.display = isFreeform ? 'none' : '';
+  document.getElementById('cm-heatmap-btn').style.display = isFreeform ? 'none' : '';
+  document.getElementById('cm-qr-btn').style.display = isFreeform ? 'none' : '';
+  document.getElementById('cm-edit-btn').style.display = isFreeform ? 'none' : (perm('compoundEdit') ? '' : 'none');
+  document.getElementById('cm-freeform-toolbar').style.display = isFreeform ? 'flex' : 'none';
+  document.getElementById('cm-legend-details').style.display = isFreeform ? 'none' : '';
+  document.getElementById('cm-map-wrap').style.display = isFreeform ? 'none' : '';
+  document.getElementById('cm-freeform-wrap').style.display = isFreeform ? 'flex' : 'none';
+  document.getElementById('fl-side-panel').style.display = 'none';
+  document.getElementById('fl-add-btn').style.display = perm('compoundEdit') ? '' : 'none';
+
   cmRender();
+  if (isFreeform) flRender();
 };
 
 window.cmToggleEdit = function() {
@@ -7809,6 +7906,10 @@ function cmStartListeners() {
     cmVehicles['bayview323'] = snap.val() || {};
     if (cmCurrentLot === 'bayview323') cmRender();
   });
+  onValue(ref(db, 'compound_layout/bayview323new'), snap => {
+    flSpots = snap.val() || {};
+    if (cmCurrentLot === 'bayview323new') flRender();
+  });
 }
 
 // Hook into switchTab so compound map renders when tab is opened
@@ -7869,6 +7970,177 @@ window.cmZoomReset = function() {
   cmZoomLevel = 1;
   cmApplyZoom();
 };
+
+// ── Freeform layout builder (323 Bayview NEW) ──────────
+// Spots live at 'compound_layout/bayview323new/{id}' as {x,y,w,h,rot,label},
+// positioned in the canvas's own unzoomed pixel space (see #fl-canvas CSS).
+// No vehicle/status fields yet - this only builds the physical layout.
+const FL_PATH = 'compound_layout/bayview323new';
+
+// Full rebuild - only for when the spot list itself changes (add/remove/load),
+// never during an active drag or a side-panel edit, both of which patch the
+// DOM directly instead so they don't fight with a render wiping out the very
+// element a drag is in the middle of moving.
+function flRender() {
+  const canvas = document.getElementById('fl-canvas');
+  if (!canvas) return;
+  const ids = Object.keys(flSpots);
+  const countEl = document.getElementById('fl-spot-count');
+  if (countEl) countEl.textContent = `${ids.length} spot${ids.length!==1?'s':''}`;
+  if (flSelected && !flSpots[flSelected]) flSelected = null;
+  canvas.innerHTML = ids.map(id => {
+    const s = flSpots[id];
+    return `<div class="fl-spot${id===flSelected?' fl-selected':''}" data-id="${id}"
+      style="left:${s.x}px;top:${s.y}px;width:${s.w}px;height:${s.h}px;transform:rotate(${s.rot||0}deg)">${esc(s.label||'')}</div>`;
+  }).join('');
+  flPopulateSidePanel();
+}
+
+function flApplySelectionClass() {
+  document.querySelectorAll('#fl-canvas .fl-spot').forEach(el => {
+    el.classList.toggle('fl-selected', el.dataset.id === flSelected);
+  });
+}
+
+function flPatchSpotElement(id) {
+  const el = document.querySelector(`#fl-canvas .fl-spot[data-id="${id}"]`);
+  const s = flSpots[id];
+  if (!el || !s) return;
+  el.style.left = s.x+'px'; el.style.top = s.y+'px';
+  el.style.width = s.w+'px'; el.style.height = s.h+'px';
+  el.style.transform = `rotate(${s.rot||0}deg)`;
+  el.textContent = s.label||'';
+}
+
+function flPopulateSidePanel() {
+  const panel = document.getElementById('fl-side-panel');
+  if (!panel) return;
+  const s = flSelected ? flSpots[flSelected] : null;
+  if (!s) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  document.getElementById('fl-f-label').value = s.label||'';
+  document.getElementById('fl-f-w').value = s.w;
+  document.getElementById('fl-f-h').value = s.h;
+  document.getElementById('fl-f-rot').value = s.rot||0;
+}
+
+window.flAddSpot = function() {
+  if (!perm('compoundEdit')) return;
+  const count = Object.keys(flSpots).length;
+  const newRef = push(ref(db, FL_PATH));
+  flSelected = newRef.key; // set before the write so the listener's render already shows it selected
+  set(newRef, {
+    x: 40 + (count % 10) * 70,
+    y: 40 + Math.floor(count / 10) * 70,
+    w: 90, h: 50, rot: 0,
+    label: String(count + 1),
+  });
+};
+
+window.flSelectSpot = function(id) {
+  if (!perm('compoundEdit')) return;
+  flSelected = id;
+  flApplySelectionClass();
+  flPopulateSidePanel();
+};
+
+window.flUpdateSelected = async function(field, value) {
+  if (!flSelected || !perm('compoundEdit')) return;
+  if ((field === 'w' || field === 'h') && (!value || value < 20)) return; // ignore blank/too-small while typing
+  if (field === 'rot') value = ((Math.round(value) % 360) + 360) % 360;
+  flSpots[flSelected] = { ...flSpots[flSelected], [field]: value };
+  flPatchSpotElement(flSelected);
+  await update(ref(db, `${FL_PATH}/${flSelected}`), { [field]: value });
+};
+
+window.flSetRotation = function(deg) {
+  if (!flSelected) return;
+  document.getElementById('fl-f-rot').value = deg;
+  flUpdateSelected('rot', deg);
+};
+
+window.flDuplicateSelected = async function() {
+  if (!flSelected || !perm('compoundEdit')) return;
+  const s = flSpots[flSelected];
+  if (!s) return;
+  const newRef = push(ref(db, FL_PATH));
+  flSelected = newRef.key;
+  await set(newRef, { ...s, x: s.x + 20, y: s.y + 20 });
+};
+
+window.flDeleteSelected = async function() {
+  if (!flSelected || !perm('compoundEdit')) return;
+  if (!confirm('Delete this spot?')) return;
+  const id = flSelected;
+  flSelected = null;
+  await remove(ref(db, `${FL_PATH}/${id}`));
+};
+
+// Drag-to-move - delegated so it keeps working across re-renders without
+// re-attaching a listener per spot. Click-drag only touches x/y; size and
+// rotation are set from the side panel once a spot is selected.
+(function flInitDrag() {
+  const outer = document.getElementById('fl-canvas-outer');
+  if (!outer) return;
+  outer.addEventListener('pointerdown', (e) => {
+    const spotEl = e.target.closest('.fl-spot');
+    if (!spotEl) {
+      if (e.target.id === 'fl-canvas' || e.target === outer) {
+        flSelected = null;
+        flApplySelectionClass();
+        flPopulateSidePanel();
+      }
+      return;
+    }
+    if (!perm('compoundEdit')) return;
+    const id = spotEl.dataset.id;
+    flSelectSpot(id);
+    const startSpot = flSpots[id];
+    if (!startSpot) return;
+    e.preventDefault();
+    const startX = e.clientX, startY = e.clientY;
+    let moved = false;
+    spotEl.setPointerCapture(e.pointerId);
+    const onMove = (ev) => {
+      const dx = (ev.clientX - startX) / flZoomLevel;
+      const dy = (ev.clientY - startY) / flZoomLevel;
+      if (Math.abs(dx) > 2 || Math.abs(dy) > 2) moved = true;
+      const nx = Math.max(0, startSpot.x + dx);
+      const ny = Math.max(0, startSpot.y + dy);
+      spotEl.style.left = nx+'px'; spotEl.style.top = ny+'px';
+      flSpots[id] = { ...flSpots[id], x: nx, y: ny };
+    };
+    const onUp = async () => {
+      spotEl.removeEventListener('pointermove', onMove);
+      if (moved) {
+        await update(ref(db, `${FL_PATH}/${id}`), { x: flSpots[id].x, y: flSpots[id].y });
+        flPopulateSidePanel();
+      }
+    };
+    spotEl.addEventListener('pointermove', onMove);
+    spotEl.addEventListener('pointerup', onUp, { once: true });
+  });
+})();
+
+function flApplyZoom() {
+  const el = document.getElementById('fl-canvas');
+  if (el) el.style.zoom = flZoomLevel;
+  const label = document.getElementById('fl-zoom-label');
+  if (label) label.textContent = Math.round(flZoomLevel * 100) + '%';
+}
+window.flZoomIn = function() {
+  flZoomLevel = Math.min(FL_ZOOM_MAX, +(flZoomLevel + FL_ZOOM_STEP).toFixed(2));
+  flApplyZoom();
+};
+window.flZoomOut = function() {
+  flZoomLevel = Math.max(FL_ZOOM_MIN, +(flZoomLevel - FL_ZOOM_STEP).toFixed(2));
+  flApplyZoom();
+};
+window.flZoomReset = function() {
+  flZoomLevel = 1;
+  flApplyZoom();
+};
+// ── /Freeform layout builder ───────────────────────────
 
 // ── /Compound Map ─────────────────────────────────────
 
