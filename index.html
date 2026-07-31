@@ -856,11 +856,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
    position/size/rotation set inline per spot, in real feet (see FL_PX_PER_FT
    in JS) - actual width/height/background-size are set from JS since they
    depend on the property's real dimensions, not fixed here. Dot grid is one
-   dot per 5ft for visual alignment. */
+   dot per foot for visual alignment. */
 #fl-canvas{position:relative;background-image:radial-gradient(circle,#cbd5e1 1px,transparent 1px);transform-origin:top left}
-/* Buildings/fences/other fixtures - never a vehicle colour, always this
-   dashed architectural look so they read as "not a parking spot" at a glance. */
+/* Buildings/other fixtures - never a vehicle colour, always this dashed
+   architectural look so they read as "not a parking spot" at a glance. */
 .cm-spot.fl-object{background:#e2e8f0;border-color:#94a3b8;border-style:dashed;color:#475569}
+/* Fence lines - a solid dark bar rather than a box, since a fence reads as a
+   line/wall, not a footprint. Square corners (no border-radius) reinforce that. */
+.cm-spot.fl-fence{background:#57534e;border:1px solid #44403c;border-radius:0;color:#fff}
 /* ── /Freeform layout builder ── */
 /* ── /Compound Map ── */
 
@@ -1242,8 +1245,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <span style="font-size:12px;font-weight:700;color:#b45309">✏️ Edit Mode - Layout</span>
         <button id="fl-add-btn" onclick="flAddSpot()" style="padding:4px 10px;font-size:12px;font-weight:600;border:1px solid #86efac;border-radius:var(--radius-sm);background:#f0fdf4;color:#15803d;cursor:pointer">+ Add Spot</button>
         <button id="fl-addobj-btn" onclick="flAddObject()" style="padding:4px 10px;font-size:12px;font-weight:600;border:1px solid #94a3b8;border-radius:var(--radius-sm);background:#e2e8f0;color:#475569;cursor:pointer">+ Add Object</button>
+        <button id="fl-addfence-btn" onclick="flAddFence()" style="padding:4px 10px;font-size:12px;font-weight:600;border:1px solid #78716c;border-radius:var(--radius-sm);background:#57534e;color:#fff;cursor:pointer">+ Add Fence</button>
         <span id="fl-spot-count" style="font-size:12px;color:#b45309;font-weight:700"></span>
-        <span style="font-size:11px;color:#b45309;margin-left:auto">Drag a spot to move it · click a spot to edit size/rotation/label · ✕ deletes the spot · blank space isn't a spot, nothing can be assigned there</span>
+        <div style="display:flex;align-items:center;gap:4px;border-left:1px solid #fcd34d;padding-left:10px">
+          <span style="font-size:11px;color:#b45309">Property (ft):</span>
+          <input id="fl-f-lotw" type="number" min="1" step="0.5" style="width:64px;padding:3px 6px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/>
+          <span style="font-size:11px;color:#b45309">×</span>
+          <input id="fl-f-lotd" type="number" min="1" step="0.5" style="width:64px;padding:3px 6px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/>
+          <button onclick="flUpdatePropertySize()" style="padding:3px 10px;font-size:11px;font-weight:600;border:1px solid #fcd34d;border-radius:var(--radius-sm);background:#fff;color:#b45309;cursor:pointer">Resize</button>
+        </div>
+        <span style="font-size:11px;color:#b45309;margin-left:auto">Drag to move · click to edit size/rotation/label · ✕ deletes it · blank space isn't a spot, nothing can be assigned there</span>
       </div>
 
       <!-- Legend - collapsible so it's one tap to reclaim this space for the
@@ -7952,7 +7963,17 @@ function cmStartListeners() {
       bayview700:  { rows: meta.bayview700?.rows  || 13, cols: meta.bayview700?.cols  || 52 },
       bayview323:  { rows: meta.bayview323?.rows  || 10, cols: meta.bayview323?.cols  || 30 },
     };
-    if (document.getElementById('panel-compound')?.classList.contains('active')) cmRender();
+    // The freeform lot's real-world size in feet - editable (see
+    // flUpdatePropertySize) since the property itself can grow, unlike the
+    // two grid lots' fixed row/col counts. Self-seeds on first-ever load.
+    if (meta.bayview323new?.widthFt && meta.bayview323new?.depthFt) {
+      flLotSize = { widthFt: meta.bayview323new.widthFt, depthFt: meta.bayview323new.depthFt };
+    } else {
+      update(ref(db, 'compound_meta/bayview323new'), flLotSize).catch(()=>{});
+    }
+    if (document.getElementById('panel-compound')?.classList.contains('active')) {
+      if (cmCurrentLot === 'bayview323new') flRender(); else cmRender();
+    }
   });
   onValue(ref(db, 'compound_v2/bayview700'), snap => {
     if (!snap.val()) {
@@ -8056,13 +8077,17 @@ window.cmZoomReset = function() {
 const FL_LOT = 'bayview323new';
 
 // Everything on this lot is stored in real-world FEET, not pixels - x/y/w/h
-// on a spot or object record are all feet. FL_PX_PER_FT is purely a display
-// scale for turning those into an on-screen size; the underlying data never
-// changes if that scale is later adjusted. Canvas size is a placeholder
-// until the actual property dimensions are set - update FL_LOT_WIDTH_FT/
-// FL_LOT_DEPTH_FT once known.
+// on a spot/object/fence record are all feet. FL_PX_PER_FT is purely a
+// display scale for turning those into an on-screen size; the underlying
+// data never changes if that scale is later adjusted.
+//
+// The property's own size (flLotSize) is loaded from compound_meta/
+// bayview323new (see cmStartListeners) rather than hardcoded, since the lot
+// itself can grow - editable from Edit mode via flUpdatePropertySize.
+// Growing it never disturbs anything already placed: (0,0) always stays the
+// same corner, so new acreage just extends the far edge outward.
+let flLotSize = { widthFt: 591, depthFt: 219.5 };
 const FL_PX_PER_FT = 8;
-const FL_LOT_WIDTH_FT = 400, FL_LOT_DEPTH_FT = 250;
 const FL_SNAP_FT = 0.25; // spots snap to a quarter-foot so they can sit flush against each other
 function flFtToPx(ft) { return (ft||0) * FL_PX_PER_FT; }
 function flSnapFt(ft) { return Math.round(ft / FL_SNAP_FT) * FL_SNAP_FT; }
@@ -8070,11 +8095,29 @@ function flSnapFt(ft) { return Math.round(ft / FL_SNAP_FT) * FL_SNAP_FT; }
 function flApplyCanvasSize() {
   const canvas = document.getElementById('fl-canvas');
   if (!canvas) return;
-  canvas.style.width = flFtToPx(FL_LOT_WIDTH_FT) + 'px';
-  canvas.style.height = flFtToPx(FL_LOT_DEPTH_FT) + 'px';
+  canvas.style.width = flFtToPx(flLotSize.widthFt) + 'px';
+  canvas.style.height = flFtToPx(flLotSize.depthFt) + 'px';
   const grid1ft = flFtToPx(1);
   canvas.style.backgroundSize = `${grid1ft}px ${grid1ft}px`; // one dot per foot
+  // Don't stomp on the field while someone's actively typing a new size into it.
+  const wEl = document.getElementById('fl-f-lotw'), dEl = document.getElementById('fl-f-lotd');
+  if (wEl && document.activeElement !== wEl) wEl.value = flLotSize.widthFt;
+  if (dEl && document.activeElement !== dEl) dEl.value = flLotSize.depthFt;
 }
+
+// The property can grow (e.g. new acreage at the back) - (0,0) always stays
+// the same corner, so resizing (in either direction) never moves or deletes
+// anything already placed; it only changes how much canvas is drawn around it.
+window.flUpdatePropertySize = async function() {
+  if (!cmCanEditLayout() || !cmEditMode) return;
+  const w = +document.getElementById('fl-f-lotw').value;
+  const d = +document.getElementById('fl-f-lotd').value;
+  if (!w || !d || w < 1 || d < 1) { alert('Enter a valid width and depth in feet.'); return; }
+  flLotSize = { widthFt: w, depthFt: d };
+  flApplyCanvasSize();
+  await update(ref(db, 'compound_meta/bayview323new'), { widthFt: w, depthFt: d });
+  logCompoundChange(FL_LOT, 'resize', `Resized the property to ${w}ft × ${d}ft`);
+};
 
 function flRender() {
   const canvas = document.getElementById('fl-canvas');
@@ -8097,12 +8140,13 @@ function flRender() {
 function flSpotHtml(id, veh, maps) {
   const posStyle = `position:absolute;left:${flFtToPx(veh.x)}px;top:${flFtToPx(veh.y)}px;width:${flFtToPx(veh.w)}px;height:${flFtToPx(veh.h)}px;transform:rotate(${veh.rot||0}deg);`;
 
-  if (veh.kind === 'object') {
+  if (veh.kind === 'object' || veh.kind === 'fence') {
     // A building, fence, or other fixture - purely a visual landmark to
     // match the map to the real property. Never assignable, no vehicle
     // fields at all; only touched via layout editing like a spot's shape.
     const selCls = (cmEditMode && flSelected === id) ? ' cm-selected' : '';
-    return `<div class="cm-spot fl-object${selCls}" data-cm-key="${id}"
+    const kindCls = veh.kind === 'fence' ? 'fl-fence' : 'fl-object';
+    return `<div class="cm-spot ${kindCls}${selCls}" data-cm-key="${id}"
       style="${posStyle}${cmEditMode?'cursor:pointer;touch-action:none':'cursor:default'}" ${cmEditMode?'oncontextmenu="return false"':''}>
       ${cmEditMode ? `<div class="cm-del-spot" style="display:flex" onclick="event.stopPropagation();flDeleteSpot('${id}')">✕</div>` : ''}
       <div class="cm-spot-stock">${esc(veh.label||'')}</div>
@@ -8211,9 +8255,13 @@ window.flAddSpot = function() {
   logCompoundChange(FL_LOT, 'resize', `Added spot ${count + 1}`);
 };
 
-// A building, fence, or other non-parking fixture - never assignable, just
-// there so the map matches the real property. Default size is a placeholder;
-// resize it to the real footprint from the side panel.
+function flKindLabel(kind) {
+  return kind === 'object' ? 'object' : kind === 'fence' ? 'fence' : 'spot';
+}
+
+// A building or other non-parking fixture - never assignable, just there so
+// the map matches the real property. Default size is a placeholder; resize
+// it to the real footprint from the side panel.
 window.flAddObject = function() {
   if (!cmCanEditLayout() || !cmEditMode) return;
   const count = Object.values(cmVehicles[FL_LOT]||{}).filter(s=>s.kind==='object').length;
@@ -8227,6 +8275,24 @@ window.flAddObject = function() {
     label: 'Building',
   });
   logCompoundChange(FL_LOT, 'resize', `Added object`);
+};
+
+// A fence line - a long, thin, rotatable segment (reuses the same shape
+// mechanics as a spot/object, just styled as a line). Add several and rotate
+// each into place to trace an actual fence line, including corners.
+window.flAddFence = function() {
+  if (!cmCanEditLayout() || !cmEditMode) return;
+  const count = Object.values(cmVehicles[FL_LOT]||{}).filter(s=>s.kind==='fence').length;
+  const newRef = push(ref(db, `compound_v2/${FL_LOT}`));
+  flSelected = newRef.key;
+  set(newRef, {
+    kind: 'fence',
+    x: 10 + count * 3,
+    y: 15 + count * 3,
+    w: 30, h: 0.5, rot: 0,
+    label: 'Fence',
+  });
+  logCompoundChange(FL_LOT, 'resize', `Added fence`);
 };
 
 window.flSelectSpot = function(id) {
@@ -8263,20 +8329,20 @@ window.flDuplicateSelected = async function() {
   const dup = { x: s.x + 2, y: s.y + 2, w: s.w, h: s.h, rot: s.rot||0, label: s.label||'' };
   if (s.kind) dup.kind = s.kind;
   await set(newRef, dup);
-  logCompoundChange(FL_LOT, 'resize', `Duplicated ${s.kind==='object'?'object':'spot'} ${s.label||flSelected}`);
+  logCompoundChange(FL_LOT, 'resize', `Duplicated ${flKindLabel(s.kind)} ${s.label||flSelected}`);
 };
 
 window.flDeleteSpot = async function(id) {
   if (!cmCanEditLayout() || !cmEditMode) return;
   const s = (cmVehicles[FL_LOT]||{})[id];
-  const isObject = s?.kind === 'object';
+  const kindLabel = flKindLabel(s?.kind);
   const msg = s?.stock
     ? `This spot has ${s.stock} assigned. Delete it anyway? The vehicle assignment will be lost too - there's no way to keep the car parked here after the spot itself is gone.`
-    : `Delete this ${isObject ? 'object' : 'spot'}?`;
+    : `Delete this ${kindLabel}?`;
   if (!confirm(msg)) return;
   if (flSelected === id) flSelected = null;
   await remove(ref(db, `compound_v2/${FL_LOT}/${id}`));
-  logCompoundChange(FL_LOT, 'clear', `Deleted ${isObject?'object':'spot'} ${s?.label||id}${s?.stock?` (removed ${s.stock})`:''}`);
+  logCompoundChange(FL_LOT, 'clear', `Deleted ${kindLabel} ${s?.label||id}${s?.stock?` (removed ${s.stock})`:''}`);
 };
 
 window.flDeleteSelected = function() {
