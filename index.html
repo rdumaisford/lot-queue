@@ -7138,13 +7138,24 @@ window.cmLookupSpecsForSpot = function() {
   const stock = document.getElementById('cm-f-stock').value.trim().toUpperCase();
   if (!stock) return;
   const spec = vehicleSpecs[stock];
-  if (!spec) return;
-  const yearEl = document.getElementById('cm-f-year'), trimEl = document.getElementById('cm-f-trim'),
-        typeEl = document.getElementById('cm-f-type'), colourEl = document.getElementById('cm-f-colour');
-  if (yearEl && !yearEl.value && spec.year) yearEl.value = spec.year;
-  if (trimEl && !trimEl.value && spec.trim) trimEl.value = spec.trim;
-  if (typeEl && !typeEl.value && spec.type) typeEl.value = spec.type;
-  if (colourEl && !colourEl.value && spec.colour) colourEl.value = spec.colour;
+  if (spec) {
+    const yearEl = document.getElementById('cm-f-year'), trimEl = document.getElementById('cm-f-trim'),
+          typeEl = document.getElementById('cm-f-type'), colourEl = document.getElementById('cm-f-colour');
+    if (yearEl && !yearEl.value && spec.year) yearEl.value = spec.year;
+    if (trimEl && !trimEl.value && spec.trim) trimEl.value = spec.trim;
+    if (typeEl && !typeEl.value && spec.type) typeEl.value = spec.type;
+    if (colourEl && !colourEl.value && spec.colour) colourEl.value = spec.colour;
+  }
+  // Tether the spot's Type to the matching Incoming unit's New/Used condition -
+  // punching in a stock # already tracked in Incoming shouldn't require
+  // re-picking New vs Used by hand. Only nudges it off the default ('new');
+  // never overrides a deliberate Wholesale/Fleet/Lease Return pick.
+  const incomingUnit = Object.values(units).find(u => (u.stock||'').toUpperCase().trim() === stock);
+  const statusEl = document.getElementById('cm-f-status');
+  if (incomingUnit && statusEl && statusEl.value === 'new' &&
+      (incomingUnit.condition === 'new' || incomingUnit.condition === 'used')) {
+    statusEl.value = incomingUnit.condition;
+  }
 };
 
 window.cmSpotClick = function(key, ri, ci) {
