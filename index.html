@@ -893,6 +893,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   </div>
 </div>
 
+<!-- Shown a few seconds in if sign-in still hasn't resolved either way (no
+     setup screen, no app) - almost always a stale/broken persisted login
+     session sitting in this browser, not a real credentials problem. Gives
+     people a one-tap fix instead of "clear your browser data," which most
+     people don't know how to do (or where) on their own. -->
+<div id="signin-stuck-help" style="display:none;position:fixed;bottom:20px;left:0;right:0;text-align:center;z-index:9999">
+  <button onclick="resetSignInState()" style="padding:11px 20px;font-size:13px;font-weight:600;background:#fff;border:1px solid #fca5a5;border-radius:20px;box-shadow:0 2px 12px rgba(0,0,0,.18);color:#991b1b;cursor:pointer">⚠ Stuck signing in? Tap to reset</button>
+</div>
+
 <!-- Setup -->
 <div id="setup-screen">
   <div class="setup-wrap">
@@ -916,6 +925,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       </div>
       <div style="font-size:12px;color:var(--text-faint);margin-top:14px;text-align:center">No account? Ask a manager to set one up for you.</div>
       <div id="signin-error" class="toast error" style="display:none;margin-top:14px"></div>
+      <div style="text-align:center;margin-top:10px">
+        <a href="#" onclick="resetSignInState();return false;" style="color:var(--text-faint);text-decoration:none;font-size:12px;cursor:pointer">Trouble signing in? Tap to reset</a>
+      </div>
     </div>
 
     <div class="setup-card" id="setup-pending" style="display:none">
@@ -2255,6 +2267,7 @@ let allUsers = {};
 let viewParamApplied = false; // ensures ?view=shuttle only redirects once per session
 let userApprovalUnsub = null;
 let identityBootstrapping = false; // true while this account's one-time users/{uid} record is being created - see reloadForUpdateIfSafe()
+let identityResolved = false; // true once sign-in has landed on ANY real, definitive state (signed in, pending, denied, or the sign-in form) - see the stuck-signin timeout below
 let tvLocation = null; // e.g. '323 Bayview' - set via ?loc= on the TV display URL, filters its boards to that lot
 
 // ── Connection indicator (shared by the TV display and the header sync dot) ─
@@ -2325,9 +2338,28 @@ function loadIdentity() {
     if (!user || user.isAnonymous) { showSetupState('signin'); return; }
     watchUserApproval(user);
   });
+  // A stale/broken persisted session can leave onAuthStateChanged thinking
+  // someone's already signed in, so it never shows the sign-in form at all -
+  // the person is just stuck looking at a blank page with nothing to click.
+  // If neither the app nor any setup-screen state has shown up after a few
+  // seconds, surface a one-tap reset instead of leaving them stranded.
+  setTimeout(() => {
+    if (identityResolved) return;
+    const helpEl = document.getElementById('signin-stuck-help');
+    if (helpEl) helpEl.style.display = 'block';
+  }, 6000);
 }
 
+// The supported, correct way to clear whatever Firebase has persisted for
+// this browser (session/tokens), rather than asking people to go dig
+// through browser settings to manually clear site data.
+window.resetSignInState = async function() {
+  try { await signOut(auth); } catch(e) { /* best-effort - reload regardless */ }
+  location.reload();
+};
+
 function showSetupState(state) {
+  identityResolved = true; // a real, definitive state to show - not stuck
   document.getElementById('setup-screen').style.display = 'block';
   document.getElementById('app').style.display = 'none';
   document.getElementById('setup-signin').style.display = state==='signin' ? '' : 'none';
@@ -2573,6 +2605,7 @@ window.changeUserRole = async function(uid, role) {
 
 // ── Start app ─────────────────────────────────────────
 function startApp() {
+  identityResolved = true; // signed in and approved - not stuck
   document.getElementById('setup-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   const initials = currentUser.name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
