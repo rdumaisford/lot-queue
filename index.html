@@ -1306,11 +1306,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
             <div class="field">
               <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)">Width (ft)</label>
-              <input id="fl-f-w" type="number" min="1" max="500" step="0.5" oninput="flUpdateSelected('w', +this.value)" style="width:100%;margin-top:4px;padding:8px 10px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/>
+              <input id="fl-f-w" type="number" min="1" max="500" step="1" oninput="flUpdateSelected('w', +this.value)" style="width:100%;margin-top:4px;padding:8px 10px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/>
             </div>
             <div class="field">
               <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)">Height (ft)</label>
-              <input id="fl-f-h" type="number" min="1" max="500" step="0.5" oninput="flUpdateSelected('h', +this.value)" style="width:100%;margin-top:4px;padding:8px 10px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/>
+              <input id="fl-f-h" type="number" min="1" max="500" step="1" oninput="flUpdateSelected('h', +this.value)" style="width:100%;margin-top:4px;padding:8px 10px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/>
             </div>
           </div>
           <div class="field" style="margin-bottom:8px">
@@ -8088,7 +8088,7 @@ const FL_LOT = 'bayview323new';
 // same corner, so new acreage just extends the far edge outward.
 let flLotSize = { widthFt: 591, depthFt: 219.5 };
 const FL_PX_PER_FT = 8;
-const FL_SNAP_FT = 0.25; // spots snap to a quarter-foot so they can sit flush against each other
+const FL_SNAP_FT = 1; // spots snap to whole feet, same spacing as the dot grid, so placements land right on a dot
 function flFtToPx(ft) { return (ft||0) * FL_PX_PER_FT; }
 function flSnapFt(ft) { return Math.round(ft / FL_SNAP_FT) * FL_SNAP_FT; }
 
@@ -8289,7 +8289,7 @@ window.flAddFence = function() {
     kind: 'fence',
     x: 10 + count * 3,
     y: 15 + count * 3,
-    w: 30, h: 0.5, rot: 0,
+    w: 30, h: 1, rot: 0,
     label: 'Fence',
   });
   logCompoundChange(FL_LOT, 'resize', `Added fence`);
