@@ -2353,8 +2353,24 @@ function loadIdentity() {
 // The supported, correct way to clear whatever Firebase has persisted for
 // this browser (session/tokens), rather than asking people to go dig
 // through browser settings to manually clear site data.
+//
+// This is the exact button people hit when they're already stuck, which
+// almost always means Firebase's own IndexedDB connection is the thing
+// that's wedged - so signOut(auth) itself can hang forever instead of
+// failing, and a plain "await signOut then reload" never gets to the
+// reload. This races it against a short timeout, then deletes the
+// IndexedDB database Firebase Auth persists into directly, bypassing the
+// SDK entirely so a stuck connection inside it can't block the reset.
 window.resetSignInState = async function() {
-  try { await signOut(auth); } catch(e) { /* best-effort - reload regardless */ }
+  try { await withTimeout(signOut(auth), 1200, 'Sign-out'); } catch (e) { /* proceed regardless - see above */ }
+  try {
+    await withTimeout(new Promise((resolve) => {
+      const req = indexedDB.deleteDatabase('firebaseLocalStorageDb');
+      req.onsuccess = () => resolve();
+      req.onerror = () => resolve();
+      req.onblocked = () => resolve();
+    }), 1200, 'Reset');
+  } catch (e) { /* proceed regardless */ }
   location.reload();
 };
 
@@ -2386,9 +2402,17 @@ window.submitAuthForm = async function() {
   const btn = document.getElementById('btn-auth-submit');
   btn.disabled = true;
   try {
-    await signInWithEmailAndPassword(auth, email, password);
+    // Timed out, not just awaited - the same wedged-IndexedDB condition that
+    // causes the "stuck signed in" state (see resetSignInState) can just as
+    // easily hang a fresh sign-in attempt forever instead of erroring, which
+    // otherwise leaves this button disabled with no feedback indefinitely.
+    // A real Firebase rejection always carries a .code; our own timeout
+    // doesn't, which is how the two are told apart below.
+    await withTimeout(signInWithEmailAndPassword(auth, email, password), 10000, 'Sign-in');
   } catch (e) {
-    errEl.textContent = authErrorMessage(e);
+    errEl.textContent = e.code
+      ? authErrorMessage(e)
+      : 'Sign-in is taking too long. Tap "Trouble signing in? Tap to reset" below, then try again.';
     errEl.style.display = 'block';
   }
   btn.disabled = false;
@@ -2415,7 +2439,7 @@ window.signOutUser = function() {
   if (geoWatchId !== null) { navigator.geolocation.clearWatch(geoWatchId); geoWatchId = null; }
   if (currentUser?.uid) remove(ref(db, 'driverLocation/'+currentUser.uid)).catch(()=>{});
   localStorage.removeItem('rides-sharing-active');
-  signOut(auth).then(()=>location.reload());
+  withTimeout(signOut(auth), 1200, 'Sign-out').catch(()=>{}).then(()=>location.reload());
 };
 // Existing "Change role" / "Change driver" buttons still call resetIdentity() - now signs out.
 window.resetIdentity = function() {
