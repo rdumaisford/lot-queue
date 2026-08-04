@@ -2442,16 +2442,27 @@ function loadIdentity() {
     if (!user || user.isAnonymous) { showSetupState('signin'); return; }
     watchUserApproval(user);
   });
-  // A stale/broken persisted session can leave onAuthStateChanged thinking
-  // someone's already signed in, so it never shows the sign-in form at all -
-  // the person is just stuck looking at a blank page with nothing to click.
-  // If neither the app nor any setup-screen state has shown up after a few
-  // seconds, surface a one-tap reset instead of leaving them stranded.
+  // A stale/broken persisted session (most often a wedged IndexedDB
+  // connection - common on mobile Safari) can leave onAuthStateChanged
+  // thinking someone's already signed in, so it never shows the sign-in form
+  // at all - the person is just stuck looking at a blank page with nothing
+  // to click. Surface a one-tap manual reset quickly...
   setTimeout(() => {
     if (identityResolved) return;
     const helpEl = document.getElementById('signin-stuck-help');
     if (helpEl) helpEl.style.display = 'block';
-  }, 6000);
+  }, 4000);
+  // ...and if nobody's tapped it a few seconds later, don't just leave it
+  // sitting there waiting to be noticed - reset automatically. Skipped if
+  // this page load IS an auto-reset's own reload (tagged in the URL), so a
+  // genuine outage that a reset can't fix doesn't reload forever.
+  const alreadyAutoReset = new URLSearchParams(location.search).get('autoReset') === '1';
+  if (!alreadyAutoReset) {
+    setTimeout(() => {
+      if (identityResolved) return;
+      resetSignInState(true);
+    }, 8000);
+  }
 }
 
 // The supported, correct way to clear whatever Firebase has persisted for
@@ -2459,23 +2470,53 @@ function loadIdentity() {
 // through browser settings to manually clear site data.
 //
 // This is the exact button people hit when they're already stuck, which
-// almost always means Firebase's own IndexedDB connection is the thing
-// that's wedged - so signOut(auth) itself can hang forever instead of
-// failing, and a plain "await signOut then reload" never gets to the
-// reload. This races it against a short timeout, then deletes the
-// IndexedDB database Firebase Auth persists into directly, bypassing the
-// SDK entirely so a stuck connection inside it can't block the reset.
-window.resetSignInState = async function() {
+// almost always means one of Firebase's own IndexedDB connections is wedged
+// - so signOut(auth) itself can hang forever instead of failing, and a plain
+// "await signOut then reload" never gets to the reload. Previously this only
+// deleted the one database Firebase Auth itself uses - but the SDK also
+// keeps separate installations/heartbeat databases, and if one of THOSE was
+// the one actually wedged, that reset finished without fixing anything,
+// which is exactly the "reset doesn't work" complaint. This instead
+// enumerates and wipes every IndexedDB database this origin has (falling
+// back to the known Firebase database names on Safari versions too old for
+// indexedDB.databases()), plus local/session storage, each capped by its own
+// short timeout so nothing stuck can block the rest.
+//
+// auto=true marks this as the app's own automatic recovery attempt (see
+// loadIdentity) rather than someone tapping the button - tagged into the
+// reload URL so it isn't retried forever if the real problem is something a
+// reset can't fix (e.g. genuinely offline).
+window.resetSignInState = async function(auto) {
   try { await withTimeout(signOut(auth), 1200, 'Sign-out'); } catch (e) { /* proceed regardless - see above */ }
+
   try {
-    await withTimeout(new Promise((resolve) => {
-      const req = indexedDB.deleteDatabase('firebaseLocalStorageDb');
+    let names = [];
+    if (indexedDB.databases) {
+      try {
+        names = (await withTimeout(indexedDB.databases(), 1000, 'List databases')).map(d => d.name).filter(Boolean);
+      } catch (e) { /* fall through to the hardcoded list below */ }
+    }
+    if (!names.length) {
+      names = ['firebaseLocalStorageDb', 'firebase-installations-database', 'firebase-heartbeat-database'];
+    }
+    await Promise.allSettled(names.map(name => withTimeout(new Promise((resolve) => {
+      const req = indexedDB.deleteDatabase(name);
       req.onsuccess = () => resolve();
       req.onerror = () => resolve();
       req.onblocked = () => resolve();
-    }), 1200, 'Reset');
+    }), 1200, 'Reset')));
   } catch (e) { /* proceed regardless */ }
-  location.reload();
+
+  try { localStorage.clear(); sessionStorage.clear(); } catch (e) { /* proceed regardless */ }
+
+  // location.reload() can be served from the back-forward cache instead of
+  // actually re-fetching, especially on mobile Safari - force a genuinely
+  // fresh navigation instead, tagged so a repeat auto-reset doesn't loop.
+  const url = new URL(location.href);
+  url.searchParams.set('resetAt', Date.now());
+  if (auto) url.searchParams.set('autoReset', '1');
+  else url.searchParams.delete('autoReset');
+  location.replace(url.toString());
 };
 
 function showSetupState(state) {
