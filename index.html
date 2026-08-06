@@ -813,7 +813,22 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot.cm-duplicate{border-width:2px;animation:cmDupeBlink .7s steps(1) infinite}
 .cm-spot.cm-duplicate .cm-spot-num{color:#991b1b}
 .cm-spot.cm-duplicate .cm-spot-stock{color:#7f1d1d}
+/* "Incorrect parking" - a freeform spot whose own label designates a zone
+   (e.g. "Wholesale 3") but the car actually parked there is a different
+   type. Same blink as a duplicate stock # - both mean "a manager needs to
+   look at this now." */
+.cm-spot.cm-mismatch{border-width:2px;animation:cmDupeBlink .7s steps(1) infinite}
+.cm-spot.cm-mismatch .cm-spot-num{color:#991b1b}
+.cm-spot.cm-mismatch .cm-spot-stock{color:#7f1d1d}
 .cm-spot-dupe{font-size:7px;font-weight:800;color:#fff;background:#dc2626;border-radius:2px;padding:0 2px;line-height:1.3;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+/* Blinking every .7s across every flagged spot at once gets genuinely
+   janky on lower-power phones - touch/coarse-pointer devices get a solid,
+   still-unmissable red instead of the animated version desktop gets. */
+@media (hover:none) and (pointer:coarse) {
+  .cm-spot.cm-duplicate, .cm-spot.cm-mismatch { animation:none!important; background:#dc2626!important; border-color:#991b1b!important; }
+  .cm-spot.cm-duplicate .cm-spot-num, .cm-spot.cm-mismatch .cm-spot-num,
+  .cm-spot.cm-duplicate .cm-spot-stock, .cm-spot.cm-mismatch .cm-spot-stock { color:#fff!important; }
+}
 .cm-spot.cm-heatmap-active{background:var(--heat-color)!important;border-color:var(--heat-color)!important}
 .cm-spot.cm-heatmap-active .cm-spot-num,.cm-spot.cm-heatmap-active .cm-spot-stock,.cm-spot.cm-heatmap-active .cm-spot-desc{color:#fff!important;text-shadow:0 1px 2px rgba(0,0,0,.35)}
 @keyframes cmLockPulse{0%,49%{box-shadow:0 0 0 0 rgba(29,78,216,.6)}50%,100%{box-shadow:0 0 0 3px rgba(29,78,216,.15)}}
@@ -8216,6 +8231,23 @@ function flRender() {
   flPopulateSidePanel();
 }
 
+// A spot's own label can double as a zone designation - e.g. a spot labeled
+// "Wholesale" or "Wholesale 3" is understood to be reserved for wholesale
+// inventory. Matched case-insensitively as a substring, checked longest/most
+// specific keyword first so "new" doesn't accidentally match something like
+// "Renewal". Returns the same canonical values cmTypeClass uses, or null if
+// the label doesn't name a type at all (an ordinary numbered spot).
+function flDesignatedType(label) {
+  if (!label) return null;
+  const l = label.toLowerCase();
+  if (l.includes('wholesale')) return 'wholesale';
+  if (l.includes('lease')) return 'leasereturn';
+  if (l.includes('fleet')) return 'fleet';
+  if (l.includes('used')) return 'used';
+  if (l.includes('new')) return 'new';
+  return null;
+}
+
 function flSpotHtml(id, veh, maps) {
   const posStyle = `position:absolute;left:${flFtToPx(veh.x)}px;top:${flFtToPx(veh.y)}px;width:${flFtToPx(veh.w)}px;height:${flFtToPx(veh.h)}px;transform:rotate(${veh.rot||0}deg);`;
 
@@ -8247,9 +8279,14 @@ function flSpotHtml(id, veh, maps) {
   const isBlocked = veh.status === 'blocked';
   const isVoid = veh.status === 'void';
   if (!veh.stock && !isBlocked && !isVoid) {
-    // An empty physical spot - click to assign a car, same as an empty grid cell.
-    return `<div class="cm-spot empty" data-cm-key="${id}" style="${posStyle}" onclick="cmSpotClick('${id}',0,0)">
-      <div class="cm-spot-stock" style="opacity:.35;font-weight:600">${esc(veh.label||'')}</div>
+    // An empty physical spot - click to assign a car, same as an empty grid
+    // cell. If its own label designates a zone (e.g. "Wholesale 3"), show
+    // that zone's colour even with nothing parked there yet, so the
+    // designation is visible at a glance before anyone's parked wrong.
+    const zoneType = flDesignatedType(veh.label);
+    const emptyCls = zoneType ? zoneType : 'empty';
+    return `<div class="cm-spot ${emptyCls}" data-cm-key="${id}" style="${posStyle}" onclick="cmSpotClick('${id}',0,0)">
+      <div class="cm-spot-stock" style="opacity:.6;font-weight:600">${esc(veh.label||'')}</div>
     </div>`;
   }
   if (isVoid) {
@@ -8267,26 +8304,35 @@ function flSpotHtml(id, veh, maps) {
   const appt = apptMap[stockUpper], gr = grMap[stockUpper], onTd = tdMap[stockUpper];
   const isDupe = (stockSpotCounts[stockUpper]||0) > 1;
   const isFlagged = cmIsFlagged(veh);
-  const cls = isDupe ? 'cm-duplicate' : onTd ? 'ontestdrive' : appt ? 'appointed' : gr ? 'getready' : cmTypeClass(veh.status);
+  // "Incorrect parking" - the spot's own label designates a zone (e.g.
+  // "Wholesale 3"), but the car actually parked there is a different type.
+  // Flagged the same way as a duplicate stock # - both mean "a manager needs
+  // to look at this, right now" - so it takes the same priority, just below
+  // an actual duplicate (a real data error, ranked worse than a car just
+  // being in the wrong row).
+  const zoneType = flDesignatedType(veh.label);
+  const isMismatch = zoneType && zoneType !== cmTypeClass(veh.status);
+  const cls = isDupe ? 'cm-duplicate' : isMismatch ? 'cm-mismatch' : onTd ? 'ontestdrive' : appt ? 'appointed' : gr ? 'getready' : cmTypeClass(veh.status);
   const ageDays = ageMap ? ageMap[stockUpper] : null;
-  const heatOn = cmHeatmapMode && !isDupe;
+  const heatOn = cmHeatmapMode && !isDupe && !isMismatch;
   const heatCls = heatOn ? ' cm-heatmap-active' : '';
   const heatStyleVar = heatOn ? `--heat-color:${ageDays!=null ? cmAgeColor(ageDays) : '#cbd5e1'};` : '';
   const lockInfo = activeLockFor('compound', `${FL_LOT}_${id}`);
   const lockCls = lockInfo ? ' cm-locked-by-other' : '';
   const stock = (veh.stock||'').substring(0,10);
   const typeLine = [veh.year, veh.type, veh.trim, veh.colour].filter(Boolean).join(' ').substring(0,18);
+  const CM_TYPE_LABELS = { new:'New', used:'Used', wholesale:'Wholesale', fleet:'Fleet', leasereturn:'Lease Return' };
 
   return `<div class="cm-spot ${cls}${isFlagged?' cm-flagged':''}${heatCls}${lockCls}" data-cm-key="${id}"
-    style="${posStyle}${heatStyleVar}" onclick="cmOpenQuickActions('${id}',0,0)">
+    style="${posStyle}${heatStyleVar}" onclick="cmOpenQuickActions('${id}',0,0)" ${isMismatch?`title="⚠ Wrong spot - this is a ${CM_TYPE_LABELS[zoneType]||zoneType} spot but ${esc(veh.stock)} is ${CM_TYPE_LABELS[cmTypeClass(veh.status)]||cmTypeClass(veh.status)}"`:''}>
     ${(veh.note || (Array.isArray(veh.notes) && veh.notes.length)) ? `<div class="cm-spot-note"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
     ${(isFlagged || veh.needsGas || veh.needsWash || veh.atDealership) ? `<div class="cm-spot-flags">${isFlagged?'<span class="cm-spot-flag" title="Flagged" style="background:#fecaca;color:#7f1d1d">🚩</span>':''}${veh.needsGas?'<span class="cm-spot-flag" title="Needs gas">⛽</span>':''}${veh.needsWash?'<span class="cm-spot-flag" title="Needs wash">🧼</span>':''}${veh.atDealership?'<span class="cm-spot-flag" title="At dealership - needs to return to 323 Bayview" style="background:#fecaca">🏢</span>':''}</div>` : ''}
     <div class="cm-spot-stock">${esc(stock)}</div>
-    <div class="cm-spot-desc">${lockInfo ? `🔒 ${esc(lockInfo.lockedBy)}` : heatOn ? (ageDays!=null ? `${ageDays}d on lot` : 'no arrival date') : esc(typeLine)}</div>
-    ${isDupe ? '<div class="cm-spot-dupe">⚠ DUPLICATE</div>' : ''}
-    ${!heatOn && onTd && !isDupe ? '<div class="cm-spot-td">🚗 Out - Test Drive</div>' : ''}
-    ${!heatOn && appt && !onTd && !isDupe ? `<div class="cm-spot-appt">${appt.label}</div>` : ''}
-    ${!heatOn && gr && !appt && !onTd && !isDupe ? `<div class="cm-spot-gr">${gr.label}</div>` : ''}
+    <div class="cm-spot-desc">${lockInfo ? `🔒 ${esc(lockInfo.lockedBy)}` : heatOn ? (ageDays!=null ? `${ageDays}d on lot` : 'no arrival date') : isMismatch ? `Should be ${esc(veh.label)}` : esc(typeLine)}</div>
+    ${isDupe ? '<div class="cm-spot-dupe">⚠ DUPLICATE</div>' : isMismatch ? '<div class="cm-spot-dupe">⚠ WRONG SPOT</div>' : ''}
+    ${!heatOn && onTd && !isDupe && !isMismatch ? '<div class="cm-spot-td">🚗 Out - Test Drive</div>' : ''}
+    ${!heatOn && appt && !onTd && !isDupe && !isMismatch ? `<div class="cm-spot-appt">${appt.label}</div>` : ''}
+    ${!heatOn && gr && !appt && !onTd && !isDupe && !isMismatch ? `<div class="cm-spot-gr">${gr.label}</div>` : ''}
   </div>`;
 }
 
