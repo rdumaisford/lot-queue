@@ -1293,16 +1293,19 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
            background (drive lane, fence, whatever) - it isn't interactive and
            nothing can ever be assigned to it. No vehicles here yet - this is
            layout-only for now. -->
-      <!-- fl-canvas-outer always fills this whole area, panel or no panel -
-           the side panel floats on top instead of squeezing it, so opening
-           it (which happens the instant you select anything) never shrinks
-           the scrollable viewport or shifts what's reachable near the far
-           edge of a wide property. -->
-      <div id="cm-freeform-wrap" style="display:none;flex:1;min-height:0;position:relative">
-        <div id="fl-canvas-outer" style="position:absolute;inset:0;overflow:auto;background:var(--bg);padding:60px">
+      <!-- The side panel sits beside the canvas (not on top of it) so it
+           never covers a spot you're actively looking at, including one
+           you're dragging right into a corner. To make sure opening it
+           (which happens the instant you select anything) doesn't push the
+           far edge of a wide property out of reach, the canvas gets extra
+           scroll room on the right - comfortably more than the panel's own
+           width - so there's always enough room to scroll any corner clear
+           of where the panel sits instead of it landing underneath. -->
+      <div id="cm-freeform-wrap" style="display:none;flex:1;min-height:0">
+        <div id="fl-canvas-outer" style="flex:1;overflow:auto;position:relative;background:var(--bg);padding:60px 300px 60px 60px">
           <div id="fl-canvas"></div>
         </div>
-        <div id="fl-side-panel" style="display:none;position:absolute;top:0;right:0;bottom:0;width:230px;border-left:1px solid var(--border);background:var(--surface);padding:16px;overflow-y:auto;box-shadow:-6px 0 16px rgba(0,0,0,.1);z-index:5">
+        <div id="fl-side-panel" style="display:none;width:230px;flex-shrink:0;border-left:1px solid var(--border);background:var(--surface);padding:16px;overflow-y:auto">
           <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:12px">Spot properties</div>
           <div class="field" style="margin-bottom:12px">
             <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)">Label</label>
@@ -1884,14 +1887,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="field">
         <label>Vehicle Type</label>
-        <select id="cm-f-type" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none">
+        <select id="cm-f-type" onchange="document.getElementById('cm-f-type-other').style.display=this.value==='Other'?'':'none'" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none">
           <option value="">- Select -</option>
-          <option>F-150</option><option>F-250</option><option>F-350</option><option>F-550</option>
+          <option>F-150</option><option>F-250</option><option>F-350</option><option>F-450</option><option>F-550</option>
           <option>Bronco</option><option>Bronco Sport</option><option>Ranger</option>
           <option>Explorer</option><option>Maverick</option><option>Transit</option>
           <option>Escape</option><option>Edge</option><option>Mustang</option>
           <option>Lincoln</option><option>Other</option>
         </select>
+        <input id="cm-f-type-other" type="text" placeholder="e.g. Toyota Tundra, Chevy Silverado" style="display:none;margin-top:8px;width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/>
       </div>
       <div class="field">
         <label>Colour</label>
@@ -6828,6 +6832,35 @@ function cmSpotTitle(key, veh) {
   return `Spot ${veh?.label || key}`;
 }
 
+// The Vehicle Type field is a fixed dropdown plus a free-text escape hatch -
+// picking "Other" reveals a text input for a custom make/model that isn't
+// one of the presets. These two helpers keep the select+text-input pair in
+// sync with the single flat `type` string actually stored on the vehicle
+// (there's no separate manufacturer field anywhere else in the schema, so a
+// custom entry is just "Toyota Tundra" etc. as one string, same as the presets).
+function cmSetVehicleTypeField(typeValue) {
+  const typeEl = document.getElementById('cm-f-type');
+  const otherEl = document.getElementById('cm-f-type-other');
+  if (!typeEl) return;
+  const knownValues = Array.from(typeEl.options).map(o => o.value).filter(v => v && v !== 'Other');
+  if (typeValue && !knownValues.includes(typeValue)) {
+    typeEl.value = 'Other';
+    if (otherEl) { otherEl.value = typeValue; otherEl.style.display = ''; }
+  } else {
+    typeEl.value = typeValue || '';
+    if (otherEl) { otherEl.value = ''; otherEl.style.display = 'none'; }
+  }
+}
+function cmGetVehicleTypeValue() {
+  const typeEl = document.getElementById('cm-f-type');
+  if (!typeEl) return '';
+  if (typeEl.value === 'Other') {
+    const otherEl = document.getElementById('cm-f-type-other');
+    return otherEl ? otherEl.value.trim() : '';
+  }
+  return typeEl.value;
+}
+
 function cmRenderStats() {
   const el = document.getElementById('cm-stats');
   if (!el) return;
@@ -7054,7 +7087,7 @@ window.cmSwitchLot = function(id) {
   document.getElementById('cm-qr-btn').style.display = isFreeform ? 'none' : '';
   document.getElementById('cm-edit-btn').style.display = cmCanEditLayout() ? '' : 'none';
   document.getElementById('cm-map-wrap').style.display = isFreeform ? 'none' : '';
-  document.getElementById('cm-freeform-wrap').style.display = isFreeform ? 'block' : 'none';
+  document.getElementById('cm-freeform-wrap').style.display = isFreeform ? 'flex' : 'none';
 
   cmRender();
   if (isFreeform) flRender();
@@ -7336,7 +7369,7 @@ window.cmLookupSpecsForSpot = function() {
           typeEl = document.getElementById('cm-f-type'), colourEl = document.getElementById('cm-f-colour');
     if (yearEl && !yearEl.value && spec.year) yearEl.value = spec.year;
     if (trimEl && !trimEl.value && spec.trim) trimEl.value = spec.trim;
-    if (typeEl && !typeEl.value && spec.type) typeEl.value = spec.type;
+    if (typeEl && !typeEl.value && spec.type) cmSetVehicleTypeField(spec.type);
     if (colourEl && !colourEl.value && spec.colour) colourEl.value = spec.colour;
   }
   // Tether the spot's Type to the matching Incoming unit's New/Used condition -
@@ -7387,7 +7420,7 @@ window.cmSpotClick = function(key, ri, ci) {
     document.getElementById('cm-f-stock').value = v.stock||'';
     document.getElementById('cm-f-year').value = v.year||'';
     document.getElementById('cm-f-trim').value = v.trim||'';
-    document.getElementById('cm-f-type').value = v.type||'';
+    cmSetVehicleTypeField(v.type||'');
     document.getElementById('cm-f-colour').value = v.colour||'';
     document.getElementById('cm-f-status').value = cmTypeClass(v.status);
     document.getElementById('cm-f-flagged').checked = cmIsFlagged(v);
@@ -7408,7 +7441,7 @@ window.cmSpotClick = function(key, ri, ci) {
     document.getElementById('cm-f-stock').value = '';
     document.getElementById('cm-f-year').value = '';
     document.getElementById('cm-f-trim').value = '';
-    document.getElementById('cm-f-type').value = '';
+    cmSetVehicleTypeField('');
     document.getElementById('cm-f-colour').value = '';
     document.getElementById('cm-f-status').value = 'new';
     document.getElementById('cm-f-flagged').checked = false;
@@ -7468,7 +7501,7 @@ window.cmSaveSpot = async function() {
     stock,
     year:    document.getElementById('cm-f-year').value.trim(),
     trim:    document.getElementById('cm-f-trim').value.trim(),
-    type:    document.getElementById('cm-f-type').value.trim(),
+    type:    cmGetVehicleTypeValue(),
     colour:  document.getElementById('cm-f-colour').value.trim(),
     status,
     flagged: document.getElementById('cm-f-flagged').checked,
