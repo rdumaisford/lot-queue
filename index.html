@@ -89,7 +89,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tab-count{background:var(--bg);border-radius:20px;padding:1px 7px;font-size:11px;font-weight:600;color:var(--text-muted);min-width:20px;text-align:center}
 .tab.active .tab-count{background:var(--ford);color:white}
 
-.main{padding:24px;max-width:1100px;margin:0 auto}
+.main{padding:24px;max-width:none;margin:0 auto}
 .panel{display:none}.panel.active{display:block}
 #panel-rides.active{display:flex;flex-direction:column;height:calc(100vh - 130px)}
 #panel-compound.active{display:flex;flex-direction:column;height:calc(100vh - 92px)}
@@ -438,6 +438,40 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .section-divider{padding:8px 0;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin:8px 0 4px;grid-column:1/-1}
 .complete-badge{font-size:10px;font-weight:700;background:#15803d;color:white;padding:2px 6px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em}
 
+/* Active Incoming units - one dense row per car, everything visible at
+   once instead of split across a header/checks/meta/notes stack. Wide
+   enough that it needs horizontal scroll on a laptop; the full-width
+   layout means a normal desktop monitor shows it with no scrolling at all. */
+.trows{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface);min-width:1500px}
+.trow{display:grid;grid-template-columns:26px 90px 150px minmax(160px,1.3fr) 300px 130px 170px minmax(140px,1fr) 78px;gap:12px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--border);font-size:13px}
+.trow:last-child{border-bottom:none}
+.trow:hover{background:#fafaf9}
+.trow.status-stock{border-left:4px solid #1d4ed8}
+.trow.status-sold{border-left:4px solid #dc2626}
+.trow.status-turnover{border-left:4px solid #d97706}
+.trow.status-other{border-left:4px solid #94a3b8}
+.trow.is-dupe{border-left:4px solid #dc2626!important}
+.trow.is-locked{border-left:4px solid #1d4ed8!important}
+.trow-vehicle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted)}
+.trow-checks{display:flex;gap:10px;align-items:center;flex-wrap:nowrap}
+.trow-cb{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.trow-cb-label{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.03em}
+.cb-tap.mini{width:20px;height:20px;border-radius:6px;flex-shrink:0}
+.cb-tap.mini svg{width:11px;height:11px}
+.trow-notes{width:100%;padding:5px 8px;font-size:12px;font-family:var(--font);border:1px solid transparent;border-radius:var(--radius-sm);background:transparent;color:var(--text);outline:none}
+.trow-notes:hover,.trow-notes:focus{background:var(--bg);border-color:var(--border)}
+.trow-notes::placeholder{color:var(--text-faint)}
+.trow-actions{display:flex;gap:4px;justify-content:flex-end}
+.trow-actions .btn-tedit{flex:none;padding:4px 8px}
+.trow-actions .btn-tdel{padding:4px 8px}
+.trow-inline-status{padding:4px 8px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);cursor:pointer;color:var(--text);font-family:var(--font);outline:none;width:100%}
+.trow-inline-status option[value="STOCK"]{color:#1d4ed8;font-weight:700}
+.trow-inline-status option[value="SOLD"]{color:#dc2626;font-weight:700}
+.trow-inline-status option[value="TURNOVER"]{color:#d97706;font-weight:700}
+.trow-meta{font-size:11px;color:var(--text-faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trow-lock-icon,.trow-note-icon{font-size:12px;cursor:default}
+.trows-head{display:grid;grid-template-columns:26px 90px 150px minmax(160px,1.3fr) 300px 130px 170px minmax(140px,1fr) 78px;gap:12px;padding:8px 14px;background:#f8fafc;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint)}
+
 /* Desktop: bigger grid */
 @media(min-width:1200px){.tracker-card-grid{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}}
 
@@ -469,6 +503,18 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tlr-actions{display:flex;gap:6px;justify-content:flex-end}
 .tlr-actions .btn-tedit,.tlr-actions .btn-tdel{padding:4px 8px;font-size:11px}
 .tracker-empty{text-align:center;padding:32px;color:var(--text-muted);font-size:13px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
+
+/* Second line under a completed row - arrived/kms/keypad plus a small
+   checkbox per stage, hover for who/when it was done (title attribute). */
+.tlr-meta{grid-column:1/-1;display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding-top:6px;margin-top:6px;border-top:1px solid var(--border)}
+.tlr-meta-text{font-size:11px;color:var(--text-faint)}
+.tlr-stages{display:flex;flex-wrap:wrap;gap:10px;margin-left:auto}
+.tlr-stage{display:inline-flex;align-items:center;gap:4px;cursor:default}
+.tlr-stage-box{width:15px;height:15px;border-radius:4px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;background:var(--bg);flex-shrink:0}
+.tlr-stage-box svg{width:9px;height:9px;fill:none;stroke:#15803d;stroke-width:3}
+.tlr-stage-box.done{background:#dcfce7;border-color:#86efac}
+.tlr-stage-box.na{background:#f1f5f9;border-color:#e2e2df;color:#94a3b8;font-size:9px;font-weight:700}
+.tlr-stage-label{font-size:10px;font-weight:600;color:var(--text-muted);white-space:nowrap}
 
 /* Get Ready's completed (ready-for-delivery) list reuses the same
    .tracker-list/.tracker-list-row shell as Incoming's, just with column
@@ -586,7 +632,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .home-hero{text-align:center;padding:28px 16px 8px}
 .home-hero-title{font-size:24px;font-weight:700;color:var(--ford);letter-spacing:-.02em}
 .home-hero-sub{font-size:14px;color:var(--text-muted);margin-top:4px}
-.home-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;padding:24px 0;max-width:980px;margin:0 auto}
+.home-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;padding:24px 0}
 .home-tile{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px 20px;text-align:left;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;gap:10px;position:relative;overflow:hidden}
 .home-tile:hover{border-color:var(--ford);box-shadow:0 4px 16px rgba(0,9,91,.1);transform:translateY(-2px)}
 .home-tile-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -599,6 +645,39 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .home-tile.tone-navy   .home-tile-icon{background:#e0e7ff;color:#00095b}
 .home-tile.tone-green  .home-tile-icon{background:#dcfce7;color:#15803d}
 .home-tile.tone-grey   .home-tile-icon{background:#f1f5f9;color:#475569}
+
+/* Announcements - a Messages-style list+detail widget on the Home screen */
+.ann-widget{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-top:20px;display:flex;height:380px}
+.ann-list-pane{width:320px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0}
+.ann-list-header{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--border);font-size:15px;font-weight:700}
+.ann-list-header .ann-unread-count{background:var(--ford);color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px}
+.ann-new-btn{margin-left:auto;background:var(--ford);color:#fff;border:none;border-radius:var(--radius-sm);padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer}
+.ann-list-scroll{flex:1;overflow-y:auto}
+.ann-list-item{display:flex;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.ann-list-item:hover{background:var(--bg)}
+.ann-list-item.active{background:#eff6ff}
+.ann-list-item.unread .ann-item-title,.ann-list-item.unread .ann-item-subtitle{font-weight:700;color:var(--text)}
+.ann-avatar{width:36px;height:36px;border-radius:50%;background:var(--ford);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ann-item-body{flex:1;min-width:0}
+.ann-item-top{display:flex;align-items:baseline;gap:6px}
+.ann-item-name{font-size:13px;font-weight:700;color:var(--text)}
+.ann-item-time{margin-left:auto;font-size:11px;color:var(--text-faint);white-space:nowrap;display:flex;align-items:center;gap:3px}
+.ann-item-title{font-size:13px;color:var(--text);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ann-item-subtitle{font-size:12px;color:var(--text-faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ann-unread-dot{width:8px;height:8px;border-radius:50%;background:var(--ford);flex-shrink:0;margin-top:4px}
+.ann-load-more{margin:10px 16px;padding:8px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text-muted);cursor:pointer}
+.ann-detail-pane{flex:1;min-width:0;display:flex;flex-direction:column}
+.ann-empty{flex:1;display:flex;align-items:center;justify-content:center;color:var(--text-faint);font-size:13px}
+.ann-detail-scroll{flex:1;overflow-y:auto;padding:20px 24px}
+.ann-detail-header{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.ann-detail-name{font-size:14px;font-weight:700;color:var(--text)}
+.ann-detail-time{font-size:12px;color:var(--text-faint);display:flex;align-items:center;gap:4px}
+.ann-detail-title{font-size:19px;font-weight:700;color:var(--text);margin-bottom:2px}
+.ann-detail-subtitle{font-size:14px;color:var(--text-muted);margin-bottom:16px}
+.ann-detail-text{font-size:14px;line-height:1.6;color:var(--text);white-space:pre-wrap}
+.ann-detail-actions{display:flex;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+.ann-read-check{color:#15803d}
+.ann-back-btn{display:none}
 
 /* ── Mobile PDI card layout ── */
 @media(max-width:768px){
@@ -658,6 +737,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   .tracker-list-row{grid-template-columns:1fr;gap:4px;padding:12px 14px}
   .tracker-list-row.gr-row{grid-template-columns:1fr}
   .tlr-actions{justify-content:flex-start;margin-top:6px}
+
+  /* Quick links - always wrap on a phone, however many roles gives us */
+  .home-grid{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+
+  /* Announcements widget - one pane at a time, toggled by the back button */
+  .ann-widget{height:min(70vh,520px)}
+  .ann-list-pane{width:100%;border-right:none}
+  .ann-widget.showing-detail .ann-list-pane{display:none}
+  .ann-widget:not(.showing-detail) .ann-detail-pane{display:none}
+  .ann-back-btn{display:inline-flex}
 
   /* Tracker summary */
   .tracker-summary{display:grid;grid-template-columns:repeat(4,1fr)}
@@ -958,7 +1047,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 <!-- SYSTEM ALERT - banner persists until management clears it; popup fires once per new alert -->
 <div id="alert-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9000;background:#dc2626;color:#fff;padding:10px 16px;font-size:14px;font-weight:700;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.2);align-items:center;justify-content:center;gap:12px">
   <span style="font-size:18px">🚨</span>
-  <span id="alert-banner-text" style="flex:1;max-width:900px"></span>
+  <span id="alert-banner-text" style="flex:1;max-width:900px;cursor:pointer;text-decoration:underline" onclick="annOpenFromBanner()"></span>
   <button onclick="dismissAlertBanner()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">Dismiss</button>
 </div>
 <div id="alert-popup-backdrop" class="modal-backdrop" style="display:none;z-index:9500">
@@ -1093,11 +1182,43 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 
     <!-- HOME PORTAL -->
     <div id="panel-home" class="panel active">
+      <div class="ann-widget" id="ann-widget">
+        <div class="ann-list-pane">
+          <div class="ann-list-header">
+            <span>Announcements</span>
+            <span class="ann-unread-count" id="ann-unread-count" style="display:none"></span>
+            <button class="ann-new-btn" id="ann-new-btn" onclick="openAnnModal()" style="display:none">+ New</button>
+          </div>
+          <div class="ann-list-scroll" id="ann-list-scroll"></div>
+        </div>
+        <div class="ann-detail-pane" id="ann-detail-pane">
+          <div class="ann-empty">Select an announcement to read it</div>
+        </div>
+      </div>
+
       <div class="home-hero">
         <div class="home-hero-title">Welcome, <span id="home-name-display">there</span></div>
         <div class="home-hero-sub">Pick where you'd like to go.</div>
       </div>
       <div class="home-grid" id="home-grid"></div>
+    </div>
+
+    <!-- Announcement add/edit modal - management only -->
+    <div id="ann-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this)closeAnnModal()">
+      <div class="modal-card">
+        <div class="modal-title-row"><span id="ann-modal-title">New Announcement</span><button class="modal-close" onclick="closeAnnModal()">×</button></div>
+        <div class="modal-form-row modal-full"><label>Title</label><input id="ann-f-title" type="text" placeholder="e.g. IMPORTANT SAFETY NOTICE"/></div>
+        <div class="modal-form-row modal-full"><label>Subtitle <span style="font-weight:400;color:var(--text-faint);text-transform:none;letter-spacing:0">optional</span></label><input id="ann-f-subtitle" type="text" placeholder="e.g. Spring Lot Safety"/></div>
+        <div class="modal-form-row modal-full"><label>Message</label><textarea id="ann-f-body" placeholder="Write the announcement…" style="min-height:200px"></textarea></div>
+        <div class="modal-form-row modal-full" style="display:flex;align-items:center;gap:8px;flex-direction:row">
+          <input type="checkbox" id="ann-f-banner" style="width:16px;height:16px;margin:0"/>
+          <label for="ann-f-banner" style="margin:0;text-transform:none;letter-spacing:0;font-size:13px;font-weight:600;color:#dc2626;cursor:pointer">🚨 Also show as an emergency banner to everyone</label>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" onclick="closeAnnModal()">Cancel</button>
+          <button class="btn-modal-primary" id="ann-save-btn" onclick="saveAnnouncement()">Post</button>
+        </div>
+      </div>
     </div>
 
     <!-- RIDES - live map + Uber-style bottom sheet -->
@@ -1527,8 +1648,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       </div>
 
       <div class="tracker-summary" id="tracker-summary"></div>
-      <div class="table-wrap">
-        <div id="tracker-body" class="tracker-card-grid"></div>
+      <div class="table-wrap" style="overflow-x:auto">
+        <div id="tracker-body" class="trows"></div>
       </div>
 
       <!-- Completed units - kept forever, but shown as a compact list with its
@@ -1881,14 +2002,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 
       <div id="alert-settings-wrap" style="max-width:480px;display:none">
         <div style="background:var(--surface);border:1px solid #fca5a5;border-radius:var(--radius);padding:24px;margin-top:16px">
-          <div style="font-size:15px;font-weight:600;margin-bottom:4px">🚨 Alert All</div>
-          <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Sends a red banner and a one-time popup to everyone currently using the app. Stays up for everyone until you clear it below.</div>
+          <div style="font-size:15px;font-weight:600;margin-bottom:4px">🚨 Emergency banner</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Banners now come from Announcements - tick "Also show as an emergency banner" when posting or editing one from the Home screen. This just shows what's currently live and lets you kill it instantly.</div>
           <div id="alert-active-status" style="display:none;background:#fef2f2;border:1px solid #fca5a5;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;font-size:13px;color:#991b1b"></div>
-          <div class="modal-form-row" style="margin-bottom:10px"><label>Alert message</label><textarea id="alert-message-input" placeholder="e.g. Lot is closed today due to weather - no test drives." style="width:100%;min-height:70px;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"></textarea></div>
-          <div style="display:flex;gap:8px">
-            <button onclick="sendAlertAll()" style="flex:1;padding:11px;border:none;border-radius:var(--radius-sm);background:#dc2626;color:#fff;font-size:14px;font-weight:700;cursor:pointer">🚨 Send to Everyone</button>
-            <button onclick="clearAlertAll()" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer">Clear Alert</button>
-          </div>
+          <button onclick="clearAlertAll()" style="width:100%;padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer">Clear Alert</button>
           <div id="alert-settings-toast" class="toast" style="margin-top:10px"></div>
         </div>
       </div>
@@ -2100,7 +2217,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <option value="?">? (Unknown)</option>
         </select>
       </div>
-      <div class="modal-form-row"><label>Work Req. #</label><input id="m-workreq" type="text" placeholder="e.g. P1234 or 30456"/></div>
+      <div class="modal-form-row"><label>Keypad Code</label><input id="m-workreq" type="text" placeholder="e.g. 4821"/></div>
       <div class="modal-form-row modal-full"><label>Notes</label><textarea id="m-notes" placeholder="Sold to, dealer trade info, salesperson initials…"></textarea></div>
     </div>
     <div id="m-checkboxes-new" style="display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:12px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
@@ -2279,6 +2396,7 @@ function esc(val) {
 
 // ── State ─────────────────────────────────────────────
 let entries = {}, historyData = {}, units = {}, getReadyDeals = {}, hitchhikers = {}, testDrives = {}, compoundHistoryData = {};
+let announcements = {}, annSelectedId = null, annVisibleCount = 8, editingAnnId = null;
 let emailSettings = {}; // {notifyAddress, publicKey, serviceId, grTemplateId, incTemplateId}
 let currentAlertState = null;
 let emailjsReady = false;
@@ -3016,6 +3134,7 @@ function startApp() {
       if (banner) banner.style.display = 'none';
       if (activeStatusEl) activeStatusEl.style.display = 'none';
     }
+    renderAnnouncements(); // keeps the "currently bannered" note/checkbox in sync
   });
 
   // Live permissions - merges Firebase overrides on top of defaults
@@ -3081,6 +3200,11 @@ function startApp() {
     if (grView === 'calendar') renderGRCalendar();
     if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
     if (document.getElementById('panel-tv')?.classList.contains('active')) { renderTVGetReady(); renderTVCompoundMap(); }
+  });
+
+  onValue(ref(db,'announcements'), snap=>{
+    announcements = snap.val()||{};
+    renderAnnouncements();
   });
 
   onValue(ref(db,'testdrives'), snap=>{
@@ -4882,6 +5006,31 @@ function trWhoWhen(u, field, val) {
   return `${by}${at ? ' · '+new Date(at).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : ''}`;
 }
 
+// Small read-only checkboxes for each stage on a completed unit's row -
+// same checkmark look as the active card's cb-tap boxes, just miniature.
+// Hover shows who did it and when (same who/when stamps tracked per box).
+function stageBadges(u) {
+  const stages = u.condition === 'used'
+    ? [['fileReceived',"File Rec'd"], ['icMoved','IC Moved']]
+    : [['accessories','Acc.'], ['pdi','PDI'], ['photo','Photo'], ['icMoved','IC Moved']];
+  const checkSvg = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+  return stages.map(([field, label]) => {
+    if (field === 'photo' && !photoRequired(u)) {
+      return `<span class="tlr-stage" title="Not required">
+        <span class="tlr-stage-box na">–</span>
+        <span class="tlr-stage-label">${label}</span>
+      </span>`;
+    }
+    const done = !!u[field];
+    const whoWhen = trWhoWhen(u, field, done);
+    const title = whoWhen ? `Done by ${whoWhen}` : (done ? 'Done' : 'Not done');
+    return `<span class="tlr-stage" title="${esc(title)}">
+      <span class="tlr-stage-box${done?' done':''}">${done?checkSvg:''}</span>
+      <span class="tlr-stage-label">${label}</span>
+    </span>`;
+  }).join('');
+}
+
 // Click the text to copy it - a small icon fades in on hover as the only
 // hint it's clickable, rather than a separate always-visible button.
 function copyableText(text, label, extraClass) {
@@ -4917,69 +5066,60 @@ function renderTracker() {
 
   const body = document.getElementById('tracker-body');
   if(!rows.length){
-    body.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted);font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)">No active units match your search.</div>`;
+    body.innerHTML=`<div style="text-align:center;padding:48px;color:var(--text-muted);font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)">No active units match your search.</div>`;
     updateBulkBar();
     renderTrackerCompleted();
     return;
   }
 
-  function makeCard(u) {
+  // One dense row per car - everything in a single line instead of split
+  // across a header/checks/meta/notes stack. Info that doesn't fit (who
+  // added it and when) lives in the row's own title tooltip instead.
+  function makeRow(u) {
     const isSelected = selectedUnits.has(u.id);
-    const dupeBadge = isDupe(u) ? `<span class="complete-badge dupe-blink" style="background:#dc2626">⚠ Duplicate</span>` : '';
+    const dupeBadge = isDupe(u) ? `<span class="complete-badge dupe-blink" style="background:#dc2626;font-size:9px;padding:1px 5px" title="Duplicate stock #">⚠</span>` : '';
     const lockInfo = activeLockFor('tracker', u.id);
-
     const statusClass = {STOCK:'status-stock',SOLD:'status-sold',TURNOVER:'status-turnover'}[u.status]||'status-other';
 
     const cbBtn = (field, label, val, naOverride, extraClass='', canCheck=true) => {
       const whoWhen = trWhoWhen(u, field, val);
-      const whoWhenHtml = whoWhen ? `<span class="tracker-cb-who">${whoWhen}</span>` : '';
-      if (naOverride) return `<div class="tracker-cb-item">
-        <div class="cb-tap" style="background:#f1f5f9;border-color:#e2e2df;cursor:default;opacity:.6">
-          <span style="font-size:10px;font-weight:700;color:#94a3b8">N/A</span>
-        </div>
-        <span class="tracker-cb-label">${label}</span>
-      </div>`;
-      if (!canCheck) return `<div class="tracker-cb-item" ${whoWhen?`title="Done by ${whoWhen}"`:''}>
-        <div class="cb-tap ${val?'on':''} ${extraClass}" style="cursor:default;pointer-events:none;opacity:${val?'1':'.45'}">
-          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
-        <span class="tracker-cb-label">${label}</span>
-        ${whoWhenHtml}
-      </div>`;
-      return `<div class="tracker-cb-item" ${whoWhen?`title="Done by ${whoWhen}"`:''}>
-        <div class="cb-tap ${val?'on':'off'} ${extraClass}" onclick="inlineUpdate('${u.id}','${field}',${!val})">
-          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
-        <span class="tracker-cb-label">${label}</span>
-        ${whoWhenHtml}
-      </div>`;
+      if (naOverride) return `<span class="trow-cb" title="Not required">
+        <span class="cb-tap mini" style="background:#f1f5f9;border-color:#e2e2df;cursor:default"><span style="font-size:8px;font-weight:700;color:#94a3b8">–</span></span>
+        <span class="trow-cb-label">${label}</span>
+      </span>`;
+      const title = whoWhen ? `${label} - done by ${whoWhen}` : `${label}${val?' done':' not done'}`;
+      const clickable = canCheck ? ` onclick="inlineUpdate('${u.id}','${field}',${!val})"` : '';
+      return `<span class="trow-cb" title="${esc(title)}">
+        <span class="cb-tap mini ${val?'on':''} ${extraClass}"${clickable} style="cursor:${canCheck?'pointer':'default'};${canCheck?'':'opacity:.7'}">${val?'<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>':''}</span>
+        <span class="trow-cb-label">${label}</span>
+      </span>`;
     };
     const isNoPhoto = !photoRequired(u);
 
     const condBadge = u.condition === 'used'
-      ? `<span class="complete-badge" style="background:#7c3aed">${{TRADEIN:'Trade-In',AUCTION:'Auction'}[u.category]||'Used'}${u.subcategory?' · '+({RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'}[u.subcategory]||''):''}</span>`
-      : `<span class="complete-badge" style="background:#2563eb">${{RETAIL:'Retail',FLEET:'Fleet'}[u.category]||'New'}</span>`;
+      ? `<span class="complete-badge" style="background:#7c3aed;font-size:9px">${{TRADEIN:'Trade-In',AUCTION:'Auction'}[u.category]||'Used'}</span>`
+      : `<span class="complete-badge" style="background:#2563eb;font-size:9px">${{RETAIL:'Retail',FLEET:'Fleet'}[u.category]||'New'}</span>`;
 
     const isFord = u.condition === 'new' ? true : /ford/i.test(u.make||'');
-    const stickerBtn = (isFord && u.vin && u.vin.length >= 11)
-      ? `<a href="http://www.windowsticker.forddirect.com/windowsticker.pdf?vin=${encodeURIComponent(u.vin)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#1d4ed8;text-decoration:none;padding:2px 8px;border:1px solid #93c5fd;border-radius:12px;background:#eff6ff;white-space:nowrap" onclick="event.stopPropagation()">🪟 Window Sticker</a>`
+    const stickerLink = (isFord && u.vin && u.vin.length >= 11)
+      ? `<a href="http://www.windowsticker.forddirect.com/windowsticker.pdf?vin=${encodeURIComponent(u.vin)}" target="_blank" rel="noopener" title="Window Sticker" onclick="event.stopPropagation()" style="text-decoration:none;flex-shrink:0">🪟</a>`
       : '';
 
-    return `<div class="tracker-card ${statusClass}" id="tc-${u.id}" style="${isDupe(u)?'border-left:4px solid #dc2626':lockInfo?'border-left:4px solid #1d4ed8':''}">
-      ${lockInfo ? `<div class="tracker-lock-banner">🔒 ${lockInfo.lockedBy} is editing this…</div>` : ''}
-      <div class="tracker-card-header">
-        <div class="tracker-card-stock">
-          ${canEdit?`<input type="checkbox" class="row-select row-cb" ${isSelected?'checked':''} onchange="toggleRowSelect('${u.id}',this.checked)" style="width:15px;height:15px;accent-color:var(--ford);cursor:pointer;flex-shrink:0"/>`:''}
-          ${stockCopy(u.stock)}
-          ${condBadge}${dupeBadge}
-        </div>
-        <div class="tracker-card-vin">${vinWithCopy(u.vin)}</div>
-        <div class="tracker-card-vehicle">${u.vehicle||[u.year,u.type,u.trim,u.colour].filter(Boolean).join(' · ')||''}</div>
-        ${stickerBtn?`<div style="margin-top:6px">${stickerBtn}</div>`:''}
+    const vehicle = u.vehicle || [u.year,u.type,u.trim,u.colour].filter(Boolean).join(' · ') || '';
+    const metaBits = [u.arrived||'', u.kms?`${u.kms} km`:'', u.workReq?`🔑 ${u.workReq}`:''].filter(Boolean).join(' · ');
+    const addedLine = u.ts ? `Added ${timeAgo(u.ts)} by ${u.createdBy||u.updatedBy||'Unknown'}` : '';
+
+    return `<div class="trow ${statusClass}${isDupe(u)?' is-dupe':''}${lockInfo?' is-locked':''}" id="tc-${u.id}" title="${esc(addedLine)}">
+      <div>${canEdit?`<input type="checkbox" class="row-select row-cb" ${isSelected?'checked':''} onchange="toggleRowSelect('${u.id}',this.checked)" style="width:15px;height:15px;accent-color:var(--ford);cursor:pointer"/>`:''}</div>
+      <div class="trow-stock" style="display:flex;align-items:center;gap:4px;overflow:hidden">
+        ${stockCopy(u.stock)}
+        ${lockInfo?`<span class="trow-lock-icon" title="${esc(lockInfo.lockedBy)} is editing this…">🔒</span>`:''}
       </div>
-      <div class="tracker-card-checks">
+      <div class="trow-vin" style="display:flex;align-items:center;gap:5px">${vinWithCopy(u.vin)}${stickerLink}</div>
+      <div class="trow-vehicle" title="${esc(vehicle)}">${esc(vehicle)} ${condBadge}${dupeBadge}</div>
+      <div class="trow-checks">
         ${u.condition === 'used' ? `
-          ${cbBtn('fileReceived','File Rec\'d',u.fileReceived,false,'',canEdit)}
+          ${cbBtn('fileReceived',"File Rec'd",u.fileReceived,false,'',canEdit)}
           ${cbBtn('icMoved','IC Moved',u.icMoved,false,'cb-ic',canIC)}
         ` : `
           ${cbBtn('accessories','Acc.',u.accessories,false,'',canAcc)}
@@ -4988,40 +5128,33 @@ function renderTracker() {
           ${cbBtn('icMoved','IC Moved',u.icMoved,false,'cb-ic',canIC)}
         `}
       </div>
-      <div class="tracker-card-meta">
-        ${canEdit?`<select class="inline-status" onchange="inlineStatus('${u.id}',this.value)">
-          <option value="STOCK" ${u.status==='STOCK'?'selected':''}>Stock</option>
-          <option value="SOLD" ${u.status==='SOLD'?'selected':''}>Sold</option>
-          <option value="TURNOVER" ${u.status==='TURNOVER'?'selected':''}>Turnover</option>
-          <option value="OTHER" ${u.status==='OTHER'?'selected':''}>Other</option>
-          <option value="?" ${u.status==='?'?'selected':''}>?</option>
-        </select>`:tStatusPill(u.status)}
-        ${u.arrived?`<span style="font-size:12px;color:var(--text-faint)">${u.arrived}</span>`:''}
-        ${u.kms?`<span style="font-size:12px;color:var(--text-faint)">${u.kms} km</span>`:''}
-        ${u.workReq?`<span style="font-size:12px;font-family:monospace;color:var(--text-faint)">${u.workReq}</span>`:''}
-      </div>
-      ${u.ts?`<div style="font-size:11px;color:var(--text-faint);padding:0 16px 8px">Added ${timeAgo(u.ts)} by ${esc(u.createdBy||u.updatedBy||'Unknown')}</div>`:''}
-      <div class="tracker-card-notes">
-        <textarea placeholder="Add notes…" onchange="inlineNotes('${u.id}',this.value)" onblur="inlineNotes('${u.id}',this.value)">${esc(u.notes||'')}</textarea>
-      </div>
-      ${canEdit?`<div class="tracker-card-actions">
-        <button class="btn-tedit" onclick="openUnitModal('${u.id}')">✎ Edit</button>
+      <div>${canEdit?`<select class="trow-inline-status" onchange="inlineStatus('${u.id}',this.value)">
+        <option value="STOCK" ${u.status==='STOCK'?'selected':''}>Stock</option>
+        <option value="SOLD" ${u.status==='SOLD'?'selected':''}>Sold</option>
+        <option value="TURNOVER" ${u.status==='TURNOVER'?'selected':''}>Turnover</option>
+        <option value="OTHER" ${u.status==='OTHER'?'selected':''}>Other</option>
+        <option value="?" ${u.status==='?'?'selected':''}>?</option>
+      </select>`:tStatusPill(u.status)}</div>
+      <div class="trow-meta" title="${esc(metaBits)}">${esc(metaBits)}</div>
+      <input class="trow-notes" placeholder="Add notes…" value="${esc(u.notes||'')}" onchange="inlineNotes('${u.id}',this.value)" onblur="inlineNotes('${u.id}',this.value)"/>
+      ${canEdit?`<div class="trow-actions">
+        <button class="btn-tedit" onclick="openUnitModal('${u.id}')">✎</button>
         <button class="btn-tdel" onclick="deleteUnit('${u.id}','${(u.stock||u.vin).replace(/"/g,'&quot;').replace(/'/g,"\\'")}')">✕</button>
-      </div>`:''}
+      </div>`:'<div></div>'}
     </div>`;
   }
 
   const activeNew = rows.filter(u => u.condition !== 'used');
   const activeUsed = rows.filter(u => u.condition === 'used');
 
-  let html = '';
+  let html = `<div class="trows-head"><span></span><span>Stock</span><span>VIN</span><span>Vehicle</span><span>Checklist</span><span>Status</span><span>Info</span><span>Notes</span><span>Actions</span></div>`;
   if (activeNew.length) {
-    html += `<div class="section-divider">🆕 New (${activeNew.length})</div>`;
-    html += activeNew.map(makeCard).join('');
+    html += `<div class="section-divider" style="padding:6px 14px;background:#f8fafc">🆕 New (${activeNew.length})</div>`;
+    html += activeNew.map(makeRow).join('');
   }
   if (activeUsed.length) {
-    html += `<div class="section-divider">🔁 Used (${activeUsed.length})</div>`;
-    html += activeUsed.map(makeCard).join('');
+    html += `<div class="section-divider" style="padding:6px 14px;background:#f8fafc">🔁 Used (${activeUsed.length})</div>`;
+    html += activeUsed.map(makeRow).join('');
   }
   body.innerHTML = html;
   updateBulkBar();
@@ -5062,6 +5195,11 @@ function renderTrackerCompleted() {
       u.completedAt ? new Date(u.completedAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : '',
       u.completedBy || '',
     ].filter(Boolean).join(' · ');
+    const metaBits = [
+      u.arrived ? `📅 ${esc(u.arrived)}` : '',
+      u.kms ? `${esc(u.kms)} km` : '',
+      u.workReq ? `🔑 ${esc(u.workReq)}` : '',
+    ].filter(Boolean).join(' · ');
     return `<div class="tracker-list-row" id="tc-${u.id}">
       <div class="tlr-stock">${stockCopy(u.stock)}</div>
       <div class="tlr-vin">${vinWithCopy(u.vin)}</div>
@@ -5073,6 +5211,10 @@ function renderTrackerCompleted() {
         <button class="btn-tedit" onclick="openUnitModal('${u.id}')">✎</button>
         <button class="btn-tdel" onclick="deleteUnit('${u.id}','${(u.stock||u.vin).replace(/"/g,'&quot;').replace(/'/g,"\\'")}')">✕</button>
       </div>`:'<div></div>'}
+      <div class="tlr-meta">
+        ${metaBits?`<span class="tlr-meta-text">${metaBits}</span>`:''}
+        <span class="tlr-stages">${stageBadges(u)}</span>
+      </div>
     </div>`;
   }
 
@@ -6442,17 +6584,9 @@ function showEmailToast(msg,type){const t=document.getElementById('email-setting
 
 function showAlertToast(msg,type){const t=document.getElementById('alert-settings-toast');if(!t)return;t.textContent=msg;t.className='toast '+type;t.style.display='block';setTimeout(()=>{t.style.display='none';},4000);}
 
-window.sendAlertAll = async function() {
-  const msg = document.getElementById('alert-message-input').value.trim();
-  if (!msg) { showAlertToast('Type a message first.', 'error'); return; }
-  if (!confirm('Send this alert to everyone currently using the app?\n\n"'+msg+'"')) return;
-  try {
-    await update(ref(db,'settings'), { alert: { message: msg, createdBy: currentUser.name, createdAt: Date.now(), active: true } });
-    document.getElementById('alert-message-input').value = '';
-    showAlertToast('✓ Alert sent to everyone.', 'success');
-  } catch(e) { showAlertToast('Error sending - check connection.', 'error'); }
-};
-
+// Emergency banners are now composed from an Announcement's own "Also show
+// as an emergency banner" checkbox (see saveAnnouncement) - this is just the
+// instant kill-switch, kept in Settings for when someone needs it gone now.
 window.clearAlertAll = async function() {
   if (!confirm('Clear the active alert for everyone?')) return;
   try {
@@ -6472,6 +6606,13 @@ window.dismissAlertBanner = function() {
 
 window.closeAlertPopup = function() {
   document.getElementById('alert-popup-backdrop').style.display = 'none';
+};
+
+// Clicking the banner text jumps straight to the announcement it came from.
+window.annOpenFromBanner = function() {
+  if (!currentAlertState?.announcementId) return;
+  switchTab('home', document.getElementById('tab-home'));
+  annSelect(currentAlertState.announcementId);
 };
 
 window.saveEmailSettings = async function() {
@@ -6914,7 +7055,7 @@ window.printTodaysDrops = function() {
         <th>Vehicle</th>
         <th style="text-align:center">KMs</th>
         <th style="text-align:center">Status</th>
-        <th>Work Req.</th>
+        <th>Keypad Code</th>
         <th style="text-align:center">Acc.</th>
         <th style="text-align:center">PDI</th>
         <th>Notes</th>
@@ -7018,6 +7159,10 @@ function renderHomeGrid() {
     });
   }
 
+  // One line across, however many tiles this role gets - the mobile media
+  // query overrides this back to a wrapping grid on narrow screens.
+  grid.style.gridTemplateColumns = `repeat(${tiles.length}, 1fr)`;
+
   grid.innerHTML = tiles.map(t => {
     const badgeNum = t.badge ? t.badge() : null;
     return `<div class="home-tile tone-${t.tone}" onclick="switchTab('${esc(t.name)}',document.getElementById('tab-${esc(t.name)}'))">
@@ -7028,6 +7173,173 @@ function renderHomeGrid() {
     </div>`;
   }).join('');
 }
+
+// ── Announcements ─────────────────────────────────────
+// A Messages-style list+detail widget on the Home screen. Only management
+// can post/edit/delete (enforced both here and in database.rules.json);
+// everyone else can read and the app tracks per-user read state so unread
+// items stay bold until opened. One announcement at a time can also be
+// promoted to the site-wide emergency banner (see saveAnnouncement).
+function annInitials(name) {
+  return (name||'?').split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+}
+
+function renderAnnouncements() {
+  if (!currentUser) return;
+  const newBtn = document.getElementById('ann-new-btn');
+  if (newBtn) newBtn.style.display = currentUser.role === 'management' ? '' : 'none';
+
+  const list = Object.entries(announcements).map(([id,a]) => ({id, ...a})).sort((a,b) => (b.ts||0)-(a.ts||0));
+  const unreadCount = list.filter(a => !(a.readBy && a.readBy[currentUser.uid])).length;
+  const unreadEl = document.getElementById('ann-unread-count');
+  if (unreadEl) { unreadEl.style.display = unreadCount ? '' : 'none'; unreadEl.textContent = unreadCount; }
+
+  const visible = list.slice(0, annVisibleCount);
+  const listEl = document.getElementById('ann-list-scroll');
+  if (listEl) {
+    if (!visible.length) {
+      listEl.innerHTML = `<div class="ann-empty" style="padding:24px">No announcements yet.</div>`;
+    } else {
+      listEl.innerHTML = visible.map(a => {
+        const isRead = !!(a.readBy && a.readBy[currentUser.uid]);
+        return `<div class="ann-list-item${isRead?'':' unread'}${a.id===annSelectedId?' active':''}" onclick="annSelect('${a.id}')">
+          <div class="ann-avatar">${annInitials(a.authorName)}</div>
+          <div class="ann-item-body">
+            <div class="ann-item-top">
+              <span class="ann-item-name">${esc(a.authorName||'Unknown')}</span>
+              <span class="ann-item-time">${isRead?'<span class="ann-read-check">✓</span>':''}${timeAgo(a.ts)}</span>
+            </div>
+            <div class="ann-item-title">${esc(a.title||'')}</div>
+            ${a.subtitle?`<div class="ann-item-subtitle">${esc(a.subtitle)}</div>`:''}
+          </div>
+          ${isRead?'':'<div class="ann-unread-dot"></div>'}
+        </div>`;
+      }).join('')
+      + (list.length > visible.length ? `<button class="ann-load-more" onclick="annLoadMore()">Load more (${list.length-visible.length} more)</button>` : '');
+    }
+  }
+
+  annRenderDetail();
+}
+window.renderAnnouncements = renderAnnouncements;
+
+function annRenderDetail() {
+  const pane = document.getElementById('ann-detail-pane');
+  if (!pane) return;
+  const a = annSelectedId ? announcements[annSelectedId] : null;
+  if (!a) {
+    pane.innerHTML = `<div class="ann-empty">Select an announcement to read it</div>`;
+    return;
+  }
+  const isRead = !!(a.readBy && a.readBy[currentUser.uid]);
+  const canWrite = currentUser?.role === 'management';
+  const isBannered = currentAlertState?.active && currentAlertState.announcementId === annSelectedId;
+  pane.innerHTML = `
+    <div class="ann-detail-scroll">
+      <button class="btn-tedit ann-back-btn" onclick="annBack()" style="margin-bottom:14px">← Back</button>
+      <div class="ann-detail-header">
+        <div class="ann-avatar">${annInitials(a.authorName)}</div>
+        <div>
+          <div class="ann-detail-name">${esc(a.authorName||'Unknown')}</div>
+          <div class="ann-detail-time">${isRead?'<span class="ann-read-check">✓</span>':''}${new Date(a.ts).toLocaleString([], {month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit'})}</div>
+        </div>
+      </div>
+      ${isBannered?`<div style="background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;font-size:12px;font-weight:700;border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:14px">🚨 Currently showing as the emergency banner to everyone</div>`:''}
+      <div class="ann-detail-title">${esc(a.title||'')}</div>
+      ${a.subtitle?`<div class="ann-detail-subtitle">${esc(a.subtitle)}</div>`:''}
+      <div class="ann-detail-text">${esc(a.body||'')}</div>
+      ${canWrite?`<div class="ann-detail-actions">
+        <button class="btn-tedit" onclick="openAnnModal('${annSelectedId}')">✎ Edit</button>
+        <button class="btn-tdel" onclick="deleteAnnouncement('${annSelectedId}')">✕ Delete</button>
+      </div>`:''}
+    </div>`;
+}
+
+window.annSelect = async function(id) {
+  annSelectedId = id;
+  document.getElementById('ann-widget')?.classList.add('showing-detail');
+  const a = announcements[id];
+  if (a && !(a.readBy && a.readBy[currentUser.uid])) {
+    // Optimistic local update so the bold/unread state clears instantly,
+    // instead of waiting on the round-trip to Firebase and back.
+    announcements[id] = { ...a, readBy: { ...(a.readBy||{}), [currentUser.uid]: true } };
+    update(ref(db, `announcements/${id}/readBy`), { [currentUser.uid]: true }).catch(()=>{});
+  }
+  renderAnnouncements();
+};
+
+window.annBack = function() {
+  document.getElementById('ann-widget')?.classList.remove('showing-detail');
+};
+
+window.annLoadMore = function() {
+  annVisibleCount += 10;
+  renderAnnouncements();
+};
+
+window.openAnnModal = function(id) {
+  if (currentUser?.role !== 'management') return;
+  editingAnnId = id || null;
+  const a = id ? announcements[id] : {};
+  document.getElementById('ann-modal-title').textContent = id ? 'Edit Announcement' : 'New Announcement';
+  document.getElementById('ann-save-btn').textContent = id ? 'Save changes' : 'Post';
+  document.getElementById('ann-f-title').value = a.title || '';
+  document.getElementById('ann-f-subtitle').value = a.subtitle || '';
+  document.getElementById('ann-f-body').value = a.body || '';
+  document.getElementById('ann-f-banner').checked = !!(id && currentAlertState?.active && currentAlertState.announcementId === id);
+  document.getElementById('ann-modal').style.display = 'flex';
+};
+
+window.closeAnnModal = function() {
+  document.getElementById('ann-modal').style.display = 'none';
+  editingAnnId = null;
+};
+
+window.saveAnnouncement = async function() {
+  const title = document.getElementById('ann-f-title').value.trim();
+  const subtitle = document.getElementById('ann-f-subtitle').value.trim();
+  const body = document.getElementById('ann-f-body').value.trim();
+  if (!title || !body) { alert('Please fill in a title and a message.'); return; }
+  const wantsBanner = document.getElementById('ann-f-banner').checked;
+  const wasThisBannered = editingAnnId && currentAlertState?.active && currentAlertState.announcementId === editingAnnId;
+
+  if (wantsBanner && !wasThisBannered) {
+    if (!confirm('Show this as a red emergency banner to everyone right now?')) return;
+  }
+
+  const btn = document.getElementById('ann-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    let id = editingAnnId;
+    if (id) {
+      await update(ref(db, `announcements/${id}`), { title, subtitle, body });
+    } else {
+      const newRef = push(ref(db, 'announcements'));
+      id = newRef.key;
+      // The poster has obviously "read" their own announcement already.
+      await set(newRef, { title, subtitle, body, authorName: currentUser.name, authorUid: currentUser.uid, ts: Date.now(), readBy: { [currentUser.uid]: true } });
+    }
+    if (wantsBanner) {
+      await update(ref(db,'settings'), { alert: { active: true, message: [title,subtitle].filter(Boolean).join(' — '), createdBy: currentUser.name, createdAt: Date.now(), announcementId: id } });
+    } else if (wasThisBannered) {
+      await update(ref(db,'settings'), { alert: { active: false, message: '' } });
+    }
+    closeAnnModal();
+  } catch(e) {
+    alert('Error saving - check connection.');
+  }
+  btn.disabled = false; btn.textContent = editingAnnId ? 'Save changes' : 'Post';
+};
+
+window.deleteAnnouncement = async function(id) {
+  if (currentUser?.role !== 'management') return;
+  if (!confirm('Delete this announcement? This cannot be undone.')) return;
+  if (currentAlertState?.active && currentAlertState.announcementId === id) {
+    await update(ref(db,'settings'), { alert: { active: false, message: '' } });
+  }
+  await remove(ref(db, `announcements/${id}`));
+  if (annSelectedId === id) { annSelectedId = null; annBack(); }
+};
 
 // ── Compound Map ──────────────────────────────────────
 const CM_LOTS = {
@@ -8402,12 +8714,6 @@ window.switchTab = function(name, btn) {
     cmRender();
   } else if (name === 'audit') {
     auditRender();
-  } else if (name === 'tracker' || name === 'getready') {
-    // These two run wide - their card grids and completed lists waste a lot
-    // of side margin at the default 1100px cap on anything bigger than a
-    // laptop screen.
-    document.getElementById('main-wrap').style.padding = '24px';
-    document.getElementById('main-wrap').style.maxWidth = 'none';
   } else {
     // Restore normal padding when leaving compound tab (but not for the TV kiosk view)
     const wasCompound = document.getElementById('panel-compound')?.classList.contains('active');

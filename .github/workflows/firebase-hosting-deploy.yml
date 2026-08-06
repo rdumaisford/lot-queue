@@ -15,3 +15,14 @@ jobs:
           firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_LOT_QUEUE }}"
           projectId: lot-queue
           channelId: live
+      # action-hosting-deploy above only touches Hosting - database.rules.json
+      # changes (e.g. permission changes) need their own deploy or they just
+      # sit in the repo without ever taking effect on the live database.
+      - name: Deploy Realtime Database rules
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_LOT_QUEUE }}
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > /tmp/firebase-sa.json
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/firebase-sa.json
+          npx --yes firebase-tools@latest deploy --only database --project lot-queue --non-interactive
+          rm -f /tmp/firebase-sa.json
