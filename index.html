@@ -467,6 +467,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tlr-actions .btn-tedit,.tlr-actions .btn-tdel{padding:4px 8px;font-size:11px}
 .tracker-empty{text-align:center;padding:32px;color:var(--text-muted);font-size:13px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
 
+/* Get Ready's completed (ready-for-delivery) list reuses the same
+   .tracker-list/.tracker-list-row shell as Incoming's, just with column
+   widths suited to its own fields instead of VIN/status. */
+.tracker-list-row.gr-row,.tracker-list-head.gr-row{grid-template-columns:90px 1fr 130px 90px 100px 150px 70px}
+
 /* ── Get Ready ── */
 .gr-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;transition:box-shadow .15s}
 .gr-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
@@ -648,6 +653,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   /* Completed list rows - stack instead of a wide grid */
   .tracker-list-head{display:none}
   .tracker-list-row{grid-template-columns:1fr;gap:4px;padding:12px 14px}
+  .tracker-list-row.gr-row{grid-template-columns:1fr}
   .tlr-actions{justify-content:flex-start;margin-top:6px}
 
   /* Tracker summary */
@@ -1568,6 +1574,22 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 
       <div id="gr-list-view" class="table-wrap">
         <div id="gr-body" class="tracker-card-grid"></div>
+
+        <!-- Ready-for-delivery deals - kept as a compact list with its own
+             search/filter, same pattern as Incoming's Completed section. -->
+        <div class="section-divider" id="gr-completed-divider" style="display:none">✓ Ready for delivery</div>
+        <div class="tracker-completed-toolbar" id="gr-completed-toolbar" style="display:none">
+          <div class="search-wrap">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input class="search-input" id="grc-search" type="text" placeholder="Search ready deals…" oninput="renderGRCompleted()"/>
+          </div>
+          <button class="filter-chip active" onclick="setGRCompletedFilter('ALL',this)">All</button>
+          <button class="filter-chip" onclick="setGRCompletedFilter('AS-IS',this)">As-Is</button>
+          <button class="filter-chip" onclick="setGRCompletedFilter('RETAIL',this)">Retail</button>
+          <button class="filter-chip" onclick="setGRCompletedFilter('WHOLESALE',this)">Wholesale</button>
+          <span id="grc-row-count" style="font-size:13px;color:var(--text-muted);white-space:nowrap"></span>
+        </div>
+        <div id="gr-completed-body" class="tracker-list"></div>
       </div>
 
       <div id="gr-calendar-view" style="display:none">
@@ -2273,7 +2295,7 @@ let MOVE_MINS = 15, CONVERT_MINS = 45, LOT_OPEN = 7, LOT_CLOSE = 21;
 let historyDays = 30, soundEnabled = localStorage.getItem('lq-sound') !== 'false';
 let tFilterStatus = 'ALL', tSortCol = 'arrived', tSortAsc = false, editingUnitId = null;
 let denyTargetId = null;
-let grFilterStatus = 'ALL', editingGRId = null;
+let grFilterStatus = 'ALL', grcFilterStatus = 'ALL', editingGRId = null;
 
 // ── Roles & Permissions (Firebase-backed, editable in Settings) ──
 const ALL_ROLES = ['lot','reception','service','sales','fandi','detail','pdi','merchandiser','management','shuttle','display'];
@@ -5258,18 +5280,27 @@ window.setGRFilter = function(status, btn) {
   if (grView === 'calendar') renderGRCalendar();
 };
 
-function getGRFiltered() {
-  const q = document.getElementById('gr-search').value.trim().toLowerCase();
+// Deals visible to the current role - Sales/F&I only see their own (matched
+// by name against the relevant field), Lot/Management see everything.
+function grScopedDeals() {
   let rows = Object.entries(getReadyDeals).map(([id,d])=>({id,...d}));
-
-  // Sales and F&I only see their own deals — matched by name against the
-  // relevant field. Lot and Management see everything, no filter applied.
   if (currentUser?.role === 'sales') {
     rows = rows.filter(d => (d.salesperson||'').toLowerCase() === (currentUser.name||'').toLowerCase());
   } else if (currentUser?.role === 'fandi') {
     rows = rows.filter(d => (d.fniManager||'').toLowerCase() === (currentUser.name||'').toLowerCase());
   }
+  return rows;
+}
 
+// Returns EVERY scoped deal (active and ready-for-delivery alike), matching
+// the top toolbar's search/filter - still needed as-is for the calendar
+// view (grShowDayDeals), which shows a day's deals regardless of ready
+// status. The active card grid and the calendar can share this; the
+// Completed list below has its own independent search/filter instead
+// (getGRCompletedFiltered), same split as Incoming's tracker.
+function getGRFiltered() {
+  const q = document.getElementById('gr-search').value.trim().toLowerCase();
+  let rows = grScopedDeals();
   if (grFilterStatus === 'GAS') rows = rows.filter(d => grEffectiveFuelStatus(d) !== 'none' && !d.gasFilled);
   else if (grFilterStatus !== 'ALL') rows = rows.filter(d => d.type === grFilterStatus);
   if (q) rows = rows.filter(d => [d.stock,d.dealNum,d.vehicle,d.vin,d.customer,d.salesperson,d.notes].join(' ').toLowerCase().includes(q));
@@ -5285,6 +5316,22 @@ function getGRFiltered() {
     const bt = b.deliveryDate ? new Date(b.deliveryDate).getTime() : Infinity;
     return at - bt;
   });
+  return rows;
+}
+
+window.setGRCompletedFilter = function(status, btn) {
+  grcFilterStatus = status;
+  document.querySelectorAll('#gr-completed-toolbar .filter-chip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderGRCompleted();
+};
+
+function getGRCompletedFiltered() {
+  const q = (document.getElementById('grc-search')?.value||'').trim().toLowerCase();
+  let rows = grScopedDeals().filter(grIsComplete);
+  if (grcFilterStatus !== 'ALL') rows = rows.filter(d => d.type === grcFilterStatus);
+  if (q) rows = rows.filter(d => [d.stock,d.dealNum,d.vehicle,d.vin,d.customer,d.salesperson,d.notes].join(' ').toLowerCase().includes(q));
+  rows.sort((a,b) => (b.completedAt||0) - (a.completedAt||0));
   return rows;
 }
 
@@ -5559,6 +5606,7 @@ function renderGRCalendar() {
       </div>`).join('')}
     </div>` : '';
 }
+window.renderGRCalendar = renderGRCalendar; // same window-exposure fix as renderGetReady above
 
 function renderGRCard(d, perms, isDupe) {
     const canFull = perms.full;
@@ -5732,34 +5780,78 @@ function renderGRCard(d, perms, isDupe) {
     </div>`;
   }
 
+// Active (not-yet-ready) deals only - ready-for-delivery deals have their
+// own list/search/filter below (renderGRCompleted), same split as Incoming.
 function renderGetReady() {
-  const rows = getGRFiltered();
+  const rows = getGRFiltered().filter(d => !grIsComplete(d));
   const grPerms = { full: perm('getReadyEdit'), gas: perm('grGasConfirm'), checklist: perm('grChecklistApprove') };
-  const active = rows.filter(d => !grIsComplete(d));
-  const completed = rows.filter(d => grIsComplete(d));
   const scopeFilter = ['sales','fandi'].includes(currentUser?.role) ? ' · your deals only' : '';
-  document.getElementById('gr-row-count').textContent = rows.length+' deal'+(rows.length!==1?'s':'')+' · '+active.length+' active'+scopeFilter;
+  const allActive = grScopedDeals().filter(d => !grIsComplete(d));
+  document.getElementById('gr-row-count').textContent = rows.length+' of '+allActive.length+' active deal'+(allActive.length!==1?'s':'')+scopeFilter;
 
-  // Flag stock #s that appear in more than one Get Ready deal
+  // Flag stock #s that appear in more than one Get Ready deal, active or ready
   const stockCounts = {};
-  rows.forEach(d => { const s=(d.stock||'').toUpperCase().trim(); if(s) stockCounts[s]=(stockCounts[s]||0)+1; });
+  grScopedDeals().forEach(d => { const s=(d.stock||'').toUpperCase().trim(); if(s) stockCounts[s]=(stockCounts[s]||0)+1; });
   const isDupe = (d) => { const s=(d.stock||'').toUpperCase().trim(); return s && stockCounts[s] > 1; };
 
   const body = document.getElementById('gr-body');
-  if (!rows.length) {
-    body.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted);font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)">No Get Ready deals match your search.</div>`;
+  body.innerHTML = rows.length
+    ? rows.map(d => renderGRCard(d, grPerms, isDupe)).join('')
+    : `<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted);font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)">No active deals match your search.</div>`;
+  renderGRCompleted();
+}
+// Exposed on window - #gr-search's oninput calls renderGetReady() from
+// global scope, which can't see a plain module-scoped function (same fix
+// as window.renderTracker above).
+window.renderGetReady = renderGetReady;
+
+function renderGRCompleted() {
+  const canFull = perm('getReadyEdit');
+  const allCompletedCount = grScopedDeals().filter(grIsComplete).length;
+  const toolbar = document.getElementById('gr-completed-toolbar');
+  const divider = document.getElementById('gr-completed-divider');
+  const body = document.getElementById('gr-completed-body');
+  if (!allCompletedCount) {
+    toolbar.style.display = 'none';
+    divider.style.display = 'none';
+    body.innerHTML = '';
     return;
   }
-
-
-  let html = '';
-  if (active.length) html += active.map(d => renderGRCard(d, grPerms, isDupe)).join('');
-  if (completed.length) {
-    html += `<div class="section-divider">✓ Ready for delivery (${completed.length})</div>`;
-    html += completed.map(d => renderGRCard(d, grPerms, isDupe)).join('');
+  toolbar.style.display = 'flex';
+  divider.style.display = 'block';
+  const rows = getGRCompletedFiltered();
+  document.getElementById('grc-row-count').textContent = rows.length+' of '+allCompletedCount+' ready';
+  if (!rows.length) {
+    body.innerHTML = `<div class="tracker-empty">No ready deals match your search.</div>`;
+    return;
   }
-  body.innerHTML = html;
+  const typePillClassOf = (type) => ({'AS-IS':'as-is','RETAIL':'retail','WHOLESALE':'wholesale'})[type]||'as-is';
+
+  function makeRow(d) {
+    const dealNote = d.dealCompleted ? '✓ Deal completed' : d.dealStatus === 'on_hold' ? '⏸ On hold' : d.dealStatus === 'declined' ? '❌ Declined' : '';
+    const readyLine = [
+      d.completedAt ? new Date(d.completedAt).toLocaleDateString() : '',
+      d.completedBy || '',
+      dealNote,
+    ].filter(Boolean).join(' · ');
+    return `<div class="tracker-list-row gr-row" id="gr-${d.id}">
+      <div class="tlr-stock">${esc(d.stock||'-')}</div>
+      <div class="tlr-vehicle" title="${esc(d.vehicle||'')}">${esc(d.vehicle||'-')}</div>
+      <div class="tlr-vehicle" title="${esc(d.customer||'')}">${esc(d.customer||'-')}</div>
+      <span class="gr-type-pill ${typePillClassOf(d.type)}">${esc(d.type||'-')}</span>
+      <div class="tlr-completed">${d.deliveryDate?fmtGRDate(d.deliveryDate,d.deliveryTime):''}</div>
+      <div class="tlr-completed" title="${esc(readyLine)}">${esc(readyLine)}</div>
+      ${canFull?`<div class="tlr-actions">
+        <button class="btn-tedit" onclick="openGRModal('${d.id}')">✎</button>
+        <button class="btn-tdel" onclick="deleteGR('${d.id}','${(d.stock||d.customer||'').replace(/"/g,'&quot;').replace(/'/g,"\\'")}')">✕</button>
+      </div>`:'<div></div>'}
+    </div>`;
+  }
+
+  body.innerHTML = `<div class="tracker-list-head gr-row"><span>Stock</span><span>Vehicle</span><span>Customer</span><span>Type</span><span>Delivery</span><span>Ready</span><span></span></div>`
+    + rows.map(makeRow).join('');
 }
+window.renderGRCompleted = renderGRCompleted;
 
 // Custom GR fields
 let grCustomFields = []; // [{ label, done }]
