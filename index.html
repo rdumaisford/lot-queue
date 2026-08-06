@@ -8443,6 +8443,19 @@ window.flSetRotation = function(deg) {
   flUpdateSelected('rot', deg);
 };
 
+// A rotated box's on-screen footprint isn't its own w x h - e.g. a fence
+// built as a long, thin, horizontal rectangle (w=30,h=1) and then rotated
+// 90deg to run vertically actually draws as a 1x30 box, visually offset
+// from its stored x/y by roughly half the width/height difference (CSS
+// rotates around the center). Used to keep dragging able to reach the
+// true property edge for any rotation, not just 0/180deg.
+function flRotatedBBoxOffset(veh) {
+  const rad = (veh.rot||0) * Math.PI / 180;
+  const bboxW = Math.abs(veh.w*Math.cos(rad)) + Math.abs(veh.h*Math.sin(rad));
+  const bboxH = Math.abs(veh.w*Math.sin(rad)) + Math.abs(veh.h*Math.cos(rad));
+  return { offX: (veh.w - bboxW) / 2, offY: (veh.h - bboxH) / 2 };
+}
+
 // Duplicates the physical spot/object only (position/size/rotation/kind) -
 // never the vehicle in it, since the same car can't be parked in two places.
 window.flDuplicateSelected = async function() {
@@ -8506,14 +8519,15 @@ window.flDeleteSelected = function() {
     const startX = e.clientX, startY = e.clientY;
     let moved = false;
     spotEl.setPointerCapture(e.pointerId);
+    const { offX, offY } = flRotatedBBoxOffset(startSpot);
     const onMove = (ev) => {
       // Pointer deltas are screen px; the data itself is feet, so divide out
       // both the on-screen zoom and the feet→px display scale to get there.
       const dxPx = (ev.clientX - startX) / flZoomLevel;
       const dyPx = (ev.clientY - startY) / flZoomLevel;
       if (Math.abs(dxPx) > 2 || Math.abs(dyPx) > 2) moved = true;
-      const nx = Math.max(0, flSnapFt(startSpot.x + dxPx / FL_PX_PER_FT));
-      const ny = Math.max(0, flSnapFt(startSpot.y + dyPx / FL_PX_PER_FT));
+      const nx = Math.max(-offX, flSnapFt(startSpot.x + dxPx / FL_PX_PER_FT));
+      const ny = Math.max(-offY, flSnapFt(startSpot.y + dyPx / FL_PX_PER_FT));
       spotEl.style.left = flFtToPx(nx)+'px'; spotEl.style.top = flFtToPx(ny)+'px';
       cmVehicles[FL_LOT][id] = { ...cmVehicles[FL_LOT][id], x: nx, y: ny };
     };
