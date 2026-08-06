@@ -470,14 +470,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tlr-actions .btn-tedit,.tlr-actions .btn-tdel{padding:4px 8px;font-size:11px}
 .tracker-empty{text-align:center;padding:32px;color:var(--text-muted);font-size:13px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
 
-/* Second line under a completed row - arrived/kms/keypad plus each stage's
-   checkmark, hover for who/when it was done (title attribute). */
+/* Second line under a completed row - arrived/kms/keypad plus a small
+   checkbox per stage, hover for who/when it was done (title attribute). */
 .tlr-meta{grid-column:1/-1;display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding-top:6px;margin-top:6px;border-top:1px solid var(--border)}
 .tlr-meta-text{font-size:11px;color:var(--text-faint)}
-.tlr-stages{display:flex;flex-wrap:wrap;gap:5px;margin-left:auto}
-.tlr-stage-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;background:#f1f5f9;color:#94a3b8;white-space:nowrap;cursor:default}
-.tlr-stage-badge.done{background:#dcfce7;color:#15803d}
-.tlr-stage-badge.na{background:#f1f5f9;color:#cbd5e1}
+.tlr-stages{display:flex;flex-wrap:wrap;gap:10px;margin-left:auto}
+.tlr-stage{display:inline-flex;align-items:center;gap:4px;cursor:default}
+.tlr-stage-box{width:15px;height:15px;border-radius:4px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;background:var(--bg);flex-shrink:0}
+.tlr-stage-box svg{width:9px;height:9px;fill:none;stroke:#15803d;stroke-width:3}
+.tlr-stage-box.done{background:#dcfce7;border-color:#86efac}
+.tlr-stage-box.na{background:#f1f5f9;border-color:#e2e2df;color:#94a3b8;font-size:9px;font-weight:700}
+.tlr-stage-label{font-size:10px;font-weight:600;color:var(--text-muted);white-space:nowrap}
 
 /* Get Ready's completed (ready-for-delivery) list reuses the same
    .tracker-list/.tracker-list-row shell as Incoming's, just with column
@@ -4891,20 +4894,28 @@ function trWhoWhen(u, field, val) {
   return `${by}${at ? ' · '+new Date(at).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : ''}`;
 }
 
-// Compact "✓ Stage" badges for a completed unit's row - hover shows who did
-// it and when (same who/when stamps already tracked per checkbox).
+// Small read-only checkboxes for each stage on a completed unit's row -
+// same checkmark look as the active card's cb-tap boxes, just miniature.
+// Hover shows who did it and when (same who/when stamps tracked per box).
 function stageBadges(u) {
   const stages = u.condition === 'used'
     ? [['fileReceived',"File Rec'd"], ['icMoved','IC Moved']]
     : [['accessories','Acc.'], ['pdi','PDI'], ['photo','Photo'], ['icMoved','IC Moved']];
+  const checkSvg = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
   return stages.map(([field, label]) => {
     if (field === 'photo' && !photoRequired(u)) {
-      return `<span class="tlr-stage-badge na" title="Not required">${label}: N/A</span>`;
+      return `<span class="tlr-stage" title="Not required">
+        <span class="tlr-stage-box na">–</span>
+        <span class="tlr-stage-label">${label}</span>
+      </span>`;
     }
     const done = !!u[field];
     const whoWhen = trWhoWhen(u, field, done);
     const title = whoWhen ? `Done by ${whoWhen}` : (done ? 'Done' : 'Not done');
-    return `<span class="tlr-stage-badge${done?' done':''}" title="${esc(title)}">${done?'✓':'○'} ${label}</span>`;
+    return `<span class="tlr-stage" title="${esc(title)}">
+      <span class="tlr-stage-box${done?' done':''}">${done?checkSvg:''}</span>
+      <span class="tlr-stage-label">${label}</span>
+    </span>`;
   }).join('');
 }
 
