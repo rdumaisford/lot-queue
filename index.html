@@ -2207,7 +2207,7 @@ let entries = {}, historyData = {}, units = {}, getReadyDeals = {}, hitchhikers 
 let emailSettings = {}; // {notifyAddress, publicKey, serviceId, grTemplateId, incTemplateId}
 let currentAlertState = null;
 let emailjsReady = false;
-let vehicleSpecs = {}; // stock# -> {year,trim,type,colour} - shared between Incoming and Compound so specs entered once autofill everywhere else
+let vehicleSpecs = {}; // stock# -> {year,trim,type,colour,status} - shared between Incoming and Compound so specs entered once autofill everywhere else
 let vehicleRequests = {}, vehicleReturns = {}; // one unified pickup/return flow across all lots
 let driverLocations = {}; // live mirror of /driverLocation - who's currently sharing, and where
 let geoWatchId = null;    // navigator.geolocation.watchPosition() handle, while sharing is on
@@ -5056,7 +5056,7 @@ window.saveUnit = async function() {
     // Save specs to the shared cache so the Compound Map (or anywhere else
     // that recognizes this stock #) can autofill them later.
     if (unit.stock && (year || trim || type || colour)) {
-      await update(ref(db,'vehicleSpecs/'+unit.stock), { year, trim, type, colour, updatedAt: Date.now() }).catch(()=>{});
+      await update(ref(db,'vehicleSpecs/'+unit.stock), { year, trim, type, colour, status: unitCondition, updatedAt: Date.now() }).catch(()=>{});
     }
     closeUnitModal();
   } catch(e){alert('Error saving - check connection.');}
@@ -5251,7 +5251,7 @@ window.completeDealTradeIn = async function(id) {
       await push(ref(db,'tracker'), unit);
       // Feed the shared spec cache too, same as every other entry point
       if (stock && (unit.year || unit.type || unit.colour)) {
-        update(ref(db,'vehicleSpecs/'+stock), { year:unit.year, trim:unit.trim, type:unit.type, colour:unit.colour, updatedAt: Date.now() }).catch(()=>{});
+        update(ref(db,'vehicleSpecs/'+stock), { year:unit.year, trim:unit.trim, type:unit.type, colour:unit.colour, status:unit.condition, updatedAt: Date.now() }).catch(()=>{});
       }
     }
     await update(ref(db,'getready/'+id), {
@@ -7379,6 +7379,7 @@ window.cmLookupSpecsForSpot = function() {
   const stock = document.getElementById('cm-f-stock').value.trim().toUpperCase();
   if (!stock) return;
   const spec = vehicleSpecs[stock];
+  const statusEl = document.getElementById('cm-f-status');
   if (spec) {
     const yearEl = document.getElementById('cm-f-year'), trimEl = document.getElementById('cm-f-trim'),
           typeEl = document.getElementById('cm-f-type'), colourEl = document.getElementById('cm-f-colour');
@@ -7386,13 +7387,19 @@ window.cmLookupSpecsForSpot = function() {
     if (trimEl && !trimEl.value && spec.trim) trimEl.value = spec.trim;
     if (typeEl && !typeEl.value && spec.type) cmSetVehicleTypeField(spec.type);
     if (colourEl && !colourEl.value && spec.colour) colourEl.value = spec.colour;
+    // Carry over New/Used/Wholesale/Fleet/Lease Return too - this is the
+    // full designation as last set on this stock # anywhere in the Compound
+    // Map, so it beats the plain New/Used guess below. Only nudges it off
+    // the default ('new'); never overrides a deliberate pick already made
+    // on this spot.
+    if (statusEl && statusEl.value === 'new' && spec.status) statusEl.value = spec.status;
   }
   // Tether the spot's Type to the matching Incoming unit's New/Used condition -
   // punching in a stock # already tracked in Incoming shouldn't require
   // re-picking New vs Used by hand. Only nudges it off the default ('new');
-  // never overrides a deliberate Wholesale/Fleet/Lease Return pick.
+  // never overrides a deliberate Wholesale/Fleet/Lease Return pick (from
+  // vehicleSpecs above, or one already made on this spot).
   const incomingUnit = Object.values(units).find(u => (u.stock||'').toUpperCase().trim() === stock);
-  const statusEl = document.getElementById('cm-f-status');
   if (incomingUnit && statusEl && statusEl.value === 'new' &&
       (incomingUnit.condition === 'new' || incomingUnit.condition === 'used')) {
     statusEl.value = incomingUnit.condition;
@@ -7532,8 +7539,8 @@ window.cmSaveSpot = async function() {
     if (Array.isArray(prevVeh.notes) && prevVeh.notes.length) data.notes = prevVeh.notes;
   }
   await set(ref(db, `compound_v2/${cmCurrentLot}/${key}`), data);
-  if (stock.trim() && (data.year || data.trim || data.type || data.colour)) {
-    update(ref(db,'vehicleSpecs/'+stock.trim().toUpperCase()), { year:data.year, trim:data.trim, type:data.type, colour:data.colour, updatedAt: Date.now() }).catch(()=>{});
+  if (stock.trim()) {
+    update(ref(db,'vehicleSpecs/'+stock.trim().toUpperCase()), { year:data.year, trim:data.trim, type:data.type, colour:data.colour, status:data.status, updatedAt: Date.now() }).catch(()=>{});
   }
   const desc = !prevVeh?.stock
     ? `Assigned ${stock} to ${key}`
