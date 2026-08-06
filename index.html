@@ -441,6 +441,32 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 /* Desktop: bigger grid */
 @media(min-width:1200px){.tracker-card-grid{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}}
 
+/* One-click VIN copy, wherever VIN is shown */
+.tracker-card-vin{display:flex;align-items:center;gap:5px}
+.vin-copy-btn{border:none;background:transparent;cursor:pointer;font-size:11px;padding:1px 3px;border-radius:4px;color:var(--text-faint);line-height:1}
+.vin-copy-btn:hover{background:var(--bg);color:var(--ford)}
+.vin-copy-btn.copied{color:#15803d}
+
+/* Who/when line under each PDI-style checkbox, mirroring Get Ready's checklist */
+.tracker-cb-who{font-size:9px;color:var(--text-faint);text-align:center;line-height:1.2}
+
+/* Completed units - compact list instead of cards, with its own search/filter
+   so paging through years of history never disturbs the active board above. */
+.tracker-completed-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 10px}
+.tracker-list{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface)}
+.tracker-list-head{display:grid;grid-template-columns:90px 150px 1fr 60px 90px 150px 70px;gap:10px;padding:8px 14px;background:#f8fafc;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint)}
+.tracker-list-row{display:grid;grid-template-columns:90px 150px 1fr 60px 90px 150px 70px;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);align-items:center;font-size:13px}
+.tracker-list-row:last-child{border-bottom:none}
+.tracker-list-row:hover{background:#fafaf9}
+.tlr-stock{font-weight:700;color:var(--ford);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tlr-vin{display:flex;align-items:center;gap:5px;font-family:monospace;font-size:11px;color:var(--text-faint)}
+.tlr-vehicle{color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tlr-cond{font-size:11px;color:var(--text-faint)}
+.tlr-completed{font-size:11px;color:var(--text-faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tlr-actions{display:flex;gap:6px;justify-content:flex-end}
+.tlr-actions .btn-tedit,.tlr-actions .btn-tdel{padding:4px 8px;font-size:11px}
+.tracker-empty{text-align:center;padding:32px;color:var(--text-muted);font-size:13px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
+
 /* ── Get Ready ── */
 .gr-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;transition:box-shadow .15s}
 .gr-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
@@ -616,6 +642,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   .search-wrap{min-width:100%;order:-1}
   .filter-chip{padding:8px 10px;font-size:12px;min-height:40px}
   .btn-add-unit{font-size:13px;padding:10px 14px;min-height:44px}
+  .tracker-completed-toolbar{flex-wrap:wrap;gap:8px}
+  .tracker-completed-toolbar .search-wrap{min-width:100%;order:-1}
+
+  /* Completed list rows - stack instead of a wide grid */
+  .tracker-list-head{display:none}
+  .tracker-list-row{grid-template-columns:1fr;gap:4px;padding:12px 14px}
+  .tlr-actions{justify-content:flex-start;margin-top:6px}
 
   /* Tracker summary */
   .tracker-summary{display:grid;grid-template-columns:repeat(4,1fr)}
@@ -1448,7 +1481,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <button class="filter-chip" onclick="setTrackerFilter('STOCK',this)">Stock</button>
         <button class="filter-chip" onclick="setTrackerFilter('SOLD',this)">Sold</button>
         <button class="filter-chip" onclick="setTrackerFilter('TURNOVER',this)">Turnover</button>
-        <button class="filter-chip" onclick="setTrackerFilter('ACTIVE',this)">Active only</button>
         <span id="t-row-count" style="font-size:13px;color:var(--text-muted);white-space:nowrap"></span>
         <button class="btn-add-unit" id="btn-add-unit-pdi" onclick="openUnitModal()" style="display:none;background:#1d4ed8">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
@@ -1489,6 +1521,24 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <div class="table-wrap">
         <div id="tracker-body" class="tracker-card-grid"></div>
       </div>
+
+      <!-- Completed units - kept forever, but shown as a compact list with its
+           own search/filter so it never has to share the active board's toolbar. -->
+      <div class="section-divider" id="tracker-completed-divider" style="display:none">✓ Completed</div>
+      <div class="tracker-completed-toolbar" id="tracker-completed-toolbar" style="display:none">
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input class="search-input" id="tc-search" type="text" placeholder="Search completed…" oninput="renderTrackerCompleted()"/>
+        </div>
+        <button class="filter-chip active" onclick="setCompletedFilter('ALL',this)">All</button>
+        <button class="filter-chip" onclick="setCompletedFilter('NEW',this)">New</button>
+        <button class="filter-chip" onclick="setCompletedFilter('USED',this)">Used</button>
+        <button class="filter-chip" onclick="setCompletedFilter('STOCK',this)">Stock</button>
+        <button class="filter-chip" onclick="setCompletedFilter('SOLD',this)">Sold</button>
+        <button class="filter-chip" onclick="setCompletedFilter('TURNOVER',this)">Turnover</button>
+        <span id="tc-row-count" style="font-size:13px;color:var(--text-muted);white-space:nowrap"></span>
+      </div>
+      <div id="tracker-completed-body" class="tracker-list"></div>
     </div>
 
     <!-- GET READY -->
@@ -4634,16 +4684,15 @@ function isUnitComplete(u) {
   return true;
 }
 
+// Active units only - completed units have their own list/search/filter
+// (getCompletedFiltered below) so paging through years of finished units
+// never touches what's shown on the active board.
 function getTrackerFiltered() {
   const q=document.getElementById('t-search').value.trim().toLowerCase();
-  let rows=Object.entries(units).map(([id,u])=>({id,...u}));
-  if(tFilterStatus==='ACTIVE') rows=rows.filter(u=>!isUnitComplete(u));
-  else if(tFilterStatus!=='ALL') rows=rows.filter(u=>u.status===tFilterStatus);
+  let rows=Object.entries(units).map(([id,u])=>({id,...u})).filter(u=>!isUnitComplete(u));
+  if(tFilterStatus!=='ALL') rows=rows.filter(u=>u.status===tFilterStatus);
   if(q) rows=rows.filter(u=>[u.stock,u.vin,u.vehicle,u.notes,u.arrived,u.workReq].join(' ').toLowerCase().includes(q));
-  // Sort: incomplete first, then by chosen col
   rows.sort((a,b)=>{
-    const ac=isUnitComplete(a)?1:0, bc=isUnitComplete(b)?1:0;
-    if(ac!==bc) return ac-bc;
     let av=a[tSortCol]||'',bv=b[tSortCol]||'';
     if(typeof av==='boolean')av=av?1:0; if(typeof bv==='boolean')bv=bv?1:0;
     return tSortAsc?(av>bv?1:-1):(av<bv?1:-1);
@@ -4651,15 +4700,64 @@ function getTrackerFiltered() {
   return rows;
 }
 
+let tcFilterStatus = 'ALL';
+window.setCompletedFilter = function(status, btn) {
+  tcFilterStatus = status;
+  document.querySelectorAll('#tracker-completed-toolbar .filter-chip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTrackerCompleted();
+};
+
+// Completed units are kept forever (see renderTrackerSummary - the old
+// 30-day auto-delete is gone), so this list can grow to years' worth of
+// history - independent search/filter from the active board above, and
+// sorted most-recently-finished first.
+function getCompletedFiltered() {
+  const q=(document.getElementById('tc-search')?.value||'').trim().toLowerCase();
+  let rows=Object.entries(units).map(([id,u])=>({id,...u})).filter(isUnitComplete);
+  if(tcFilterStatus==='NEW') rows=rows.filter(u=>u.condition!=='used');
+  else if(tcFilterStatus==='USED') rows=rows.filter(u=>u.condition==='used');
+  else if(tcFilterStatus!=='ALL') rows=rows.filter(u=>u.status===tcFilterStatus);
+  if(q) rows=rows.filter(u=>[u.stock,u.vin,u.vehicle,u.notes,u.arrived,u.workReq].join(' ').toLowerCase().includes(q));
+  rows.sort((a,b)=>(b.completedAt||0)-(a.completedAt||0));
+  return rows;
+}
+
+// One-click copy for VIN, wherever it's shown (active cards, completed list).
+window.trCopyVin = async function(vin, evt) {
+  if (evt) evt.stopPropagation();
+  if (!vin) return;
+  // Grab the button before the first await - evt.currentTarget is only valid
+  // for the duration of the synchronous event dispatch and reads back null
+  // once we're past an await, even though evt itself is still around.
+  const btn = evt?.currentTarget;
+  try {
+    await navigator.clipboard.writeText(vin);
+  } catch(e) {
+    // Fallback for older/non-secure-context browsers with no Clipboard API.
+    const ta = document.createElement('textarea');
+    ta.value = vin; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand('copy'); } catch(e2) {}
+    document.body.removeChild(ta);
+  }
+  if (btn) {
+    const prev = btn.textContent;
+    btn.textContent = '✓'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = prev; btn.classList.remove('copied'); }, 1200);
+  }
+};
+
 // Inline field update - saves to Firebase immediately
 window.inlineUpdate = async function(id, field, value) {
-  const updates = {[field]: value};
+  // Stamp who did this specific step and when - same "last actor + last
+  // timestamp per field" pattern Get Ready uses, cleared if unchecked.
+  const updates = {[field]: value, [field+'By']: value ? currentUser.name : null, [field+'At']: value ? Date.now() : null};
   // Check if all 4 boxes will now be checked → auto-complete
   const u = {...units[id], ...updates};
   if(isUnitComplete(u) && !units[id].completedAt) {
     updates.completedAt = Date.now();
     updates.completedBy = currentUser.name;
-    // Auto-archive after 30 days handled on render
   } else if(!isUnitComplete(u) && units[id].completedAt) {
     // Un-complete if a box gets unchecked
     updates.completedAt = null;
@@ -4724,7 +4822,7 @@ window.clearBulkSelection = function() {
 window.bulkToggle = async function(field, value) {
   if(!selectedUnits.size) return;
   const promises = [...selectedUnits].map(id => {
-    const updates = {[field]: value};
+    const updates = {[field]: value, [field+'By']: value ? currentUser.name : null, [field+'At']: value ? Date.now() : null};
     const u = {...units[id], ...updates};
     if(isUnitComplete(u) && !units[id].completedAt) {
       updates.completedAt = Date.now();
@@ -4747,55 +4845,71 @@ document.getElementById('bulk-status').addEventListener('change', async function
 
 function tStatusPill(s){const map={STOCK:'ts-stock',SOLD:'ts-sold',TURNOVER:'ts-turnover',NONE:'ts-none',OTHER:'ts-none','?':'ts-none'};return `<span class="t-status-pill ${map[s]||'ts-none'}">${s||'-'}</span>`;}
 
+// Small "who · when" line under a checkbox, once it's been checked - same
+// idea as Get Ready's per-field tracking (renderGRCard's cbBtn helper).
+function trWhoWhen(u, field, val) {
+  const by = u[field+'By'], at = u[field+'At'];
+  if (!val || !by) return '';
+  return `${by}${at ? ' · '+new Date(at).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : ''}`;
+}
+
+function vinWithCopy(vin) {
+  if (!vin) return '';
+  return `<span>${esc(vin)}</span><button type="button" class="vin-copy-btn" title="Copy VIN" onclick="trCopyVin('${esc(vin)}',event)">📋</button>`;
+}
+
 function renderTracker() {
-  const rows = getTrackerFiltered();
+  const rows = getTrackerFiltered(); // active only
   const canEdit  = perm('trackerEdit');
   const canAcc   = perm('cbAcc');
   const canPdi   = perm('cbPdi');
   const canPhoto = perm('cbPhoto');
   const canIC    = perm('cbIC');
-  const active = rows.filter(u => !isUnitComplete(u));
-  const completed = rows.filter(u => isUnitComplete(u));
-  document.getElementById('t-row-count').textContent = rows.length+' unit'+(rows.length!==1?'s':'')+' · '+active.length+' active';
+  const allActive = Object.values(units).filter(u => !isUnitComplete(u));
+  document.getElementById('t-row-count').textContent = rows.length+' of '+allActive.length+' active unit'+(allActive.length!==1?'s':'');
 
   // Flag stock #s that appear more than once - almost always a data-entry mistake
   const stockCounts = {};
-  rows.forEach(u => { const s=(u.stock||'').toUpperCase().trim(); if(s) stockCounts[s]=(stockCounts[s]||0)+1; });
+  Object.values(units).forEach(u => { const s=(u.stock||'').toUpperCase().trim(); if(s) stockCounts[s]=(stockCounts[s]||0)+1; });
   const isDupe = (u) => { const s=(u.stock||'').toUpperCase().trim(); return s && stockCounts[s] > 1; };
 
   const body = document.getElementById('tracker-body');
   if(!rows.length){
-    body.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted);font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)">No units match your search.</div>`;
+    body.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted);font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)">No active units match your search.</div>`;
+    updateBulkBar();
+    renderTrackerCompleted();
     return;
   }
 
   function makeCard(u) {
-    const isComplete = isUnitComplete(u);
     const isSelected = selectedUnits.has(u.id);
-    const completeBadge = isComplete ? `<span class="complete-badge">✓ Done</span>` : '';
     const dupeBadge = isDupe(u) ? `<span class="complete-badge dupe-blink" style="background:#dc2626">⚠ Duplicate</span>` : '';
     const lockInfo = activeLockFor('tracker', u.id);
 
     const statusClass = {STOCK:'status-stock',SOLD:'status-sold',TURNOVER:'status-turnover'}[u.status]||'status-other';
 
     const cbBtn = (field, label, val, naOverride, extraClass='', canCheck=true) => {
+      const whoWhen = trWhoWhen(u, field, val);
+      const whoWhenHtml = whoWhen ? `<span class="tracker-cb-who">${whoWhen}</span>` : '';
       if (naOverride) return `<div class="tracker-cb-item">
         <div class="cb-tap" style="background:#f1f5f9;border-color:#e2e2df;cursor:default;opacity:.6">
           <span style="font-size:10px;font-weight:700;color:#94a3b8">N/A</span>
         </div>
         <span class="tracker-cb-label">${label}</span>
       </div>`;
-      if (!canCheck) return `<div class="tracker-cb-item">
+      if (!canCheck) return `<div class="tracker-cb-item" ${whoWhen?`title="Done by ${whoWhen}"`:''}>
         <div class="cb-tap ${val?'on':''} ${extraClass}" style="cursor:default;pointer-events:none;opacity:${val?'1':'.45'}">
           <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
         <span class="tracker-cb-label">${label}</span>
+        ${whoWhenHtml}
       </div>`;
-      return `<div class="tracker-cb-item">
+      return `<div class="tracker-cb-item" ${whoWhen?`title="Done by ${whoWhen}"`:''}>
         <div class="cb-tap ${val?'on':'off'} ${extraClass}" onclick="inlineUpdate('${u.id}','${field}',${!val})">
           <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
         <span class="tracker-cb-label">${label}</span>
+        ${whoWhenHtml}
       </div>`;
     };
     const isNoPhoto = !photoRequired(u);
@@ -4809,15 +4923,15 @@ function renderTracker() {
       ? `<a href="http://www.windowsticker.forddirect.com/windowsticker.pdf?vin=${encodeURIComponent(u.vin)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#1d4ed8;text-decoration:none;padding:2px 8px;border:1px solid #93c5fd;border-radius:12px;background:#eff6ff;white-space:nowrap" onclick="event.stopPropagation()">🪟 Window Sticker</a>`
       : '';
 
-    return `<div class="tracker-card${isComplete?' is-complete':''} ${isComplete?'':statusClass}" id="tc-${u.id}" style="${isDupe(u)?'border-left:4px solid #dc2626':lockInfo?'border-left:4px solid #1d4ed8':''}">
+    return `<div class="tracker-card ${statusClass}" id="tc-${u.id}" style="${isDupe(u)?'border-left:4px solid #dc2626':lockInfo?'border-left:4px solid #1d4ed8':''}">
       ${lockInfo ? `<div class="tracker-lock-banner">🔒 ${lockInfo.lockedBy} is editing this…</div>` : ''}
       <div class="tracker-card-header">
         <div class="tracker-card-stock">
           ${canEdit?`<input type="checkbox" class="row-select row-cb" ${isSelected?'checked':''} onchange="toggleRowSelect('${u.id}',this.checked)" style="width:15px;height:15px;accent-color:var(--ford);cursor:pointer;flex-shrink:0"/>`:''}
           <span>${esc(u.stock||'-')}</span>
-          ${condBadge}${completeBadge}${dupeBadge}
+          ${condBadge}${dupeBadge}
         </div>
-        <div class="tracker-card-vin">${esc(u.vin||'')}</div>
+        <div class="tracker-card-vin">${vinWithCopy(u.vin)}</div>
         <div class="tracker-card-vehicle">${u.vehicle||[u.year,u.type,u.trim,u.colour].filter(Boolean).join(' · ')||''}</div>
         ${stickerBtn?`<div style="margin-top:6px">${stickerBtn}</div>`:''}
       </div>
@@ -4855,8 +4969,8 @@ function renderTracker() {
     </div>`;
   }
 
-  const activeNew = active.filter(u => u.condition !== 'used');
-  const activeUsed = active.filter(u => u.condition === 'used');
+  const activeNew = rows.filter(u => u.condition !== 'used');
+  const activeUsed = rows.filter(u => u.condition === 'used');
 
   let html = '';
   if (activeNew.length) {
@@ -4867,25 +4981,66 @@ function renderTracker() {
     html += `<div class="section-divider">🔁 Used (${activeUsed.length})</div>`;
     html += activeUsed.map(makeCard).join('');
   }
-  if(completed.length) {
-    html += `<div class="section-divider">✓ Completed (${completed.length})</div>`;
-    html += completed.map(makeCard).join('');
-  }
   body.innerHTML = html;
   updateBulkBar();
+  renderTrackerCompleted();
 }
+// Exposed on window - the search box's oninput="renderTracker()" attribute
+// runs in global scope, not this module's scope, so without this the box
+// silently threw "renderTracker is not defined" on every keystroke and
+// never actually filtered anything.
+window.renderTracker = renderTracker;
+
+function renderTrackerCompleted() {
+  const canEdit = perm('trackerEdit');
+  const allCompletedCount = Object.values(units).filter(isUnitComplete).length;
+  const toolbar = document.getElementById('tracker-completed-toolbar');
+  const divider = document.getElementById('tracker-completed-divider');
+  const body = document.getElementById('tracker-completed-body');
+  if (!allCompletedCount) {
+    toolbar.style.display = 'none';
+    divider.style.display = 'none';
+    body.innerHTML = '';
+    return;
+  }
+  toolbar.style.display = 'flex';
+  divider.style.display = 'block';
+  const rows = getCompletedFiltered();
+  document.getElementById('tc-row-count').textContent = rows.length+' of '+allCompletedCount+' completed';
+  if (!rows.length) {
+    body.innerHTML = `<div class="tracker-empty">No completed units match your search.</div>`;
+    return;
+  }
+
+  function makeRow(u) {
+    const vehicle = u.vehicle || [u.year, u.type, u.trim, u.colour].filter(Boolean).join(' · ') || '';
+    const completedLine = [
+      u.completedAt ? new Date(u.completedAt).toLocaleDateString() : '',
+      u.completedBy || '',
+    ].filter(Boolean).join(' · ');
+    return `<div class="tracker-list-row" id="tc-${u.id}">
+      <div class="tlr-stock">${esc(u.stock||'-')}</div>
+      <div class="tlr-vin">${vinWithCopy(u.vin)}</div>
+      <div class="tlr-vehicle" title="${esc(vehicle)}">${esc(vehicle)}</div>
+      <div class="tlr-cond">${u.condition==='used'?'Used':'New'}</div>
+      ${tStatusPill(u.status)}
+      <div class="tlr-completed">${esc(completedLine)}</div>
+      ${canEdit?`<div class="tlr-actions">
+        <button class="btn-tedit" onclick="openUnitModal('${u.id}')">✎</button>
+        <button class="btn-tdel" onclick="deleteUnit('${u.id}','${(u.stock||u.vin).replace(/"/g,'&quot;').replace(/'/g,"\\'")}')">✕</button>
+      </div>`:'<div></div>'}
+    </div>`;
+  }
+
+  body.innerHTML = `<div class="tracker-list-head"><span>Stock</span><span>VIN</span><span>Vehicle</span><span>Type</span><span>Status</span><span>Completed</span><span></span></div>`
+    + rows.map(makeRow).join('');
+}
+window.renderTrackerCompleted = renderTrackerCompleted; // see window.renderTracker above - same reason
 
 function renderTrackerSummary() {
   const all=Object.values(units);
-  // Auto-archive units older than 30 days that are complete
-  const cutoff30 = Date.now() - 30*24*60*60*1000;
-  all.forEach(u => {
-    if(u.completedAt && u.completedAt < cutoff30) {
-      // Archive by removing from tracker
-      const id = Object.entries(units).find(([,v])=>v===u)?.[0];
-      if(id) remove(ref(db,'tracker/'+id));
-    }
-  });
+  // Completed units are kept forever now (see the Completed list/search
+  // below) - no more auto-deleting anything past 30 days.
   const active = all.filter(u=>!isUnitComplete(u));
   // Total/Stock/Sold/Turnover are all "still to be completed" counts - a
   // finished unit drops out of them immediately, same as the other
@@ -5047,6 +5202,19 @@ window.saveUnit = async function() {
   };
   const isNoPhoto = unit.status === 'TURNOVER' || unit.status === 'SOLD';
   if (isNoPhoto) { unit.photo = true; unit.photoNA = true; }
+  // Stamp who/when each PDI-style checkbox actually changed on this save,
+  // same per-field "last actor + last timestamp" pattern as Get Ready's
+  // toggleGRField. Only touches a field that actually flipped - update()
+  // merges rather than overwrites, so every other field's existing By/At
+  // (including ones this save didn't touch) is left alone automatically.
+  const prevUnit = editingUnitId ? units[editingUnitId] : null;
+  ['accessories','pdi','photo','icMoved','fileReceived'].forEach(f => {
+    const now = !!unit[f], was = !!(prevUnit && prevUnit[f]);
+    if (now !== was) {
+      unit[f+'By'] = now ? currentUser.name : null;
+      unit[f+'At'] = now ? Date.now() : null;
+    }
+  });
   if (!unit.stock&&!unit.vin){alert('Please enter a Stock # or VIN.');return;}
   const btn=document.getElementById('unit-save-btn');
   btn.disabled=true;btn.textContent='Saving…';
@@ -6075,6 +6243,9 @@ function renderCompoundHistory() {
     </div>`;
   }).join('');
 }
+// See window.renderTracker's comment - same fix, same reason (its search
+// box's oninput="renderCompoundHistory()" runs outside module scope).
+window.renderCompoundHistory = renderCompoundHistory;
 
 function filteredHistory() {
   const all=Object.values(historyData);
@@ -6129,6 +6300,8 @@ function renderHistory() {
     }).join('');}
   }
 }
+// See window.renderTracker's comment - same fix, same reason.
+window.renderHistory = renderHistory;
 
 // ── Settings ──────────────────────────────────────────
 window.saveSettings = async function() {
@@ -6499,6 +6672,7 @@ setInterval(()=>{
     active.tagName === 'TEXTAREA' ||
     active.tagName === 'SELECT' ||
     active.closest('#tracker-body') ||
+    active.closest('#tracker-completed-body') ||
     active.closest('.tracker-card')
   );
   if (!isTrackerFocused) {
