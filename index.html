@@ -1884,14 +1884,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="field">
         <label>Vehicle Type</label>
-        <select id="cm-f-type" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none">
+        <select id="cm-f-type" onchange="document.getElementById('cm-f-type-other').style.display=this.value==='Other'?'':'none'" style="width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none">
           <option value="">- Select -</option>
-          <option>F-150</option><option>F-250</option><option>F-350</option><option>F-550</option>
+          <option>F-150</option><option>F-250</option><option>F-350</option><option>F-450</option><option>F-550</option>
           <option>Bronco</option><option>Bronco Sport</option><option>Ranger</option>
           <option>Explorer</option><option>Maverick</option><option>Transit</option>
           <option>Escape</option><option>Edge</option><option>Mustang</option>
           <option>Lincoln</option><option>Other</option>
         </select>
+        <input id="cm-f-type-other" type="text" placeholder="e.g. Toyota Tundra, Chevy Silverado" style="display:none;margin-top:8px;width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box"/>
       </div>
       <div class="field">
         <label>Colour</label>
@@ -6828,6 +6829,35 @@ function cmSpotTitle(key, veh) {
   return `Spot ${veh?.label || key}`;
 }
 
+// The Vehicle Type field is a fixed dropdown plus a free-text escape hatch -
+// picking "Other" reveals a text input for a custom make/model that isn't
+// one of the presets. These two helpers keep the select+text-input pair in
+// sync with the single flat `type` string actually stored on the vehicle
+// (there's no separate manufacturer field anywhere else in the schema, so a
+// custom entry is just "Toyota Tundra" etc. as one string, same as the presets).
+function cmSetVehicleTypeField(typeValue) {
+  const typeEl = document.getElementById('cm-f-type');
+  const otherEl = document.getElementById('cm-f-type-other');
+  if (!typeEl) return;
+  const knownValues = Array.from(typeEl.options).map(o => o.value).filter(v => v && v !== 'Other');
+  if (typeValue && !knownValues.includes(typeValue)) {
+    typeEl.value = 'Other';
+    if (otherEl) { otherEl.value = typeValue; otherEl.style.display = ''; }
+  } else {
+    typeEl.value = typeValue || '';
+    if (otherEl) { otherEl.value = ''; otherEl.style.display = 'none'; }
+  }
+}
+function cmGetVehicleTypeValue() {
+  const typeEl = document.getElementById('cm-f-type');
+  if (!typeEl) return '';
+  if (typeEl.value === 'Other') {
+    const otherEl = document.getElementById('cm-f-type-other');
+    return otherEl ? otherEl.value.trim() : '';
+  }
+  return typeEl.value;
+}
+
 function cmRenderStats() {
   const el = document.getElementById('cm-stats');
   if (!el) return;
@@ -7336,7 +7366,7 @@ window.cmLookupSpecsForSpot = function() {
           typeEl = document.getElementById('cm-f-type'), colourEl = document.getElementById('cm-f-colour');
     if (yearEl && !yearEl.value && spec.year) yearEl.value = spec.year;
     if (trimEl && !trimEl.value && spec.trim) trimEl.value = spec.trim;
-    if (typeEl && !typeEl.value && spec.type) typeEl.value = spec.type;
+    if (typeEl && !typeEl.value && spec.type) cmSetVehicleTypeField(spec.type);
     if (colourEl && !colourEl.value && spec.colour) colourEl.value = spec.colour;
   }
   // Tether the spot's Type to the matching Incoming unit's New/Used condition -
@@ -7387,7 +7417,7 @@ window.cmSpotClick = function(key, ri, ci) {
     document.getElementById('cm-f-stock').value = v.stock||'';
     document.getElementById('cm-f-year').value = v.year||'';
     document.getElementById('cm-f-trim').value = v.trim||'';
-    document.getElementById('cm-f-type').value = v.type||'';
+    cmSetVehicleTypeField(v.type||'');
     document.getElementById('cm-f-colour').value = v.colour||'';
     document.getElementById('cm-f-status').value = cmTypeClass(v.status);
     document.getElementById('cm-f-flagged').checked = cmIsFlagged(v);
@@ -7408,7 +7438,7 @@ window.cmSpotClick = function(key, ri, ci) {
     document.getElementById('cm-f-stock').value = '';
     document.getElementById('cm-f-year').value = '';
     document.getElementById('cm-f-trim').value = '';
-    document.getElementById('cm-f-type').value = '';
+    cmSetVehicleTypeField('');
     document.getElementById('cm-f-colour').value = '';
     document.getElementById('cm-f-status').value = 'new';
     document.getElementById('cm-f-flagged').checked = false;
@@ -7468,7 +7498,7 @@ window.cmSaveSpot = async function() {
     stock,
     year:    document.getElementById('cm-f-year').value.trim(),
     trim:    document.getElementById('cm-f-trim').value.trim(),
-    type:    document.getElementById('cm-f-type').value.trim(),
+    type:    cmGetVehicleTypeValue(),
     colour:  document.getElementById('cm-f-colour').value.trim(),
     status,
     flagged: document.getElementById('cm-f-flagged').checked,
