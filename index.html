@@ -89,7 +89,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tab-count{background:var(--bg);border-radius:20px;padding:1px 7px;font-size:11px;font-weight:600;color:var(--text-muted);min-width:20px;text-align:center}
 .tab.active .tab-count{background:var(--ford);color:white}
 
-.main{padding:24px;max-width:1100px;margin:0 auto}
+.main{padding:24px;max-width:none;margin:0 auto}
 .panel{display:none}.panel.active{display:block}
 #panel-rides.active{display:flex;flex-direction:column;height:calc(100vh - 130px)}
 #panel-compound.active{display:flex;flex-direction:column;height:calc(100vh - 92px)}
@@ -470,6 +470,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tlr-actions .btn-tedit,.tlr-actions .btn-tdel{padding:4px 8px;font-size:11px}
 .tracker-empty{text-align:center;padding:32px;color:var(--text-muted);font-size:13px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
 
+/* Second line under a completed row - arrived/kms/keypad plus each stage's
+   checkmark, hover for who/when it was done (title attribute). */
+.tlr-meta{grid-column:1/-1;display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding-top:6px;margin-top:6px;border-top:1px solid var(--border)}
+.tlr-meta-text{font-size:11px;color:var(--text-faint)}
+.tlr-stages{display:flex;flex-wrap:wrap;gap:5px;margin-left:auto}
+.tlr-stage-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;background:#f1f5f9;color:#94a3b8;white-space:nowrap;cursor:default}
+.tlr-stage-badge.done{background:#dcfce7;color:#15803d}
+.tlr-stage-badge.na{background:#f1f5f9;color:#cbd5e1}
+
 /* Get Ready's completed (ready-for-delivery) list reuses the same
    .tracker-list/.tracker-list-row shell as Incoming's, just with column
    widths suited to its own fields instead of VIN/status. */
@@ -586,7 +595,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .home-hero{text-align:center;padding:28px 16px 8px}
 .home-hero-title{font-size:24px;font-weight:700;color:var(--ford);letter-spacing:-.02em}
 .home-hero-sub{font-size:14px;color:var(--text-muted);margin-top:4px}
-.home-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;padding:24px 0;max-width:980px;margin:0 auto}
+.home-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;padding:24px 0}
 .home-tile{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px 20px;text-align:left;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;gap:10px;position:relative;overflow:hidden}
 .home-tile:hover{border-color:var(--ford);box-shadow:0 4px 16px rgba(0,9,91,.1);transform:translateY(-2px)}
 .home-tile-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -2100,7 +2109,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <option value="?">? (Unknown)</option>
         </select>
       </div>
-      <div class="modal-form-row"><label>Work Req. #</label><input id="m-workreq" type="text" placeholder="e.g. P1234 or 30456"/></div>
+      <div class="modal-form-row"><label>Keypad Code</label><input id="m-workreq" type="text" placeholder="e.g. 4821"/></div>
       <div class="modal-form-row modal-full"><label>Notes</label><textarea id="m-notes" placeholder="Sold to, dealer trade info, salesperson initials…"></textarea></div>
     </div>
     <div id="m-checkboxes-new" style="display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:12px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
@@ -4882,6 +4891,23 @@ function trWhoWhen(u, field, val) {
   return `${by}${at ? ' · '+new Date(at).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : ''}`;
 }
 
+// Compact "✓ Stage" badges for a completed unit's row - hover shows who did
+// it and when (same who/when stamps already tracked per checkbox).
+function stageBadges(u) {
+  const stages = u.condition === 'used'
+    ? [['fileReceived',"File Rec'd"], ['icMoved','IC Moved']]
+    : [['accessories','Acc.'], ['pdi','PDI'], ['photo','Photo'], ['icMoved','IC Moved']];
+  return stages.map(([field, label]) => {
+    if (field === 'photo' && !photoRequired(u)) {
+      return `<span class="tlr-stage-badge na" title="Not required">${label}: N/A</span>`;
+    }
+    const done = !!u[field];
+    const whoWhen = trWhoWhen(u, field, done);
+    const title = whoWhen ? `Done by ${whoWhen}` : (done ? 'Done' : 'Not done');
+    return `<span class="tlr-stage-badge${done?' done':''}" title="${esc(title)}">${done?'✓':'○'} ${label}</span>`;
+  }).join('');
+}
+
 // Click the text to copy it - a small icon fades in on hover as the only
 // hint it's clickable, rather than a separate always-visible button.
 function copyableText(text, label, extraClass) {
@@ -4998,7 +5024,7 @@ function renderTracker() {
         </select>`:tStatusPill(u.status)}
         ${u.arrived?`<span style="font-size:12px;color:var(--text-faint)">${u.arrived}</span>`:''}
         ${u.kms?`<span style="font-size:12px;color:var(--text-faint)">${u.kms} km</span>`:''}
-        ${u.workReq?`<span style="font-size:12px;font-family:monospace;color:var(--text-faint)">${u.workReq}</span>`:''}
+        ${u.workReq?`<span style="font-size:12px;font-family:monospace;color:var(--text-faint)" title="Keypad Code">🔑 ${u.workReq}</span>`:''}
       </div>
       ${u.ts?`<div style="font-size:11px;color:var(--text-faint);padding:0 16px 8px">Added ${timeAgo(u.ts)} by ${esc(u.createdBy||u.updatedBy||'Unknown')}</div>`:''}
       <div class="tracker-card-notes">
@@ -5062,6 +5088,11 @@ function renderTrackerCompleted() {
       u.completedAt ? new Date(u.completedAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : '',
       u.completedBy || '',
     ].filter(Boolean).join(' · ');
+    const metaBits = [
+      u.arrived ? `📅 ${esc(u.arrived)}` : '',
+      u.kms ? `${esc(u.kms)} km` : '',
+      u.workReq ? `🔑 ${esc(u.workReq)}` : '',
+    ].filter(Boolean).join(' · ');
     return `<div class="tracker-list-row" id="tc-${u.id}">
       <div class="tlr-stock">${stockCopy(u.stock)}</div>
       <div class="tlr-vin">${vinWithCopy(u.vin)}</div>
@@ -5073,6 +5104,10 @@ function renderTrackerCompleted() {
         <button class="btn-tedit" onclick="openUnitModal('${u.id}')">✎</button>
         <button class="btn-tdel" onclick="deleteUnit('${u.id}','${(u.stock||u.vin).replace(/"/g,'&quot;').replace(/'/g,"\\'")}')">✕</button>
       </div>`:'<div></div>'}
+      <div class="tlr-meta">
+        ${metaBits?`<span class="tlr-meta-text">${metaBits}</span>`:''}
+        <span class="tlr-stages">${stageBadges(u)}</span>
+      </div>
     </div>`;
   }
 
@@ -6914,7 +6949,7 @@ window.printTodaysDrops = function() {
         <th>Vehicle</th>
         <th style="text-align:center">KMs</th>
         <th style="text-align:center">Status</th>
-        <th>Work Req.</th>
+        <th>Keypad Code</th>
         <th style="text-align:center">Acc.</th>
         <th style="text-align:center">PDI</th>
         <th>Notes</th>
@@ -8402,12 +8437,6 @@ window.switchTab = function(name, btn) {
     cmRender();
   } else if (name === 'audit') {
     auditRender();
-  } else if (name === 'tracker' || name === 'getready') {
-    // These two run wide - their card grids and completed lists waste a lot
-    // of side margin at the default 1100px cap on anything bigger than a
-    // laptop screen.
-    document.getElementById('main-wrap').style.padding = '24px';
-    document.getElementById('main-wrap').style.maxWidth = 'none';
   } else {
     // Restore normal padding when leaving compound tab (but not for the TV kiosk view)
     const wasCompound = document.getElementById('panel-compound')?.classList.contains('active');
