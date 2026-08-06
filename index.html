@@ -446,6 +446,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .trow{display:grid;grid-template-columns:26px 90px 150px minmax(160px,1.3fr) 300px 130px 170px minmax(140px,1fr) 78px;gap:12px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--border);font-size:13px}
 .trow:last-child{border-bottom:none}
 .trow:hover{background:#fafaf9}
+.trow.is-complete{background:#f0fdf4}
+.trow.is-complete:hover{background:#e6fbe9}
 .trow.status-stock{border-left:4px solid #1d4ed8}
 .trow.status-sold{border-left:4px solid #dc2626}
 .trow.status-turnover{border-left:4px solid #d97706}
@@ -1648,8 +1650,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       </div>
 
       <div class="tracker-summary" id="tracker-summary"></div>
-      <div class="table-wrap" style="overflow-x:auto">
-        <div id="tracker-body" class="trows"></div>
+      <div class="table-wrap">
+        <div id="tracker-body" class="tracker-card-grid"></div>
       </div>
 
       <!-- Completed units - kept forever, but shown as a compact list with its
@@ -1668,7 +1670,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <button class="filter-chip" onclick="setCompletedFilter('TURNOVER',this)">Turnover</button>
         <span id="tc-row-count" style="font-size:13px;color:var(--text-muted);white-space:nowrap"></span>
       </div>
-      <div id="tracker-completed-body" class="tracker-list"></div>
+      <div class="table-wrap" style="overflow-x:auto">
+        <div id="tracker-completed-body" class="trows"></div>
+      </div>
     </div>
 
     <!-- GET READY -->
@@ -5006,31 +5010,6 @@ function trWhoWhen(u, field, val) {
   return `${by}${at ? ' · '+new Date(at).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : ''}`;
 }
 
-// Small read-only checkboxes for each stage on a completed unit's row -
-// same checkmark look as the active card's cb-tap boxes, just miniature.
-// Hover shows who did it and when (same who/when stamps tracked per box).
-function stageBadges(u) {
-  const stages = u.condition === 'used'
-    ? [['fileReceived',"File Rec'd"], ['icMoved','IC Moved']]
-    : [['accessories','Acc.'], ['pdi','PDI'], ['photo','Photo'], ['icMoved','IC Moved']];
-  const checkSvg = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
-  return stages.map(([field, label]) => {
-    if (field === 'photo' && !photoRequired(u)) {
-      return `<span class="tlr-stage" title="Not required">
-        <span class="tlr-stage-box na">–</span>
-        <span class="tlr-stage-label">${label}</span>
-      </span>`;
-    }
-    const done = !!u[field];
-    const whoWhen = trWhoWhen(u, field, done);
-    const title = whoWhen ? `Done by ${whoWhen}` : (done ? 'Done' : 'Not done');
-    return `<span class="tlr-stage" title="${esc(title)}">
-      <span class="tlr-stage-box${done?' done':''}">${done?checkSvg:''}</span>
-      <span class="tlr-stage-label">${label}</span>
-    </span>`;
-  }).join('');
-}
-
 // Click the text to copy it - a small icon fades in on hover as the only
 // hint it's clickable, rather than a separate always-visible button.
 function copyableText(text, label, extraClass) {
@@ -5066,20 +5045,159 @@ function renderTracker() {
 
   const body = document.getElementById('tracker-body');
   if(!rows.length){
-    body.innerHTML=`<div style="text-align:center;padding:48px;color:var(--text-muted);font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)">No active units match your search.</div>`;
+    body.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted);font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)">No active units match your search.</div>`;
     updateBulkBar();
     renderTrackerCompleted();
     return;
   }
 
-  // One dense row per car - everything in a single line instead of split
-  // across a header/checks/meta/notes stack. Info that doesn't fit (who
-  // added it and when) lives in the row's own title tooltip instead.
+  function makeCard(u) {
+    const isSelected = selectedUnits.has(u.id);
+    const dupeBadge = isDupe(u) ? `<span class="complete-badge dupe-blink" style="background:#dc2626">⚠ Duplicate</span>` : '';
+    const lockInfo = activeLockFor('tracker', u.id);
+
+    const statusClass = {STOCK:'status-stock',SOLD:'status-sold',TURNOVER:'status-turnover'}[u.status]||'status-other';
+
+    const cbBtn = (field, label, val, naOverride, extraClass='', canCheck=true) => {
+      const whoWhen = trWhoWhen(u, field, val);
+      const whoWhenHtml = whoWhen ? `<span class="tracker-cb-who">${whoWhen}</span>` : '';
+      if (naOverride) return `<div class="tracker-cb-item">
+        <div class="cb-tap" style="background:#f1f5f9;border-color:#e2e2df;cursor:default;opacity:.6">
+          <span style="font-size:10px;font-weight:700;color:#94a3b8">N/A</span>
+        </div>
+        <span class="tracker-cb-label">${label}</span>
+      </div>`;
+      if (!canCheck) return `<div class="tracker-cb-item" ${whoWhen?`title="Done by ${whoWhen}"`:''}>
+        <div class="cb-tap ${val?'on':''} ${extraClass}" style="cursor:default;pointer-events:none;opacity:${val?'1':'.45'}">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <span class="tracker-cb-label">${label}</span>
+        ${whoWhenHtml}
+      </div>`;
+      return `<div class="tracker-cb-item" ${whoWhen?`title="Done by ${whoWhen}"`:''}>
+        <div class="cb-tap ${val?'on':'off'} ${extraClass}" onclick="inlineUpdate('${u.id}','${field}',${!val})">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <span class="tracker-cb-label">${label}</span>
+        ${whoWhenHtml}
+      </div>`;
+    };
+    const isNoPhoto = !photoRequired(u);
+
+    const condBadge = u.condition === 'used'
+      ? `<span class="complete-badge" style="background:#7c3aed">${{TRADEIN:'Trade-In',AUCTION:'Auction'}[u.category]||'Used'}${u.subcategory?' · '+({RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'}[u.subcategory]||''):''}</span>`
+      : `<span class="complete-badge" style="background:#2563eb">${{RETAIL:'Retail',FLEET:'Fleet'}[u.category]||'New'}</span>`;
+
+    const isFord = u.condition === 'new' ? true : /ford/i.test(u.make||'');
+    const stickerBtn = (isFord && u.vin && u.vin.length >= 11)
+      ? `<a href="http://www.windowsticker.forddirect.com/windowsticker.pdf?vin=${encodeURIComponent(u.vin)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#1d4ed8;text-decoration:none;padding:2px 8px;border:1px solid #93c5fd;border-radius:12px;background:#eff6ff;white-space:nowrap" onclick="event.stopPropagation()">🪟 Window Sticker</a>`
+      : '';
+
+    return `<div class="tracker-card ${statusClass}" id="tc-${u.id}" style="${isDupe(u)?'border-left:4px solid #dc2626':lockInfo?'border-left:4px solid #1d4ed8':''}">
+      ${lockInfo ? `<div class="tracker-lock-banner">🔒 ${lockInfo.lockedBy} is editing this…</div>` : ''}
+      <div class="tracker-card-header">
+        <div class="tracker-card-stock">
+          ${canEdit?`<input type="checkbox" class="row-select row-cb" ${isSelected?'checked':''} onchange="toggleRowSelect('${u.id}',this.checked)" style="width:15px;height:15px;accent-color:var(--ford);cursor:pointer;flex-shrink:0"/>`:''}
+          ${stockCopy(u.stock)}
+          ${condBadge}${dupeBadge}
+        </div>
+        <div class="tracker-card-vin">${vinWithCopy(u.vin)}</div>
+        <div class="tracker-card-vehicle">${u.vehicle||[u.year,u.type,u.trim,u.colour].filter(Boolean).join(' · ')||''}</div>
+        ${stickerBtn?`<div style="margin-top:6px">${stickerBtn}</div>`:''}
+      </div>
+      <div class="tracker-card-checks">
+        ${u.condition === 'used' ? `
+          ${cbBtn('fileReceived','File Rec\'d',u.fileReceived,false,'',canEdit)}
+          ${cbBtn('icMoved','IC Moved',u.icMoved,false,'cb-ic',canIC)}
+        ` : `
+          ${cbBtn('accessories','Acc.',u.accessories,false,'',canAcc)}
+          ${cbBtn('pdi','PDI',u.pdi,false,'cb-pdi',canPdi)}
+          ${cbBtn('photo','Photo',u.photo,isNoPhoto,'cb-photo',canPhoto)}
+          ${cbBtn('icMoved','IC Moved',u.icMoved,false,'cb-ic',canIC)}
+        `}
+      </div>
+      <div class="tracker-card-meta">
+        ${canEdit?`<select class="inline-status" onchange="inlineStatus('${u.id}',this.value)">
+          <option value="STOCK" ${u.status==='STOCK'?'selected':''}>Stock</option>
+          <option value="SOLD" ${u.status==='SOLD'?'selected':''}>Sold</option>
+          <option value="TURNOVER" ${u.status==='TURNOVER'?'selected':''}>Turnover</option>
+          <option value="OTHER" ${u.status==='OTHER'?'selected':''}>Other</option>
+          <option value="?" ${u.status==='?'?'selected':''}>?</option>
+        </select>`:tStatusPill(u.status)}
+        ${u.arrived?`<span style="font-size:12px;color:var(--text-faint)">${u.arrived}</span>`:''}
+        ${u.kms?`<span style="font-size:12px;color:var(--text-faint)">${u.kms} km</span>`:''}
+        ${u.workReq?`<span style="font-size:12px;font-family:monospace;color:var(--text-faint)" title="Keypad Code">🔑 ${u.workReq}</span>`:''}
+      </div>
+      ${u.ts?`<div style="font-size:11px;color:var(--text-faint);padding:0 16px 8px">Added ${timeAgo(u.ts)} by ${esc(u.createdBy||u.updatedBy||'Unknown')}</div>`:''}
+      <div class="tracker-card-notes">
+        <textarea placeholder="Add notes…" onchange="inlineNotes('${u.id}',this.value)" onblur="inlineNotes('${u.id}',this.value)">${esc(u.notes||'')}</textarea>
+      </div>
+      ${canEdit?`<div class="tracker-card-actions">
+        <button class="btn-tedit" onclick="openUnitModal('${u.id}')">✎ Edit</button>
+        <button class="btn-tdel" onclick="deleteUnit('${u.id}','${(u.stock||u.vin).replace(/"/g,'&quot;').replace(/'/g,"\\'")}')">✕</button>
+      </div>`:''}
+    </div>`;
+  }
+
+  const activeNew = rows.filter(u => u.condition !== 'used');
+  const activeUsed = rows.filter(u => u.condition === 'used');
+
+  let html = '';
+  if (activeNew.length) {
+    html += `<div class="section-divider">🆕 New (${activeNew.length})</div>`;
+    html += activeNew.map(makeCard).join('');
+  }
+  if (activeUsed.length) {
+    html += `<div class="section-divider">🔁 Used (${activeUsed.length})</div>`;
+    html += activeUsed.map(makeCard).join('');
+  }
+  body.innerHTML = html;
+  updateBulkBar();
+  renderTrackerCompleted();
+}
+// Exposed on window - the search box's oninput="renderTracker()" attribute
+// runs in global scope, not this module's scope, so without this the box
+// silently threw "renderTracker is not defined" on every keystroke and
+// never actually filtered anything.
+window.renderTracker = renderTracker;
+
+// Completed units get the same dense one-line row as active units used to -
+// still fully interactive (unchecking a box here sends it right back to the
+// active cards above, since that's just isUnitComplete flipping either way).
+function renderTrackerCompleted() {
+  const canEdit  = perm('trackerEdit');
+  const canAcc   = perm('cbAcc');
+  const canPdi   = perm('cbPdi');
+  const canPhoto = perm('cbPhoto');
+  const canIC    = perm('cbIC');
+  const allCompletedCount = Object.values(units).filter(isUnitComplete).length;
+  const toolbar = document.getElementById('tracker-completed-toolbar');
+  const divider = document.getElementById('tracker-completed-divider');
+  const body = document.getElementById('tracker-completed-body');
+  if (!allCompletedCount) {
+    toolbar.style.display = 'none';
+    divider.style.display = 'none';
+    body.innerHTML = '';
+    return;
+  }
+  toolbar.style.display = 'flex';
+  divider.style.display = 'block';
+  const rows = getCompletedFiltered();
+  document.getElementById('tc-row-count').textContent = rows.length+' of '+allCompletedCount+' completed';
+  if (!rows.length) {
+    body.innerHTML = `<div class="tracker-empty">No completed units match your search.</div>`;
+    return;
+  }
+
+  // Dupe check spans every unit, not just this filtered/completed slice.
+  const stockCounts = {};
+  Object.values(units).forEach(u => { const s=(u.stock||'').toUpperCase().trim(); if(s) stockCounts[s]=(stockCounts[s]||0)+1; });
+  const isDupe = (u) => { const s=(u.stock||'').toUpperCase().trim(); return s && stockCounts[s] > 1; };
+
   function makeRow(u) {
     const isSelected = selectedUnits.has(u.id);
     const dupeBadge = isDupe(u) ? `<span class="complete-badge dupe-blink" style="background:#dc2626;font-size:9px;padding:1px 5px" title="Duplicate stock #">⚠</span>` : '';
     const lockInfo = activeLockFor('tracker', u.id);
-    const statusClass = {STOCK:'status-stock',SOLD:'status-sold',TURNOVER:'status-turnover'}[u.status]||'status-other';
 
     const cbBtn = (field, label, val, naOverride, extraClass='', canCheck=true) => {
       const whoWhen = trWhoWhen(u, field, val);
@@ -5096,10 +5214,6 @@ function renderTracker() {
     };
     const isNoPhoto = !photoRequired(u);
 
-    const condBadge = u.condition === 'used'
-      ? `<span class="complete-badge" style="background:#7c3aed;font-size:9px">${{TRADEIN:'Trade-In',AUCTION:'Auction'}[u.category]||'Used'}</span>`
-      : `<span class="complete-badge" style="background:#2563eb;font-size:9px">${{RETAIL:'Retail',FLEET:'Fleet'}[u.category]||'New'}</span>`;
-
     const isFord = u.condition === 'new' ? true : /ford/i.test(u.make||'');
     const stickerLink = (isFord && u.vin && u.vin.length >= 11)
       ? `<a href="http://www.windowsticker.forddirect.com/windowsticker.pdf?vin=${encodeURIComponent(u.vin)}" target="_blank" rel="noopener" title="Window Sticker" onclick="event.stopPropagation()" style="text-decoration:none;flex-shrink:0">🪟</a>`
@@ -5107,16 +5221,19 @@ function renderTracker() {
 
     const vehicle = u.vehicle || [u.year,u.type,u.trim,u.colour].filter(Boolean).join(' · ') || '';
     const metaBits = [u.arrived||'', u.kms?`${u.kms} km`:'', u.workReq?`🔑 ${u.workReq}`:''].filter(Boolean).join(' · ');
-    const addedLine = u.ts ? `Added ${timeAgo(u.ts)} by ${u.createdBy||u.updatedBy||'Unknown'}` : '';
+    const tooltipBits = [
+      u.ts ? `Added ${timeAgo(u.ts)} by ${u.createdBy||u.updatedBy||'Unknown'}` : '',
+      u.completedAt ? `Completed ${timeAgo(u.completedAt)} by ${u.completedBy||'Unknown'}` : '',
+    ].filter(Boolean).join(' · ');
 
-    return `<div class="trow ${statusClass}${isDupe(u)?' is-dupe':''}${lockInfo?' is-locked':''}" id="tc-${u.id}" title="${esc(addedLine)}">
+    return `<div class="trow is-complete${isDupe(u)?' is-dupe':''}${lockInfo?' is-locked':''}" id="tc-${u.id}" title="${esc(tooltipBits)}">
       <div>${canEdit?`<input type="checkbox" class="row-select row-cb" ${isSelected?'checked':''} onchange="toggleRowSelect('${u.id}',this.checked)" style="width:15px;height:15px;accent-color:var(--ford);cursor:pointer"/>`:''}</div>
       <div class="trow-stock" style="display:flex;align-items:center;gap:4px;overflow:hidden">
         ${stockCopy(u.stock)}
         ${lockInfo?`<span class="trow-lock-icon" title="${esc(lockInfo.lockedBy)} is editing this…">🔒</span>`:''}
       </div>
       <div class="trow-vin" style="display:flex;align-items:center;gap:5px">${vinWithCopy(u.vin)}${stickerLink}</div>
-      <div class="trow-vehicle" title="${esc(vehicle)}">${esc(vehicle)} ${condBadge}${dupeBadge}</div>
+      <div class="trow-vehicle" title="${esc(vehicle)}">${esc(vehicle)} ${dupeBadge}</div>
       <div class="trow-checks">
         ${u.condition === 'used' ? `
           ${cbBtn('fileReceived',"File Rec'd",u.fileReceived,false,'',canEdit)}
@@ -5144,81 +5261,7 @@ function renderTracker() {
     </div>`;
   }
 
-  const activeNew = rows.filter(u => u.condition !== 'used');
-  const activeUsed = rows.filter(u => u.condition === 'used');
-
-  let html = `<div class="trows-head"><span></span><span>Stock</span><span>VIN</span><span>Vehicle</span><span>Checklist</span><span>Status</span><span>Info</span><span>Notes</span><span>Actions</span></div>`;
-  if (activeNew.length) {
-    html += `<div class="section-divider" style="padding:6px 14px;background:#f8fafc">🆕 New (${activeNew.length})</div>`;
-    html += activeNew.map(makeRow).join('');
-  }
-  if (activeUsed.length) {
-    html += `<div class="section-divider" style="padding:6px 14px;background:#f8fafc">🔁 Used (${activeUsed.length})</div>`;
-    html += activeUsed.map(makeRow).join('');
-  }
-  body.innerHTML = html;
-  updateBulkBar();
-  renderTrackerCompleted();
-}
-// Exposed on window - the search box's oninput="renderTracker()" attribute
-// runs in global scope, not this module's scope, so without this the box
-// silently threw "renderTracker is not defined" on every keystroke and
-// never actually filtered anything.
-window.renderTracker = renderTracker;
-
-function renderTrackerCompleted() {
-  const canEdit = perm('trackerEdit');
-  const allCompletedCount = Object.values(units).filter(isUnitComplete).length;
-  const toolbar = document.getElementById('tracker-completed-toolbar');
-  const divider = document.getElementById('tracker-completed-divider');
-  const body = document.getElementById('tracker-completed-body');
-  if (!allCompletedCount) {
-    toolbar.style.display = 'none';
-    divider.style.display = 'none';
-    body.innerHTML = '';
-    return;
-  }
-  toolbar.style.display = 'flex';
-  divider.style.display = 'block';
-  const rows = getCompletedFiltered();
-  document.getElementById('tc-row-count').textContent = rows.length+' of '+allCompletedCount+' completed';
-  if (!rows.length) {
-    body.innerHTML = `<div class="tracker-empty">No completed units match your search.</div>`;
-    return;
-  }
-
-  function makeRow(u) {
-    const vehicle = u.vehicle || [u.year, u.type, u.trim, u.colour].filter(Boolean).join(' · ') || '';
-    // Full date+time, not just the date - same precision as the who/when
-    // stamps shown under each checkbox before it shifted down here.
-    const completedLine = [
-      u.completedAt ? new Date(u.completedAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : '',
-      u.completedBy || '',
-    ].filter(Boolean).join(' · ');
-    const metaBits = [
-      u.arrived ? `📅 ${esc(u.arrived)}` : '',
-      u.kms ? `${esc(u.kms)} km` : '',
-      u.workReq ? `🔑 ${esc(u.workReq)}` : '',
-    ].filter(Boolean).join(' · ');
-    return `<div class="tracker-list-row" id="tc-${u.id}">
-      <div class="tlr-stock">${stockCopy(u.stock)}</div>
-      <div class="tlr-vin">${vinWithCopy(u.vin)}</div>
-      <div class="tlr-vehicle" title="${esc(vehicle)}">${esc(vehicle)}</div>
-      <div class="tlr-cond">${u.condition==='used'?'Used':'New'}</div>
-      ${tStatusPill(u.status)}
-      <div class="tlr-completed" title="${esc(completedLine)}">${esc(completedLine)}</div>
-      ${canEdit?`<div class="tlr-actions">
-        <button class="btn-tedit" onclick="openUnitModal('${u.id}')">✎</button>
-        <button class="btn-tdel" onclick="deleteUnit('${u.id}','${(u.stock||u.vin).replace(/"/g,'&quot;').replace(/'/g,"\\'")}')">✕</button>
-      </div>`:'<div></div>'}
-      <div class="tlr-meta">
-        ${metaBits?`<span class="tlr-meta-text">${metaBits}</span>`:''}
-        <span class="tlr-stages">${stageBadges(u)}</span>
-      </div>
-    </div>`;
-  }
-
-  body.innerHTML = `<div class="tracker-list-head"><span>Stock</span><span>VIN</span><span>Vehicle</span><span>Type</span><span>Status</span><span>Completed</span><span></span></div>`
+  body.innerHTML = `<div class="trows-head"><span></span><span>Stock</span><span>VIN</span><span>Vehicle</span><span>Checklist</span><span>Status</span><span>Info</span><span>Notes</span><span>Actions</span></div>`
     + rows.map(makeRow).join('');
 }
 window.renderTrackerCompleted = renderTrackerCompleted; // see window.renderTracker above - same reason
