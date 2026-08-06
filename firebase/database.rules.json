@@ -54,6 +54,17 @@
 
     "permissions": {
       ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'management'"
+    },
+
+    "announcements": {
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'management'",
+      "$id": {
+        "readBy": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && root.child('users').child(auth.uid).child('status').val() === 'approved'"
+          }
+        }
+      }
     }
   }
 }
