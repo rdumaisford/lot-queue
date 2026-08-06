@@ -441,11 +441,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 /* Desktop: bigger grid */
 @media(min-width:1200px){.tracker-card-grid{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}}
 
-/* One-click VIN copy, wherever VIN is shown */
+/* One-click copy for VIN/Stock # - click the text itself, a small copy
+   icon fades in on hover as the only hint it's clickable. */
 .tracker-card-vin{display:flex;align-items:center;gap:5px}
-.vin-copy-btn{border:none;background:transparent;cursor:pointer;font-size:11px;padding:1px 3px;border-radius:4px;color:var(--text-faint);line-height:1}
-.vin-copy-btn:hover{background:var(--bg);color:var(--ford)}
-.vin-copy-btn.copied{color:#15803d}
+.copy-text{cursor:pointer;display:inline-flex;align-items:center;gap:4px;border-radius:4px}
+.copy-text .copy-icon{opacity:0;transition:opacity .15s;font-size:10px}
+.copy-text:hover{color:var(--ford)}
+.copy-text:hover .copy-icon{opacity:1}
+.copy-text.copied{color:#15803d}
 
 /* Who/when line under each PDI-style checkbox, mirroring Get Ready's checklist */
 .tracker-cb-who{font-size:9px;color:var(--text-faint);text-align:center;line-height:1.2}
@@ -458,7 +461,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tracker-list-row{display:grid;grid-template-columns:90px 150px 1fr 60px 90px 150px 70px;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);align-items:center;font-size:13px}
 .tracker-list-row:last-child{border-bottom:none}
 .tracker-list-row:hover{background:#fafaf9}
-.tlr-stock{font-weight:700;color:var(--ford);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tlr-stock{display:flex;align-items:center;gap:4px;font-weight:700;color:var(--ford);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tlr-vin{display:flex;align-items:center;gap:5px;font-family:monospace;font-size:11px;color:var(--text-faint)}
 .tlr-vehicle{color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tlr-cond{font-size:11px;color:var(--text-faint)}
@@ -4745,28 +4748,32 @@ function getCompletedFiltered() {
   return rows;
 }
 
-// One-click copy for VIN, wherever it's shown (active cards, completed list).
-window.trCopyVin = async function(vin, evt) {
+// One-click copy for VIN/Stock #, wherever they're shown - active cards,
+// completed lists, Incoming and Get Ready alike. Click the text itself; the
+// little copy icon next to it just fades in on hover as a "this is
+// clickable" hint, it isn't a separate button.
+window.copyToClipboard = async function(text, evt) {
   if (evt) evt.stopPropagation();
-  if (!vin) return;
-  // Grab the button before the first await - evt.currentTarget is only valid
-  // for the duration of the synchronous event dispatch and reads back null
-  // once we're past an await, even though evt itself is still around.
-  const btn = evt?.currentTarget;
+  if (!text) return;
+  // Grab the wrapper before the first await - evt.currentTarget is only
+  // valid for the duration of the synchronous event dispatch and reads back
+  // null once we're past an await, even though evt itself is still around.
+  const wrap = evt?.currentTarget;
   try {
-    await navigator.clipboard.writeText(vin);
+    await navigator.clipboard.writeText(text);
   } catch(e) {
     // Fallback for older/non-secure-context browsers with no Clipboard API.
     const ta = document.createElement('textarea');
-    ta.value = vin; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
     document.body.appendChild(ta); ta.focus(); ta.select();
     try { document.execCommand('copy'); } catch(e2) {}
     document.body.removeChild(ta);
   }
-  if (btn) {
-    const prev = btn.textContent;
-    btn.textContent = '✓'; btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = prev; btn.classList.remove('copied'); }, 1200);
+  const icon = wrap?.querySelector('.copy-icon');
+  if (icon) {
+    const prev = icon.textContent;
+    wrap.classList.add('copied'); icon.textContent = '✓';
+    setTimeout(() => { icon.textContent = prev; wrap.classList.remove('copied'); }, 1200);
   }
 };
 
@@ -4875,9 +4882,22 @@ function trWhoWhen(u, field, val) {
   return `${by}${at ? ' · '+new Date(at).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : ''}`;
 }
 
+// Click the text to copy it - a small icon fades in on hover as the only
+// hint it's clickable, rather than a separate always-visible button.
+function copyableText(text, label, extraClass) {
+  if (!text) return '';
+  return `<span class="copy-text${extraClass?' '+extraClass:''}" title="Click to copy ${label}" onclick="copyToClipboard('${esc(text)}',event)">${esc(text)}<span class="copy-icon">📋</span></span>`;
+}
+
+// Stock # display, with the same click-to-copy treatment as VIN - falls
+// back to a plain dash when there's no stock # to copy.
+function stockCopy(stock) {
+  return stock ? copyableText(stock, 'stock #') : '-';
+}
+
 function vinWithCopy(vin) {
   if (!vin) return '';
-  return `<span>${esc(vin)}</span><button type="button" class="vin-copy-btn" title="Copy VIN" onclick="trCopyVin('${esc(vin)}',event)">📋</button>`;
+  return copyableText(vin, 'VIN');
 }
 
 function renderTracker() {
@@ -4950,7 +4970,7 @@ function renderTracker() {
       <div class="tracker-card-header">
         <div class="tracker-card-stock">
           ${canEdit?`<input type="checkbox" class="row-select row-cb" ${isSelected?'checked':''} onchange="toggleRowSelect('${u.id}',this.checked)" style="width:15px;height:15px;accent-color:var(--ford);cursor:pointer;flex-shrink:0"/>`:''}
-          <span>${esc(u.stock||'-')}</span>
+          ${stockCopy(u.stock)}
           ${condBadge}${dupeBadge}
         </div>
         <div class="tracker-card-vin">${vinWithCopy(u.vin)}</div>
@@ -5036,17 +5056,19 @@ function renderTrackerCompleted() {
 
   function makeRow(u) {
     const vehicle = u.vehicle || [u.year, u.type, u.trim, u.colour].filter(Boolean).join(' · ') || '';
+    // Full date+time, not just the date - same precision as the who/when
+    // stamps shown under each checkbox before it shifted down here.
     const completedLine = [
-      u.completedAt ? new Date(u.completedAt).toLocaleDateString() : '',
+      u.completedAt ? new Date(u.completedAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : '',
       u.completedBy || '',
     ].filter(Boolean).join(' · ');
     return `<div class="tracker-list-row" id="tc-${u.id}">
-      <div class="tlr-stock">${esc(u.stock||'-')}</div>
+      <div class="tlr-stock">${stockCopy(u.stock)}</div>
       <div class="tlr-vin">${vinWithCopy(u.vin)}</div>
       <div class="tlr-vehicle" title="${esc(vehicle)}">${esc(vehicle)}</div>
       <div class="tlr-cond">${u.condition==='used'?'Used':'New'}</div>
       ${tStatusPill(u.status)}
-      <div class="tlr-completed">${esc(completedLine)}</div>
+      <div class="tlr-completed" title="${esc(completedLine)}">${esc(completedLine)}</div>
       ${canEdit?`<div class="tlr-actions">
         <button class="btn-tedit" onclick="openUnitModal('${u.id}')">✎</button>
         <button class="btn-tdel" onclick="deleteUnit('${u.id}','${(u.stock||u.vin).replace(/"/g,'&quot;').replace(/'/g,"\\'")}')">✕</button>
@@ -5722,7 +5744,7 @@ function renderGRCard(d, perms, isDupe) {
     return `<div class="gr-card${isComplete?' is-complete':' '+typeClass}" id="gr-${d.id}" style="${d.needsAcknowledgment?'border-left:4px solid #7c3aed;background:#faf5ff':isDupe(d)?'border-left:4px solid #dc2626':''}">
       <div class="gr-card-header">
         <div class="gr-card-top">
-          <span class="gr-card-stock">${esc(d.stock||'-')}</span>
+          <span class="gr-card-stock">${stockCopy(d.stock)}</span>
           <span class="gr-type-pill ${typePillClass}">${esc(d.type||'-')}</span>
           ${completeBadge}${holdBadge}${updatedBadge}${dupeBadge}
         </div>
@@ -5829,13 +5851,15 @@ function renderGRCompleted() {
 
   function makeRow(d) {
     const dealNote = d.dealCompleted ? '✓ Deal completed' : d.dealStatus === 'on_hold' ? '⏸ On hold' : d.dealStatus === 'declined' ? '❌ Declined' : '';
+    // Full date+time, not just the date - same precision as the who/when
+    // stamps shown under each checklist item before it shifted down here.
     const readyLine = [
-      d.completedAt ? new Date(d.completedAt).toLocaleDateString() : '',
+      d.completedAt ? new Date(d.completedAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : '',
       d.completedBy || '',
       dealNote,
     ].filter(Boolean).join(' · ');
     return `<div class="tracker-list-row gr-row" id="gr-${d.id}">
-      <div class="tlr-stock">${esc(d.stock||'-')}</div>
+      <div class="tlr-stock">${stockCopy(d.stock)}</div>
       <div class="tlr-vehicle" title="${esc(d.vehicle||'')}">${esc(d.vehicle||'-')}</div>
       <div class="tlr-vehicle" title="${esc(d.customer||'')}">${esc(d.customer||'-')}</div>
       <span class="gr-type-pill ${typePillClassOf(d.type)}">${esc(d.type||'-')}</span>
@@ -8378,6 +8402,12 @@ window.switchTab = function(name, btn) {
     cmRender();
   } else if (name === 'audit') {
     auditRender();
+  } else if (name === 'tracker' || name === 'getready') {
+    // These two run wide - their card grids and completed lists waste a lot
+    // of side margin at the default 1100px cap on anything bigger than a
+    // laptop screen.
+    document.getElementById('main-wrap').style.padding = '24px';
+    document.getElementById('main-wrap').style.maxWidth = 'none';
   } else {
     // Restore normal padding when leaving compound tab (but not for the TV kiosk view)
     const wasCompound = document.getElementById('panel-compound')?.classList.contains('active');
