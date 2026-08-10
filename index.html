@@ -5155,19 +5155,11 @@ function renderTracker() {
     </div>`;
   }
 
-  const activeNew = rows.filter(u => u.condition !== 'used');
-  const activeUsed = rows.filter(u => u.condition === 'used');
-
-  let html = '';
-  if (activeNew.length) {
-    html += `<div class="section-divider">🆕 New (${activeNew.length})</div>`;
-    html += activeNew.map(makeCard).join('');
-  }
-  if (activeUsed.length) {
-    html += `<div class="section-divider">🔁 Used (${activeUsed.length})</div>`;
-    html += activeUsed.map(makeCard).join('');
-  }
-  body.innerHTML = html;
+  // One flat list sorted purely by arrival date, newest first - splitting
+  // into separate New/Used sections (each only sorted within itself) made
+  // the overall screen look mixed up date-wise. Each card already carries
+  // its own New/Used badge, so the grouping wasn't needed to tell them apart.
+  body.innerHTML = rows.map(makeCard).join('');
   updateBulkBar();
   renderTrackerCompleted();
 }
