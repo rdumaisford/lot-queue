@@ -4837,6 +4837,18 @@ function isUnitComplete(u) {
   return true;
 }
 
+// "arrived" on a unit is a display string like "AUG 1ST" (no year, not
+// alphabetically chronological) - the real sortable value is arrivedDate
+// (the raw YYYY-MM-DD from the date picker). Falls back to when the unit
+// was added if no arrival date was ever entered.
+function arrivedSortValue(u) {
+  if (u.arrivedDate) {
+    const t = new Date(u.arrivedDate+'T00:00:00').getTime();
+    if (!isNaN(t)) return t;
+  }
+  return u.ts || 0;
+}
+
 // Active units only - completed units have their own list/search/filter
 // (getCompletedFiltered below) so paging through years of finished units
 // never touches what's shown on the active board.
@@ -4846,6 +4858,10 @@ function getTrackerFiltered() {
   if(tFilterStatus!=='ALL') rows=rows.filter(u=>u.status===tFilterStatus);
   if(q) rows=rows.filter(u=>[u.stock,u.vin,u.vehicle,u.notes,u.arrived,u.workReq].join(' ').toLowerCase().includes(q));
   rows.sort((a,b)=>{
+    if (tSortCol === 'arrived') {
+      const av=arrivedSortValue(a), bv=arrivedSortValue(b);
+      return tSortAsc ? av-bv : bv-av;
+    }
     let av=a[tSortCol]||'',bv=b[tSortCol]||'';
     if(typeof av==='boolean')av=av?1:0; if(typeof bv==='boolean')bv=bv?1:0;
     return tSortAsc?(av>bv?1:-1):(av<bv?1:-1);
@@ -4872,7 +4888,7 @@ function getCompletedFiltered() {
   else if(tcFilterStatus==='USED') rows=rows.filter(u=>u.condition==='used');
   else if(tcFilterStatus!=='ALL') rows=rows.filter(u=>u.status===tcFilterStatus);
   if(q) rows=rows.filter(u=>[u.stock,u.vin,u.vehicle,u.notes,u.arrived,u.workReq].join(' ').toLowerCase().includes(q));
-  rows.sort((a,b)=>(b.completedAt||0)-(a.completedAt||0));
+  rows.sort((a,b)=>arrivedSortValue(b)-arrivedSortValue(a));
   return rows;
 }
 
