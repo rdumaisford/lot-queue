@@ -4837,15 +4837,12 @@ function isUnitComplete(u) {
   return true;
 }
 
-// "arrived" on a unit is a display string like "AUG 1ST" (no year, not
-// alphabetically chronological) - the real sortable value is arrivedDate
-// (the raw YYYY-MM-DD from the date picker). Falls back to when the unit
-// was added if no arrival date was ever entered.
-function arrivedSortValue(u) {
-  if (u.arrivedDate) {
-    const t = new Date(u.arrivedDate+'T00:00:00').getTime();
-    if (!isNaN(t)) return t;
-  }
+// Sort key = when the unit was actually added to the tracker (ts), not the
+// free-typed "arrived" date - that field is often left blank or inconsistent,
+// which made the list look unsorted even after date-based sorting. ts is
+// always set (stamped automatically on creation), so it sorts cleanly every
+// time: most recently added first.
+function addedSortValue(u) {
   return u.ts || 0;
 }
 
@@ -4859,7 +4856,7 @@ function getTrackerFiltered() {
   if(q) rows=rows.filter(u=>[u.stock,u.vin,u.vehicle,u.notes,u.arrived,u.workReq].join(' ').toLowerCase().includes(q));
   rows.sort((a,b)=>{
     if (tSortCol === 'arrived') {
-      const av=arrivedSortValue(a), bv=arrivedSortValue(b);
+      const av=addedSortValue(a), bv=addedSortValue(b);
       return tSortAsc ? av-bv : bv-av;
     }
     let av=a[tSortCol]||'',bv=b[tSortCol]||'';
@@ -4888,7 +4885,7 @@ function getCompletedFiltered() {
   else if(tcFilterStatus==='USED') rows=rows.filter(u=>u.condition==='used');
   else if(tcFilterStatus!=='ALL') rows=rows.filter(u=>u.status===tcFilterStatus);
   if(q) rows=rows.filter(u=>[u.stock,u.vin,u.vehicle,u.notes,u.arrived,u.workReq].join(' ').toLowerCase().includes(q));
-  rows.sort((a,b)=>arrivedSortValue(b)-arrivedSortValue(a));
+  rows.sort((a,b)=>addedSortValue(b)-addedSortValue(a));
   return rows;
 }
 
