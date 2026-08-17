@@ -1400,6 +1400,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <button id="cm-lot-btn-bayview700" onclick="cmSwitchLot('bayview700')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--ford);color:#fff">700 Bayview</button>
           <button id="cm-lot-btn-bayview323" onclick="cmSwitchLot('bayview323')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">323 Bayview</button>
           <button id="cm-lot-btn-bayview323new" onclick="cmSwitchLot('bayview323new')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">323 Bayview (NEW)</button>
+          <button id="cm-lot-btn-dealership" onclick="cmSwitchLot('dealership')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">Dealership</button>
         </div>
         <!-- Zoom - mainly for mobile, where the map's own hold-to-drag touch
              handling blocks the browser's native pinch-to-zoom gesture. -->
@@ -6917,7 +6918,7 @@ async function logCompoundChange(lot, action, detail) {
   } catch(e) { /* logging failures shouldn't block the actual map edit */ }
 }
 
-const CM_LOT_LABELS = { bayview700:'700 Bayview', bayview323:'323 Bayview', mapleview55:'55 Mapleview' };
+const CM_LOT_LABELS = { bayview700:'700 Bayview', bayview323:'323 Bayview', bayview323new:'323 Bayview (NEW)', dealership:'Dealership', mapleview55:'55 Mapleview' };
 
 function filteredCompoundHistory() {
   const all = Object.values(compoundHistoryData);
@@ -7810,7 +7811,14 @@ const CM_LOTS = {
   bayview700:  { label: '700 Bayview' },
   bayview323:  { label: '323 Bayview' },
   bayview323new: { label: '323 Bayview (NEW)' },
+  dealership: { label: 'Dealership' },
 };
+// Lots that use the freeform (real-scale, feet-based, freely placed/rotated
+// spots) layout engine instead of a fixed rows×cols grid - everything keyed
+// off this set instead of a single hardcoded lot id, so adding another
+// freeform lot is just adding its id here (plus a listener/meta entry, see
+// cmStartListeners) rather than a deeper rewrite.
+const FREEFORM_LOTS = new Set(['bayview323new', 'dealership']);
 
 // Real layout from CSV - 13 parking rows × 52 cols
 // Each row: array of 52 cells, null = empty spot, string = "STOCK desc"
@@ -8005,18 +8013,25 @@ function cmBuildOverlayMaps() {
     tdMap[t.stock.toUpperCase().trim()] = true;
   });
 
-  // Build stock# → duplicate-count lookup, ACROSS ALL LOTS - a vehicle can't
-  // physically be parked in two spots at once, so this is always worth flagging.
-  const stockSpotCounts = {};
-  Object.values(cmVehicles||{}).forEach(lotVehs => {
+  // Build stock# → duplicate-count lookups, split into the grid lots and the
+  // freeform lots as two separate groups. A vehicle can't physically be
+  // parked in two spots within the same group at once, so that's always
+  // worth flagging - but comparing ACROSS the two groups isn't useful while
+  // an inventory is being migrated from the grid system over to a freeform
+  // lot (every car would show as a false duplicate for as long as both
+  // copies exist). Once something's only entered on one side, this stops
+  // flagging it either way.
+  const gridStockCounts = {}, freeformStockCounts = {};
+  Object.entries(cmVehicles||{}).forEach(([lotId, lotVehs]) => {
+    const bucket = FREEFORM_LOTS.has(lotId) ? freeformStockCounts : gridStockCounts;
     Object.values(lotVehs||{}).forEach(v => {
       if (!v || !v.stock || v.status==='blocked' || v.status==='void') return;
       const s = v.stock.toUpperCase().trim();
-      if (s) stockSpotCounts[s] = (stockSpotCounts[s]||0) + 1;
+      if (s) bucket[s] = (bucket[s]||0) + 1;
     });
   });
 
-  return { apptMap, grMap, tdMap, stockSpotCounts };
+  return { apptMap, grMap, tdMap, gridStockCounts, freeformStockCounts };
 }
 
 function cmRenderMap() {
@@ -8032,7 +8047,7 @@ function cmRenderMap() {
   const numCols = cmGridSize[cmCurrentLot]?.cols || (cmCurrentLot === 'bayview700' ? 52 : 30);
   const numRows = cmGridSize[cmCurrentLot]?.rows || (cmCurrentLot === 'bayview700' ? 13 : 10);
 
-  const { apptMap, grMap, tdMap, stockSpotCounts } = cmBuildOverlayMaps();
+  const { apptMap, grMap, tdMap, gridStockCounts: stockSpotCounts } = cmBuildOverlayMaps();
   const ageMap = cmHeatmapMode ? cmBuildAgeMap() : null;
 
   mapEl.className = `cm-grid${cmEditMode?' cm-edit-active':''}`;
@@ -8157,15 +8172,16 @@ window.cmSwitchLot = function(id) {
   cmUpdateEditBtn();
   document.getElementById('cm-search').value = '';
 
-  // 323 Bayview (NEW) is the freeform layout builder - same vehicle
-  // assignment, autofill, heatmap and search as the grid lots (all of that
-  // is shared, keyed off cmCurrentLot generically), just a different map
-  // area (an open canvas instead of a rows×cols grid) and no QR codes yet.
-  const isFreeform = id === 'bayview323new';
+  // Freeform lots (see FREEFORM_LOTS) are the layout-builder engine - same
+  // vehicle assignment, autofill, heatmap, search and QR codes as the grid
+  // lots (all of that is shared, keyed off cmCurrentLot generically), just a
+  // different map area (an open, real-scale canvas instead of a rows×cols
+  // grid) with its own numbered spots instead of Row/Col addressing.
+  const isFreeform = FREEFORM_LOTS.has(id);
   document.getElementById('cm-grid-zoom').style.display = isFreeform ? 'none' : '';
   document.getElementById('cm-fl-zoom').style.display = isFreeform ? 'flex' : 'none';
   document.getElementById('cm-stats').style.display = isFreeform ? 'none' : '';
-  document.getElementById('cm-qr-btn').style.display = isFreeform ? 'none' : '';
+  document.getElementById('cm-qr-btn').style.display = '';
   document.getElementById('cm-edit-btn').style.display = cmCanEditLayout() ? '' : 'none';
   document.getElementById('cm-map-wrap').style.display = isFreeform ? 'none' : '';
   document.getElementById('cm-freeform-wrap').style.display = isFreeform ? 'flex' : 'none';
@@ -8182,7 +8198,7 @@ window.cmSwitchLot = function(id) {
 // access (lot, merchandiser, management).
 function cmCanEditLayout() {
   if (!perm('compoundEdit')) return false;
-  if (cmCurrentLot === 'bayview323new') return currentUser?.role === 'management';
+  if (FREEFORM_LOTS.has(cmCurrentLot)) return currentUser?.role === 'management';
   return true;
 }
 
@@ -8192,7 +8208,7 @@ window.cmToggleEdit = function() {
   cmSelected.clear();
   flSelected = null;
   cmUpdateEditBtn();
-  const isFreeform = cmCurrentLot === 'bayview323new';
+  const isFreeform = FREEFORM_LOTS.has(cmCurrentLot);
   document.getElementById('cm-edit-bar').style.display = (cmEditMode && !isFreeform) ? 'flex' : 'none';
   document.getElementById('fl-edit-bar').style.display = (cmEditMode && isFreeform) ? 'flex' : 'none';
   document.getElementById('fl-side-panel').style.display = 'none';
@@ -8213,7 +8229,7 @@ window.cmToggleHeatmap = function() {
     btn.style.color = cmHeatmapMode ? '#991b1b' : 'var(--text)';
   }
   if (legend) legend.style.display = cmHeatmapMode ? 'flex' : 'none';
-  if (cmCurrentLot === 'bayview323new') flRender(); else cmRenderMap();
+  if (FREEFORM_LOTS.has(cmCurrentLot)) flRender(); else cmRenderMap();
 };
 
 function cmBuildAgeMap() {
@@ -8553,7 +8569,7 @@ window.cmSpotClick = function(key, ri, ci) {
 // replaces the whole record, so those have to be explicitly copied forward
 // each time or assigning a car would silently delete the parking space's shape.
 function cmCarryLayoutFields(data, prevVeh) {
-  if (cmCurrentLot === 'bayview323new' && prevVeh) {
+  if (FREEFORM_LOTS.has(cmCurrentLot) && prevVeh) {
     ['x','y','w','h','rot','label'].forEach(f => { if (prevVeh[f] !== undefined) data[f] = prevVeh[f]; });
   }
   return data;
@@ -8626,7 +8642,7 @@ window.cmClearSpot = async function() {
 window.cmClearKey = async function(key) {
   if (!perm('compoundEdit')) return;
   const prevVeh = (cmVehicles[cmCurrentLot]||{})[key];
-  if (cmCurrentLot === 'bayview323new') {
+  if (FREEFORM_LOTS.has(cmCurrentLot)) {
     // A freeform spot's record IS the physical parking space (it carries
     // x/y/w/h/rot/label) - clearing the vehicle must never delete that space.
     // Deleting the space itself is a separate action, only available in Edit
@@ -8723,15 +8739,26 @@ window.cmOpenQR = function() {
   grid.innerHTML = '';
   const v = cmVehicles[cmCurrentLot]||{};
   const baseURL = window.location.href.split('?')[0];
-  // Only generate QR for occupied spots
-  Object.entries(v).filter(([,veh])=>veh.stock).forEach(([key,veh]) => {
+  const isFreeform = FREEFORM_LOTS.has(cmCurrentLot);
+  // Grid lots: only print a tag for spots that are currently occupied - this
+  // is a "verify this car" tag. Freeform lots: every numbered spot gets one
+  // regardless of occupancy (skipping fences/buildings, which aren't
+  // assignable) - the whole point there is posting the code AT the empty
+  // spot so scanning it later opens straight to assigning whatever car just
+  // pulled in, not looking one up after the fact.
+  const entries = Object.entries(v).filter(([,veh]) =>
+    isFreeform ? (veh.kind !== 'object' && veh.kind !== 'fence') : !!veh.stock
+  );
+  entries.forEach(([key,veh]) => {
     const url = `${baseURL}?lot=${cmCurrentLot}&spot=${encodeURIComponent(key)}`;
     const item = document.createElement('div');
     item.style.cssText='display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg)';
     const qrDiv = document.createElement('div');
     const lbl = document.createElement('div');
     lbl.style.cssText='font-size:10px;font-weight:700;color:var(--text-muted);text-align:center';
-    lbl.textContent = `${key.replace('R','Row ').replace('-C',', Col ')} · ${veh.stock}`;
+    lbl.textContent = isFreeform
+      ? `Spot ${veh.label||key}${veh.stock?' · '+veh.stock:''}`
+      : `${key.replace('R','Row ').replace('-C',', Col ')} · ${veh.stock}`;
     item.appendChild(qrDiv); item.appendChild(lbl);
     grid.appendChild(item);
     new QRCode(qrDiv,{text:url,width:80,height:80,colorDark:'#00095b',colorLight:'#ffffff'});
@@ -9130,16 +9157,21 @@ function cmStartListeners() {
       bayview700:  { rows: meta.bayview700?.rows  || 13, cols: meta.bayview700?.cols  || 52 },
       bayview323:  { rows: meta.bayview323?.rows  || 10, cols: meta.bayview323?.cols  || 30 },
     };
-    // The freeform lot's real-world size in feet - editable (see
+    // Each freeform lot's own real-world size in feet - editable (see
     // flUpdatePropertySize) since the property itself can grow, unlike the
-    // two grid lots' fixed row/col counts. Self-seeds on first-ever load.
-    if (meta.bayview323new?.widthFt && meta.bayview323new?.depthFt) {
-      flLotSize = { widthFt: meta.bayview323new.widthFt, depthFt: meta.bayview323new.depthFt };
-    } else {
-      update(ref(db, 'compound_meta/bayview323new'), flLotSize).catch(()=>{});
-    }
+    // two grid lots' fixed row/col counts. Self-seeds on first-ever load,
+    // per lot (a new freeform lot gets its own default footprint - resize it
+    // to the real property from Edit mode once it's added).
+    FREEFORM_LOTS.forEach(lotId => {
+      const lotMeta = meta[lotId];
+      if (lotMeta?.widthFt && lotMeta?.depthFt) {
+        flLotSizes[lotId] = { widthFt: lotMeta.widthFt, depthFt: lotMeta.depthFt };
+      } else {
+        update(ref(db, `compound_meta/${lotId}`), flLotSizes[lotId] || FL_DEFAULT_LOT_SIZE).catch(()=>{});
+      }
+    });
     if (document.getElementById('panel-compound')?.classList.contains('active')) {
-      if (cmCurrentLot === 'bayview323new') flRender(); else cmRender();
+      if (FREEFORM_LOTS.has(cmCurrentLot)) flRender(); else cmRender();
     }
   });
   onValue(ref(db, 'compound_v2/bayview700'), snap => {
@@ -9165,6 +9197,10 @@ function cmStartListeners() {
   onValue(ref(db, 'compound_v2/bayview323new'), snap => {
     cmVehicles['bayview323new'] = snap.val() || {};
     if (cmCurrentLot === 'bayview323new') flRender();
+  });
+  onValue(ref(db, 'compound_v2/dealership'), snap => {
+    cmVehicles['dealership'] = snap.val() || {};
+    if (cmCurrentLot === 'dealership') flRender();
   });
 }
 
@@ -9241,19 +9277,23 @@ window.cmZoomReset = function() {
 // the physical spot itself. Keeping these separate means clearing a vehicle
 // never risks deleting the parking space (see cmClearKey), and reshaping the
 // lot never risks touching a vehicle assignment (see cmCarryLayoutFields).
-const FL_LOT = 'bayview323new';
+// Freeform functions all operate on cmCurrentLot directly (not a single
+// hardcoded lot id) - safe because the freeform panel/side panel are only
+// ever visible while cmCurrentLot is actually one of FREEFORM_LOTS.
 
-// Everything on this lot is stored in real-world FEET, not pixels - x/y/w/h
-// on a spot/object/fence record are all feet. FL_PX_PER_FT is purely a
-// display scale for turning those into an on-screen size; the underlying
-// data never changes if that scale is later adjusted.
+// Everything on a freeform lot is stored in real-world FEET, not pixels -
+// x/y/w/h on a spot/object/fence record are all feet. FL_PX_PER_FT is
+// purely a display scale for turning those into an on-screen size; the
+// underlying data never changes if that scale is later adjusted.
 //
-// The property's own size (flLotSize) is loaded from compound_meta/
-// bayview323new (see cmStartListeners) rather than hardcoded, since the lot
-// itself can grow - editable from Edit mode via flUpdatePropertySize.
+// Each freeform lot's own property size (flLotSizes[lotId]) is loaded from
+// compound_meta/<lotId> (see cmStartListeners) rather than hardcoded, since
+// a property can grow - editable from Edit mode via flUpdatePropertySize.
 // Growing it never disturbs anything already placed: (0,0) always stays the
 // same corner, so new acreage just extends the far edge outward.
-let flLotSize = { widthFt: 591, depthFt: 219.5 };
+const FL_DEFAULT_LOT_SIZE = { widthFt: 300, depthFt: 150 };
+let flLotSizes = { bayview323new: { widthFt: 591, depthFt: 219.5 } };
+function flCurrentLotSize() { return flLotSizes[cmCurrentLot] || FL_DEFAULT_LOT_SIZE; }
 const FL_PX_PER_FT = 8;
 const FL_SNAP_FT = 1; // spots snap to whole feet, same spacing as the dot grid, so placements land right on a dot
 function flFtToPx(ft) { return (ft||0) * FL_PX_PER_FT; }
@@ -9262,14 +9302,15 @@ function flSnapFt(ft) { return Math.round(ft / FL_SNAP_FT) * FL_SNAP_FT; }
 function flApplyCanvasSize() {
   const canvas = document.getElementById('fl-canvas');
   if (!canvas) return;
-  canvas.style.width = flFtToPx(flLotSize.widthFt) + 'px';
-  canvas.style.height = flFtToPx(flLotSize.depthFt) + 'px';
+  const size = flCurrentLotSize();
+  canvas.style.width = flFtToPx(size.widthFt) + 'px';
+  canvas.style.height = flFtToPx(size.depthFt) + 'px';
   const grid1ft = flFtToPx(1);
   canvas.style.backgroundSize = `${grid1ft}px ${grid1ft}px`; // one dot per foot
   // Don't stomp on the field while someone's actively typing a new size into it.
   const wEl = document.getElementById('fl-f-lotw'), dEl = document.getElementById('fl-f-lotd');
-  if (wEl && document.activeElement !== wEl) wEl.value = flLotSize.widthFt;
-  if (dEl && document.activeElement !== dEl) dEl.value = flLotSize.depthFt;
+  if (wEl && document.activeElement !== wEl) wEl.value = size.widthFt;
+  if (dEl && document.activeElement !== dEl) dEl.value = size.depthFt;
 }
 
 // The property can grow (e.g. new acreage at the back) - (0,0) always stays
@@ -9280,23 +9321,23 @@ window.flUpdatePropertySize = async function() {
   const w = +document.getElementById('fl-f-lotw').value;
   const d = +document.getElementById('fl-f-lotd').value;
   if (!w || !d || w < 1 || d < 1) { alert('Enter a valid width and depth in feet.'); return; }
-  flLotSize = { widthFt: w, depthFt: d };
+  flLotSizes[cmCurrentLot] = { widthFt: w, depthFt: d };
   flApplyCanvasSize();
-  await update(ref(db, 'compound_meta/bayview323new'), { widthFt: w, depthFt: d });
-  logCompoundChange(FL_LOT, 'resize', `Resized the property to ${w}ft × ${d}ft`);
+  await update(ref(db, `compound_meta/${cmCurrentLot}`), { widthFt: w, depthFt: d });
+  logCompoundChange(cmCurrentLot, 'resize', `Resized the property to ${w}ft × ${d}ft`);
 };
 
 function flRender() {
   const canvas = document.getElementById('fl-canvas');
   if (!canvas) return;
   flApplyCanvasSize();
-  const v = cmVehicles[FL_LOT] || {};
+  const v = cmVehicles[cmCurrentLot] || {};
   const ids = Object.keys(v);
   const countEl = document.getElementById('fl-spot-count');
   if (countEl) countEl.textContent = `${ids.length} item${ids.length!==1?'s':''}`;
   if (flSelected && !v[flSelected]) flSelected = null;
 
-  const { apptMap, grMap, tdMap, stockSpotCounts } = cmBuildOverlayMaps();
+  const { apptMap, grMap, tdMap, freeformStockCounts: stockSpotCounts } = cmBuildOverlayMaps();
   const ageMap = cmHeatmapMode ? cmBuildAgeMap() : null;
 
   canvas.innerHTML = ids.map(id => flSpotHtml(id, v[id], { apptMap, grMap, tdMap, stockSpotCounts, ageMap })).join('');
@@ -9390,7 +9431,7 @@ function flSpotHtml(id, veh, maps) {
   const heatOn = cmHeatmapMode && !isDupe && !isMismatch;
   const heatCls = heatOn ? ' cm-heatmap-active' : '';
   const heatStyleVar = heatOn ? `--heat-color:${ageDays!=null ? cmAgeColor(ageDays) : '#cbd5e1'};` : '';
-  const lockInfo = activeLockFor('compound', `${FL_LOT}_${id}`);
+  const lockInfo = activeLockFor('compound', `${cmCurrentLot}_${id}`);
   const lockCls = lockInfo ? ' cm-locked-by-other' : '';
   const stock = (veh.stock||'').substring(0,10);
   const typeLine = [veh.year, veh.type, veh.trim, veh.colour].filter(Boolean).join(' ').substring(0,18);
@@ -9417,7 +9458,7 @@ function flApplySelectionClass() {
 
 function flPatchSpotElement(id) {
   const el = document.querySelector(`#fl-canvas .cm-spot[data-cm-key="${id}"]`);
-  const s = (cmVehicles[FL_LOT]||{})[id];
+  const s = (cmVehicles[cmCurrentLot]||{})[id];
   if (!el || !s) return;
   el.style.left = flFtToPx(s.x)+'px'; el.style.top = flFtToPx(s.y)+'px';
   el.style.width = flFtToPx(s.w)+'px'; el.style.height = flFtToPx(s.h)+'px';
@@ -9429,7 +9470,7 @@ function flPatchSpotElement(id) {
 function flPopulateSidePanel() {
   const panel = document.getElementById('fl-side-panel');
   if (!panel) return;
-  const s = (cmEditMode && flSelected) ? (cmVehicles[FL_LOT]||{})[flSelected] : null;
+  const s = (cmEditMode && flSelected) ? (cmVehicles[cmCurrentLot]||{})[flSelected] : null;
   if (!s) { panel.style.display = 'none'; return; }
   panel.style.display = 'block';
   document.getElementById('fl-f-label').value = s.label||'';
@@ -9441,8 +9482,8 @@ function flPopulateSidePanel() {
 // A standard parking spot here - 9ft × 18ft.
 window.flAddSpot = function() {
   if (!cmCanEditLayout() || !cmEditMode) return;
-  const count = Object.values(cmVehicles[FL_LOT]||{}).filter(s=>s.kind!=='object').length;
-  const newRef = push(ref(db, `compound_v2/${FL_LOT}`));
+  const count = Object.values(cmVehicles[cmCurrentLot]||{}).filter(s=>s.kind!=='object').length;
+  const newRef = push(ref(db, `compound_v2/${cmCurrentLot}`));
   flSelected = newRef.key; // set before the write so the listener's render already shows it selected
   set(newRef, {
     x: 5 + (count % 10) * 12,
@@ -9450,7 +9491,7 @@ window.flAddSpot = function() {
     w: 9, h: 18, rot: 0,
     label: String(count + 1),
   });
-  logCompoundChange(FL_LOT, 'resize', `Added spot ${count + 1}`);
+  logCompoundChange(cmCurrentLot, 'resize', `Added spot ${count + 1}`);
 };
 
 function flKindLabel(kind) {
@@ -9462,8 +9503,8 @@ function flKindLabel(kind) {
 // it to the real footprint from the side panel.
 window.flAddObject = function() {
   if (!cmCanEditLayout() || !cmEditMode) return;
-  const count = Object.values(cmVehicles[FL_LOT]||{}).filter(s=>s.kind==='object').length;
-  const newRef = push(ref(db, `compound_v2/${FL_LOT}`));
+  const count = Object.values(cmVehicles[cmCurrentLot]||{}).filter(s=>s.kind==='object').length;
+  const newRef = push(ref(db, `compound_v2/${cmCurrentLot}`));
   flSelected = newRef.key;
   set(newRef, {
     kind: 'object',
@@ -9472,7 +9513,7 @@ window.flAddObject = function() {
     w: 20, h: 20, rot: 0,
     label: 'Building',
   });
-  logCompoundChange(FL_LOT, 'resize', `Added object`);
+  logCompoundChange(cmCurrentLot, 'resize', `Added object`);
 };
 
 // A fence line - a long, thin, rotatable segment (reuses the same shape
@@ -9480,8 +9521,8 @@ window.flAddObject = function() {
 // each into place to trace an actual fence line, including corners.
 window.flAddFence = function() {
   if (!cmCanEditLayout() || !cmEditMode) return;
-  const count = Object.values(cmVehicles[FL_LOT]||{}).filter(s=>s.kind==='fence').length;
-  const newRef = push(ref(db, `compound_v2/${FL_LOT}`));
+  const count = Object.values(cmVehicles[cmCurrentLot]||{}).filter(s=>s.kind==='fence').length;
+  const newRef = push(ref(db, `compound_v2/${cmCurrentLot}`));
   flSelected = newRef.key;
   set(newRef, {
     kind: 'fence',
@@ -9490,7 +9531,7 @@ window.flAddFence = function() {
     w: 30, h: 1, rot: 0,
     label: 'Fence',
   });
-  logCompoundChange(FL_LOT, 'resize', `Added fence`);
+  logCompoundChange(cmCurrentLot, 'resize', `Added fence`);
 };
 
 window.flSelectSpot = function(id) {
@@ -9505,9 +9546,9 @@ window.flUpdateSelected = async function(field, value) {
   if ((field === 'w' || field === 'h') && (!value || value < 1)) return; // ignore blank/too-small while typing (feet)
   if (field === 'w' || field === 'h') value = flSnapFt(value); // same quarter-foot grid as position, so edges still line up
   if (field === 'rot') value = ((Math.round(value) % 360) + 360) % 360;
-  cmVehicles[FL_LOT][flSelected] = { ...cmVehicles[FL_LOT][flSelected], [field]: value };
+  cmVehicles[cmCurrentLot][flSelected] = { ...cmVehicles[cmCurrentLot][flSelected], [field]: value };
   flPatchSpotElement(flSelected);
-  await update(ref(db, `compound_v2/${FL_LOT}/${flSelected}`), { [field]: value });
+  await update(ref(db, `compound_v2/${cmCurrentLot}/${flSelected}`), { [field]: value });
 };
 
 window.flSetRotation = function(deg) {
@@ -9533,27 +9574,27 @@ function flRotatedBBoxOffset(veh) {
 // never the vehicle in it, since the same car can't be parked in two places.
 window.flDuplicateSelected = async function() {
   if (!flSelected || !cmCanEditLayout() || !cmEditMode) return;
-  const s = (cmVehicles[FL_LOT]||{})[flSelected];
+  const s = (cmVehicles[cmCurrentLot]||{})[flSelected];
   if (!s) return;
-  const newRef = push(ref(db, `compound_v2/${FL_LOT}`));
+  const newRef = push(ref(db, `compound_v2/${cmCurrentLot}`));
   flSelected = newRef.key;
   const dup = { x: s.x + 2, y: s.y + 2, w: s.w, h: s.h, rot: s.rot||0, label: s.label||'' };
   if (s.kind) dup.kind = s.kind;
   await set(newRef, dup);
-  logCompoundChange(FL_LOT, 'resize', `Duplicated ${flKindLabel(s.kind)} ${s.label||flSelected}`);
+  logCompoundChange(cmCurrentLot, 'resize', `Duplicated ${flKindLabel(s.kind)} ${s.label||flSelected}`);
 };
 
 window.flDeleteSpot = async function(id) {
   if (!cmCanEditLayout() || !cmEditMode) return;
-  const s = (cmVehicles[FL_LOT]||{})[id];
+  const s = (cmVehicles[cmCurrentLot]||{})[id];
   const kindLabel = flKindLabel(s?.kind);
   const msg = s?.stock
     ? `This spot has ${s.stock} assigned. Delete it anyway? The vehicle assignment will be lost too - there's no way to keep the car parked here after the spot itself is gone.`
     : `Delete this ${kindLabel}?`;
   if (!confirm(msg)) return;
   if (flSelected === id) flSelected = null;
-  await remove(ref(db, `compound_v2/${FL_LOT}/${id}`));
-  logCompoundChange(FL_LOT, 'clear', `Deleted ${kindLabel} ${s?.label||id}${s?.stock?` (removed ${s.stock})`:''}`);
+  await remove(ref(db, `compound_v2/${cmCurrentLot}/${id}`));
+  logCompoundChange(cmCurrentLot, 'clear', `Deleted ${kindLabel} ${s?.label||id}${s?.stock?` (removed ${s.stock})`:''}`);
 };
 
 window.flDeleteSelected = function() {
@@ -9586,7 +9627,7 @@ window.flDeleteSelected = function() {
     if (!cmEditMode || !cmCanEditLayout()) return;
     const id = spotEl.dataset.cmKey;
     flSelectSpot(id);
-    const startSpot = (cmVehicles[FL_LOT]||{})[id];
+    const startSpot = (cmVehicles[cmCurrentLot]||{})[id];
     if (!startSpot) return;
     e.preventDefault();
     const startX = e.clientX, startY = e.clientY;
@@ -9602,12 +9643,12 @@ window.flDeleteSelected = function() {
       const nx = Math.max(-offX, flSnapFt(startSpot.x + dxPx / FL_PX_PER_FT));
       const ny = Math.max(-offY, flSnapFt(startSpot.y + dyPx / FL_PX_PER_FT));
       spotEl.style.left = flFtToPx(nx)+'px'; spotEl.style.top = flFtToPx(ny)+'px';
-      cmVehicles[FL_LOT][id] = { ...cmVehicles[FL_LOT][id], x: nx, y: ny };
+      cmVehicles[cmCurrentLot][id] = { ...cmVehicles[cmCurrentLot][id], x: nx, y: ny };
     };
     const onUp = async () => {
       spotEl.removeEventListener('pointermove', onMove);
       if (moved) {
-        await update(ref(db, `compound_v2/${FL_LOT}/${id}`), { x: cmVehicles[FL_LOT][id].x, y: cmVehicles[FL_LOT][id].y });
+        await update(ref(db, `compound_v2/${cmCurrentLot}/${id}`), { x: cmVehicles[cmCurrentLot][id].x, y: cmVehicles[cmCurrentLot][id].y });
         flPopulateSidePanel();
       }
     };
