@@ -3505,6 +3505,28 @@ const RIDES_LOTS = {
   '323 Bayview':  { lat: 44.351122, lng: -79.680119, address: '323 Bayview Drive, Barrie, ON' },
   '700 Bayview':  { lat: 44.330368, lng: -79.677249, address: '700 Bayview Drive, Barrie, ON' },
 };
+// Same "is this GPS ping fresh enough to trust" window used everywhere a
+// driver's live location gets read (map markers, auto-dispatch below).
+const RIDES_LOCATION_STALE_MS = 3 * 60 * 1000;
+const RIDES_AT_LOT_METERS = 250; // close enough to a lot to count as "the driver is physically there"
+
+function ridesHaversineMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000, toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+// Which of the three lots (if any) a live GPS position is actually sitting
+// at right now, within RIDES_AT_LOT_METERS - null if they're out on the road
+// between lots rather than parked at one.
+function ridesNearestLot(lat, lng) {
+  let best = null, bestDist = Infinity;
+  Object.entries(RIDES_LOTS).forEach(([name, loc]) => {
+    const d = ridesHaversineMeters(lat, lng, loc.lat, loc.lng);
+    if (d < bestDist) { bestDist = d; best = name; }
+  });
+  return bestDist <= RIDES_AT_LOT_METERS ? best : null;
+}
 
 function ridesInitMap() {
   if (ridesLeafletMap || typeof L === 'undefined') return;
@@ -4327,23 +4349,30 @@ window.claimAllRides = async function(idsJoined) {
   if (missed) alert(`${missed} of those ${ids.length} were already claimed by someone else - you got the rest.`);
 };
 
-// A driver already headed to a lot (the pickup while their ride is
-// 'claimed', the dropoff once 'enroute') picks up anyone else who's just
-// started waiting at that very lot automatically, instead of leaving a
-// second pending request sitting there for someone to notice and claim by
-// hand - they're already going to be there. Runs reactively wherever the
-// rides/ listener fires (any signed-in client, not just a driver's own
-// device - the transaction below makes that safe), but only chimes on the
-// actual driver's own screen while their dashboard is open.
+// Keeps every driver fed their next job automatically instead of anyone
+// having to notice a pending request and claim it by hand. Two passes:
+//
+//  1. Fold onto a driver already headed to that exact lot (the pickup while
+//     their ride is 'claimed', the dropoff once 'enroute') - they're going
+//     there anyway, so anyone else waiting there rides along.
+//  2. Hand it to a driver who ISN'T on any active ride at all but is
+//     physically sitting at that lot right now (live GPS, not stale) - this
+//     is what picks a driver back up the instant they drop someone off (or
+//     were just idle there to begin with), so they always have somewhere to
+//     go without needing to open the queue and look.
+//
+// Runs reactively wherever the rides/ listener fires (any signed-in client,
+// not just a driver's own device - the transactions below make that
+// race-safe), but only chimes on the actual driver's own screen while their
+// dashboard is open.
 async function ridesAutoLumpPending() {
   const entries = Object.entries(rides || {});
-  const activeDrivers = entries.filter(([,r]) => ['claimed','enroute'].includes(r.status));
-  if (!activeDrivers.length) return;
   const pending = entries.filter(([,r]) => r.status === 'pending');
-  for (const [id, r] of pending) {
-    const match = activeDrivers.find(([,ar]) => (ar.status === 'claimed' ? ar.pickup : ar.dropoff) === r.pickup);
-    if (!match) continue;
-    const driverName = match[1].claimedBy;
+  if (!pending.length) return;
+  const claimedThisRun = new Set(); // guards pass 2 against re-claiming something pass 1 already grabbed
+
+  const claimRideFor = async (id, driverName) => {
+    claimedThisRun.add(id);
     const result = await runTransaction(ref(db,'rides/'+id), (curr) => {
       if (!curr || curr.status !== 'pending') return curr;
       curr.status = 'claimed';
@@ -4355,6 +4384,25 @@ async function ridesAutoLumpPending() {
     if (result.committed && currentUser && driverName === currentUser.name && ridesMode === 'drive' && document.getElementById('panel-rides')?.classList.contains('active')) {
       chime('claimed');
     }
+  };
+
+  const activeDrivers = entries.filter(([,r]) => ['claimed','enroute'].includes(r.status));
+  for (const [id, r] of pending) {
+    const match = activeDrivers.find(([,ar]) => (ar.status === 'claimed' ? ar.pickup : ar.dropoff) === r.pickup);
+    if (match) await claimRideFor(id, match[1].claimedBy);
+  }
+
+  const busyNames = new Set(activeDrivers.map(([,r]) => r.claimedBy));
+  const idleDriverAtLot = {}; // lot name -> driver name currently parked there
+  Object.values(driverLocations || {}).forEach(d => {
+    if (!d || busyNames.has(d.name) || (Date.now() - d.ts) > RIDES_LOCATION_STALE_MS) return;
+    const lot = ridesNearestLot(d.lat, d.lng);
+    if (lot && !idleDriverAtLot[lot]) idleDriverAtLot[lot] = d.name;
+  });
+  for (const [id, r] of pending) {
+    if (claimedThisRun.has(id)) continue;
+    const driverName = idleDriverAtLot[r.pickup];
+    if (driverName) await claimRideFor(id, driverName);
   }
 }
 
