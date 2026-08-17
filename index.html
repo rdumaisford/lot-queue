@@ -1360,7 +1360,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
             <button onclick="ridesSetViewMode('queue')" style="padding:8px 14px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:10px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;min-height:36px">Exit</button>
           </div>
         </div>
-        <div id="rides-driver-eta" style="font-size:13px;font-weight:700;color:#93c5fd;margin-bottom:8px"></div>
+        <!-- The whole point: one glance tells a driver where to go and who
+             to grab there - everything else (claiming, advancing status) is
+             automatic based on their live location, see ridesRenderGoBanner /
+             ridesAutoAdvanceOnArrival. -->
+        <div id="rides-go-banner" style="background:rgba(255,255,255,.08);border:2px solid #2563eb;border-radius:14px;padding:16px;margin-bottom:12px"></div>
         <button id="rides-loc-share-btn" onclick="toggleLocationSharing()" style="width:100%;padding:12px;border:none;border-radius:12px;background:rgba(255,255,255,.12);color:#fff;font-size:14px;font-weight:700;cursor:pointer;min-height:46px;margin-bottom:12px">📍 Share My Location</button>
         <div id="rides-driver-queue"></div>
       </div>
@@ -3069,6 +3073,7 @@ function startApp() {
     }
     ridesSeenPendingIds = pendingIds;
     ridesAutoLumpPending();
+    ridesAutoAdvanceOnArrival();
     if (document.getElementById('panel-rides')?.classList.contains('active')) renderRidesTab();
     if (document.getElementById('panel-tv')?.classList.contains('active')) { renderTVRides(); renderTVCompoundMap(); }
     if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
@@ -3089,6 +3094,8 @@ function startApp() {
 
   onValue(ref(db, 'driverLocation'), snap => {
     driverLocations = snap.val() || {};
+    ridesAutoLumpPending();
+    ridesAutoAdvanceOnArrival();
     if (document.getElementById('panel-rides')?.classList.contains('active')) ridesUpdateDriverMarkers();
     tvUpdateShuttleMarkers();
     tvUpdateShuttleRoutes();
@@ -3637,19 +3644,42 @@ function ridesRenderActiveRoutes(map, controlsStore, throttleMs, onRouteStart, o
   });
 }
 
+// Just draws the shared route line (see ridesRenderActiveRoutes) - the
+// driver's own screen no longer shows turn-by-turn ETA text at all, see
+// ridesRenderGoBanner instead. Turn-by-turn directions aren't the point;
+// arriving is what matters, and that's handled automatically.
 function ridesUpdateRoute() {
-  const etaEl = document.getElementById('rides-driver-eta');
-  ridesRenderActiveRoutes(
-    ridesLeafletMap, ridesRouteControls, RIDES_ROUTE_THROTTLE_MS,
-    (id, r, destName) => { if (etaEl && currentUser && r.claimedBy === currentUser.name) etaEl.textContent = `🕐 Calculating route to ${destName}…`; },
-    (id, r, destName, mins, km) => {
-      if (!etaEl || !currentUser || r.claimedBy !== currentUser.name) return;
-      etaEl.textContent = mins != null ? `🕐 ~${mins} min (${km} km) to ${destName}` : '⚠ Could not calculate a route right now';
-    }
-  );
-  if (etaEl) {
-    const hasMyActiveRide = currentUser && Object.values(rides||{}).some(r => r.claimedBy === currentUser.name && ['claimed','enroute'].includes(r.status));
-    if (!hasMyActiveRide) etaEl.textContent = '';
+  ridesRenderActiveRoutes(ridesLeafletMap, ridesRouteControls, RIDES_ROUTE_THROTTLE_MS);
+}
+
+// The entire driver dashboard boils down to this: where to go, and who to
+// grab there. No directions, no ETA, no buttons to advance status -
+// arriving does that automatically (ridesAutoAdvanceOnArrival). This is
+// what makes the screen a one-glance, mostly hands-free experience.
+function ridesRenderGoBanner() {
+  const el = document.getElementById('rides-go-banner');
+  if (!el || !currentUser) return;
+  const pendingCount = Object.values(rides||{}).filter(r => r.status === 'pending').length;
+  const countLine = `<div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:6px">🕐 ${pendingCount} ride${pendingCount!==1?'s':''} pending${pendingCount?' overall':''}</div>`;
+  const myRide = Object.values(rides||{}).find(r => r.claimedBy === currentUser.name && ['claimed','enroute'].includes(r.status));
+  if (myRide) {
+    const destName = myRide.status === 'claimed' ? myRide.pickup : myRide.dropoff;
+    const verb = myRide.status === 'claimed' ? 'Pick up' : 'Drop off';
+    el.innerHTML = `
+      <div style="font-size:22px;font-weight:800;line-height:1.25">📍 GO TO ${esc(destName)}</div>
+      <div style="font-size:14px;color:#93c5fd;font-weight:700;margin-top:2px">${verb} ${esc(myRide.requestedBy||'rider')}</div>
+      ${countLine}
+    `;
+  } else if (pendingCount > 0) {
+    el.innerHTML = `
+      <div style="font-size:18px;font-weight:800">⏳ Waiting for a rider near you</div>
+      ${countLine}
+    `;
+  } else {
+    el.innerHTML = `
+      <div style="font-size:18px;font-weight:800">✅ All caught up</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:6px">No rides pending right now</div>
+    `;
   }
 }
 
@@ -4223,6 +4253,7 @@ document.addEventListener('fullscreenchange', ridesUpdateFullscreenBtn);
 document.addEventListener('webkitfullscreenchange', ridesUpdateFullscreenBtn);
 
 function renderDriverQueue() {
+  ridesRenderGoBanner();
   const el = document.getElementById('rides-driver-queue');
   if (!el) return;
   const all = Object.entries(rides||{}).map(([id,r])=>({id,...r})).filter(r=>!['done','cancelled'].includes(r.status)).sort((a,b)=>a.ts-b.ts);
@@ -4235,14 +4266,14 @@ function renderDriverQueue() {
   const bigCard = (r, big) => {
     const label = r.type==='vehicle' ? `🚗 ${esc(r.stock)}` : '🙋 Hitchhiker';
     const sub = r.type==='vehicle' ? 'Vehicle pickup' : 'Just needs a ride';
+    // Hands-free: arriving auto-advances claimed -> enroute -> done (see
+    // ridesAutoAdvanceOnArrival) - no "Picked Up"/"Mark Done" taps needed.
+    // Drop is the one manual override, for when a rider doesn't actually show.
     let action = '';
     if (r.status === 'pending') {
       action = `<button onclick="claimRide('${r.id}')" style="width:100%;padding:13px;border:none;border-radius:12px;background:#2563eb;color:#fff;font-size:15px;font-weight:700;cursor:pointer;min-height:46px">Claim This Ride</button>`;
-    } else if (r.status === 'claimed' && r.claimedBy === currentUser?.name) {
-      action = `<button onclick="setRideStatus('${r.id}','enroute')" style="width:100%;padding:13px;border:none;border-radius:12px;background:#f97316;color:#fff;font-size:15px;font-weight:700;cursor:pointer;min-height:46px;margin-bottom:8px">🚗 Picked Up - Start Ride</button>
-        <button onclick="promptDropRide('${r.id}')" style="width:100%;padding:10px;border:1px solid rgba(255,255,255,.25);border-radius:10px;background:transparent;color:rgba(255,255,255,.8);font-size:13px;font-weight:600;cursor:pointer">Can't take this one - Drop</button>`;
-    } else if (r.status === 'enroute' && r.claimedBy === currentUser?.name) {
-      action = `<button onclick="setRideStatus('${r.id}','done')" style="width:100%;padding:13px;border:none;border-radius:12px;background:#16a34a;color:#fff;font-size:15px;font-weight:700;cursor:pointer;min-height:46px;margin-bottom:8px">✓ Mark Done</button>
+    } else if ((r.status === 'claimed' || r.status === 'enroute') && r.claimedBy === currentUser?.name) {
+      action = `<div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:8px">Auto-updates when you arrive</div>
         <button onclick="promptDropRide('${r.id}')" style="width:100%;padding:10px;border:1px solid rgba(255,255,255,.25);border-radius:10px;background:transparent;color:rgba(255,255,255,.8);font-size:13px;font-weight:600;cursor:pointer">Can't take this one - Drop</button>`;
     }
     const stageText = { pending:'Waiting for a driver', claimed:'You\'re heading to pick them up', enroute:'Ride in progress' }[r.status] || '';
@@ -4403,6 +4434,35 @@ async function ridesAutoLumpPending() {
     if (claimedThisRun.has(id)) continue;
     const driverName = idleDriverAtLot[r.pickup];
     if (driverName) await claimRideFor(id, driverName);
+  }
+}
+
+// Hands-free ride progression: once a driver's live GPS shows they've
+// actually reached the pickup lot, the ride auto-advances to 'enroute' - as
+// if they'd tapped "Picked Up" - and once they reach the dropoff lot, it
+// auto-completes to 'done'. The driver never has to look at the screen and
+// tap anything for a normal run; "Can't take this one - Drop" is still
+// there (see bigCard/promptDropRide) for the one case that needs a manual
+// call - a rider who doesn't actually get in. Runs reactively on both the
+// rides/ and driverLocation/ listeners; the transaction's status guard
+// makes it safe to fire from every signed-in client at once.
+async function ridesAutoAdvanceOnArrival() {
+  const activeRides = Object.entries(rides || {}).filter(([,r]) => ['claimed','enroute'].includes(r.status));
+  for (const [id, r] of activeRides) {
+    const driverLoc = Object.values(driverLocations||{}).find(d => d.name === r.claimedBy);
+    if (!driverLoc || (Date.now() - driverLoc.ts) > RIDES_LOCATION_STALE_MS) continue;
+    const destName = r.status === 'claimed' ? r.pickup : r.dropoff;
+    const dest = RIDES_LOTS[destName];
+    if (!dest || ridesHaversineMeters(driverLoc.lat, driverLoc.lng, dest.lat, dest.lng) > RIDES_AT_LOT_METERS) continue;
+    const fromStatus = r.status, toStatus = fromStatus === 'claimed' ? 'enroute' : 'done';
+    await runTransaction(ref(db,'rides/'+id), curr => {
+      if (!curr || curr.status !== fromStatus) return curr; // already moved on (or dropped) since this snapshot was read
+      curr.status = toStatus;
+      if (toStatus === 'enroute') curr.enrouteTs = Date.now();
+      if (toStatus === 'done') curr.doneTs = Date.now();
+      curr.autoAdvanced = true;
+      return curr;
+    });
   }
 }
 
