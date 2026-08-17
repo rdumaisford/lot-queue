@@ -1879,7 +1879,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
                 </div>
               </div>
               <div style="flex:1;display:flex;flex-direction:column;min-height:0">
-                <div class="tv-map-label">🚐 Shuttle Location</div>
+                <div class="tv-map-label">🚐 Shuttle Location Status</div>
+                <div id="tv-shuttle-status" style="font-size:15px;color:rgba(255,255,255,.75);margin-bottom:10px;flex-shrink:0"></div>
                 <div id="tv-shuttle-map" class="tv-shuttle-map"></div>
               </div>
             </div>
@@ -4605,6 +4606,24 @@ function renderTVRides() {
       ? returns.map(cardHTML).join('')
       : '<div class="tv-empty" style="grid-column:1/-1"><div style="font-size:64px">✓</div><p style="font-size:20px">None right now</p></div>';
   }
+  tvRenderShuttleStatus();
+}
+
+// Text readout next to the shuttle map - the three lot addresses for
+// reference, then a live line per shuttle that's actually moving right now
+// (pickup while claimed, dropoff once enroute) - "In transit to X". A
+// glance-and-go summary for anyone who isn't parsing the map itself.
+function tvRenderShuttleStatus() {
+  const el = document.getElementById('tv-shuttle-status');
+  if (!el) return;
+  const addressLines = Object.entries(RIDES_LOTS)
+    .map(([name, loc]) => `<div>${esc(name)} - ${esc(loc.address)}</div>`)
+    .join('');
+  const transitLines = Object.values(rides || {})
+    .filter(r => ['claimed','enroute'].includes(r.status))
+    .map(r => `<div style="color:#93c5fd;font-weight:700;margin-top:6px">🚐 In transit to ${esc(r.status === 'claimed' ? r.pickup : r.dropoff)}</div>`)
+    .join('');
+  el.innerHTML = addressLines + (transitLines || `<div style="color:rgba(255,255,255,.45);margin-top:6px">No shuttle currently in transit</div>`);
 }
 
 // Vehicle Appointments board - lives in the left column alongside Get Ready,
