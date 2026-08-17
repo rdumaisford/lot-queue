@@ -3073,7 +3073,7 @@ function startApp() {
       if (hasNewPending && ridesMode === 'drive' && document.getElementById('panel-rides')?.classList.contains('active')) chime('new');
     }
     ridesSeenPendingIds = pendingIds;
-    ridesAutoLumpPending();
+    ridesCheckNewSuggestions();
     ridesAutoAdvanceOnArrival();
     if (document.getElementById('panel-rides')?.classList.contains('active')) renderRidesTab();
     if (document.getElementById('panel-tv')?.classList.contains('active')) { renderTVRides(); renderTVCompoundMap(); }
@@ -3095,7 +3095,7 @@ function startApp() {
 
   onValue(ref(db, 'driverLocation'), snap => {
     driverLocations = snap.val() || {};
-    ridesAutoLumpPending();
+    ridesCheckNewSuggestions();
     ridesAutoAdvanceOnArrival();
     if (document.getElementById('panel-rides')?.classList.contains('active')) ridesUpdateDriverMarkers();
     tvUpdateShuttleMarkers();
@@ -3654,21 +3654,61 @@ function ridesUpdateRoute() {
 }
 
 // The entire driver dashboard boils down to this: where to go, and who to
-// grab there. No directions, no ETA, no buttons to advance status -
-// arriving does that automatically (ridesAutoAdvanceOnArrival). This is
-// what makes the screen a one-glance, mostly hands-free experience.
+// grab/drop there - plus a big Accept button whenever the system has a
+// rider (or a whole clumped group of them, see ridesComputeSuggestions) it
+// wants to hand this driver. Accepting is the one manual step; once
+// accepted, arriving anywhere in the trip auto-advances that leg on its own
+// (ridesAutoAdvanceOnArrival) with no further taps. Multiple simultaneously
+// claimed rides that share a stop (or share a final dropoff) show up here
+// as one multi-stop trip, nearest stop first.
 function ridesRenderGoBanner() {
   const el = document.getElementById('rides-go-banner');
   if (!el || !currentUser) return;
   const pendingCount = Object.values(rides||{}).filter(r => r.status === 'pending').length;
   const countLine = `<div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:6px">🕐 ${pendingCount} ride${pendingCount!==1?'s':''} pending${pendingCount?' overall':''}</div>`;
-  const myRide = Object.values(rides||{}).find(r => r.claimedBy === currentUser.name && ['claimed','enroute'].includes(r.status));
-  if (myRide) {
-    const destName = myRide.status === 'claimed' ? myRide.pickup : myRide.dropoff;
-    const verb = myRide.status === 'claimed' ? 'Pick up' : 'Drop off';
+
+  const myActiveRides = Object.entries(rides||{})
+    .filter(([,r]) => r.claimedBy === currentUser.name && ['claimed','enroute'].includes(r.status))
+    .map(([id,r]) => ({ id, ...r }));
+  const mySuggestedIds = [...(ridesComputeSuggestions().get(currentUser.name) || [])];
+  const acceptBtn = (ids, label) => `<button onclick="claimAllRides('${ids.join(',')}')" style="width:100%;padding:14px;border:none;border-radius:12px;background:#16a34a;color:#fff;font-size:16px;font-weight:800;cursor:pointer;min-height:48px">${label}</button>`;
+
+  if (myActiveRides.length) {
+    // Group by "next stop" (pickup while claimed, dropoff once enroute) - a
+    // multi-person trip naturally produces more than one distinct stop.
+    const stops = {}; // lot name -> { pickups:[names], dropoffs:[names] }
+    myActiveRides.forEach(r => {
+      const stopName = r.status === 'claimed' ? r.pickup : r.dropoff;
+      const bucket = stops[stopName] || (stops[stopName] = { pickups: [], dropoffs: [] });
+      (r.status === 'claimed' ? bucket.pickups : bucket.dropoffs).push(r.requestedBy || 'rider');
+    });
+    const myLoc = Object.values(driverLocations||{}).find(d => d.name === currentUser.name);
+    const stopNames = Object.keys(stops).sort((a, b) => {
+      if (!myLoc) return 0;
+      return ridesHaversineMeters(myLoc.lat, myLoc.lng, RIDES_LOTS[a].lat, RIDES_LOTS[a].lng)
+           - ridesHaversineMeters(myLoc.lat, myLoc.lng, RIDES_LOTS[b].lat, RIDES_LOTS[b].lng);
+    });
+    const nextStop = stopNames[0];
+    const bucket = stops[nextStop];
+    const actionBits = [];
+    if (bucket.pickups.length) actionBits.push(`Pick up ${bucket.pickups.map(n=>esc(n)).join(', ')}`);
+    if (bucket.dropoffs.length) actionBits.push(`Drop off ${bucket.dropoffs.map(n=>esc(n)).join(', ')}`);
+    const moreStops = stopNames.length - 1;
     el.innerHTML = `
-      <div style="font-size:22px;font-weight:800;line-height:1.25">📍 GO TO ${esc(destName)}</div>
-      <div style="font-size:14px;color:#93c5fd;font-weight:700;margin-top:2px">${verb} ${esc(myRide.requestedBy||'rider')}</div>
+      <div style="font-size:22px;font-weight:800;line-height:1.25">📍 GO TO ${esc(nextStop)}</div>
+      <div style="font-size:14px;color:#93c5fd;font-weight:700;margin-top:2px">${actionBits.join(' · ')}</div>
+      ${moreStops>0?`<div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:4px">+${moreStops} more stop${moreStops!==1?'s':''} on this trip</div>`:''}
+      ${countLine}
+      ${mySuggestedIds.length?`
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.15)">
+          <div style="font-size:14px;font-weight:700;margin-bottom:8px">🔔 ${mySuggestedIds.length} more rider${mySuggestedIds.length!==1?'s':''} nearby</div>
+          ${acceptBtn(mySuggestedIds, '✓ Accept & Add to Trip')}
+        </div>`:''}
+    `;
+  } else if (mySuggestedIds.length) {
+    el.innerHTML = `
+      <div style="font-size:18px;font-weight:800">🔔 ${mySuggestedIds.length} rider${mySuggestedIds.length!==1?'s':''} waiting near you</div>
+      <div style="margin-top:10px">${acceptBtn(mySuggestedIds, '✓ Accept')}</div>
       ${countLine}
     `;
   } else if (pendingCount > 0) {
@@ -4258,6 +4298,10 @@ function renderDriverQueue() {
   const el = document.getElementById('rides-driver-queue');
   if (!el) return;
   const all = Object.entries(rides||{}).map(([id,r])=>({id,...r})).filter(r=>!['done','cancelled'].includes(r.status)).sort((a,b)=>a.ts-b.ts);
+  // Whatever's already suggested to the CURRENT driver is shown (with its
+  // own Accept button) up in the go-banner - leave it out of the generic
+  // "Available to claim" list below so it isn't shown twice.
+  const mySuggestedIds = new Set(ridesComputeSuggestions().get(currentUser?.name) || []);
 
   if (!all.length) {
     el.innerHTML = '<div style="text-align:center;padding:60px 20px;color:rgba(255,255,255,.5);font-size:16px">No active ride requests right now.</div>';
@@ -4283,7 +4327,6 @@ function renderDriverQueue() {
       <div style="font-size:12px;color:rgba(255,255,255,.6);margin-bottom:6px">${sub}</div>
       <div style="font-size:14px;font-weight:700;margin-bottom:3px">📍 ${r.pickup} → ${r.dropoff}</div>
       <div style="font-size:12px;color:rgba(255,255,255,.7);margin-bottom:10px">${esc(r.requestedBy||'')}${stageText?' · '+stageText:''}</div>
-      ${r.autoLumped?`<div style="font-size:12px;color:#93c5fd;margin-bottom:10px">🔗 Auto-added - same trip as one you already had</div>`:''}
       ${r.notes?`<div style="font-size:13px;color:#fff;background:rgba(255,255,255,.1);border-radius:8px;padding:8px 10px;margin-bottom:10px">📝 ${esc(r.notes)}</div>`:''}
       ${action}
     </div>`;
@@ -4319,7 +4362,7 @@ function renderDriverQueue() {
   const renderSection = (title, list) => {
     if (!list.length) return '';
     const mine = list.filter(r => r.claimedBy === currentUser?.name);
-    const unclaimed = list.filter(r => r.status === 'pending');
+    const unclaimed = list.filter(r => r.status === 'pending' && !mySuggestedIds.has(r.id));
     const othersActive = list.filter(r => r.claimedBy && r.claimedBy !== currentUser?.name);
     let html = `<div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid rgba(255,255,255,.15)">${title}</div>`;
     if (mine.length) {
@@ -4397,45 +4440,78 @@ window.claimAllRides = async function(idsJoined) {
 // not just a driver's own device - the transactions below make that
 // race-safe), but only chimes on the actual driver's own screen while their
 // dashboard is open.
-async function ridesAutoLumpPending() {
+// Figures out which pending rides SHOULD go to which driver - purely a
+// suggestion, never writes anything (the driver has to actively tap Accept,
+// see ridesRenderGoBanner). Two ways a pending ride gets suggested:
+//
+//  1. It shares a lot with a ride the driver already has claimed/enroute -
+//     either the exact same next stop (pickup while claimed, dropoff once
+//     enroute), OR the same FINAL DROPOFF as one of their legs, even from a
+//     different pickup. That second case is what turns "person A at 700
+//     Bayview and person B at 323 Bayview both want 55 Mapleview" into one
+//     multi-stop trip instead of two separate ones - each ride still tracks
+//     its own claimed/enroute/done status independently, so the driver just
+//     ends up with two active legs that happen to share a destination.
+//  2. The driver isn't on anything at all, but is physically parked at a
+//     lot right now (live GPS, not stale) that has a pending pickup - and
+//     since they're about to be headed to wherever THAT ride's dropoff is
+//     anyway, any OTHER pending ride sharing that same dropoff gets pulled
+//     into the same suggestion too (a milk run), even though its own
+//     pickup is a different lot the driver hasn't reached yet.
+//
+// Returns a Map of driverName -> Set of suggested ride ids.
+function ridesComputeSuggestions() {
   const entries = Object.entries(rides || {});
-  const pending = entries.filter(([,r]) => r.status === 'pending');
-  if (!pending.length) return;
-  const claimedThisRun = new Set(); // guards pass 2 against re-claiming something pass 1 already grabbed
-
-  const claimRideFor = async (id, driverName) => {
-    claimedThisRun.add(id);
-    const result = await runTransaction(ref(db,'rides/'+id), (curr) => {
-      if (!curr || curr.status !== 'pending') return curr;
-      curr.status = 'claimed';
-      curr.claimedBy = driverName;
-      curr.claimedTs = Date.now();
-      curr.autoLumped = true; // just informational - lets the driver's card explain why this showed up already claimed
-      return curr;
-    });
-    if (result.committed && currentUser && driverName === currentUser.name && ridesMode === 'drive' && document.getElementById('panel-rides')?.classList.contains('active')) {
-      chime('claimed');
-    }
+  const pending = entries.filter(([,r]) => r.status === 'pending').map(([id,r]) => ({ id, ...r }));
+  const suggestions = new Map();
+  const addSuggestion = (driverName, id) => {
+    if (!suggestions.has(driverName)) suggestions.set(driverName, new Set());
+    suggestions.get(driverName).add(id);
   };
+  if (!pending.length) return suggestions;
 
-  const activeDrivers = entries.filter(([,r]) => ['claimed','enroute'].includes(r.status));
-  for (const [id, r] of pending) {
-    const match = activeDrivers.find(([,ar]) => (ar.status === 'claimed' ? ar.pickup : ar.dropoff) === r.pickup);
-    if (match) await claimRideFor(id, match[1].claimedBy);
-  }
+  const activeByDriver = {};
+  entries.forEach(([,r]) => {
+    if (!['claimed','enroute'].includes(r.status)) return;
+    (activeByDriver[r.claimedBy] = activeByDriver[r.claimedBy] || []).push(r);
+  });
+  pending.forEach(r => {
+    Object.entries(activeByDriver).forEach(([driverName, activeRides]) => {
+      const matches = activeRides.some(ar => (ar.status === 'claimed' ? ar.pickup : ar.dropoff) === r.pickup || ar.dropoff === r.dropoff);
+      if (matches) addSuggestion(driverName, r.id);
+    });
+  });
 
-  const busyNames = new Set(activeDrivers.map(([,r]) => r.claimedBy));
+  const busyNames = new Set(Object.keys(activeByDriver));
   const idleDriverAtLot = {}; // lot name -> driver name currently parked there
   Object.values(driverLocations || {}).forEach(d => {
     if (!d || busyNames.has(d.name) || (Date.now() - d.ts) > RIDES_LOCATION_STALE_MS) return;
     const lot = ridesNearestLot(d.lat, d.lng);
     if (lot && !idleDriverAtLot[lot]) idleDriverAtLot[lot] = d.name;
   });
-  for (const [id, r] of pending) {
-    if (claimedThisRun.has(id)) continue;
-    const driverName = idleDriverAtLot[r.pickup];
-    if (driverName) await claimRideFor(id, driverName);
+  Object.entries(idleDriverAtLot).forEach(([lot, driverName]) => {
+    const atThisLot = pending.filter(r => r.pickup === lot);
+    if (!atThisLot.length) return;
+    atThisLot.forEach(r => addSuggestion(driverName, r.id));
+    const dropoffs = new Set(atThisLot.map(r => r.dropoff));
+    pending.forEach(r => { if (dropoffs.has(r.dropoff)) addSuggestion(driverName, r.id); });
+  });
+
+  return suggestions;
+}
+
+// Chimes the driver's own screen the moment a brand-new suggestion shows up
+// for them - ridesSeenSuggestedIds starts null so whatever's already
+// suggested on page load never chimes, only ones that appear afterward.
+let ridesSeenSuggestedIds = null;
+function ridesCheckNewSuggestions() {
+  if (!currentUser || ridesMode !== 'drive' || !document.getElementById('panel-rides')?.classList.contains('active')) return;
+  const mine = ridesComputeSuggestions().get(currentUser.name) || new Set();
+  if (ridesSeenSuggestedIds !== null) {
+    const hasNew = [...mine].some(id => !ridesSeenSuggestedIds.has(id));
+    if (hasNew) chime('claimed');
   }
+  ridesSeenSuggestedIds = mine;
 }
 
 // Hands-free ride progression: once a driver's live GPS shows they've
