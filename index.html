@@ -1338,9 +1338,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 
       <!-- DRIVER PANEL - shares the map above, phone/tablet-friendly buttons below -->
       <div id="rides-driver-view" style="display:none;flex-direction:column;flex:1;min-height:0;overflow-y:auto;background:#0a1128;color:#fff;padding:14px 16px 16px;position:relative;z-index:500;box-shadow:0 -4px 16px rgba(0,0,0,.3)">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px">
           <div style="font-size:16px;font-weight:800">🚐 Driver Dashboard</div>
-          <button onclick="ridesSetViewMode('queue')" style="padding:8px 14px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:10px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;min-height:36px">Exit</button>
+          <div style="display:flex;gap:8px;flex-shrink:0">
+            <button id="rides-fullscreen-btn" onclick="toggleRidesFullscreen()" style="padding:8px 14px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:10px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;min-height:36px">⛶ Fullscreen</button>
+            <button onclick="ridesSetViewMode('queue')" style="padding:8px 14px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:10px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;min-height:36px">Exit</button>
+          </div>
         </div>
         <div id="rides-driver-eta" style="font-size:13px;font-weight:700;color:#93c5fd;margin-bottom:8px"></div>
         <button id="rides-loc-share-btn" onclick="toggleLocationSharing()" style="width:100%;padding:12px;border:none;border-radius:12px;background:rgba(255,255,255,.12);color:#fff;font-size:14px;font-weight:700;cursor:pointer;min-height:46px;margin-bottom:12px">📍 Share My Location</button>
@@ -2421,6 +2424,7 @@ let rides = {}; // the live ride-request system - 55 Mapleview <-> 323 Bayview
 let appointments = {}; // on-site "bring this car to my department" requests
 let pendingReturns = {}; // auto-reminders for whoever picked up a vehicle to send it back
 let ridesType = 'hitchhike', ridesLocation = '55 Mapleview', ridesDestination = '323 Bayview', ridesStockFoundLot = null, ridesMode = 'queue';
+let ridesSeenPendingIds = null; // null until the first rides/ snapshot lands - see the onValue(ref(db,'rides')) listener
 let ridesLeafletMap = null, ridesDriverMarkers = {}, ridesMapFitDone = false;
 let ridesRouteControl = null, ridesRouteDestKey = null, ridesLastRouteCalcTs = 0;
 const RIDES_ROUTE_THROTTLE_MS = 15000; // don't hammer the free routing service more than every 15s
@@ -3038,6 +3042,16 @@ function startApp() {
 
   onValue(ref(db, 'rides'), snap => {
     rides = snap.val() || {};
+    // Chime the driver's screen when a brand-new ride request comes in -
+    // ridesSeenPendingIds starts null so the very first snapshot (whatever
+    // was already pending on page load) never triggers a chime, only ones
+    // that show up afterward.
+    const pendingIds = new Set(Object.entries(rides).filter(([,r]) => r.status === 'pending').map(([id]) => id));
+    if (ridesSeenPendingIds !== null) {
+      const hasNewPending = [...pendingIds].some(id => !ridesSeenPendingIds.has(id));
+      if (hasNewPending && ridesMode === 'drive' && document.getElementById('panel-rides')?.classList.contains('active')) chime('new');
+    }
+    ridesSeenPendingIds = pendingIds;
     if (document.getElementById('panel-rides')?.classList.contains('active')) renderRidesTab();
     if (document.getElementById('panel-tv')?.classList.contains('active')) { renderTVRides(); renderTVCompoundMap(); }
     if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
@@ -4103,6 +4117,18 @@ window.ridesSetViewMode = function(mode) {
 }
 // Old name, kept as an alias in case anything still calls it.
 window.ridesSetMode = window.ridesSetViewMode;
+
+// Lets a driver's tablet/kiosk go true fullscreen (hiding the browser chrome
+// entirely) with one tap - the Fullscreen API requires a user gesture, so
+// this can't just happen automatically on load.
+window.toggleRidesFullscreen = function() {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(()=>{});
+  else document.exitFullscreen?.().catch(()=>{});
+};
+document.addEventListener('fullscreenchange', () => {
+  const btn = document.getElementById('rides-fullscreen-btn');
+  if (btn) btn.textContent = document.fullscreenElement ? '⛶ Exit Fullscreen' : '⛶ Fullscreen';
+});
 
 function renderDriverQueue() {
   const el = document.getElementById('rides-driver-queue');
