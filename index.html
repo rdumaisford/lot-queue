@@ -72,7 +72,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 
 /* ── App shell ── */
 #app{display:none}
-.header{background:var(--ford);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:10}
+/* padding-top/height both add env(safe-area-inset-top) so the bar clears the
+   notch/Dynamic Island when launched fullscreen from the Home Screen (see
+   viewport-fit=cover + apple-mobile-web-app-capable above) - box-sizing:
+   border-box (global reset) means that extra padding shrinks the *content*
+   area unless height grows by the same amount, hence adding it to both. */
+.header{background:var(--ford);padding:env(safe-area-inset-top,0px) 24px 0;display:flex;align-items:center;justify-content:space-between;height:calc(56px + env(safe-area-inset-top,0px));position:sticky;top:0;z-index:10}
 .header-brand{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;color:white;letter-spacing:-.01em}
 .header-icon{width:28px;height:28px;background:rgba(255,255,255,.15);border-radius:6px;display:flex;align-items:center;justify-content:center}
 .header-icon svg{width:16px;height:16px;fill:none;stroke:white;stroke-width:1.8}
@@ -698,7 +703,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   #main-wrap{padding:12px !important}
 
   /* Header */
-  .header{padding:0 12px;height:52px}
+  .header{padding:env(safe-area-inset-top,0px) 12px 0;height:calc(52px + env(safe-area-inset-top,0px))}
   .header-brand{font-size:13px}
   .header-icon{width:24px;height:24px}
   .header-icon svg{width:13px;height:13px}
