@@ -2,7 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+<!--
+  iOS Safari doesn't support the Fullscreen API for regular page content at
+  all (only <video>), so the driver dashboard's Fullscreen button can't do
+  anything there - these tags are what actually gets rid of Safari's browser
+  chrome on an iPhone/iPad: add the page to the Home Screen and open it from
+  that icon, and it launches "standalone" (no address bar/tab bar) instead.
+-->
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="mobile-web-app-capable" content="yes"/>
 <!--
   Content-Security-Policy: this can't fully stop injected HTML/JS from running,
   because the app relies on inline onclick="..." handlers and inline <style>
@@ -3501,6 +3511,7 @@ function ridesInitMap() {
     touchZoom: false,
     boxZoom: false,
     keyboard: false,
+    dragging: false, // locked in place - just shows lot pins, not meant to be panned/zoomed around
   }).fitBounds(lotCoords, { padding: [40,40] });
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors',
@@ -4118,17 +4129,41 @@ window.ridesSetViewMode = function(mode) {
 // Old name, kept as an alias in case anything still calls it.
 window.ridesSetMode = window.ridesSetViewMode;
 
+// Already running with no browser chrome because it was added to the Home
+// Screen (the only way to get that on iPhone/iPad - see the apple-mobile-
+// web-app-capable meta tag above)?
+function ridesIsStandalone() {
+  return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+}
+
 // Lets a driver's tablet/kiosk go true fullscreen (hiding the browser chrome
 // entirely) with one tap - the Fullscreen API requires a user gesture, so
-// this can't just happen automatically on load.
+// this can't just happen automatically on load. iOS Safari doesn't support
+// this API for ordinary page content at all (only <video>), so on an
+// iPhone/iPad this falls back to pointing the driver at Add to Home Screen,
+// which is the only way to actually get rid of Safari's chrome there.
 window.toggleRidesFullscreen = function() {
-  if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(()=>{});
-  else document.exitFullscreen?.().catch(()=>{});
+  const el = document.documentElement;
+  const requestFS = el.requestFullscreen || el.webkitRequestFullscreen;
+  const exitFS = document.exitFullscreen || document.webkitExitFullscreen;
+  const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+  if (fsEl) { exitFS?.call(document); return; }
+  if (!requestFS) {
+    if (!ridesIsStandalone()) alert('This browser doesn\'t support fullscreen for a regular page (common on iPhone/iPad Safari).\n\nFor a true fullscreen driver screen: tap the Share button, choose "Add to Home Screen", then open it from that icon instead of from Safari.');
+    return;
+  }
+  Promise.resolve(requestFS.call(el)).catch(() => {
+    if (!ridesIsStandalone()) alert('This browser doesn\'t support fullscreen for a regular page (common on iPhone/iPad Safari).\n\nFor a true fullscreen driver screen: tap the Share button, choose "Add to Home Screen", then open it from that icon instead of from Safari.');
+  });
 };
-document.addEventListener('fullscreenchange', () => {
+function ridesUpdateFullscreenBtn() {
   const btn = document.getElementById('rides-fullscreen-btn');
-  if (btn) btn.textContent = document.fullscreenElement ? '⛶ Exit Fullscreen' : '⛶ Fullscreen';
-});
+  if (!btn) return;
+  const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+  btn.textContent = fsEl ? '⛶ Exit Fullscreen' : '⛶ Fullscreen';
+}
+document.addEventListener('fullscreenchange', ridesUpdateFullscreenBtn);
+document.addEventListener('webkitfullscreenchange', ridesUpdateFullscreenBtn);
 
 function renderDriverQueue() {
   const el = document.getElementById('rides-driver-queue');
