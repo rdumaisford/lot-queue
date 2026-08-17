@@ -1360,6 +1360,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
             <button onclick="ridesSetViewMode('queue')" style="padding:8px 14px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:10px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;min-height:36px">Exit</button>
           </div>
         </div>
+        <!-- A brand-new suggestion pops this up on top - the driver has to
+             actively tap Accept or Not Now, nothing ever gets added to their
+             trip on its own. See ridesShowSuggestionPing/ridesCheckNewSuggestions. -->
+        <div id="rides-ping-toast" style="display:none;background:#16a34a;border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 4px 16px rgba(0,0,0,.35)">
+          <div style="font-size:16px;font-weight:800;margin-bottom:6px">🔔 New rider(s) waiting</div>
+          <div id="rides-ping-text" style="font-size:13px;margin-bottom:12px;line-height:1.4"></div>
+          <div style="display:flex;gap:8px">
+            <button onclick="ridesDeclinePing()" style="flex:1;padding:11px;border:1px solid rgba(255,255,255,.4);border-radius:10px;background:transparent;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Not now</button>
+            <button onclick="ridesAcceptPing()" style="flex:1;padding:11px;border:none;border-radius:10px;background:#fff;color:#16a34a;font-size:14px;font-weight:800;cursor:pointer">✓ Accept</button>
+          </div>
+        </div>
         <!-- The whole point: one glance tells a driver where to go and who
              to grab there - everything else (claiming, advancing status) is
              automatic based on their live location, see ridesRenderGoBanner /
@@ -4482,16 +4493,49 @@ function ridesComputeSuggestions() {
   return suggestions;
 }
 
-// Chimes the driver's own screen the moment a brand-new suggestion shows up
-// for them - ridesSeenSuggestedIds starts null so whatever's already
-// suggested on page load never chimes, only ones that appear afterward.
+// Pops up the "New rider(s) waiting" toast and requires an explicit tap -
+// Accept claims them, Not Now just dismisses it (they're still shown as a
+// regular Accept option in the go-banner below, in case the driver wants to
+// grab them later). Nothing is ever added to a driver's trip without them
+// actively choosing to.
+let ridesPendingPingIds = [];
+function ridesShowSuggestionPing(ids) {
+  if (!ids.length) return;
+  ridesPendingPingIds = ids;
+  const textEl = document.getElementById('rides-ping-text');
+  if (textEl) {
+    textEl.innerHTML = ids.map(id => {
+      const r = rides[id];
+      return r ? `🙋 ${esc(r.requestedBy||'Someone')} - ${esc(r.pickup)} → ${esc(r.dropoff)}` : '';
+    }).filter(Boolean).join('<br>');
+  }
+  const toast = document.getElementById('rides-ping-toast');
+  if (toast) toast.style.display = 'block';
+}
+window.ridesAcceptPing = function() {
+  const ids = ridesPendingPingIds;
+  document.getElementById('rides-ping-toast').style.display = 'none';
+  ridesPendingPingIds = [];
+  if (ids.length) claimAllRides(ids.join(','));
+};
+window.ridesDeclinePing = function() {
+  document.getElementById('rides-ping-toast').style.display = 'none';
+  ridesPendingPingIds = [];
+};
+
+// Chimes AND pops the ping toast the moment a brand-new suggestion shows up
+// for this driver - ridesSeenSuggestedIds starts null so whatever's already
+// suggested on page load never pings, only ones that appear afterward.
 let ridesSeenSuggestedIds = null;
 function ridesCheckNewSuggestions() {
   if (!currentUser || ridesMode !== 'drive' || !document.getElementById('panel-rides')?.classList.contains('active')) return;
   const mine = ridesComputeSuggestions().get(currentUser.name) || new Set();
   if (ridesSeenSuggestedIds !== null) {
-    const hasNew = [...mine].some(id => !ridesSeenSuggestedIds.has(id));
-    if (hasNew) chime('claimed');
+    const newIds = [...mine].filter(id => !ridesSeenSuggestedIds.has(id));
+    if (newIds.length) {
+      chime('claimed');
+      ridesShowSuggestionPing(newIds);
+    }
   }
   ridesSeenSuggestedIds = mine;
 }
@@ -7217,6 +7261,20 @@ window.clearAllTrackerUnits = async function() {
 let audioCtx=null;
 window.toggleSound=function(val){soundEnabled=val;localStorage.setItem('lq-sound',val?'true':'false');};
 function getAudioCtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+// iOS Safari (iPad especially) silently drops any sound played on an
+// AudioContext that isn't in the 'running' state - a suspended/freshly-
+// created context throws no error, it just makes no noise at all, so this
+// failure is invisible unless someone's specifically listening for the
+// chime. Only a real user gesture can resume it, and this used to only try
+// once, ever, for the page's whole lifetime. Two things break that: the
+// hands-free driver dashboard means there may not be many taps to work
+// with in the first place, and the app's own update-checker force-reloads
+// the page (location.href = ...) whenever a new build ships - which wipes
+// out any previous unlock, so a chime can go silently missing right after
+// any deploy until the driver happens to tap the screen again. Re-arming
+// on every interaction (not once) and on regaining focus/visibility covers
+// both cases.
+function unlockAudio(){ try{ const ctx=getAudioCtx(); if(ctx.state!=='running') ctx.resume(); }catch(e){} }
 function playTone(freq,startTime,duration,gainVal,type='sine'){
   const ctx=getAudioCtx(),osc=ctx.createOscillator(),gain=ctx.createGain();
   osc.connect(gain);gain.connect(ctx.destination);osc.type=type;
@@ -7229,13 +7287,16 @@ function playTone(freq,startTime,duration,gainVal,type='sine'){
 function chime(type){
   if(!soundEnabled)return;
   try{
+    unlockAudio(); // last-ditch attempt right before playing - cheap no-op if already running
     if(type==='new'){playTone(660,0,.25,.3);playTone(880,.18,.35,.25);}
     else if(type==='claimed'){playTone(523,0,.2,.25);playTone(659,.15,.3,.2);playTone(784,.3,.4,.2);}
     else if(type==='complete'){playTone(523,0,.2,.2);playTone(659,.15,.2,.2);playTone(784,.3,.2,.2);playTone(1046,.45,.5,.25);}
   }catch(e){}
 }
-document.addEventListener('click',()=>{try{getAudioCtx().resume();}catch(e){}},{once:true});
-document.addEventListener('touchstart',()=>{try{getAudioCtx().resume();}catch(e){}},{once:true,passive:true});
+document.addEventListener('click',unlockAudio);
+document.addEventListener('touchstart',unlockAudio,{passive:true});
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) unlockAudio(); });
+window.addEventListener('focus',unlockAudio);
 
 // ── Clock ─────────────────────────────────────────────
 function updateClock(){
