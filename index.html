@@ -89,7 +89,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .btn-rename:hover{color:white;background:rgba(255,255,255,.1)}
 .header-time{font-size:12px;color:rgba(255,255,255,.45)}
 .sync-dot{width:8px;height:8px;border-radius:50%;background:#ccc;transition:background .3s}
-.rides-driver-icon{font-size:28px;text-align:center}
+.rides-driver-icon{font-size:17px;text-align:center}
 .rides-driver-icon-inner{display:inline-block;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4));animation:ridesMarkerPulse 2s ease-in-out infinite}
 .rides-lot-icon{font-size:24px;text-align:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
 .leaflet-routing-container{display:none!important}
@@ -2439,9 +2439,10 @@ let rides = {}; // the live ride-request system - 55 Mapleview <-> 323 Bayview
 let appointments = {}; // on-site "bring this car to my department" requests
 let pendingReturns = {}; // auto-reminders for whoever picked up a vehicle to send it back
 let ridesType = 'hitchhike', ridesLocation = '55 Mapleview', ridesDestination = '323 Bayview', ridesStockFoundLot = null, ridesMode = 'queue';
+let ridesFromAnswered = false; // "Where do you want to go?" only shows once they've actually tapped a "Where are you now?" button - see ridesRenderDirectionPickers
 let ridesSeenPendingIds = null; // null until the first rides/ snapshot lands - see the onValue(ref(db,'rides')) listener
 let ridesLeafletMap = null, ridesDriverMarkers = {}, ridesMapFitDone = false;
-let ridesRouteControl = null, ridesRouteDestKey = null, ridesLastRouteCalcTs = 0;
+let ridesRouteControls = {}; // rideId -> { control, destKey, lastCalcTs } - every active ride's route, not just "my own"
 const RIDES_ROUTE_THROTTLE_MS = 15000; // don't hammer the free routing service more than every 15s
 let MOVE_MINS = 15, CONVERT_MINS = 45, LOT_OPEN = 7, LOT_CLOSE = 21;
 let historyDays = 30, soundEnabled = localStorage.getItem('lq-sound') !== 'false';
@@ -3067,6 +3068,7 @@ function startApp() {
       if (hasNewPending && ridesMode === 'drive' && document.getElementById('panel-rides')?.classList.contains('active')) chime('new');
     }
     ridesSeenPendingIds = pendingIds;
+    ridesAutoLumpPending();
     if (document.getElementById('panel-rides')?.classList.contains('active')) renderRidesTab();
     if (document.getElementById('panel-tv')?.classList.contains('active')) { renderTVRides(); renderTVCompoundMap(); }
     if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
@@ -3517,7 +3519,7 @@ function ridesInitMap() {
     boxZoom: false,
     keyboard: false,
     dragging: false, // locked in place - just shows lot pins, not meant to be panned/zoomed around
-  }).fitBounds(lotCoords, { padding: [40,40] });
+  }).fitBounds(lotCoords, { padding: [12,12] });
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors',
     maxZoom: 19,
@@ -3545,7 +3547,7 @@ function ridesUpdateDriverMarkers() {
     if (ridesDriverMarkers[uid]) {
       ridesDriverMarkers[uid].setLatLng([d.lat, d.lng]);
     } else {
-      const icon = L.divIcon({ html: '<span class="rides-driver-icon-inner">🚐</span>', className: 'rides-driver-icon', iconSize: [32,32], iconAnchor: [16,16] });
+      const icon = L.divIcon({ html: '<span class="rides-driver-icon-inner">🚐</span>', className: 'rides-driver-icon', iconSize: [20,20], iconAnchor: [10,10] });
       ridesDriverMarkers[uid] = L.marker([d.lat, d.lng], { icon }).addTo(ridesLeafletMap).bindPopup(esc(d.name || 'Driver'));
     }
   });
@@ -3556,66 +3558,76 @@ function ridesUpdateDriverMarkers() {
   // driver positions, since the map isn't meant to zoom or pan around at all.
 }
 
-// Draws a real driving route (actual roads, via free OSRM routing) from the
-// current driver's live position to wherever their active ride needs them next
-// - the pickup location while status is 'claimed', the dropoff once 'enroute'.
-// Throttled so it doesn't hammer the public routing service on every GPS ping.
+// Draws a real driving route (actual roads, via free OSRM routing) for every
+// ride currently underway on the given map - from wherever that driver's
+// live GPS position is to wherever they're headed next (the pickup while
+// 'claimed', the dropoff once 'enroute'). Shared by both the small Rides-tab
+// map and the TV shuttle board so EVERYONE watching sees the same lines the
+// driver is following - this used to only compute/draw a route on the
+// driver's own device, so a requester or anyone else looking at the same
+// map saw no line at all. Throttled per-ride so it doesn't hammer the free
+// routing service on every GPS ping. onRouteStart/onRouteFound are optional
+// hooks a caller can use to show its own live ETA text for a specific ride
+// (see ridesUpdateRoute below) - the map itself doesn't need them.
+function ridesRenderActiveRoutes(map, controlsStore, throttleMs, onRouteStart, onRouteFound) {
+  if (!map || typeof L === 'undefined' || !L.Routing) return;
+  const activeRides = Object.entries(rides || {}).filter(([,r]) => ['claimed','enroute'].includes(r.status));
+  const seen = new Set();
+  activeRides.forEach(([id, r]) => {
+    const driverEntry = Object.values(driverLocations||{}).find(d => d.name === r.claimedBy);
+    const destName = r.status === 'claimed' ? r.pickup : r.dropoff;
+    const dest = RIDES_LOTS[destName];
+    if (!driverEntry || !dest) return;
+    seen.add(id);
+    const destKey = id + '_' + destName;
+    const now = Date.now();
+    const waypoints = [L.latLng(driverEntry.lat, driverEntry.lng), L.latLng(dest.lat, dest.lng)];
+    let entry = controlsStore[id];
+    if (!entry) {
+      onRouteStart?.(id, r, destName);
+      const control = L.Routing.control({
+        waypoints,
+        router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
+        lineOptions: { styles: [{ color: '#2563eb', weight: 5, opacity: 0.85 }] },
+        show: false, // hide the turn-by-turn instructions panel - just the line (+ ETA text where shown)
+        addWaypoints: false,
+        draggableWaypoints: false,
+        fitSelectedRoutes: false,
+        createMarker: () => null, // driver/lot markers are already drawn separately
+      }).addTo(map);
+      control.on('routesfound', (e) => {
+        const route = e.routes[0];
+        const mins = Math.max(1, Math.round(route.summary.totalTime / 60));
+        const km = (route.summary.totalDistance / 1000).toFixed(1);
+        update(ref(db, 'rides/'+id), { etaMins: mins, etaTs: Date.now() }).catch(()=>{});
+        onRouteFound?.(id, r, destName, mins, km);
+      });
+      control.on('routingerror', () => onRouteFound?.(id, r, destName, null, null));
+      controlsStore[id] = { control, destKey, lastCalcTs: now };
+    } else if (destKey !== entry.destKey || (now - entry.lastCalcTs) >= throttleMs) {
+      entry.destKey = destKey;
+      entry.lastCalcTs = now;
+      entry.control.setWaypoints(waypoints);
+    }
+  });
+  Object.keys(controlsStore).forEach(id => {
+    if (!seen.has(id)) { map.removeControl(controlsStore[id].control); delete controlsStore[id]; }
+  });
+}
+
 function ridesUpdateRoute() {
-  if (!ridesLeafletMap || typeof L === 'undefined' || !L.Routing) return;
   const etaEl = document.getElementById('rides-driver-eta');
-  if (!currentUser?.uid) return;
-
-  const myLoc = driverLocations[currentUser.uid];
-  const myRideEntry = Object.entries(rides||{}).find(([id,r]) => r.claimedBy === currentUser.name && ['claimed','enroute'].includes(r.status));
-
-  if (!myLoc || !myRideEntry) {
-    if (ridesRouteControl) { ridesLeafletMap.removeControl(ridesRouteControl); ridesRouteControl = null; }
-    ridesRouteDestKey = null;
-    if (etaEl) etaEl.textContent = '';
-    return;
-  }
-
-  const [rideId, myRide] = myRideEntry;
-  const destName = myRide.status === 'claimed' ? myRide.pickup : myRide.dropoff;
-  const dest = RIDES_LOTS[destName];
-  if (!dest) return;
-
-  const destKey = rideId + '_' + destName;
-  const now = Date.now();
-  const destChanged = destKey !== ridesRouteDestKey;
-  if (!destChanged && (now - ridesLastRouteCalcTs) < RIDES_ROUTE_THROTTLE_MS) return; // throttle
-
-  ridesLastRouteCalcTs = now;
-  ridesRouteDestKey = destKey;
-  const waypoints = [L.latLng(myLoc.lat, myLoc.lng), L.latLng(dest.lat, dest.lng)];
-
-  if (etaEl) etaEl.textContent = `🕐 Calculating route to ${destName}…`;
-
-  if (!ridesRouteControl) {
-    ridesRouteControl = L.Routing.control({
-      waypoints,
-      router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
-      lineOptions: { styles: [{ color: '#2563eb', weight: 5, opacity: 0.85 }] },
-      show: false, // hide the turn-by-turn instructions panel - just the line + our own ETA text
-      addWaypoints: false,
-      draggableWaypoints: false,
-      fitSelectedRoutes: false,
-      createMarker: () => null, // we already have our own driver/lot markers
-    }).addTo(ridesLeafletMap);
-    ridesRouteControl.on('routesfound', (e) => {
-      const route = e.routes[0];
-      const mins = Math.max(1, Math.round(route.summary.totalTime / 60));
-      const km = (route.summary.totalDistance / 1000).toFixed(1);
-      const liveEtaEl = document.getElementById('rides-driver-eta');
-      if (liveEtaEl) liveEtaEl.textContent = `🕐 ~${mins} min (${km} km) to ${destName}`;
-      update(ref(db, 'rides/'+rideId), { etaMins: mins, etaTs: Date.now() }).catch(()=>{});
-    });
-    ridesRouteControl.on('routingerror', () => {
-      const liveEtaEl = document.getElementById('rides-driver-eta');
-      if (liveEtaEl) liveEtaEl.textContent = '⚠ Could not calculate a route right now';
-    });
-  } else {
-    ridesRouteControl.setWaypoints(waypoints);
+  ridesRenderActiveRoutes(
+    ridesLeafletMap, ridesRouteControls, RIDES_ROUTE_THROTTLE_MS,
+    (id, r, destName) => { if (etaEl && currentUser && r.claimedBy === currentUser.name) etaEl.textContent = `🕐 Calculating route to ${destName}…`; },
+    (id, r, destName, mins, km) => {
+      if (!etaEl || !currentUser || r.claimedBy !== currentUser.name) return;
+      etaEl.textContent = mins != null ? `🕐 ~${mins} min (${km} km) to ${destName}` : '⚠ Could not calculate a route right now';
+    }
+  );
+  if (etaEl) {
+    const hasMyActiveRide = currentUser && Object.values(rides||{}).some(r => r.claimedBy === currentUser.name && ['claimed','enroute'].includes(r.status));
+    if (!hasMyActiveRide) etaEl.textContent = '';
   }
 }
 
@@ -3695,6 +3707,17 @@ function ridesRenderDirectionPickers() {
     `<button onclick="ridesSetLocation('${l}')" class="toggle-btn${l===ridesLocation?' active':''}" style="flex:1;padding:8px 4px;border-radius:8px;font-size:12px">${l}</button>`
   ).join('');
 
+  // "Where do you want to go?" stays hidden until they've actually answered
+  // "Where are you now?" - otherwise the form dumps both questions on
+  // someone at once, off of what's really just a leftover default pickup
+  // location rather than a deliberate answer.
+  if (!ridesFromAnswered) {
+    destLabel.style.display = 'none';
+    destRow.style.display = 'none';
+    vehNote.style.display = 'none';
+    return;
+  }
+
   if (ridesType === 'vehicle' && ridesStockFoundLot) {
     destLabel.style.display = 'none';
     destRow.style.display = 'none';
@@ -3714,6 +3737,7 @@ function ridesRenderDirectionPickers() {
 
 window.ridesSetLocation = function(loc) {
   ridesLocation = loc;
+  ridesFromAnswered = true;
   ridesRenderDirectionPickers();
 };
 
@@ -4122,10 +4146,16 @@ function renderMyActiveRide() {
 
 window.ridesSetViewMode = function(mode) {
   if (mode === 'drive' && !(currentUser && (currentUser.role === 'lot' || currentUser.role === 'management'))) return;
+  // Fresh entry into the request sheet starts the "where are you now / where
+  // do you want to go" question sequence over - re-entering the same mode
+  // (e.g. a background re-render while it's already open) shouldn't reset an
+  // answer someone already gave.
+  if (mode === 'request' && ridesMode !== 'request') ridesFromAnswered = false;
   ridesMode = mode;
   document.getElementById('rides-queue-view').style.display = mode==='queue' ? 'block' : 'none';
   document.getElementById('rides-sheet').style.display = mode==='request' ? 'block' : 'none';
   document.getElementById('rides-driver-view').style.display = mode==='drive' ? 'flex' : 'none';
+  if (mode === 'request') ridesRenderDirectionPickers();
   if (mode === 'queue') renderRidesQueueList();
   if (mode === 'drive') renderDriverQueue();
   ridesInitMap();
@@ -4199,8 +4229,28 @@ function renderDriverQueue() {
       <div style="font-size:12px;color:rgba(255,255,255,.6);margin-bottom:6px">${sub}</div>
       <div style="font-size:14px;font-weight:700;margin-bottom:3px">📍 ${r.pickup} → ${r.dropoff}</div>
       <div style="font-size:12px;color:rgba(255,255,255,.7);margin-bottom:10px">${esc(r.requestedBy||'')}${stageText?' · '+stageText:''}</div>
+      ${r.autoLumped?`<div style="font-size:12px;color:#93c5fd;margin-bottom:10px">🔗 Auto-added - same trip as one you already had</div>`:''}
       ${r.notes?`<div style="font-size:13px;color:#fff;background:rgba(255,255,255,.1);border-radius:8px;padding:8px 10px;margin-bottom:10px">📝 ${esc(r.notes)}</div>`:''}
       ${action}
+    </div>`;
+  };
+
+  // Multiple people waiting on the exact same trip (same pickup+dropoff,
+  // still unclaimed) get lumped into one card with a single "Claim All"
+  // button, instead of the driver tapping Claim N separate times for what's
+  // really one trip.
+  const batchCard = (group) => {
+    const first = group[0];
+    const label = first.type==='vehicle' ? `🚗 ${group.length} vehicle moves` : `🙋 ${group.length} hitchhikers`;
+    const idsJoined = group.map(r=>r.id).join(',');
+    const notesList = group.filter(r=>r.notes).map(r=>`${esc(r.requestedBy||'Someone')}: ${esc(r.notes)}`);
+    return `<div style="background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.15);border-radius:14px;padding:14px;margin-bottom:10px">
+      <div style="font-size:18px;font-weight:800;margin-bottom:2px">${label}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.6);margin-bottom:6px">Same trip - lumped together</div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:3px">📍 ${first.pickup} → ${first.dropoff}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.7);margin-bottom:10px">${group.map(r=>esc(r.requestedBy||'')).join(', ')}</div>
+      ${notesList.length?`<div style="font-size:13px;color:#fff;background:rgba(255,255,255,.1);border-radius:8px;padding:8px 10px;margin-bottom:10px">${notesList.map(n=>'📝 '+n).join('<br>')}</div>`:''}
+      <button onclick="claimAllRides('${idsJoined}')" style="width:100%;padding:13px;border:none;border-radius:12px;background:#2563eb;color:#fff;font-size:15px;font-weight:700;cursor:pointer;min-height:46px">Claim All (${group.length})</button>
     </div>`;
   };
 
@@ -4224,7 +4274,9 @@ function renderDriverQueue() {
     }
     if (unclaimed.length) {
       html += `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.5);margin:12px 0 6px">Available to claim</div>`;
-      html += unclaimed.map(r => bigCard(r, false)).join('');
+      const groups = {};
+      unclaimed.forEach(r => { const k = r.pickup+'→'+r.dropoff; (groups[k] = groups[k]||[]).push(r); });
+      html += Object.values(groups).map(g => g.length > 1 ? batchCard(g) : bigCard(g[0], false)).join('');
     }
     if (othersActive.length) {
       html += `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.4);margin:12px 0 6px">Other drivers</div>`;
@@ -4256,6 +4308,55 @@ window.claimRide = async function(id) {
   });
   if (!result.committed) alert('Someone else already claimed this ride.');
 };
+
+// Claims every ride in a lumped batch (same pickup+dropoff, see the "Claim
+// All" button rendered by renderDriverQueue) at once, instead of the driver
+// tapping Claim N separate times for what's really one trip.
+window.claimAllRides = async function(idsJoined) {
+  if (!(currentUser && (currentUser.role === 'lot' || currentUser.role === 'management'))) return;
+  const ids = idsJoined.split(',');
+  const results = await Promise.all(ids.map(id => runTransaction(ref(db,'rides/'+id), (curr) => {
+    if (!curr) return curr;
+    if (curr.status !== 'pending') return;
+    curr.status = 'claimed';
+    curr.claimedBy = currentUser.name;
+    curr.claimedTs = Date.now();
+    return curr;
+  })));
+  const missed = results.filter(r => !r.committed).length;
+  if (missed) alert(`${missed} of those ${ids.length} were already claimed by someone else - you got the rest.`);
+};
+
+// A driver already headed to a lot (the pickup while their ride is
+// 'claimed', the dropoff once 'enroute') picks up anyone else who's just
+// started waiting at that very lot automatically, instead of leaving a
+// second pending request sitting there for someone to notice and claim by
+// hand - they're already going to be there. Runs reactively wherever the
+// rides/ listener fires (any signed-in client, not just a driver's own
+// device - the transaction below makes that safe), but only chimes on the
+// actual driver's own screen while their dashboard is open.
+async function ridesAutoLumpPending() {
+  const entries = Object.entries(rides || {});
+  const activeDrivers = entries.filter(([,r]) => ['claimed','enroute'].includes(r.status));
+  if (!activeDrivers.length) return;
+  const pending = entries.filter(([,r]) => r.status === 'pending');
+  for (const [id, r] of pending) {
+    const match = activeDrivers.find(([,ar]) => (ar.status === 'claimed' ? ar.pickup : ar.dropoff) === r.pickup);
+    if (!match) continue;
+    const driverName = match[1].claimedBy;
+    const result = await runTransaction(ref(db,'rides/'+id), (curr) => {
+      if (!curr || curr.status !== 'pending') return curr;
+      curr.status = 'claimed';
+      curr.claimedBy = driverName;
+      curr.claimedTs = Date.now();
+      curr.autoLumped = true; // just informational - lets the driver's card explain why this showed up already claimed
+      return curr;
+    });
+    if (result.committed && currentUser && driverName === currentUser.name && ridesMode === 'drive' && document.getElementById('panel-rides')?.classList.contains('active')) {
+      chime('claimed');
+    }
+  }
+}
 
 window.setRideStatus = async function(id, status) {
   if (!(currentUser && (currentUser.role === 'lot' || currentUser.role === 'management'))) return;
@@ -4753,7 +4854,7 @@ function tvUpdateShuttleMarkers() {
     if (tvShuttleMarkers[uid]) {
       tvShuttleMarkers[uid].setLatLng([d.lat, d.lng]);
     } else {
-      const icon = L.divIcon({ html: '<span class="rides-driver-icon-inner">🚐</span>', className: 'rides-driver-icon', iconSize: [32, 32], iconAnchor: [16, 16] });
+      const icon = L.divIcon({ html: '<span class="rides-driver-icon-inner">🚐</span>', className: 'rides-driver-icon', iconSize: [20, 20], iconAnchor: [10, 10] });
       tvShuttleMarkers[uid] = L.marker([d.lat, d.lng], { icon }).addTo(tvShuttleMap).bindPopup(esc(d.name || 'Driver'));
     }
   });
@@ -4762,47 +4863,14 @@ function tvUpdateShuttleMarkers() {
   });
 }
 
-// Draws the actual driving route (same free OSRM routing the driver's own
-// "Drive" map uses) from wherever the van currently is to wherever it's
-// headed next - the pickup while a ride is 'claimed', the dropoff once
-// 'enroute'. Matched to a driver by name (driverLocation only records a
-// name, not which ride they're on), and throttled the same 15s as the
-// driver's own map so a passive TV viewer doesn't hammer the free routing
-// service on every GPS ping.
+// Draws the actual driving route (same shared ridesRenderActiveRoutes as the
+// small Rides-tab map uses) from wherever the van currently is to wherever
+// it's headed next. Throttled the same 15s as the driver's own map so a
+// passive TV viewer doesn't hammer the free routing service on every GPS ping.
 let tvRouteControls = {}; // rideId -> { control, destKey, lastCalcTs }
 const TV_ROUTE_THROTTLE_MS = 15000;
 function tvUpdateShuttleRoutes() {
-  if (!tvShuttleMap || typeof L === 'undefined' || !L.Routing) return;
-  const activeRides = Object.entries(rides || {}).filter(([id, r]) => r.type === 'vehicle' && ['claimed', 'enroute'].includes(r.status));
-  const seen = new Set();
-  activeRides.forEach(([id, r]) => {
-    const driverEntry = Object.values(driverLocations || {}).find(d => d.name === r.claimedBy);
-    const destName = r.status === 'claimed' ? r.pickup : r.dropoff;
-    const dest = RIDES_LOTS[destName];
-    if (!driverEntry || !dest) return;
-    seen.add(id);
-    const destKey = id + '_' + destName;
-    const now = Date.now();
-    const waypoints = [L.latLng(driverEntry.lat, driverEntry.lng), L.latLng(dest.lat, dest.lng)];
-    let entry = tvRouteControls[id];
-    if (!entry) {
-      const control = L.Routing.control({
-        waypoints,
-        router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
-        lineOptions: { styles: [{ color: '#2563eb', weight: 5, opacity: 0.85 }] },
-        show: false, addWaypoints: false, draggableWaypoints: false, fitSelectedRoutes: false,
-        createMarker: () => null, // the van/lot markers are already drawn separately
-      }).addTo(tvShuttleMap);
-      tvRouteControls[id] = { control, destKey, lastCalcTs: now };
-    } else if (destKey !== entry.destKey || (now - entry.lastCalcTs) >= TV_ROUTE_THROTTLE_MS) {
-      entry.destKey = destKey;
-      entry.lastCalcTs = now;
-      entry.control.setWaypoints(waypoints);
-    }
-  });
-  Object.keys(tvRouteControls).forEach(id => {
-    if (!seen.has(id)) { tvShuttleMap.removeControl(tvRouteControls[id].control); delete tvRouteControls[id]; }
-  });
+  ridesRenderActiveRoutes(tvShuttleMap, tvRouteControls, TV_ROUTE_THROTTLE_MS);
 }
 
 // ── TV rotating slides ───────────────────────────────────
