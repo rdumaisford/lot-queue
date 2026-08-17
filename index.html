@@ -1263,7 +1263,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <div id="rides-request-form">
             <div style="font-size:15px;font-weight:700;margin-bottom:2px">Request a ride</div>
             <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Between 55 Mapleview, 323 Bayview, and 700 Bayview</div>
-            <div style="display:flex;gap:6px;margin-bottom:10px">
+            <!-- Pick Up (stock #) and Appointment types, plus the stock #
+                 search that backs them, are on hold for now - hitchhiker
+                 mode only until they come back. Left in place, just hidden,
+                 so restoring them later is a one-line change. -->
+            <div style="display:none;gap:6px;margin-bottom:10px">
               <button id="rides-type-hitchhike-btn" onclick="ridesSetType('hitchhike')" class="toggle-btn active" style="flex:1;padding:10px 4px;border-radius:8px;font-size:12px">🙋 Hitchhiking</button>
               <button id="rides-type-vehicle-btn" onclick="ridesSetType('vehicle')" class="toggle-btn" style="flex:1;padding:10px 4px;border-radius:8px;font-size:12px">🚗 Pick Up</button>
               <button id="rides-type-appt-btn" onclick="ridesSetType('appointment')" class="toggle-btn" style="flex:1;padding:10px 4px;border-radius:8px;font-size:12px">📅 Appointment</button>
@@ -1282,6 +1286,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
               <div id="rides-dest-label" style="font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Where do you want to go?</div>
               <div id="rides-dest-row" style="display:flex;gap:6px"></div>
               <div id="rides-vehicle-dest-note" style="display:none;font-size:13px;color:var(--text-muted)"></div>
+            </div>
+            <div class="form-row" style="margin-bottom:12px">
+              <label style="font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Notes <span style="color:var(--text-faint);font-weight:400;text-transform:none">optional</span></label>
+              <textarea id="rides-notes" placeholder="e.g. meet at the front doors…" style="width:100%;min-height:50px;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"></textarea>
             </div>
 
             <!-- APPOINTMENT FIELDS - bring a vehicle to a department on-site -->
@@ -3741,12 +3749,14 @@ window.submitRide = async function(pickupOverride, dropoffOverride, stockOverrid
   const pickup = isOverride ? pickupOverride : ridesLocation;
   const dropoff = isOverride ? dropoffOverride : (ridesType === 'vehicle' ? ridesStockFoundLot : ridesDestination);
   if (!isOverride && pickup === dropoff) { alert("Pickup and drop-off can't be the same location."); return; }
+  const notesEl = document.getElementById('rides-notes');
+  const notes = (!isOverride && notesEl) ? notesEl.value.trim() : '';
   const btn = document.getElementById('rides-submit-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Requesting…'; }
   try {
     await withTimeout(push(ref(db,'rides'), {
       type: stock ? 'vehicle' : 'hitchhike', stock,
-      pickup, dropoff,
+      pickup, dropoff, notes,
       subtype: subtype || null, // e.g. 'return' - distinguishes "car is inbound" from a normal fetch, for the TV boards
       requestedBy: currentUser.name,
       requestedByUid: currentUser.uid || null,
@@ -3756,6 +3766,7 @@ window.submitRide = async function(pickupOverride, dropoffOverride, stockOverrid
     if (!isOverride) {
       document.getElementById('rides-stock-input').value = '';
       document.getElementById('rides-stock-result').style.display = 'none';
+      if (notesEl) notesEl.value = '';
       ridesStockFoundLot = null;
       ridesRenderDirectionPickers();
       ridesSetViewMode('queue');
@@ -4040,6 +4051,7 @@ function renderRidesQueuePickups() {
         <div class="entry-stock">${label}</div>
         <div class="entry-meta" style="margin-bottom:5px">${r.pickup} → ${r.dropoff} · Requested by ${esc(r.requestedBy)}</div>
         <div style="font-size:13px;font-weight:700;color:#1d4ed8">${stageLabel}</div>
+        ${r.notes?`<div class="entry-notes">${esc(r.notes)}</div>`:''}
         ${r.status==='pending' && r.droppedBy ? `<div style="font-size:12px;color:#991b1b;margin-top:2px">⚠️ Dropped by ${r.droppedBy}: "${r.dropReason}"</div>` : ''}
       </div>
       <div class="entry-actions">${action}<div class="entry-time">${timeAgo(r.ts)}</div></div>
@@ -4068,6 +4080,7 @@ function renderMyActiveRide() {
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px">
       <div style="font-size:15px;font-weight:700;margin-bottom:4px">${mine.type==='vehicle' ? '🚗 '+mine.stock : '🙋 Hitchhiking'}</div>
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">${mine.pickup} → ${mine.dropoff}</div>
+      ${mine.notes?`<div class="entry-notes" style="margin-bottom:14px">${esc(mine.notes)}</div>`:''}
       <div style="display:flex;margin-bottom:14px">${stepperHTML}</div>
       ${mine.status === 'pending' && mine.droppedBy ? `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:10px 12px;margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:#991b1b;margin-bottom:2px">⚠️ ${mine.droppedBy} had to drop this ride</div><div style="font-size:12px;color:#7f1d1d">"${mine.dropReason}" - waiting for another driver to pick it up</div></div>` : ''}
       ${mine.claimedBy ? `<div style="font-size:13px;color:#1d4ed8;font-weight:700;margin-bottom:4px">🚐 Driver: ${esc(mine.claimedBy)}</div>` : ''}
@@ -4120,6 +4133,7 @@ function renderDriverQueue() {
       <div style="font-size:12px;color:rgba(255,255,255,.6);margin-bottom:6px">${sub}</div>
       <div style="font-size:14px;font-weight:700;margin-bottom:3px">📍 ${r.pickup} → ${r.dropoff}</div>
       <div style="font-size:12px;color:rgba(255,255,255,.7);margin-bottom:10px">${esc(r.requestedBy||'')}${stageText?' · '+stageText:''}</div>
+      ${r.notes?`<div style="font-size:13px;color:#fff;background:rgba(255,255,255,.1);border-radius:8px;padding:8px 10px;margin-bottom:10px">📝 ${esc(r.notes)}</div>`:''}
       ${action}
     </div>`;
   };
