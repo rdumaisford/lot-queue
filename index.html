@@ -2444,7 +2444,6 @@ let rides = {}; // the live ride-request system - 55 Mapleview <-> 323 Bayview
 let appointments = {}; // on-site "bring this car to my department" requests
 let pendingReturns = {}; // auto-reminders for whoever picked up a vehicle to send it back
 let ridesType = 'hitchhike', ridesLocation = '55 Mapleview', ridesDestination = '323 Bayview', ridesStockFoundLot = null, ridesMode = 'queue';
-let ridesFromAnswered = false; // "Where do you want to go?" only shows once they've actually tapped a "Where are you now?" button - see ridesRenderDirectionPickers
 let ridesSeenPendingIds = null; // null until the first rides/ snapshot lands - see the onValue(ref(db,'rides')) listener
 let ridesLeafletMap = null, ridesDriverMarkers = {}, ridesMapFitDone = false;
 let ridesRouteControls = {}; // rideId -> { control, destKey, lastCalcTs } - every active ride's route, not just "my own"
@@ -3800,17 +3799,6 @@ function ridesRenderDirectionPickers() {
     `<button onclick="ridesSetLocation('${l}')" class="toggle-btn${l===ridesLocation?' active':''}" style="flex:1;padding:8px 4px;border-radius:8px;font-size:12px">${l}</button>`
   ).join('');
 
-  // "Where do you want to go?" stays hidden until they've actually answered
-  // "Where are you now?" - otherwise the form dumps both questions on
-  // someone at once, off of what's really just a leftover default pickup
-  // location rather than a deliberate answer.
-  if (!ridesFromAnswered) {
-    destLabel.style.display = 'none';
-    destRow.style.display = 'none';
-    vehNote.style.display = 'none';
-    return;
-  }
-
   if (ridesType === 'vehicle' && ridesStockFoundLot) {
     destLabel.style.display = 'none';
     destRow.style.display = 'none';
@@ -3830,7 +3818,6 @@ function ridesRenderDirectionPickers() {
 
 window.ridesSetLocation = function(loc) {
   ridesLocation = loc;
-  ridesFromAnswered = true;
   ridesRenderDirectionPickers();
 };
 
@@ -4239,11 +4226,6 @@ function renderMyActiveRide() {
 
 window.ridesSetViewMode = function(mode) {
   if (mode === 'drive' && !(currentUser && (currentUser.role === 'lot' || currentUser.role === 'management'))) return;
-  // Fresh entry into the request sheet starts the "where are you now / where
-  // do you want to go" question sequence over - re-entering the same mode
-  // (e.g. a background re-render while it's already open) shouldn't reset an
-  // answer someone already gave.
-  if (mode === 'request' && ridesMode !== 'request') ridesFromAnswered = false;
   ridesMode = mode;
   document.getElementById('rides-queue-view').style.display = mode==='queue' ? 'block' : 'none';
   document.getElementById('rides-sheet').style.display = mode==='request' ? 'block' : 'none';
