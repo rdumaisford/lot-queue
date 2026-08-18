@@ -49,7 +49,7 @@
   running stale in-memory JS until someone manually clears their cache.
   Whoever edits this file next should update this value.
 -->
-<meta name="app-build" content="2026-08-18T15:08:34Z"/>
+<meta name="app-build" content="2026-08-18T15:24:11Z"/>
 <title>Vehicle Manager - Barrie Ford</title>
 <!-- The favicon uses the same app icon as the Home Screen/manifest icons
      (see icon-*.png) - one consistent icon everywhere instead of the old
@@ -1061,31 +1061,20 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   .setup-row input,.setup-row select{font-size:16px}
 }
 
-/* Vehicle Locator - mobile fullscreen mode (see cmUpdateMobileLayout, which
-   decides phone-vs-not from actual viewport dimensions rather than a
-   width-only @media breakpoint - a phone held sideways is often wider than
-   any reasonable breakpoint, so the JS is the real gate here, not CSS).
-   #cm-toolbar itself is physically moved into #cm-mobile-drawer - a small
-   popup anchored to the same corner as the menu button, not a full-height
-   side panel - and these rules restyle it from a horizontal bar into a
-   stacked list once it's actually in there. Everything below is scoped to
-   body.cm-fullscreen, which JS only ever adds on a phone-sized viewport,
-   so none of it touches desktop. */
-/* The header itself stays visible (with a "Vehicle Locator" badge added to
-   it, see #header-context-label) so there's still SOME orientation once
-   the tab bar disappears - only the tabs actually go, to reclaim their
-   space for the map. */
-body.cm-fullscreen .tabs{display:none!important}
-body.cm-fullscreen #header-context-label{display:inline-block!important}
-body.cm-fullscreen .main{padding:0!important}
-body.cm-fullscreen #panel-compound.active{height:calc(100vh - 56px - env(safe-area-inset-top,0px))!important;height:calc(100dvh - 56px - env(safe-area-inset-top,0px))!important}
-body.cm-fullscreen #cm-mobile-menu-btn{display:flex!important;align-items:center;justify-content:center;top:calc(66px + env(safe-area-inset-top,0px))!important}
+/* Vehicle Locator on mobile - this is just the standard way the tab looks
+   on a phone-sized viewport (see cmUpdateMobileLayout/cmIsPhoneViewport),
+   not a special mode to enter/exit: the header and tab bar are completely
+   untouched, exactly as on any other tab. The only thing that changes is
+   the toolbar (lot switcher/search/zoom/edit/QR/hide) collapses into
+   #cm-mobile-bar's single button, which opens #cm-mobile-drawer - a small
+   popup positioned at open time next to that button (see
+   cmToggleMobileDrawer) - holding the real #cm-toolbar, physically moved
+   in and out of it rather than duplicated. All scoped to body.cm-fullscreen,
+   which JS only ever adds on a phone-sized viewport, so desktop is untouched. */
+body.cm-fullscreen #cm-mobile-bar{display:flex!important}
 /* Pinch-to-zoom (see cmAttachPinchZoom) covers this on a touch device - the
    +/- buttons are redundant there and just eat drawer space. */
 body.cm-fullscreen #cm-grid-zoom,body.cm-fullscreen #cm-fl-zoom{display:none!important}
-/* The floating menu button would otherwise sit right on top of the
-   (collapsed-by-default) grid legend's summary text. */
-body.cm-fullscreen #cm-legend-details{margin-top:52px}
 #cm-mobile-drawer{
   transform-origin:top left;
   transform:scale(.94);
@@ -1192,11 +1181,6 @@ body.cm-fullscreen #cm-legend-details{margin-top:52px}
     <div class="header-brand">
       <div class="header-icon"><svg viewBox="0 0 24 24"><path d="M5 11l1.5-4.5h11L19 11M19 11v5H5v-5M5 11H3v2h2M19 11h2v2h-2M7.5 16v1.5M16.5 16v1.5M7 13.5h2M15 13.5h2"/></svg></div>
       Vehicle Manager
-      <!-- Shown only in the Vehicle Locator's mobile fullscreen mode (see
-           cmUpdateMobileLayout) - the tab bar is hidden there to save
-           space, so this is the one thing left saying which tab you're
-           actually on. -->
-      <span id="header-context-label" style="display:none;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.18);color:#fff;margin-left:2px">Vehicle Locator</span>
     </div>
     <div class="header-right">
       <div class="sync-dot" id="sync-dot"></div>
@@ -1451,22 +1435,29 @@ body.cm-fullscreen #cm-legend-details{margin-top:52px}
     <!-- COMPOUND MAP -->
     <div id="panel-compound" class="panel" style="padding:0">
 
-      <!-- Mobile fullscreen: a floating menu button opens a small popup
-           anchored to that same corner, holding everything the top toolbar
-           normally shows (lot switcher, search, zoom, edit/QR/hide) so the
-           map itself can use the whole screen edge-to-edge on a phone -
-           see cmUpdateMobileLayout, which physically moves #cm-toolbar in
-           and out of the popup rather than duplicating all of it. Both
-           stay hidden/inert on desktop. -->
-      <button id="cm-mobile-menu-btn" onclick="cmToggleMobileDrawer()" style="display:none;position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:10px;z-index:60;width:44px;height:44px;border-radius:50%;border:none;background:var(--ford);color:#fff;font-size:19px;box-shadow:0 2px 10px rgba(0,0,0,.35);cursor:pointer">☰</button>
+      <!-- Mobile: the header and tab bar are never touched here - this is
+           just the normal, standard way the tab looks, not a special mode
+           you enter/exit. The only thing that changes is the toolbar below
+           collapses into this one compact button (sitting in the page's
+           normal flow, not floating over anything) that opens a small
+           popup with everything the full toolbar has - see
+           cmUpdateMobileLayout, which physically moves #cm-toolbar in and
+           out of the popup rather than duplicating all of it. Hidden/inert
+           on desktop, where the full toolbar below just shows as usual. -->
+      <div id="cm-mobile-bar" style="display:none;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface)">
+        <button id="cm-mobile-menu-btn" onclick="cmToggleMobileDrawer()" style="display:flex;align-items:center;gap:8px;padding:8px 14px;font-size:14px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer">☰ <span id="cm-mobile-bar-lot">Menu</span></button>
+      </div>
       <!-- Transparent, full-screen - just a tap-outside-to-close catcher, not a dimming modal scrim (this is a small popup, not a full modal). -->
       <div id="cm-mobile-drawer-backdrop" onclick="cmCloseMobileDrawer()" style="display:none;position:fixed;inset:0;background:transparent;z-index:65"></div>
-      <div id="cm-mobile-drawer" style="position:fixed;top:calc(116px + env(safe-area-inset-top,0px));left:10px;width:min(300px,85vw);max-height:min(70vh,600px);background:var(--surface);z-index:70;overflow-y:auto;border-radius:var(--radius);box-shadow:0 8px 28px rgba(0,0,0,.3)">
+      <!-- top/left are set at open time (see cmToggleMobileDrawer) from
+           #cm-mobile-menu-btn's actual on-screen position, not hardcoded -
+           the button lives in normal document flow, so its position isn't
+           fixed/known ahead of time the way a floating button's would be. -->
+      <div id="cm-mobile-drawer" style="position:fixed;width:min(300px,85vw);max-height:min(70vh,600px);background:var(--surface);z-index:70;overflow-y:auto;border-radius:var(--radius);box-shadow:0 8px 28px rgba(0,0,0,.3)">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)">
           <span style="font-weight:700;font-size:15px;color:var(--text)">Vehicle Locator</span>
           <button onclick="cmCloseMobileDrawer()" style="border:none;background:none;font-size:22px;line-height:1;cursor:pointer;color:var(--text-muted)">×</button>
         </div>
-        <button onclick="cmExitMobileFullscreen()" style="width:calc(100% - 24px);margin:12px;padding:10px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer">⤢ Exit fullscreen (show tabs)</button>
       </div>
 
       <!-- Top toolbar -->
@@ -8011,6 +8002,10 @@ function cmUpdateLotButtons() {
     return;
   }
   cmUpdateHideBtn();
+  // The mobile menu button shows the current lot's name in place of the
+  // (now-collapsed) lot switcher, so it's not just a generic "Menu" label.
+  const mobileBarLot = document.getElementById('cm-mobile-bar-lot');
+  if (mobileBarLot) mobileBarLot.textContent = CM_LOTS[cmCurrentLot]?.label || 'Menu';
 }
 
 // The hide/unhide toggle + "you're the only one who can see this" reminder -
@@ -9406,19 +9401,14 @@ window.switchTab = function(name, btn) {
       document.getElementById('main-wrap').style.maxWidth = '';
     }
   }
-  // A fresh visit to the tab always starts back in fullscreen on a phone -
-  // "Exit fullscreen" in the drawer only holds off until you navigate away
-  // and land somewhere else, not permanently.
-  cmMobileFullscreenDisabled = false;
   cmUpdateMobileLayout();
 };
 
 // Moves #cm-toolbar bodily into the mobile drawer (or back to its normal
-// spot via #cm-toolbar-anchor) depending on screen width + which tab is
+// spot via #cm-toolbar-anchor) depending on screen size + which tab is
 // showing, rather than keeping two separate copies of the same controls in
-// sync. See the "Vehicle Locator - mobile fullscreen mode" CSS block for
-// how the toolbar gets restyled once it's actually inside the drawer.
-let cmMobileFullscreenDisabled = false;
+// sync. See the "Vehicle Locator on mobile" CSS block for how the toolbar
+// gets restyled once it's actually inside the drawer.
 // A plain width check (the usual "mobile breakpoint" trick) misses phones
 // held sideways - a phone in landscape is often 800-930px wide, well past
 // a 768px cutoff, while a small laptop window can easily be narrower than
@@ -9436,12 +9426,11 @@ function cmUpdateMobileLayout() {
   const drawerContent = document.getElementById('cm-mobile-drawer');
   if (!toolbar || !anchor || !drawerContent) return;
   const isCompoundActive = document.getElementById('panel-compound')?.classList.contains('active');
-  const shouldFullscreen = isCompoundActive && cmIsPhoneViewport() && !cmMobileFullscreenDisabled;
-  if (shouldFullscreen) {
-    document.body.classList.add('cm-fullscreen');
+  const isPhone = isCompoundActive && cmIsPhoneViewport();
+  document.body.classList.toggle('cm-fullscreen', isPhone);
+  if (isPhone) {
     if (toolbar.parentElement !== drawerContent) drawerContent.appendChild(toolbar);
   } else {
-    document.body.classList.remove('cm-fullscreen');
     window.cmCloseMobileDrawer();
     if (toolbar.nextElementSibling !== anchor) anchor.parentElement.insertBefore(toolbar, anchor);
   }
@@ -9449,8 +9438,17 @@ function cmUpdateMobileLayout() {
 window.cmToggleMobileDrawer = function() {
   const drawer = document.getElementById('cm-mobile-drawer');
   const backdrop = document.getElementById('cm-mobile-drawer-backdrop');
+  const btn = document.getElementById('cm-mobile-menu-btn');
   if (!drawer) return;
   const opening = !drawer.classList.contains('open');
+  // The button lives in the page's normal flow (not floating), so there's
+  // no fixed coordinate to hardcode - position the popup relative to
+  // wherever the button actually is, right when it's opened.
+  if (opening && btn) {
+    const rect = btn.getBoundingClientRect();
+    drawer.style.top = `${rect.bottom + 8}px`;
+    drawer.style.left = `${rect.left}px`;
+  }
   drawer.classList.toggle('open', opening);
   if (backdrop) backdrop.style.display = opening ? 'block' : 'none';
 };
@@ -9458,14 +9456,6 @@ window.cmCloseMobileDrawer = function() {
   document.getElementById('cm-mobile-drawer')?.classList.remove('open');
   const backdrop = document.getElementById('cm-mobile-drawer-backdrop');
   if (backdrop) backdrop.style.display = 'none';
-};
-// "Exit fullscreen" - the tab bar (still hidden even though the header
-// itself stays visible - see the CSS block above) is the only way to
-// navigate elsewhere, so this brings it back on demand without waiting
-// for a desktop-width screen.
-window.cmExitMobileFullscreen = function() {
-  cmMobileFullscreenDisabled = true;
-  cmUpdateMobileLayout();
 };
 
 // Rewrite cmInit
