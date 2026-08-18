@@ -49,7 +49,7 @@
   running stale in-memory JS until someone manually clears their cache.
   Whoever edits this file next should update this value.
 -->
-<meta name="app-build" content="2026-08-18T17:51:36Z"/>
+<meta name="app-build" content="2026-08-18T18:03:52Z"/>
 <title>Vehicle Manager - Barrie Ford</title>
 <!-- The favicon uses the same app icon as the Home Screen/manifest icons
      (see icon-*.png) - one consistent icon everywhere instead of the old
@@ -1867,7 +1867,14 @@ body.cm-fullscreen #cm-grid-zoom,body.cm-fullscreen #cm-fl-zoom{display:none!imp
       #panel-heroshot.active{display:flex;flex-direction:column;height:calc(100vh - 92px);height:calc(100dvh - 92px)}
       #hs-app{display:flex;flex-direction:column;flex:1;min-height:0;background:#111318;color:#f2f2f2;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
       #hs-stage-wrap{flex:1 1 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0;padding:12px;gap:10px}
-      #hs-stage{position:relative;width:100%;max-width:640px;aspect-ratio:4/3;background:#000;border-radius:14px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.45);touch-action:none}
+      /* Width/height are set explicitly in px by hsFitStage() (see the
+         script below), not via CSS aspect-ratio - aspect-ratio on a plain
+         div fights with flex shrinking once vertical space gets tight
+         (e.g. phone in landscape, where the whole page is short), and
+         ends up silently squashed instead of staying 4:3. Computing the
+         actual pixel size in JS from real available space sidesteps that
+         entirely and works the same in portrait or landscape. */
+      #hs-stage{position:relative;background:#000;border-radius:14px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.45);touch-action:none;flex-shrink:0}
       #hs-video,#hs-resultCanvas,#hs-stillImg{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;display:none;transform-origin:center center}
       #hs-video.active,#hs-stillImg.active{display:block}
       #hs-resultCanvas.active{display:block}
@@ -1882,6 +1889,17 @@ body.cm-fullscreen #cm-grid-zoom,body.cm-fullscreen #cm-fl-zoom{display:none!imp
       #hs-zoom-slider{flex:1;accent-color:#ff5656}
       #hs-zoom-label{font-size:12px;color:#9aa0ac;min-width:36px;text-align:right;flex-shrink:0}
       #hs-footer{flex:0 0 auto;padding:14px 16px calc(16px + env(safe-area-inset-bottom,0px));background:#1b1e27;border-top:1px solid rgba(255,255,255,.06)}
+      /* A phone in landscape has very little height to spare - tighten the
+         chrome around the stage so fitStage() (see the script) has more
+         room to work with, instead of the preview getting cramped just to
+         make space for full-size padding it doesn't need here. */
+      @media (orientation: landscape) and (max-height: 500px) {
+        #hs-stage-wrap{padding:6px;gap:6px}
+        #hs-footer{padding:8px 16px calc(8px + env(safe-area-inset-bottom,0px))}
+        .hs-btn-primary{padding:10px 18px;font-size:14px}
+        .hs-btn-icon{width:38px;height:38px}
+        #hs-status{margin-bottom:4px}
+      }
       .hs-row{display:flex;gap:10px;justify-content:center;align-items:center}
       .hs-btn{appearance:none;border:none;border-radius:999px;padding:12px 18px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:transform .08s ease,opacity .15s ease;font-family:inherit}
       .hs-btn:active{transform:scale(.96)}
@@ -10538,7 +10556,33 @@ tvInitShuttleMap();
     captureRow.classList.toggle('active', active === 'camera' || active === 'uploaded');
     resultRow.classList.toggle('active', active === 'result');
     zoomRow.classList.toggle('active', active === 'camera' || active === 'uploaded');
+    // The zoom row's own height changes what's actually left for the
+    // stage, so re-fit after the DOM updates rather than before.
+    requestAnimationFrame(fitStage);
   }
+
+  const stageWrap = document.getElementById('hs-stage-wrap');
+  // Sizes the stage to the largest 4:3 box that actually fits the space
+  // available right now, computed from real pixel measurements rather
+  // than CSS aspect-ratio (see the #hs-stage CSS comment) - this is what
+  // makes landscape (where height, not width, is usually the tight
+  // dimension) work correctly instead of squashing the preview.
+  function fitStage() {
+    if (!stageWrap) return;
+    const wrapRect = stageWrap.getBoundingClientRect();
+    const zoomRowH = zoomRow.classList.contains('active') ? zoomRow.getBoundingClientRect().height + 10 : 0;
+    const availW = wrapRect.width - 4;
+    const availH = wrapRect.height - zoomRowH - 4;
+    const ratio = 4 / 3;
+    let w = Math.min(availW, 640);
+    let h = w / ratio;
+    if (h > availH) { h = Math.max(availH, 0); w = h * ratio; }
+    stage.style.width = w + 'px';
+    stage.style.height = h + 'px';
+    zoomRow.style.width = w + 'px';
+  }
+  window.addEventListener('resize', () => requestAnimationFrame(fitStage));
+  window.addEventListener('orientationchange', () => setTimeout(fitStage, 100));
 
   function setStatus(msg) { status.textContent = msg || ''; }
 
@@ -10734,23 +10778,28 @@ tvInitShuttleMap();
   stage.addEventListener('touchcancel', () => { pinchStartDist = null; }, { passive: true });
 
   // Exposed so the main app can stop the camera when navigating away from
-  // this tab (see the switchTab wrap below) - leaving it running in the
-  // background would keep the camera light on and drain battery for no
-  // reason once someone's looking at a different tab.
+  // this tab, and re-fit the stage when navigating TO it (see the
+  // switchTab wrap below) - the panel is display:none until then, so any
+  // earlier fitStage() call while it was hidden would've measured a 0x0
+  // box. Leaving the camera running in the background would also keep the
+  // camera light on and drain battery for no reason once someone's
+  // looking at a different tab.
   window.heroShotStopCamera = function() {
     if (mode === 'camera') stopCamera();
   };
+  window.heroShotOnShown = function() { requestAnimationFrame(fitStage); };
 
   setRows('idle');
 })();
 
 // Stop the camera (if running) whenever navigating to any tab other than
-// Hero Shot - same wrapping pattern the Compound Map uses for its own
-// tab-switch side effects.
+// Hero Shot, and re-fit its stage on the way in - same wrapping pattern
+// the Compound Map uses for its own tab-switch side effects.
 const _hsOrigSwitchTab = window.switchTab;
 window.switchTab = function(name, btn) {
   _hsOrigSwitchTab(name, btn);
-  if (name !== 'heroshot') window.heroShotStopCamera();
+  if (name === 'heroshot') window.heroShotOnShown();
+  else window.heroShotStopCamera();
 };
 </script>
 
