@@ -49,7 +49,7 @@
   running stale in-memory JS until someone manually clears their cache.
   Whoever edits this file next should update this value.
 -->
-<meta name="app-build" content="2026-08-18T14:17:20Z"/>
+<meta name="app-build" content="2026-08-18T14:27:30Z"/>
 <title>Vehicle Manager - Barrie Ford</title>
 <!-- The favicon uses the same app icon as the Home Screen/manifest icons
      (see icon-*.png) - one consistent icon everywhere instead of the old
@@ -1060,6 +1060,32 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   .btn-action,.btn-new-request{min-height:44px}
   .setup-row input,.setup-row select{font-size:16px}
 }
+
+/* Vehicle Locator - mobile fullscreen mode (see cmUpdateMobileLayout).
+   #cm-toolbar itself is physically moved into #cm-mobile-drawer on phones -
+   these rules just restyle it from a horizontal bar into a stacked list
+   once it's in there, and hide the app's own header/tabs so the map gets
+   the whole screen. All of this stays completely inert above 768px wide. */
+#cm-mobile-drawer{transform:translateX(-100%);transition:transform .22s ease}
+#cm-mobile-drawer.open{transform:translateX(0)}
+@media(max-width:768px){
+  body.cm-fullscreen .header,body.cm-fullscreen .tabs{display:none!important}
+  body.cm-fullscreen .main{padding:0!important}
+  body.cm-fullscreen #panel-compound.active{height:100vh!important;height:100dvh!important}
+  body.cm-fullscreen #cm-mobile-menu-btn{display:flex!important;align-items:center;justify-content:center}
+  #cm-mobile-drawer #cm-toolbar{
+    position:static!important;flex-direction:column!important;align-items:stretch!important;
+    border-bottom:none!important;
+  }
+  #cm-mobile-drawer #cm-toolbar>*{width:100%!important;margin-left:0!important}
+  /* 4 lot buttons in a single-row pill don't all fit a ~300px drawer -
+     scroll it horizontally rather than wrapping, which would break the
+     shared rounded border the pill group is styled with. */
+  #cm-mobile-drawer #cm-lot-switcher{overflow-x:auto!important}
+  /* The floating menu button would otherwise sit right on top of the
+     (collapsed-by-default) grid legend's summary text. */
+  body.cm-fullscreen #cm-legend-details{margin-top:52px}
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
@@ -1403,10 +1429,26 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     <!-- COMPOUND MAP -->
     <div id="panel-compound" class="panel" style="padding:0">
 
+      <!-- Mobile fullscreen: a floating menu button opens a slide-out drawer
+           holding everything the top toolbar normally shows (lot switcher,
+           search, zoom, edit/QR/hide) so the map itself can use the whole
+           screen edge-to-edge on a phone - see cmUpdateMobileLayout, which
+           physically moves #cm-toolbar in and out of the drawer rather than
+           duplicating all of it. Both stay hidden/inert on desktop. -->
+      <button id="cm-mobile-menu-btn" onclick="cmToggleMobileDrawer()" style="display:none;position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:10px;z-index:60;width:44px;height:44px;border-radius:50%;border:none;background:var(--ford);color:#fff;font-size:19px;box-shadow:0 2px 10px rgba(0,0,0,.35);cursor:pointer">☰</button>
+      <div id="cm-mobile-drawer-backdrop" onclick="cmCloseMobileDrawer()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:65"></div>
+      <div id="cm-mobile-drawer" style="position:fixed;top:0;left:0;bottom:0;width:min(300px,85vw);background:var(--surface);z-index:70;overflow-y:auto;box-shadow:2px 0 14px rgba(0,0,0,.25);padding-top:env(safe-area-inset-top,0px)">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)">
+          <span style="font-weight:700;font-size:15px;color:var(--text)">Vehicle Locator</span>
+          <button onclick="cmCloseMobileDrawer()" style="border:none;background:none;font-size:22px;line-height:1;cursor:pointer;color:var(--text-muted)">×</button>
+        </div>
+        <button onclick="cmExitMobileFullscreen()" style="width:calc(100% - 24px);margin:12px;padding:10px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer">⤢ Exit fullscreen (show tabs)</button>
+      </div>
+
       <!-- Top toolbar -->
-      <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;background:var(--surface);position:sticky;top:0;z-index:50">
+      <div id="cm-toolbar" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;background:var(--surface);position:sticky;top:0;z-index:50">
         <!-- Lot switcher -->
-        <div style="display:flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+        <div id="cm-lot-switcher" style="display:flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
           <button id="cm-lot-btn-bayview700" onclick="cmSwitchLot('bayview700')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--ford);color:#fff">700 Bayview</button>
           <button id="cm-lot-btn-bayview323" onclick="cmSwitchLot('bayview323')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">323 Bayview</button>
           <button id="cm-lot-btn-bayview323new" onclick="cmSwitchLot('bayview323new')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">323 Bayview (NEW)</button>
@@ -1444,6 +1486,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <button id="cm-hide-btn" onclick="cmToggleLotHidden()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer;display:none">🙈 Hide Lot</button>
         <span id="cm-hidden-badge" style="display:none;padding:5px 10px;font-size:12px;font-weight:700;color:#dc2626;background:#fef2f2;border:1px solid #fca5a5;border-radius:var(--radius-sm);white-space:nowrap">🙈 Hidden from other staff</span>
       </div>
+      <!-- Marks #cm-toolbar's normal (desktop) position, so cmUpdateMobileLayout
+           knows exactly where to put it back after moving it into the mobile drawer. -->
+      <div id="cm-toolbar-anchor" style="display:none"></div>
 
       <!-- Age heatmap legend - shown only while heatmap mode is active -->
       <div id="cm-heatmap-legend" style="display:none;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--border);background:#fafaf9;font-size:11px;color:var(--text-muted)">
@@ -8290,6 +8335,9 @@ window.cmSwitchLot = function(id) {
 
   cmRender();
   if (isFreeform) flRender();
+  // Picking a lot from the mobile drawer should actually show it, not
+  // leave the drawer covering the map that just changed underneath it.
+  if (window.innerWidth <= 768) window.cmCloseMobileDrawer?.();
 };
 
 // Layout editing (rows/cols on the grids; adding/moving/resizing/deleting
@@ -9330,6 +9378,54 @@ window.switchTab = function(name, btn) {
       document.getElementById('main-wrap').style.maxWidth = '';
     }
   }
+  // A fresh visit to the tab always starts back in fullscreen on a phone -
+  // "Exit fullscreen" in the drawer only holds off until you navigate away
+  // and land somewhere else, not permanently.
+  cmMobileFullscreenDisabled = false;
+  cmUpdateMobileLayout();
+};
+
+// Moves #cm-toolbar bodily into the mobile drawer (or back to its normal
+// spot via #cm-toolbar-anchor) depending on screen width + which tab is
+// showing, rather than keeping two separate copies of the same controls in
+// sync. See the "Vehicle Locator - mobile fullscreen mode" CSS block for
+// how the toolbar gets restyled once it's actually inside the drawer.
+let cmMobileFullscreenDisabled = false;
+function cmUpdateMobileLayout() {
+  const toolbar = document.getElementById('cm-toolbar');
+  const anchor = document.getElementById('cm-toolbar-anchor');
+  const drawerContent = document.getElementById('cm-mobile-drawer');
+  if (!toolbar || !anchor || !drawerContent) return;
+  const isCompoundActive = document.getElementById('panel-compound')?.classList.contains('active');
+  const shouldFullscreen = isCompoundActive && window.innerWidth <= 768 && !cmMobileFullscreenDisabled;
+  if (shouldFullscreen) {
+    document.body.classList.add('cm-fullscreen');
+    if (toolbar.parentElement !== drawerContent) drawerContent.appendChild(toolbar);
+  } else {
+    document.body.classList.remove('cm-fullscreen');
+    window.cmCloseMobileDrawer();
+    if (toolbar.nextElementSibling !== anchor) anchor.parentElement.insertBefore(toolbar, anchor);
+  }
+}
+window.cmToggleMobileDrawer = function() {
+  const drawer = document.getElementById('cm-mobile-drawer');
+  const backdrop = document.getElementById('cm-mobile-drawer-backdrop');
+  if (!drawer) return;
+  const opening = !drawer.classList.contains('open');
+  drawer.classList.toggle('open', opening);
+  if (backdrop) backdrop.style.display = opening ? 'block' : 'none';
+};
+window.cmCloseMobileDrawer = function() {
+  document.getElementById('cm-mobile-drawer')?.classList.remove('open');
+  const backdrop = document.getElementById('cm-mobile-drawer-backdrop');
+  if (backdrop) backdrop.style.display = 'none';
+};
+// "Exit fullscreen" - the header/tab bar are the only way to navigate
+// elsewhere once they're hidden, so this brings them back on demand
+// without waiting for a desktop-width screen.
+window.cmExitMobileFullscreen = function() {
+  cmMobileFullscreenDisabled = true;
+  cmUpdateMobileLayout();
 };
 
 // Rewrite cmInit
@@ -9348,6 +9444,8 @@ function cmInit() {
   // render) since these wrapper elements are static, not rebuilt.
   cmAttachPinchZoom(document.getElementById('cm-map-wrap'), () => cmZoomLevel, v => { cmZoomLevel = v; }, CM_ZOOM_MIN, CM_ZOOM_MAX, cmApplyZoom);
   cmAttachPinchZoom(document.getElementById('fl-canvas-outer'), () => flZoomLevel, v => { flZoomLevel = v; }, FL_ZOOM_MIN, FL_ZOOM_MAX, flApplyZoom);
+  cmUpdateMobileLayout();
+  window.addEventListener('resize', cmUpdateMobileLayout);
 }
 
 // Generic two-finger pinch handler - tracks the distance between the two
