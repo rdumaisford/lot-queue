@@ -49,7 +49,7 @@
   running stale in-memory JS until someone manually clears their cache.
   Whoever edits this file next should update this value.
 -->
-<meta name="app-build" content="2026-08-18T14:27:30Z"/>
+<meta name="app-build" content="2026-08-18T14:58:21Z"/>
 <title>Vehicle Manager - Barrie Ford</title>
 <!-- The favicon uses the same app icon as the Home Screen/manifest icons
      (see icon-*.png) - one consistent icon everywhere instead of the old
@@ -1061,31 +1061,43 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   .setup-row input,.setup-row select{font-size:16px}
 }
 
-/* Vehicle Locator - mobile fullscreen mode (see cmUpdateMobileLayout).
-   #cm-toolbar itself is physically moved into #cm-mobile-drawer on phones -
-   these rules just restyle it from a horizontal bar into a stacked list
-   once it's in there, and hide the app's own header/tabs so the map gets
-   the whole screen. All of this stays completely inert above 768px wide. */
-#cm-mobile-drawer{transform:translateX(-100%);transition:transform .22s ease}
-#cm-mobile-drawer.open{transform:translateX(0)}
-@media(max-width:768px){
-  body.cm-fullscreen .header,body.cm-fullscreen .tabs{display:none!important}
-  body.cm-fullscreen .main{padding:0!important}
-  body.cm-fullscreen #panel-compound.active{height:100vh!important;height:100dvh!important}
-  body.cm-fullscreen #cm-mobile-menu-btn{display:flex!important;align-items:center;justify-content:center}
-  #cm-mobile-drawer #cm-toolbar{
-    position:static!important;flex-direction:column!important;align-items:stretch!important;
-    border-bottom:none!important;
-  }
-  #cm-mobile-drawer #cm-toolbar>*{width:100%!important;margin-left:0!important}
-  /* 4 lot buttons in a single-row pill don't all fit a ~300px drawer -
-     scroll it horizontally rather than wrapping, which would break the
-     shared rounded border the pill group is styled with. */
-  #cm-mobile-drawer #cm-lot-switcher{overflow-x:auto!important}
-  /* The floating menu button would otherwise sit right on top of the
-     (collapsed-by-default) grid legend's summary text. */
-  body.cm-fullscreen #cm-legend-details{margin-top:52px}
+/* Vehicle Locator - mobile fullscreen mode (see cmUpdateMobileLayout, which
+   decides phone-vs-not from actual viewport dimensions rather than a
+   width-only @media breakpoint - a phone held sideways is often wider than
+   any reasonable breakpoint, so the JS is the real gate here, not CSS).
+   #cm-toolbar itself is physically moved into #cm-mobile-drawer - a small
+   popup anchored to the same corner as the menu button, not a full-height
+   side panel - and these rules restyle it from a horizontal bar into a
+   stacked list once it's actually in there. Everything below is scoped to
+   body.cm-fullscreen, which JS only ever adds on a phone-sized viewport,
+   so none of it touches desktop. */
+body.cm-fullscreen .header,body.cm-fullscreen .tabs{display:none!important}
+body.cm-fullscreen .main{padding:0!important}
+body.cm-fullscreen #panel-compound.active{height:100vh!important;height:100dvh!important}
+body.cm-fullscreen #cm-mobile-menu-btn{display:flex!important;align-items:center;justify-content:center}
+/* Pinch-to-zoom (see cmAttachPinchZoom) covers this on a touch device - the
+   +/- buttons are redundant there and just eat drawer space. */
+body.cm-fullscreen #cm-grid-zoom,body.cm-fullscreen #cm-fl-zoom{display:none!important}
+/* The floating menu button would otherwise sit right on top of the
+   (collapsed-by-default) grid legend's summary text. */
+body.cm-fullscreen #cm-legend-details{margin-top:52px}
+#cm-mobile-drawer{
+  transform-origin:top left;
+  transform:scale(.94);
+  opacity:0;
+  pointer-events:none;
+  transition:transform .16s ease,opacity .16s ease;
 }
+#cm-mobile-drawer.open{transform:scale(1);opacity:1;pointer-events:auto}
+#cm-mobile-drawer #cm-toolbar{
+  position:static!important;flex-direction:column!important;align-items:stretch!important;
+  border-bottom:none!important;
+}
+#cm-mobile-drawer #cm-toolbar>*{width:100%!important;margin-left:0!important}
+/* 4 lot buttons in a single-row pill don't all fit a ~300px popup -
+   scroll it horizontally rather than wrapping, which would break the
+   shared rounded border the pill group is styled with. */
+#cm-mobile-drawer #cm-lot-switcher{overflow-x:auto!important}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
@@ -1429,15 +1441,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     <!-- COMPOUND MAP -->
     <div id="panel-compound" class="panel" style="padding:0">
 
-      <!-- Mobile fullscreen: a floating menu button opens a slide-out drawer
-           holding everything the top toolbar normally shows (lot switcher,
-           search, zoom, edit/QR/hide) so the map itself can use the whole
-           screen edge-to-edge on a phone - see cmUpdateMobileLayout, which
-           physically moves #cm-toolbar in and out of the drawer rather than
-           duplicating all of it. Both stay hidden/inert on desktop. -->
+      <!-- Mobile fullscreen: a floating menu button opens a small popup
+           anchored to that same corner, holding everything the top toolbar
+           normally shows (lot switcher, search, zoom, edit/QR/hide) so the
+           map itself can use the whole screen edge-to-edge on a phone -
+           see cmUpdateMobileLayout, which physically moves #cm-toolbar in
+           and out of the popup rather than duplicating all of it. Both
+           stay hidden/inert on desktop. -->
       <button id="cm-mobile-menu-btn" onclick="cmToggleMobileDrawer()" style="display:none;position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:10px;z-index:60;width:44px;height:44px;border-radius:50%;border:none;background:var(--ford);color:#fff;font-size:19px;box-shadow:0 2px 10px rgba(0,0,0,.35);cursor:pointer">☰</button>
-      <div id="cm-mobile-drawer-backdrop" onclick="cmCloseMobileDrawer()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:65"></div>
-      <div id="cm-mobile-drawer" style="position:fixed;top:0;left:0;bottom:0;width:min(300px,85vw);background:var(--surface);z-index:70;overflow-y:auto;box-shadow:2px 0 14px rgba(0,0,0,.25);padding-top:env(safe-area-inset-top,0px)">
+      <!-- Transparent, full-screen - just a tap-outside-to-close catcher, not a dimming modal scrim (this is a small popup, not a full modal). -->
+      <div id="cm-mobile-drawer-backdrop" onclick="cmCloseMobileDrawer()" style="display:none;position:fixed;inset:0;background:transparent;z-index:65"></div>
+      <div id="cm-mobile-drawer" style="position:fixed;top:calc(60px + env(safe-area-inset-top,0px));left:10px;width:min(300px,85vw);max-height:min(75vh,620px);background:var(--surface);z-index:70;overflow-y:auto;border-radius:var(--radius);box-shadow:0 8px 28px rgba(0,0,0,.3)">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)">
           <span style="font-weight:700;font-size:15px;color:var(--text)">Vehicle Locator</span>
           <button onclick="cmCloseMobileDrawer()" style="border:none;background:none;font-size:22px;line-height:1;cursor:pointer;color:var(--text-muted)">×</button>
@@ -8325,9 +8339,13 @@ window.cmSwitchLot = function(id) {
   // different map area (an open, real-scale canvas instead of a rows×cols
   // grid) with its own numbered spots instead of Row/Col addressing.
   const isFreeform = FREEFORM_LOTS.has(id);
-  document.getElementById('cm-grid-zoom').style.display = isFreeform ? 'none' : '';
+  document.getElementById('cm-grid-zoom').style.display = isFreeform ? 'none' : 'flex'; // same '' vs 'flex' gotcha as #cm-stats above
   document.getElementById('cm-fl-zoom').style.display = isFreeform ? 'flex' : 'none';
-  document.getElementById('cm-stats').style.display = ''; // now shown for freeform lots too (see cmRenderStats)
+  // Explicitly 'flex', not '' - clearing an inline style property removes
+  // it outright rather than falling back to it, so '' was quietly dropping
+  // the div back to block (every stat stacked on its own line) the moment
+  // you switched lots, not just hiding/showing it.
+  document.getElementById('cm-stats').style.display = 'flex';
   document.getElementById('cm-qr-btn').style.display = '';
   document.getElementById('cm-edit-btn').style.display = cmCanEditLayout() ? '' : 'none';
   document.getElementById('cm-map-wrap').style.display = isFreeform ? 'none' : '';
@@ -8337,7 +8355,7 @@ window.cmSwitchLot = function(id) {
   if (isFreeform) flRender();
   // Picking a lot from the mobile drawer should actually show it, not
   // leave the drawer covering the map that just changed underneath it.
-  if (window.innerWidth <= 768) window.cmCloseMobileDrawer?.();
+  if (cmIsPhoneViewport()) window.cmCloseMobileDrawer?.();
 };
 
 // Layout editing (rows/cols on the grids; adding/moving/resizing/deleting
@@ -9391,13 +9409,24 @@ window.switchTab = function(name, btn) {
 // sync. See the "Vehicle Locator - mobile fullscreen mode" CSS block for
 // how the toolbar gets restyled once it's actually inside the drawer.
 let cmMobileFullscreenDisabled = false;
+// A plain width check (the usual "mobile breakpoint" trick) misses phones
+// held sideways - a phone in landscape is often 800-930px wide, well past
+// a 768px cutoff, while a small laptop window can easily be narrower than
+// that. Checking BOTH dimensions instead - the long side capped to
+// "biggest phone, either way up" and the short side capped to "narrowest
+// a phone ever gets" - matches actual phones in either orientation while
+// still excluding tablets and laptop windows.
+function cmIsPhoneViewport() {
+  const w = window.innerWidth, h = window.innerHeight;
+  return Math.max(w, h) <= 930 && Math.min(w, h) <= 520;
+}
 function cmUpdateMobileLayout() {
   const toolbar = document.getElementById('cm-toolbar');
   const anchor = document.getElementById('cm-toolbar-anchor');
   const drawerContent = document.getElementById('cm-mobile-drawer');
   if (!toolbar || !anchor || !drawerContent) return;
   const isCompoundActive = document.getElementById('panel-compound')?.classList.contains('active');
-  const shouldFullscreen = isCompoundActive && window.innerWidth <= 768 && !cmMobileFullscreenDisabled;
+  const shouldFullscreen = isCompoundActive && cmIsPhoneViewport() && !cmMobileFullscreenDisabled;
   if (shouldFullscreen) {
     document.body.classList.add('cm-fullscreen');
     if (toolbar.parentElement !== drawerContent) drawerContent.appendChild(toolbar);
@@ -9453,7 +9482,9 @@ function cmInit() {
 // that distance has changed since, clamped to the same min/max the +/-
 // buttons already respect. Only engages for exactly 2 touches, so normal
 // one-finger scrolling/panning (and, in Edit mode, dragging a spot) is
-// completely untouched.
+// completely untouched. Zooms anchored on the pinch midpoint (see
+// cmZoomTo) so the spot between your fingers stays under your fingers,
+// instead of the whole map re-centering out from under the gesture.
 function cmAttachPinchZoom(el, getLevel, setLevel, min, max, apply) {
   if (!el) return;
   let startDist = null, startLevel = 1;
@@ -9467,11 +9498,36 @@ function cmAttachPinchZoom(el, getLevel, setLevel, min, max, apply) {
     if (e.touches.length !== 2 || startDist === null) return;
     e.preventDefault(); // don't let this also pan/scroll the page while pinching
     const ratio = dist(e.touches[0], e.touches[1]) / startDist;
-    setLevel(Math.max(min, Math.min(max, +(startLevel * ratio).toFixed(2))));
-    apply();
+    const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    cmZoomTo(el, getLevel, setLevel, min, max, apply, startLevel * ratio, midX, midY);
   }, { passive: false });
   el.addEventListener('touchend', (e) => { if (e.touches.length < 2) startDist = null; }, { passive: true });
   el.addEventListener('touchcancel', () => { startDist = null; }, { passive: true });
+}
+
+// Changes a zoom level while keeping one specific screen point visually
+// anchored - without this, the CSS "zoom" property (see cmApplyZoom below)
+// just grows/shrinks the map from the scroll container's top-left corner,
+// which reads as the whole map jumping out from under wherever you were
+// actually looking. clientX/clientY default to the middle of the visible
+// map area (used by the +/- buttons, which aren't themselves over the
+// map); pinch passes the real pinch midpoint instead, so the zoom centers
+// exactly between two fingers.
+function cmZoomTo(container, getLevel, setLevel, min, max, apply, newLevel, clientX, clientY) {
+  const clamped = Math.max(min, Math.min(max, +newLevel.toFixed(2)));
+  if (!container) { setLevel(clamped); apply(); return; }
+  const rect = container.getBoundingClientRect();
+  if (clientX == null) clientX = rect.left + rect.width / 2;
+  if (clientY == null) clientY = rect.top + rect.height / 2;
+  const oldLevel = getLevel();
+  const offsetX = clientX - rect.left, offsetY = clientY - rect.top;
+  const contentX = (container.scrollLeft + offsetX) / oldLevel;
+  const contentY = (container.scrollTop + offsetY) / oldLevel;
+  setLevel(clamped);
+  apply();
+  container.scrollLeft = contentX * clamped - offsetX;
+  container.scrollTop = contentY * clamped - offsetY;
 }
 
 // ── Zoom (mainly for mobile) ────────────────────────────
@@ -9490,17 +9546,13 @@ function cmApplyZoom() {
   const label = document.getElementById('cm-zoom-label');
   if (label) label.textContent = Math.round(cmZoomLevel * 100) + '%';
 }
-window.cmZoomIn = function() {
-  cmZoomLevel = Math.min(CM_ZOOM_MAX, +(cmZoomLevel + CM_ZOOM_STEP).toFixed(2));
-  cmApplyZoom();
-};
-window.cmZoomOut = function() {
-  cmZoomLevel = Math.max(CM_ZOOM_MIN, +(cmZoomLevel - CM_ZOOM_STEP).toFixed(2));
-  cmApplyZoom();
-};
+function cmZoomBy(delta) {
+  cmZoomTo(document.getElementById('cm-map-wrap'), () => cmZoomLevel, v => { cmZoomLevel = v; }, CM_ZOOM_MIN, CM_ZOOM_MAX, cmApplyZoom, cmZoomLevel + delta);
+}
+window.cmZoomIn = function() { cmZoomBy(CM_ZOOM_STEP); };
+window.cmZoomOut = function() { cmZoomBy(-CM_ZOOM_STEP); };
 window.cmZoomReset = function() {
-  cmZoomLevel = 1;
-  cmApplyZoom();
+  cmZoomTo(document.getElementById('cm-map-wrap'), () => cmZoomLevel, v => { cmZoomLevel = v; }, CM_ZOOM_MIN, CM_ZOOM_MAX, cmApplyZoom, 1);
 };
 
 // ── Freeform layout builder (323 Bayview NEW) ──────────
@@ -9620,7 +9672,7 @@ function flSpotHtml(id, veh, maps) {
     return `<div class="cm-spot ${kindCls}${selCls}" data-cm-key="${id}"
       style="${posStyle}${cmEditMode?'cursor:pointer;touch-action:none':'cursor:default'}" ${cmEditMode?'oncontextmenu="return false"':''}>
       ${cmEditMode ? `<div class="cm-del-spot" style="display:flex" onclick="event.stopPropagation();flDeleteSpot('${id}')">✕</div>` : ''}
-      ${flTextWrap(veh, `<div class="cm-spot-stock">${esc(veh.label||'')}</div>`)}
+      ${flTextWrap(veh, `<div class="cm-spot-stock" style="${flFitStyle(veh, veh.label)}">${esc(veh.label||'')}</div>`)}
     </div>`;
   }
 
@@ -9632,7 +9684,7 @@ function flSpotHtml(id, veh, maps) {
     return `<div class="cm-spot ${cmTypeClass(veh.status)}${selCls}" data-cm-key="${id}"
       style="${posStyle}cursor:pointer;touch-action:none" oncontextmenu="return false">
       <div class="cm-del-spot" style="display:flex" onclick="event.stopPropagation();flDeleteSpot('${id}')">✕</div>
-      ${flTextWrap(veh, `<div class="cm-spot-stock">${esc(label)}</div>`)}
+      ${flTextWrap(veh, `<div class="cm-spot-stock" style="${flFitStyle(veh, label)}">${esc(label)}</div>`)}
     </div>`;
   }
 
@@ -9646,15 +9698,16 @@ function flSpotHtml(id, veh, maps) {
     const zoneType = flDesignatedType(veh.label);
     const emptyCls = zoneType ? zoneType : 'empty';
     return `<div class="cm-spot ${emptyCls}" data-cm-key="${id}" style="${posStyle}" onclick="cmSpotClick('${id}',0,0)">
-      ${flTextWrap(veh, `<div class="cm-spot-stock" style="opacity:.6;font-weight:600">${esc(veh.label||'')}</div>`)}
+      ${flTextWrap(veh, `<div class="cm-spot-stock" style="opacity:.6;font-weight:600;${flFitStyle(veh, veh.label)}">${esc(veh.label||'')}</div>`)}
     </div>`;
   }
   if (isVoid) {
     return `<div class="cm-spot void" data-cm-key="${id}" style="${posStyle}"></div>`;
   }
   if (isBlocked) {
+    const blockFirstWord = (veh.blockLabel||'').split(' ').slice(0,1).join(' ');
     return `<div class="cm-spot blocked" data-cm-key="${id}" style="${posStyle}">
-      ${flTextWrap(veh, `<div class="cm-spot-stock">${esc((veh.blockLabel||'').split(' ').slice(0,1).join(' '))}</div>
+      ${flTextWrap(veh, `<div class="cm-spot-stock" style="${flFitStyle(veh, blockFirstWord)}">${esc(blockFirstWord)}</div>
       <div class="cm-spot-desc" style="font-size:7px">${esc((veh.blockLabel||'').split(' ').slice(1).join(' '))}</div>`)}
     </div>`;
   }
@@ -9679,7 +9732,7 @@ function flSpotHtml(id, veh, maps) {
   const heatStyleVar = heatOn ? `--heat-color:${ageDays!=null ? cmAgeColor(ageDays) : '#cbd5e1'};` : '';
   const lockInfo = activeLockFor('compound', `${cmCurrentLot}_${id}`);
   const lockCls = lockInfo ? ' cm-locked-by-other' : '';
-  const stock = (veh.stock||'').substring(0,10);
+  const stock = veh.stock || ''; // shown in full now (see flFitStyle) - no more hard 10-char cut
   const typeLine = [veh.year, veh.type, veh.trim, veh.colour].filter(Boolean).join(' ').substring(0,18);
   const CM_TYPE_LABELS = { new:'New', used:'Used', wholesale:'Wholesale', fleet:'Fleet', leasereturn:'Lease Return' };
 
@@ -9687,7 +9740,7 @@ function flSpotHtml(id, veh, maps) {
     style="${posStyle}${heatStyleVar}" onclick="cmOpenQuickActions('${id}',0,0)" ${isMismatch?`title="⚠ Wrong spot - this is a ${CM_TYPE_LABELS[zoneType]||zoneType} spot but ${esc(veh.stock)} is ${CM_TYPE_LABELS[cmTypeClass(veh.status)]||cmTypeClass(veh.status)}"`:''}>
     ${(veh.note || (Array.isArray(veh.notes) && veh.notes.length)) ? `<div class="cm-spot-note"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
     ${(isFlagged || veh.needsGas || veh.needsWash || veh.atDealership) ? `<div class="cm-spot-flags">${isFlagged?'<span class="cm-spot-flag" title="Flagged" style="background:#fecaca;color:#7f1d1d">🚩</span>':''}${veh.needsGas?'<span class="cm-spot-flag" title="Needs gas">⛽</span>':''}${veh.needsWash?'<span class="cm-spot-flag" title="Needs wash">🧼</span>':''}${veh.atDealership?'<span class="cm-spot-flag" title="At dealership - needs to return to 323 Bayview" style="background:#fecaca">🏢</span>':''}</div>` : ''}
-    ${flTextWrap(veh, `<div class="cm-spot-stock">${esc(stock)}</div>
+    ${flTextWrap(veh, `<div class="cm-spot-stock" style="${flFitStyle(veh, stock)}">${esc(stock)}</div>
     <div class="cm-spot-desc">${lockInfo ? `🔒 ${esc(lockInfo.lockedBy)}` : heatOn ? (ageDays!=null ? `${ageDays}d on lot` : 'no arrival date') : isMismatch ? `Should be ${esc(veh.label)}` : esc(typeLine)}</div>
     ${isDupe ? '<div class="cm-spot-dupe">⚠ DUPLICATE</div>' : isMismatch ? '<div class="cm-spot-dupe">⚠ WRONG SPOT</div>' : ''}
     ${!heatOn && onTd && !isDupe && !isMismatch ? '<div class="cm-spot-td">🚗 Out - Test Drive</div>' : ''}
@@ -9827,15 +9880,54 @@ function flRotatedBBoxOffset(veh) {
 
 // Rotating a spot (see flUpdateSelected 'rot') shows its real physical
 // angle, but rotating the label text right along with the box makes it
-// unreadable at anything besides 0/180deg. This counter-rotates just the
-// label/status text stack, sized and centered to the box's actual
-// on-screen (rotated) footprint via flRotatedBBoxOffset, so it always
-// reads upright no matter how the spot itself is angled. Corner badges
-// (note/flags/delete) are deliberately left out - small icons, not text,
-// not worth the extra complexity of counter-rotating them too.
+// unreadable at 90/270deg in particular (a portrait box turned sideways).
+// Counter-rotating fixes that cleanly for exact 90deg multiples, where the
+// box's on-screen footprint is itself just an axis-aligned swap of w/h -
+// but for anything else (e.g. 45deg diagonal parking) the box's true
+// silhouette is a genuine parallelogram, not a bigger axis-aligned
+// rectangle, so forcing text upright there would either overflow the
+// visible shape or need much fussier clipping for little real benefit -
+// angled text at 45deg reads fine, same as a diagonal parking line sign.
+// So: only 90/180/270 get counter-rotated; other angles just rotate with
+// the box like everything else on it. Corner badges (note/flags/delete)
+// are left out of this entirely either way - small icons, not text.
 function flTextWrap(veh, innerHtml) {
+  const rot = veh.rot || 0;
+  if (rot % 90 !== 0) return innerHtml;
   const { bboxW, bboxH } = flRotatedBBoxOffset(veh);
-  return `<div style="position:absolute;left:50%;top:50%;width:${flFtToPx(bboxW)}px;height:${flFtToPx(bboxH)}px;transform:translate(-50%,-50%) rotate(${-(veh.rot||0)}deg);display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden">${innerHtml}</div>`;
+  return `<div style="position:absolute;left:50%;top:50%;width:${flFtToPx(bboxW)}px;height:${flFtToPx(bboxH)}px;transform:translate(-50%,-50%) rotate(${-rot}deg);display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:visible">${innerHtml}</div>`;
+}
+
+// The available width text has to fit into, in pixels - for an axis-
+// aligned rotation this is the box's real on-screen (post-rotation)
+// width (see flTextWrap); for anything else the text isn't counter-
+// rotated, so it's still constrained by the box's own raw width.
+function flTextWidthBudgetPx(veh) {
+  const rot = veh.rot || 0;
+  if (rot % 90 === 0) {
+    const { bboxW } = flRotatedBBoxOffset(veh);
+    return flFtToPx(bboxW);
+  }
+  return flFtToPx(veh.w);
+}
+
+// Picks the largest font size (within a sane readable range) that fits the
+// WHOLE string on one line within the available width, so a stock #/label
+// never gets truncated with an ellipsis just because a spot happens to be
+// small - it shrinks instead. ~0.62em/char is a rough but workable average
+// for a bold sans-serif stock-number-style string (mostly digits/capitals,
+// no descenders); erring slightly narrow (0.9 fill factor) is deliberate -
+// better to leave a hair of breathing room than clip a character.
+function flFitFontPx(text, availablePx) {
+  const len = Math.max(1, String(text||'').length);
+  const fit = Math.floor((availablePx * 0.9) / (len * 0.62));
+  return Math.max(6, Math.min(11, fit));
+}
+// Inline style fragment for a label/stock div - overrides the shared
+// .cm-spot-stock class's fixed size + ellipsis-truncation (grid cells,
+// which never resize, keep that default; freeform spots can be any size).
+function flFitStyle(veh, text) {
+  return `font-size:${flFitFontPx(text, flTextWidthBudgetPx(veh))}px;white-space:nowrap;overflow:visible;text-overflow:clip;max-width:none;`;
 }
 
 // Duplicates the physical spot/object only (position/size/rotation/kind) -
@@ -9970,17 +10062,13 @@ function flApplyZoom() {
   const label = document.getElementById('fl-zoom-label');
   if (label) label.textContent = Math.round(flZoomLevel * 100) + '%';
 }
-window.flZoomIn = function() {
-  flZoomLevel = Math.min(FL_ZOOM_MAX, +(flZoomLevel + FL_ZOOM_STEP).toFixed(2));
-  flApplyZoom();
-};
-window.flZoomOut = function() {
-  flZoomLevel = Math.max(FL_ZOOM_MIN, +(flZoomLevel - FL_ZOOM_STEP).toFixed(2));
-  flApplyZoom();
-};
+function flZoomBy(delta) {
+  cmZoomTo(document.getElementById('fl-canvas-outer'), () => flZoomLevel, v => { flZoomLevel = v; }, FL_ZOOM_MIN, FL_ZOOM_MAX, flApplyZoom, flZoomLevel + delta);
+}
+window.flZoomIn = function() { flZoomBy(FL_ZOOM_STEP); };
+window.flZoomOut = function() { flZoomBy(-FL_ZOOM_STEP); };
 window.flZoomReset = function() {
-  flZoomLevel = 1;
-  flApplyZoom();
+  cmZoomTo(document.getElementById('fl-canvas-outer'), () => flZoomLevel, v => { flZoomLevel = v; }, FL_ZOOM_MIN, FL_ZOOM_MAX, flApplyZoom, 1);
 };
 // ── /Freeform layout builder ───────────────────────────
 
