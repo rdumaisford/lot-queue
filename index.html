@@ -49,7 +49,7 @@
   running stale in-memory JS until someone manually clears their cache.
   Whoever edits this file next should update this value.
 -->
-<meta name="app-build" content="2026-08-18T14:58:21Z"/>
+<meta name="app-build" content="2026-08-18T15:08:34Z"/>
 <title>Vehicle Manager - Barrie Ford</title>
 <!-- The favicon uses the same app icon as the Home Screen/manifest icons
      (see icon-*.png) - one consistent icon everywhere instead of the old
@@ -1071,10 +1071,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
    stacked list once it's actually in there. Everything below is scoped to
    body.cm-fullscreen, which JS only ever adds on a phone-sized viewport,
    so none of it touches desktop. */
-body.cm-fullscreen .header,body.cm-fullscreen .tabs{display:none!important}
+/* The header itself stays visible (with a "Vehicle Locator" badge added to
+   it, see #header-context-label) so there's still SOME orientation once
+   the tab bar disappears - only the tabs actually go, to reclaim their
+   space for the map. */
+body.cm-fullscreen .tabs{display:none!important}
+body.cm-fullscreen #header-context-label{display:inline-block!important}
 body.cm-fullscreen .main{padding:0!important}
-body.cm-fullscreen #panel-compound.active{height:100vh!important;height:100dvh!important}
-body.cm-fullscreen #cm-mobile-menu-btn{display:flex!important;align-items:center;justify-content:center}
+body.cm-fullscreen #panel-compound.active{height:calc(100vh - 56px - env(safe-area-inset-top,0px))!important;height:calc(100dvh - 56px - env(safe-area-inset-top,0px))!important}
+body.cm-fullscreen #cm-mobile-menu-btn{display:flex!important;align-items:center;justify-content:center;top:calc(66px + env(safe-area-inset-top,0px))!important}
 /* Pinch-to-zoom (see cmAttachPinchZoom) covers this on a touch device - the
    +/- buttons are redundant there and just eat drawer space. */
 body.cm-fullscreen #cm-grid-zoom,body.cm-fullscreen #cm-fl-zoom{display:none!important}
@@ -1187,6 +1192,11 @@ body.cm-fullscreen #cm-legend-details{margin-top:52px}
     <div class="header-brand">
       <div class="header-icon"><svg viewBox="0 0 24 24"><path d="M5 11l1.5-4.5h11L19 11M19 11v5H5v-5M5 11H3v2h2M19 11h2v2h-2M7.5 16v1.5M16.5 16v1.5M7 13.5h2M15 13.5h2"/></svg></div>
       Vehicle Manager
+      <!-- Shown only in the Vehicle Locator's mobile fullscreen mode (see
+           cmUpdateMobileLayout) - the tab bar is hidden there to save
+           space, so this is the one thing left saying which tab you're
+           actually on. -->
+      <span id="header-context-label" style="display:none;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.18);color:#fff;margin-left:2px">Vehicle Locator</span>
     </div>
     <div class="header-right">
       <div class="sync-dot" id="sync-dot"></div>
@@ -1451,7 +1461,7 @@ body.cm-fullscreen #cm-legend-details{margin-top:52px}
       <button id="cm-mobile-menu-btn" onclick="cmToggleMobileDrawer()" style="display:none;position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:10px;z-index:60;width:44px;height:44px;border-radius:50%;border:none;background:var(--ford);color:#fff;font-size:19px;box-shadow:0 2px 10px rgba(0,0,0,.35);cursor:pointer">☰</button>
       <!-- Transparent, full-screen - just a tap-outside-to-close catcher, not a dimming modal scrim (this is a small popup, not a full modal). -->
       <div id="cm-mobile-drawer-backdrop" onclick="cmCloseMobileDrawer()" style="display:none;position:fixed;inset:0;background:transparent;z-index:65"></div>
-      <div id="cm-mobile-drawer" style="position:fixed;top:calc(60px + env(safe-area-inset-top,0px));left:10px;width:min(300px,85vw);max-height:min(75vh,620px);background:var(--surface);z-index:70;overflow-y:auto;border-radius:var(--radius);box-shadow:0 8px 28px rgba(0,0,0,.3)">
+      <div id="cm-mobile-drawer" style="position:fixed;top:calc(116px + env(safe-area-inset-top,0px));left:10px;width:min(300px,85vw);max-height:min(70vh,600px);background:var(--surface);z-index:70;overflow-y:auto;border-radius:var(--radius);box-shadow:0 8px 28px rgba(0,0,0,.3)">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)">
           <span style="font-weight:700;font-size:15px;color:var(--text)">Vehicle Locator</span>
           <button onclick="cmCloseMobileDrawer()" style="border:none;background:none;font-size:22px;line-height:1;cursor:pointer;color:var(--text-muted)">×</button>
@@ -9449,9 +9459,10 @@ window.cmCloseMobileDrawer = function() {
   const backdrop = document.getElementById('cm-mobile-drawer-backdrop');
   if (backdrop) backdrop.style.display = 'none';
 };
-// "Exit fullscreen" - the header/tab bar are the only way to navigate
-// elsewhere once they're hidden, so this brings them back on demand
-// without waiting for a desktop-width screen.
+// "Exit fullscreen" - the tab bar (still hidden even though the header
+// itself stays visible - see the CSS block above) is the only way to
+// navigate elsewhere, so this brings it back on demand without waiting
+// for a desktop-width screen.
 window.cmExitMobileFullscreen = function() {
   cmMobileFullscreenDisabled = true;
   cmUpdateMobileLayout();
