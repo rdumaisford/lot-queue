@@ -49,7 +49,7 @@
   running stale in-memory JS until someone manually clears their cache.
   Whoever edits this file next should update this value.
 -->
-<meta name="app-build" content="2026-08-19T12:55:08Z"/>
+<meta name="app-build" content="2026-08-19T13:04:34Z"/>
 <title>Vehicle Manager - Barrie Ford</title>
 <!-- The favicon uses the same app icon as the Home Screen/manifest icons
      (see icon-*.png) - one consistent icon everywhere instead of the old
@@ -8177,25 +8177,20 @@ function cmBuildOverlayMaps() {
     tdMap[t.stock.toUpperCase().trim()] = true;
   });
 
-  // Build stock# → duplicate-count lookups, split into the grid lots and the
-  // freeform lots as two separate groups. A vehicle can't physically be
-  // parked in two spots within the same group at once, so that's always
-  // worth flagging - but comparing ACROSS the two groups isn't useful while
-  // an inventory is being migrated from the grid system over to a freeform
-  // lot (every car would show as a false duplicate for as long as both
-  // copies exist). Once something's only entered on one side, this stops
-  // flagging it either way.
-  const gridStockCounts = {}, freeformStockCounts = {};
-  Object.entries(cmVehicles||{}).forEach(([lotId, lotVehs]) => {
-    const bucket = FREEFORM_LOTS.has(lotId) ? freeformStockCounts : gridStockCounts;
+  // Build a single stock# → duplicate-count lookup across every lot (700
+  // Bayview, 323 Bayview, Dealership) - a car can't physically be parked in
+  // two spots at once anywhere on the property, so the same stock # showing
+  // up twice anywhere is always worth flagging.
+  const stockCounts = {};
+  Object.values(cmVehicles||{}).forEach(lotVehs => {
     Object.values(lotVehs||{}).forEach(v => {
       if (!v || !v.stock || v.status==='blocked' || v.status==='void') return;
       const s = v.stock.toUpperCase().trim();
-      if (s) bucket[s] = (bucket[s]||0) + 1;
+      if (s) stockCounts[s] = (stockCounts[s]||0) + 1;
     });
   });
 
-  return { apptMap, grMap, tdMap, gridStockCounts, freeformStockCounts };
+  return { apptMap, grMap, tdMap, stockCounts };
 }
 
 function cmRenderMap() {
@@ -8211,7 +8206,7 @@ function cmRenderMap() {
   const numCols = cmGridSize[cmCurrentLot]?.cols || (cmCurrentLot === 'bayview700' ? 52 : 30);
   const numRows = cmGridSize[cmCurrentLot]?.rows || (cmCurrentLot === 'bayview700' ? 13 : 10);
 
-  const { apptMap, grMap, tdMap, gridStockCounts: stockSpotCounts } = cmBuildOverlayMaps();
+  const { apptMap, grMap, tdMap, stockCounts: stockSpotCounts } = cmBuildOverlayMaps();
   const ageMap = cmHeatmapMode ? cmBuildAgeMap() : null;
 
   mapEl.className = `cm-grid${cmEditMode?' cm-edit-active':''}`;
@@ -9384,22 +9379,32 @@ function cmStartListeners() {
       set(ref(db, 'compound_v2/bayview700'), seed);
     } else {
       cmVehicles['bayview700'] = snap.val();
-      if (cmCurrentLot === 'bayview700') cmRender();
+      cmRerenderCurrentView();
       if (document.getElementById('panel-tv')?.classList.contains('active')) renderTVCompoundMap();
     }
   });
   onValue(ref(db, 'compound_v2/bayview323'), snap => {
     cmVehicles['bayview323'] = snap.val() || {};
-    if (cmCurrentLot === 'bayview323') cmRender();
+    cmRerenderCurrentView();
   });
   onValue(ref(db, 'compound_v2/bayview323new'), snap => {
     cmVehicles['bayview323new'] = snap.val() || {};
-    if (cmCurrentLot === 'bayview323new') flRender();
+    cmRerenderCurrentView();
   });
   onValue(ref(db, 'compound_v2/dealership'), snap => {
     cmVehicles['dealership'] = snap.val() || {};
-    if (cmCurrentLot === 'dealership') flRender();
+    cmRerenderCurrentView();
   });
+}
+
+// The duplicate-stock alarm is computed across every lot at once (see
+// cmBuildOverlayMaps), so a change on a lot nobody's currently looking at
+// can still flip the duplicate flag on the lot that IS on screen - every
+// vehicle listener above re-renders whatever view is actually active,
+// not just its own lot.
+function cmRerenderCurrentView() {
+  if (!document.getElementById('panel-compound')?.classList.contains('active')) return;
+  if (FREEFORM_LOTS.has(cmCurrentLot)) flRender(); else cmRender();
 }
 
 // Hook into switchTab so compound map renders when tab is opened
@@ -9650,7 +9655,7 @@ function flRender() {
   if (flSelected && !v[flSelected]) flSelected = null;
   cmRenderStats();
 
-  const { apptMap, grMap, tdMap, freeformStockCounts: stockSpotCounts } = cmBuildOverlayMaps();
+  const { apptMap, grMap, tdMap, stockCounts: stockSpotCounts } = cmBuildOverlayMaps();
   const ageMap = cmHeatmapMode ? cmBuildAgeMap() : null;
 
   canvas.innerHTML = ids.map(id => flSpotHtml(id, v[id], { apptMap, grMap, tdMap, stockSpotCounts, ageMap })).join('');
