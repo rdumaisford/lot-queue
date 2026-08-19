@@ -36,7 +36,7 @@
   script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com https://www.gstatic.com;
   style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com;
   img-src 'self' data: https://*.tile.openstreetmap.org;
-  connect-src 'self' https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://api.emailjs.com https://router.project-osrm.org;
+  connect-src 'self' https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://us-central1-lot-queue.cloudfunctions.net https://router.project-osrm.org;
   font-src 'self' data:;
   frame-ancestors 'self';
   base-uri 'self';
@@ -49,7 +49,7 @@
   running stale in-memory JS until someone manually clears their cache.
   Whoever edits this file next should update this value.
 -->
-<meta name="app-build" content="2026-08-19T16:46:57Z"/>
+<meta name="app-build" content="2026-08-19T20:20:23Z"/>
 <title>Vehicle Manager - Barrie Ford</title>
 <!-- The favicon uses the same app icon as the Home Screen/manifest icons
      (see icon-*.png) - one consistent icon everywhere instead of the old
@@ -1098,7 +1098,6 @@ body.cm-fullscreen #cm-grid-zoom,body.cm-fullscreen #cm-fl-zoom{display:none!imp
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"/>
 <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -2115,14 +2114,10 @@ body.cm-fullscreen #cm-grid-zoom,body.cm-fullscreen #cm-fl-zoom{display:none!imp
       <div style="max-width:480px">
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-top:16px">
           <div style="font-size:15px;font-weight:600;margin-bottom:4px">📧 Email Notifications</div>
-          <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Uses a free <a href="https://www.emailjs.com" target="_blank" style="color:var(--ford)">EmailJS</a> account to send email directly from the browser - no server needed. New Get Ready deals email automatically. Incoming units are summarized into one email at the end of each day. Both only fire while at least one person has the app open.</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Sent server-side (a Cloud Function, via SendGrid) - fires reliably even if nobody has the app open. New Get Ready deals email automatically. Incoming units are summarized into one email at the end of each day, checked every 15 minutes against the time below.</div>
           <div class="modal-form-row" style="margin-bottom:10px"><label>Get Ready notification email</label><input id="email-gr-address" type="email" placeholder="getready@yourdealership.com" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
           <div class="modal-form-row" style="margin-bottom:10px"><label>Incoming daily digest email</label><input id="email-inc-address" type="email" placeholder="incoming@yourdealership.com" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
-          <div class="modal-form-row" style="margin-bottom:10px"><label>Digest send time</label><input id="email-digest-time" type="time" value="18:00" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
-          <div class="modal-form-row" style="margin-bottom:10px"><label>EmailJS Public Key</label><input id="email-public-key" type="text" placeholder="e.g. user_Ab12Cd34" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
-          <div class="modal-form-row" style="margin-bottom:10px"><label>EmailJS Service ID</label><input id="email-service-id" type="text" placeholder="e.g. service_abc123" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
-          <div class="modal-form-row" style="margin-bottom:10px"><label>Get Ready Template ID</label><input id="email-gr-template" type="text" placeholder="e.g. template_getready" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
-          <div class="modal-form-row" style="margin-bottom:14px"><label>Incoming Digest Template ID</label><input id="email-inc-template" type="text" placeholder="e.g. template_incoming_digest" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
+          <div class="modal-form-row" style="margin-bottom:14px"><label>Digest send time</label><input id="email-digest-time" type="time" value="18:00" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
           <div style="display:flex;gap:8px">
             <button onclick="saveEmailSettings()" style="flex:1;padding:11px;border:none;border-radius:var(--radius-sm);background:var(--ford);color:#fff;font-size:14px;font-weight:700;cursor:pointer">Save</button>
             <button onclick="sendTestEmail()" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer">Send Test</button>
@@ -2492,6 +2487,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getDatabase, ref, push, get, set, onValue, update, remove, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 import { getAuth, signInAnonymously, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
+import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDYj9RC-cmfcfZ6sPo_9TmF67mWeEkxkwo",
@@ -2507,6 +2503,7 @@ const appFB = initializeApp(firebaseConfig);
 const db = getDatabase(appFB);
 const auth = getAuth(appFB);
 const storage = getStorage(appFB);
+const functions = getFunctions(appFB, 'us-central1');
 // Human staff authenticate via email/password sign-in (see loadIdentity/watchUserApproval below).
 // TV/display kiosk screens (?display=true) use a silent anonymous session instead -
 // that's handled inside loadIdentity() since there's no person present to sign in.
@@ -2531,9 +2528,8 @@ function esc(val) {
 // ── State ─────────────────────────────────────────────
 let entries = {}, historyData = {}, units = {}, getReadyDeals = {}, hitchhikers = {}, testDrives = {}, compoundHistoryData = {};
 let announcements = {}, annSelectedId = null, annVisibleCount = 8, editingAnnId = null;
-let emailSettings = {}; // {notifyAddress, publicKey, serviceId, grTemplateId, incTemplateId}
+let emailSettings = {}; // {grAddress, incAddress, digestTime} - sending itself now happens server-side (see functions/index.js)
 let currentAlertState = null;
-let emailjsReady = false;
 let vehicleSpecs = {}; // stock# -> {year,trim,type,colour,status} - shared between Incoming and Compound so specs entered once autofill everywhere else
 let vehicleRequests = {}, vehicleReturns = {}; // one unified pickup/return flow across all lots
 let driverLocations = {}; // live mirror of /driverLocation - who's currently sharing, and where
@@ -3249,18 +3245,10 @@ function startApp() {
 
     emailSettings = s.email || {};
     const eGrAddr=document.getElementById('email-gr-address'), eIncAddr=document.getElementById('email-inc-address'),
-          eDigestTime=document.getElementById('email-digest-time'), ePub=document.getElementById('email-public-key'),
-          eSvc=document.getElementById('email-service-id'), eGr=document.getElementById('email-gr-template'), eInc=document.getElementById('email-inc-template');
+          eDigestTime=document.getElementById('email-digest-time');
     if (eGrAddr && !eGrAddr.matches(':focus')) eGrAddr.value = emailSettings.grAddress || '';
     if (eIncAddr && !eIncAddr.matches(':focus')) eIncAddr.value = emailSettings.incAddress || '';
     if (eDigestTime && !eDigestTime.matches(':focus')) eDigestTime.value = emailSettings.digestTime || '18:00';
-    if (ePub && !ePub.matches(':focus')) ePub.value = emailSettings.publicKey || '';
-    if (eSvc && !eSvc.matches(':focus')) eSvc.value = emailSettings.serviceId || '';
-    if (eGr && !eGr.matches(':focus')) eGr.value = emailSettings.grTemplateId || '';
-    if (eInc && !eInc.matches(':focus')) eInc.value = emailSettings.incTemplateId || '';
-    if (emailSettings.publicKey && typeof emailjs !== 'undefined' && !emailjsReady) {
-      try { emailjs.init({ publicKey: emailSettings.publicKey }); emailjsReady = true; } catch(e) {}
-    }
 
     // System-wide alert - banner persists for everyone until management
     // clears it; the popup fires once per browser per distinct alert
@@ -3317,40 +3305,11 @@ function startApp() {
     renderTVGetReady(); // Get Ready's TV descriptor is looked up from here, not stored on the deal itself
   });
 
-  // Fires once per new Get Ready deal, from whichever open session sees it
-  // first - the transaction flag prevents every other open session from also
-  // sending a duplicate for the same deal.
-  async function sendGetReadyEmail(id, d, retried) {
-    if (!emailSettings.grTemplateId || !emailSettings.grAddress) {
-      // Settings may just not have finished loading yet right after sign-in —
-      // give it one short retry before actually giving up and logging why.
-      if (!retried) { setTimeout(() => sendGetReadyEmail(id, d, true), 2000); return; }
-      console.warn('Get Ready email skipped - not configured (missing template ID or address) for deal', d.stock);
-      return;
-    }
-    try {
-      const result = await runTransaction(ref(db, 'getready/'+id+'/emailSent'), curr => curr ? undefined : true);
-      if (!result.committed) { console.log('Get Ready email skipped - already sent by another session for', d.stock); return; }
-      const ok = await sendNotificationEmail(emailSettings.grTemplateId, buildGREmailParams(
-        d,
-        `New Get Ready Deal - ${d.stock||'no stock #'}`,
-        `A new Get Ready deal was added for ${d.vehicle||d.stock||'a vehicle'}.`,
-      ));
-      console.log(ok ? `Get Ready email sent for ${d.stock}` : `Get Ready email FAILED to send for ${d.stock}`);
-    } catch(e) { console.error('Get Ready email failed:', e); }
-  }
-
-  let grKnownIds = null; // null = not yet initialized (first snapshot); populated after that
+  // The "new Get Ready deal" email is sent server-side now (see
+  // functions/index.js: onGetReadyDealCreated), triggered directly off the
+  // RTDB write itself - no client-side diffing/session-election needed.
   onValue(ref(db,'getready'), snap=>{
     getReadyDeals = snap.val()||{};
-    const currentIds = new Set(Object.keys(getReadyDeals));
-    if (grKnownIds === null) {
-      grKnownIds = currentIds; // first load - don't email for deals that already existed
-    } else {
-      const newIds = [...currentIds].filter(id => !grKnownIds.has(id));
-      grKnownIds = currentIds;
-      newIds.forEach(id => sendGetReadyEmail(id, getReadyDeals[id]));
-    }
     const active = Object.values(getReadyDeals).filter(d=>!d.completedAt);
     document.getElementById('tc-getready').textContent = active.length;
     renderGetReady(); renderGetReadySummary();
@@ -7272,87 +7231,12 @@ window.saveEmailSettings = async function() {
     grAddress: document.getElementById('email-gr-address').value.trim(),
     incAddress: document.getElementById('email-inc-address').value.trim(),
     digestTime: document.getElementById('email-digest-time').value.trim() || '18:00',
-    publicKey: document.getElementById('email-public-key').value.trim(),
-    serviceId: document.getElementById('email-service-id').value.trim(),
-    grTemplateId: document.getElementById('email-gr-template').value.trim(),
-    incTemplateId: document.getElementById('email-inc-template').value.trim(),
   };
   try {
     await update(ref(db,'settings'), { email: settings });
-    if (settings.publicKey && typeof emailjs !== 'undefined') {
-      emailjs.init({ publicKey: settings.publicKey });
-      emailjsReady = true;
-    }
     showEmailToast('✓ Email settings saved.', 'success');
   } catch(e) { showEmailToast('Error saving - check connection.', 'error'); }
 };
-
-// Shared send helper - every email notification in the app goes through this.
-// Callers must include to_email in params, since Get Ready and Incoming now
-// go to two different addresses. Returns true/false so callers can react.
-let lastEmailError = '';
-
-async function sendNotificationEmail(templateId, params) {
-  lastEmailError = '';
-  if (typeof emailjs === 'undefined') { lastEmailError = 'EmailJS SDK not loaded (check your internet connection and reload).'; console.error(lastEmailError); return false; }
-  if (!emailSettings.publicKey || !emailSettings.serviceId || !templateId) {
-    lastEmailError = 'Not configured - missing Public Key, Service ID, or Template ID.';
-    console.warn(lastEmailError);
-    return false;
-  }
-  if (!emailjsReady) { emailjs.init({ publicKey: emailSettings.publicKey }); emailjsReady = true; }
-  try {
-    await emailjs.send(emailSettings.serviceId, templateId, params);
-    return true;
-  } catch(e) {
-    // EmailJS errors normally carry a status code and a text description -
-    // e.g. 400 "The recipients address is empty", 401/403 for a bad key or
-    // blocked origin, 404 for a template/service ID that doesn't exist.
-    lastEmailError = e?.text ? `${e.status ? e.status+': ' : ''}${esc(e.text)}` : (e?.message || String(e));
-    console.error('Email send failed:', e);
-    return false;
-  }
-}
-
-// Builds the full set of template variables from a deal - shared by both the
-// "new deal" and "deal updated" emails so they stay in sync with each other.
-function buildGREmailParams(d, subject, message) {
-  const financingLabel = {CASH:'Cash',COMMERCIAL_LEASE:'Commercial Lease',FINANCE:'Finance',FORD_RCL:'Ford RCL'}[d.financing] || d.financing || '';
-  const plateLabel = d.plateType === 'TRANSFER' ? 'License Plate Transfer' : 'New License Plates';
-  const fuelStatus = grEffectiveFuelStatus(d);
-  const gasLabel = fuelStatus==='gas' ? `Needs Gas${d.gasAmount ? ' - $'+Number(d.gasAmount).toFixed(2) : ''}`
-    : fuelStatus==='charge' ? 'Needs Charging'
-    : 'No Gas/Charge Needed';
-  const catLabel = {RETAIL:'Retail', ASIS:'As-Is', WHOLESALE:'Wholesale', CPO:'Certified Pre-Owned'};
-  const trades = Array.isArray(d.trades) ? d.trades.filter(t=>t && t.stock) : [d.trade1, d.trade2].filter(t=>t?.stock);
-  const tradesText = trades.length
-    ? trades.map((t,i) => `Trade ${i+1}: ${t.stock} - ${[t.year,t.make,t.model].filter(Boolean).join(' ')}${t.colour?' - '+t.colour:''}${t.vin?' - VIN '+t.vin:''}${t.kms?' - '+t.kms+' km':''} (${catLabel[t.category]||'Retail'})`).join('\n')
-    : 'None';
-  const requiredSteps = GR_CHECKLIST.filter(([key]) => d['req_'+key]).map(([,label]) => label).join(', ') || 'None selected';
-  return {
-    to_email: emailSettings.grAddress,
-    subject,
-    stock: d.stock||'',
-    dealNum: d.dealNum||'',
-    vehicle: d.vehicle||'',
-    vin: d.vin||'',
-    customer: d.customer||'',
-    salesperson: d.salesperson||'',
-    type: d.type||'',
-    financing: financingLabel,
-    deliveryDate: d.deliveryDate||'',
-    deliveryTime: d.deliveryTime||'',
-    plateType: plateLabel,
-    licensingNotes: d.licensingNotes||'(none)',
-    gasStatus: gasLabel,
-    instructions: d.instructions||'(none)',
-    notes: d.notes||'(none)',
-    requiredSteps,
-    trades: tradesText,
-    pdfLink: d.pdfUrl || '',
-    message,
-  };
-}
 
 // Fires directly from the save action of whoever made the edit - since only
 // that one browser triggers it (not a shared listener every session reacts
@@ -7377,89 +7261,22 @@ function hasSignificantGRChange(oldDeal, newDeal) {
   return false;
 }
 
-async function sendGetReadyUpdateEmail(id, d) {
-  if (!emailSettings.grTemplateId || !emailSettings.grAddress) return; // not configured - silently skip
-  try {
-    await sendNotificationEmail(emailSettings.grTemplateId, buildGREmailParams(
-      d,
-      `UPDATED: Get Ready Deal - ${d.stock||'no stock #'}`,
-      `This Get Ready deal was just updated by ${currentUser?.name||'someone'}.`,
-    ));
-  } catch(e) { console.error('Get Ready update email failed:', e); }
-}
-
+// Backs the Settings page's "Send Test" button - actual sending happens
+// server-side (functions/index.js: sendTestEmail), this just calls it.
 window.sendTestEmail = async function() {
-  // Uses whichever template/address is filled in - Get Ready first, falling back to Incoming.
-  const templateId = document.getElementById('email-gr-template').value.trim() || document.getElementById('email-inc-template').value.trim();
   const toAddr = document.getElementById('email-gr-address').value.trim() || document.getElementById('email-inc-address').value.trim();
-  if (!document.getElementById('email-public-key').value.trim() || !document.getElementById('email-service-id').value.trim() || !templateId || !toAddr) {
-    showEmailToast('Fill in an email address, Public Key, Service ID, and at least one Template ID first.', 'error');
+  if (!toAddr) {
+    showEmailToast('Fill in an email address first.', 'error');
     return;
   }
-  // Save first so the test uses whatever's currently in the fields, not stale saved values.
   await window.saveEmailSettings();
-  const ok = await sendNotificationEmail(templateId, {
-    to_email: toAddr,
-    subject: 'Test notification - Vehicle Manager',
-    stock: 'TEST123',
-    dealNum: 'D-00000',
-    vehicle: 'This is a test email',
-    vin: '1FTEW1E5XLF000000',
-    customer: 'Test Customer',
-    salesperson: 'Test Salesperson',
-    type: 'RETAIL',
-    financing: 'Finance',
-    deliveryDate: '2026-01-01',
-    deliveryTime: '14:00',
-    plateType: 'New License Plates',
-    licensingNotes: '(none)',
-    gasStatus: 'Needs Gas - $25.00',
-    instructions: '(none)',
-    notes: '(none)',
-    requiredSteps: 'PDI, Detail',
-    trades: 'Trade 1: A1000A - 2018 Honda Civic - Blue - 85000 km (Wholesale)',
-    count: 3,
-    message: 'If you got this, your email notifications are working correctly.',
-  });
-  showEmailToast(ok ? '✓ Test email sent - check your inbox.' : `Failed to send: ${lastEmailError || 'unknown error - check console'}`, ok ? 'success' : 'error');
-};
-
-// Checked periodically (see the 1-second interval below) - once the
-// configured digest time has passed for today, and nobody's already sent
-// today's digest, this composes and sends one summarizing every Incoming
-// Unit added that day. The transaction flag means only one open session
-// actually sends it even if several people have the app open at the time.
-async function checkAndSendDailyDigest() {
-  if (!emailSettings.incTemplateId || !emailSettings.incAddress) return; // not configured
-  const now = new Date();
-  const todayStr = now.toISOString().slice(0,10);
-  const [digestH, digestM] = (emailSettings.digestTime || '18:00').split(':').map(Number);
-  const digestTimePassed = now.getHours() > digestH || (now.getHours() === digestH && now.getMinutes() >= digestM);
-  if (!digestTimePassed) return;
-
   try {
-    const result = await runTransaction(ref(db, 'dailyDigestSent/'+todayStr), curr => curr ? undefined : true);
-    if (!result.committed) return; // today's digest already sent (by this or another session)
-
-    const todaysUnits = Object.values(units||{}).filter(u => u.arrivedDate === todayStr);
-    if (!todaysUnits.length) return; // nothing arrived today - nothing to send, and the flag above still prevents re-checking all day
-
-    const lines = todaysUnits.map(u => {
-      const specLine = [u.year, u.type, u.trim, u.colour].filter(Boolean).join(' ');
-      const condLabel = u.condition === 'used'
-        ? `Used - ${({TRADEIN:'Trade-In',AUCTION:'Auction'})[u.category]||u.category||''}${u.subcategory?' / '+({RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'})[u.subcategory]:''}`
-        : `New - ${({RETAIL:'Retail',FLEET:'Fleet'})[u.category]||u.category||''}`;
-      return `${u.stock||u.vin||'-'} - ${u.vehicle || specLine || 'no description'} - ${condLabel}${u.kms?' - '+u.kms+' km':''}`;
-    }).join('\n');
-
-    await sendNotificationEmail(emailSettings.incTemplateId, {
-      to_email: emailSettings.incAddress,
-      subject: `Incoming Vehicles - Daily Summary (${todaysUnits.length} unit${todaysUnits.length!==1?'s':''})`,
-      count: todaysUnits.length,
-      message: lines,
-    });
-  } catch(e) { console.error('Daily digest failed:', e); }
-}
+    await httpsCallable(functions, 'sendTestEmail')({ toAddress: toAddr });
+    showEmailToast('✓ Test email sent - check your inbox.', 'success');
+  } catch(e) {
+    showEmailToast(`Failed to send: ${e?.message || String(e)}`, 'error');
+  }
+};
 
 window.clearAllTrackerUnits = async function() {
   const count = Object.keys(units).length;
@@ -7626,10 +7443,8 @@ setInterval(() => {
   if (document.getElementById('panel-tv')?.classList.contains('active')) renderTVGetReady();
 }, 30000);
 
-setInterval(() => { if (currentUser) checkAndSendDailyDigest(); }, 60000);
-// Also check once shortly after sign-in, in case the digest time already
-// passed earlier today before anyone had the app open.
-setTimeout(() => { if (currentUser) checkAndSendDailyDigest(); }, 5000);
+// The daily digest check itself is server-side now (functions/index.js:
+// dailyIncomingDigest, on a Cloud Scheduler trigger) - no client polling needed.
 
 // ── Today's Drops PDF print ───────────────────────────
 window.printTodaysDrops = function() {

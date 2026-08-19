@@ -123,11 +123,20 @@ exports.onGetReadyDealCreated = onValueCreated(
 );
 
 // ── Incoming daily digest ───────────────────────────────────────────
-function todayStrInTZ() {
-  // Same local-date logic the client used (toISOString().slice(0,10)) -
-  // keeping it UTC-based keeps "today" consistent with everything else
-  // already stored using arrivedDate (also a plain YYYY-MM-DD string).
-  return new Date().toISOString().slice(0, 10);
+// The dealership operates in Eastern time, and arrivedDate/the digest send
+// time are both entered as local wall-clock values by staff in the browser -
+// comparing against raw UTC here would silently drift by 4-5 hours (and
+// flip "today" to tomorrow in the evening) depending on the time of year.
+// Intl handles the EST/EDT switch automatically, unlike a fixed UTC offset.
+const DEALERSHIP_TZ = 'America/Toronto';
+
+function nowPartsInTZ() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: DEALERSHIP_TZ, hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+  }).formatToParts(new Date());
+  const get = (type) => parts.find(p => p.type === type).value;
+  return { dateStr: `${get('year')}-${get('month')}-${get('day')}`, hour: Number(get('hour')), minute: Number(get('minute')) };
 }
 
 exports.dailyIncomingDigest = onSchedule(
@@ -138,12 +147,11 @@ exports.dailyIncomingDigest = onSchedule(
     const settings = settingsSnap.val() || {};
     if (!settings.incAddress) return; // not configured
 
-    const now = new Date();
+    const { dateStr: todayStr, hour: nowH, minute: nowM } = nowPartsInTZ();
     const [digestH, digestM] = (settings.digestTime || '18:00').split(':').map(Number);
-    const digestTimePassed = now.getUTCHours() > digestH || (now.getUTCHours() === digestH && now.getUTCMinutes() >= digestM);
+    const digestTimePassed = nowH > digestH || (nowH === digestH && nowM >= digestM);
     if (!digestTimePassed) return;
 
-    const todayStr = todayStrInTZ();
     const sentRef = db.ref('dailyDigestSent/' + todayStr);
     const txResult = await sentRef.transaction(curr => (curr ? undefined : true));
     if (!txResult.committed) return; // already sent today
