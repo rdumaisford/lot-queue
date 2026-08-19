@@ -49,7 +49,7 @@
   running stale in-memory JS until someone manually clears their cache.
   Whoever edits this file next should update this value.
 -->
-<meta name="app-build" content="2026-08-19T15:41:10Z"/>
+<meta name="app-build" content="2026-08-19T16:09:19Z"/>
 <title>Vehicle Manager - Barrie Ford</title>
 <!-- The favicon uses the same app icon as the Home Screen/manifest icons
      (see icon-*.png) - one consistent icon everywhere instead of the old
@@ -432,6 +432,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cb-tap.on.cb-photo svg{ stroke:#fff }
 .cb-tap.on.cb-ic      { background:#c2410c; border-color:#b45309 }
 .cb-tap.on.cb-ic svg  { stroke:#fff }
+.cb-tap.on.cb-irecon  { background:#0f766e; border-color:#0d6259 }
+.cb-tap.on.cb-irecon svg{ stroke:#fff }
 /* Acc and default stay green */
 .cb-tap.on            { background:#dcfce7; border-color:#86efac }
 .cb-tap.on svg        { stroke:#15803d }
@@ -2363,9 +2365,12 @@ body.cm-fullscreen #cm-grid-zoom,body.cm-fullscreen #cm-fl-zoom{display:none!imp
         <input type="checkbox" id="m-ic"/><label for="m-ic">IC Moved</label>
       </div>
     </div>
-    <div id="m-checkboxes-used" style="display:none;grid-template-columns:1fr 1fr;gap:0;margin-top:12px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+    <div id="m-checkboxes-used" style="display:none;grid-template-columns:1fr 1fr 1fr;gap:0;margin-top:12px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
       <div class="checkbox-row" style="border-right:1px solid var(--border)">
         <input type="checkbox" id="m-file-received"/><label for="m-file-received">File Received</label>
+      </div>
+      <div class="checkbox-row" style="border-right:1px solid var(--border)">
+        <input type="checkbox" id="m-irecon"/><label for="m-irecon">Added to iRecon</label>
       </div>
       <div class="checkbox-row">
         <input type="checkbox" id="m-ic-used"/><label for="m-ic-used">IC Moved</label>
@@ -2547,6 +2552,7 @@ let historyDays = 30, soundEnabled = localStorage.getItem('lq-sound') !== 'false
 let tFilterStatus = 'ALL', tSortCol = 'arrived', tSortAsc = false, editingUnitId = null;
 let denyTargetId = null;
 let grFilterStatus = 'ALL', grcFilterStatus = 'ALL', editingGRId = null;
+const grCompletedExpanded = new Set();
 
 // ── Roles & Permissions (Firebase-backed, editable in Settings) ──
 const ALL_ROLES = ['lot','reception','service','sales','fandi','detail','pdi','merchandiser','management','shuttle','display'];
@@ -2554,16 +2560,16 @@ const ROLE_LABELS = {lot:'Inventory Control',reception:'Reception',service:'Serv
 
 // Default permission matrix - used until Firebase settings/permissions loads (or if a role/perm is missing there)
 const DEFAULT_PERMISSIONS = {
-  lot:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:false, grGasConfirm:true,  grChecklistApprove:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false  },
-  reception:    { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  service:      { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  sales:        { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  fandi:        { tabHome:true,  tabQueue:true,  tabTracker:false, tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:true,  grGasConfirm:true,  grChecklistApprove:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  detail:       { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  pdi:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:true,  trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  merchandiser: { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:true,  tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:true,  trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:true,  cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  management:   { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  grGasConfirm:true,  grChecklistApprove:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false  },
-  shuttle:      { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false },
+  lot:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  cbIRecon:false,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:false, grGasConfirm:true,  grChecklistApprove:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false  },
+  reception:    { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  cbIRecon:false,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  service:      { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, cbIRecon:false,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  sales:        { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, cbIRecon:false,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  fandi:        { tabHome:true,  tabQueue:true,  tabTracker:false, tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, cbIRecon:false,  queueAdmin:false, clearCompleted:false, getReadyEdit:true,  grGasConfirm:true,  grChecklistApprove:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  detail:       { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, cbIRecon:false,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  pdi:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:true,  trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:false, cbIC:false, cbIRecon:false,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  merchandiser: { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:true,  tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:true,  trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:true,  cbIC:false, cbIRecon:true,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
+  management:   { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  cbIRecon:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  grGasConfirm:true,  grChecklistApprove:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false  },
+  shuttle:      { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, cbIRecon:false,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false },
 };
 
 let PERMISSIONS = JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS)); // live copy, overwritten by Firebase
@@ -2633,7 +2639,7 @@ const PERM_GROUPS = [
     ['trackerAdd','Add units'], ['trackerEdit','Edit / change status'], ['trackerDelete','Delete units'],
   ]},
   { label:'Tracker Checkboxes', keys: [
-    ['cbAcc','Accessories'], ['cbPdi','PDI'], ['cbPhoto','Photo/Video'], ['cbIC','IC Moved'],
+    ['cbAcc','Accessories'], ['cbPdi','PDI'], ['cbPhoto','Photo/Video'], ['cbIC','IC Moved'], ['cbIRecon','Added to iRecon (used units)'],
   ]},
   { label:'Moves + Rides', keys: [
     ['queueAdmin','Start/Complete/Hold moves'], ['clearCompleted','Clear completed button'],
@@ -4917,7 +4923,7 @@ function renderTVIncoming() {
     const done = isUnitComplete(u);
     const isUsed = u.condition === 'used';
     const dots = isUsed
-      ? [dot(u.fileReceived), dot(u.icMoved)]
+      ? [dot(u.fileReceived), dot(u.irecon), dot(u.icMoved)]
       : [dot(u.accessories), dot(u.pdi), photoRequired(u)?dot(u.photo):dot(false,true), dot(u.icMoved)];
     return `<div class="tv-inc-tile ${done?'is-done':sc}">
       <div class="tv-inc-tile-top">
@@ -5302,8 +5308,8 @@ function photoRequired(u) {
 
 function isUnitComplete(u) {
   if (u.condition === 'used') {
-    // Used units track File Received + IC Moved only - no PDI/Photo requirement
-    return !!u.fileReceived && !!u.icMoved;
+    // Used units track File Received + Added to iRecon + IC Moved - no PDI/Photo requirement
+    return !!u.fileReceived && !!u.irecon && !!u.icMoved;
   }
   // Accessories is optional - PDI + IC Moved always required
   // Photo only required if not Turnover/Sold
@@ -5523,6 +5529,7 @@ function renderTracker() {
   const canPdi   = perm('cbPdi');
   const canPhoto = perm('cbPhoto');
   const canIC    = perm('cbIC');
+  const canIRecon = perm('cbIRecon');
   const allActive = Object.values(units).filter(u => !isUnitComplete(u));
   document.getElementById('t-row-count').textContent = rows.length+' of '+allActive.length+' active unit'+(allActive.length!==1?'s':'');
 
@@ -5596,6 +5603,7 @@ function renderTracker() {
       <div class="tracker-card-checks">
         ${u.condition === 'used' ? `
           ${cbBtn('fileReceived','File Rec\'d',u.fileReceived,false,'',canEdit)}
+          ${cbBtn('irecon','Added to iRecon',u.irecon,false,'cb-irecon',canIRecon)}
           ${cbBtn('icMoved','IC Moved',u.icMoved,false,'cb-ic',canIC)}
         ` : `
           ${cbBtn('accessories','Acc.',u.accessories,false,'',canAcc)}
@@ -5650,6 +5658,7 @@ function renderTrackerCompleted() {
   const canPdi   = perm('cbPdi');
   const canPhoto = perm('cbPhoto');
   const canIC    = perm('cbIC');
+  const canIRecon = perm('cbIRecon');
   const allCompletedCount = Object.values(units).filter(isUnitComplete).length;
   const toolbar = document.getElementById('tracker-completed-toolbar');
   const divider = document.getElementById('tracker-completed-divider');
@@ -5717,6 +5726,7 @@ function renderTrackerCompleted() {
       <div class="trow-checks">
         ${u.condition === 'used' ? `
           ${cbBtn('fileReceived',"File Rec'd",u.fileReceived,false,'',canEdit)}
+          ${cbBtn('irecon','Added to iRecon',u.irecon,false,'cb-irecon',canIRecon)}
           ${cbBtn('icMoved','IC Moved',u.icMoved,false,'cb-ic',canIC)}
         ` : `
           ${cbBtn('accessories','Acc.',u.accessories,false,'',canAcc)}
@@ -5859,6 +5869,7 @@ window.openUnitModal = function(id) {
   document.getElementById('m-photo').checked=u.photo||false;
   document.getElementById('m-ic').checked=u.icMoved||false;
   document.getElementById('m-file-received').checked=u.fileReceived||false;
+  document.getElementById('m-irecon').checked=u.irecon||false;
   document.getElementById('m-ic-used').checked=u.icMoved||false;
   document.getElementById('unit-modal').style.display='flex';
   setTimeout(()=>document.getElementById('m-stock').focus(),100);
@@ -5912,6 +5923,7 @@ window.saveUnit = async function() {
     photo: unitCondition==='new' ? document.getElementById('m-photo').checked : false,
     icMoved: unitCondition==='new' ? document.getElementById('m-ic').checked : document.getElementById('m-ic-used').checked,
     fileReceived: unitCondition==='used' ? document.getElementById('m-file-received').checked : false,
+    irecon: unitCondition==='used' ? document.getElementById('m-irecon').checked : false,
     updatedBy:currentUser.name,
     ts:editingUnitId?(units[editingUnitId]?.ts||Date.now()):Date.now(),
     // Who first added this unit - unlike updatedBy (which changes every edit),
@@ -5927,7 +5939,7 @@ window.saveUnit = async function() {
   // merges rather than overwrites, so every other field's existing By/At
   // (including ones this save didn't touch) is left alone automatically.
   const prevUnit = editingUnitId ? units[editingUnitId] : null;
-  ['accessories','pdi','photo','icMoved','fileReceived'].forEach(f => {
+  ['accessories','pdi','photo','icMoved','fileReceived','irecon'].forEach(f => {
     const now = !!unit[f], was = !!(prevUnit && prevUnit[f]);
     if (now !== was) {
       unit[f+'By'] = now ? currentUser.name : null;
@@ -6168,7 +6180,7 @@ window.completeDealTradeIn = async function(id) {
         workReq: '',
         notes: `Trade-in from Get Ready deal${d.customer?' - '+d.customer:''}${d.stock?' (deal stock '+d.stock+')':''}`,
         accessories: false, pdi: false, photo: false,
-        icMoved: false, fileReceived: false,
+        icMoved: false, fileReceived: false, irecon: false,
         updatedBy: currentUser.name,
         createdBy: currentUser.name,
         ts: Date.now(),
@@ -6551,22 +6563,78 @@ function renderGRCompleted() {
       d.completedBy || '',
       dealNote,
     ].filter(Boolean).join(' · ');
-    return `<div class="tracker-list-row gr-row" id="gr-${d.id}">
+    const isExpanded = grCompletedExpanded.has(d.id);
+    const row = `<div class="tracker-list-row gr-row" id="gr-${d.id}" onclick="grToggleCompletedExpand('${d.id}')" style="cursor:pointer">
       <div class="tlr-stock">${stockCopy(d.stock)}</div>
       <div class="tlr-vehicle" title="${esc(d.vehicle||'')}">${esc(d.vehicle||'-')}</div>
       <div class="tlr-vehicle" title="${esc(d.customer||'')}">${esc(d.customer||'-')}</div>
       <span class="gr-type-pill ${typePillClassOf(d.type)}">${esc(d.type||'-')}</span>
       <div class="tlr-completed">${d.deliveryDate?fmtGRDate(d.deliveryDate,d.deliveryTime):''}</div>
       <div class="tlr-completed" title="${esc(readyLine)}">${esc(readyLine)}</div>
-      ${canFull?`<div class="tlr-actions">
-        <button class="btn-tedit" onclick="openGRModal('${d.id}')">✎</button>
-        <button class="btn-tdel" onclick="deleteGR('${d.id}','${(d.stock||d.customer||'').replace(/"/g,'&quot;').replace(/'/g,"\\'")}')">✕</button>
-      </div>`:'<div></div>'}
+      <div style="display:flex;align-items:center;gap:6px" onclick="event.stopPropagation()">
+        <span style="font-size:11px;color:var(--text-faint);user-select:none">${isExpanded?'▲':'▼'}</span>
+        ${canFull?`<button class="btn-tedit" onclick="openGRModal('${d.id}')">✎</button>
+        <button class="btn-tdel" onclick="deleteGR('${d.id}','${(d.stock||d.customer||'').replace(/"/g,'&quot;').replace(/'/g,"\\'")}')">✕</button>`:''}
+      </div>
     </div>`;
+    return row + (isExpanded ? grCompletedDetailHtml(d) : '');
   }
 
   body.innerHTML = `<div class="tracker-list-head gr-row"><span>Stock</span><span>Vehicle</span><span>Customer</span><span>Type</span><span>Delivery</span><span>Ready</span><span></span></div>`
     + rows.map(makeRow).join('');
+}
+
+window.grToggleCompletedExpand = function(id) {
+  if (grCompletedExpanded.has(id)) grCompletedExpanded.delete(id);
+  else grCompletedExpanded.add(id);
+  renderGRCompleted();
+};
+
+// The compact completed row only has room for a handful of columns - this
+// fills in the rest (VIN, contacts, trade-ins, plates, notes, etc.) as an
+// expandable panel so staff don't have to reopen the edit modal just to
+// look something up on a deal that's already done.
+function grCompletedDetailHtml(d) {
+  const dealTrades = Array.isArray(d.trades) ? d.trades.filter(t=>t.stock) : [d.trade1, d.trade2].filter(t=>t?.stock);
+  const financingLabel = ({CASH:'Cash',COMMERCIAL_LEASE:'Commercial Lease',FINANCE:'Finance',FORD_RCL:'Ford RCL'})[d.financing];
+  const field = (label, value) => value ? `<div><span style="color:var(--text-faint)">${label}:</span> ${value}</div>` : '';
+  const fmtDT = (ts) => ts ? new Date(ts).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : '';
+  const customDone = (d.customFields||[]).filter(f=>f.label);
+  return `<div class="gr-completed-detail" style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg);font-size:12px;color:var(--text)">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px 16px;margin-bottom:${dealTrades.length||d.instructions||d.notes||customDone.length?'10px':'0'}">
+      ${field('Date created', fmtDT(d.ts))}
+      ${field('Date delivered', fmtDT(d.dealCompletedAt))}
+      ${field('VIN', esc(d.vin||d.vin6||'')||null)}
+      ${field('Deal #', esc(d.dealNum||d.deal||''))}
+      ${field('DMS deal #', esc(d.dmsId||''))}
+      ${field('Phone', d.phone?esc(d.phone):'')}
+      ${field('Email', d.email?esc(d.email):'')}
+      ${field('Salesperson', esc(d.salesperson||''))}
+      ${field('Desk Manager', esc(d.deskManager||''))}
+      ${field('F&amp;I Manager', esc(d.fni||''))}
+      ${field('Financing', financingLabel||'')}
+      ${field('Plates', d.plateType==='TRANSFER'?'License Plate Transfer':'New License Plates')}
+      ${field('Licensing notes', d.licensingNotes?esc(d.licensingNotes):'')}
+    </div>
+    ${dealTrades.length ? `<div style="margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Trade-ins</div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        ${dealTrades.map((t,i) => `<div>
+          <strong>T${i+1} ${esc(t.stock)}</strong> - ${({RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'})[t.category]||'Retail'}
+          ${[t.year,t.make,t.model,t.colour].filter(Boolean).length ? ' · '+esc([t.year,t.make,t.model,t.colour].filter(Boolean).join(' ')) : ''}
+          ${t.vin?' · '+esc(t.vin):''}${t.kms?' · '+Number(t.kms).toLocaleString()+' km':''}
+        </div>`).join('')}
+      </div>
+    </div>` : ''}
+    ${customDone.length ? `<div style="margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Other</div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        ${customDone.map(f=>`<div>${f.done?'✓':'○'} ${esc(f.label)}</div>`).join('')}
+      </div>
+    </div>` : ''}
+    ${d.instructions?`<div style="margin-bottom:6px"><span style="color:var(--text-faint)">Special instructions:</span> ${esc(d.instructions)}</div>`:''}
+    ${d.notes?`<div><span style="color:var(--text-faint)">Notes:</span> ${esc(d.notes)}</div>`:''}
+  </div>`;
 }
 window.renderGRCompleted = renderGRCompleted;
 
