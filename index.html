@@ -49,7 +49,7 @@
   running stale in-memory JS until someone manually clears their cache.
   Whoever edits this file next should update this value.
 -->
-<meta name="app-build" content="2026-08-19T16:26:22Z"/>
+<meta name="app-build" content="2026-08-19T16:35:02Z"/>
 <title>Vehicle Manager - Barrie Ford</title>
 <!-- The favicon uses the same app icon as the Home Screen/manifest icons
      (see icon-*.png) - one consistent icon everywhere instead of the old
@@ -6459,6 +6459,7 @@ function renderGRCard(d, perms, isDupe) {
         </div>
         <div class="gr-card-vehicle">${esc(d.vehicle||'-')}${d.vin?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">${esc(d.vin)}</span>`:d.vin6?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">…${esc(d.vin6)}</span>`:''}</div>
         ${d.customer?`<div class="gr-card-customer">${esc(d.customer)}${d.salesperson?' · '+esc(d.salesperson):''}</div>`:''}
+        ${(d.deskManager||d.fniManager)?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">${d.deskManager?esc(d.deskManager)+' (Desk)':''}${d.deskManager&&d.fniManager?' · ':''}${d.fniManager?esc(d.fniManager)+' (F&amp;I)':''}</div>`:''}
         ${(d.phone||d.email)?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">${d.phone?'📞 '+esc(d.phone):''}${d.phone&&d.email?' · ':''}${d.email?'✉️ '+esc(d.email):''}</div>`:''}
         ${financingLabel?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">💳 ${financingLabel}</div>`:''}
         ${d.pdfUrl?`<div style="margin-top:4px"><a href="${esc(d.pdfUrl)}" target="_blank" rel="noopener" style="font-size:11px;font-weight:600;color:var(--ford);text-decoration:none">📄 ${esc(d.pdfFileName||'Get Ready sheet')}</a></div>`:''}
@@ -6577,7 +6578,7 @@ function renderGRCompleted() {
       d.ts ? `Created ${fmtDT(d.ts)}` : '',
       d.dealCompletedAt ? `Delivered ${fmtDT(d.dealCompletedAt)}` : '',
       d.salesperson ? `👤 ${esc(d.salesperson)} (Sales)` : '',
-      d.fni ? `${esc(d.fni)} (F&amp;I)` : '',
+      d.fniManager ? `${esc(d.fniManager)} (F&amp;I)` : '',
       d.deskManager ? `${esc(d.deskManager)} (Desk)` : '',
     ].filter(Boolean).join(' &middot; ');
     const row = `<div class="tracker-list-row gr-row" id="gr-${d.id}" onclick="grToggleCompletedExpand('${d.id}')" style="cursor:pointer${metaBits?';border-bottom:none':''}">
