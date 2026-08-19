@@ -49,7 +49,7 @@
   running stale in-memory JS until someone manually clears their cache.
   Whoever edits this file next should update this value.
 -->
-<meta name="app-build" content="2026-08-18T18:41:31Z"/>
+<meta name="app-build" content="2026-08-19T12:43:19Z"/>
 <title>Vehicle Manager - Barrie Ford</title>
 <!-- The favicon uses the same app icon as the Home Screen/manifest icons
      (see icon-*.png) - one consistent icon everywhere instead of the old
@@ -8748,6 +8748,26 @@ function cmCarryLayoutFields(data, prevVeh) {
   return data;
 }
 
+// If the stock # just placed on the map matches an active Incoming unit,
+// auto-check its "IC Moved" task with who/when - putting a car on the map
+// IS the physical move. Skips completed units (their checks are locked in)
+// and units already checked, so it never overwrites who actually did it.
+async function cmAutoCheckICMoved(stock) {
+  const s = (stock||'').trim().toUpperCase();
+  if (!s) return;
+  const entry = Object.entries(units).find(([,u]) => (u.stock||'').toUpperCase().trim() === s);
+  if (!entry) return;
+  const [id, unit] = entry;
+  if (unit.icMoved || isUnitComplete(unit)) return;
+  const updates = { icMoved: true, icMovedBy: currentUser.name, icMovedAt: Date.now() };
+  const merged = { ...unit, ...updates };
+  if (isUnitComplete(merged) && !unit.completedAt) {
+    updates.completedAt = Date.now();
+    updates.completedBy = currentUser.name;
+  }
+  await update(ref(db,'tracker/'+id), updates).catch(()=>{});
+}
+
 window.cmSaveSpot = async function() {
   if (!perm('compoundEdit')) return;
   const key = cmActiveKey;
@@ -8796,6 +8816,7 @@ window.cmSaveSpot = async function() {
   await set(ref(db, `compound_v2/${cmCurrentLot}/${key}`), data);
   if (stock.trim()) {
     update(ref(db,'vehicleSpecs/'+stock.trim().toUpperCase()), { year:data.year, trim:data.trim, type:data.type, colour:data.colour, status:data.status, updatedAt: Date.now() }).catch(()=>{});
+    cmAutoCheckICMoved(stock);
   }
   const desc = !prevVeh?.stock
     ? `Assigned ${stock} to ${key}`
