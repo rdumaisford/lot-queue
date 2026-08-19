@@ -19,7 +19,7 @@ const sgMail = require('@sendgrid/mail');
 initializeApp();
 
 const SENDGRID_API_KEY = defineSecret('SENDGRID_API_KEY');
-const FROM_EMAIL = '[REDACTED_EMAIL_ADDRESS_1]';
+const FROM_EMAIL = 'rdumais@barrieford.com';
 const FROM_NAME = 'Vehicle Manager';
 const REGION = 'us-central1';
 
