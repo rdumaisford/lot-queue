@@ -49,7 +49,7 @@
   running stale in-memory JS until someone manually clears their cache.
   Whoever edits this file next should update this value.
 -->
-<meta name="app-build" content="2026-08-19T16:16:54Z"/>
+<meta name="app-build" content="2026-08-19T16:26:22Z"/>
 <title>Vehicle Manager - Barrie Ford</title>
 <!-- The favicon uses the same app icon as the Home Screen/manifest icons
      (see icon-*.png) - one consistent icon everywhere instead of the old
@@ -6060,7 +6060,11 @@ function getGRCompletedFiltered() {
 window.grToggleCustom = async function(id, idx, value) {
   const d = getReadyDeals[id];
   if (!d) return;
-  const customFields = (d.customFields||[]).map((f,i) => i===idx ? {...f, done: value} : f);
+  // Same "who/when did this specific step" stamp as the main checklist
+  // (toggleGRField) - custom/"Other" items never had it before, so a
+  // completed deal's addons showed a checkmark with no way to tell who
+  // actually did it or when.
+  const customFields = (d.customFields||[]).map((f,i) => i===idx ? {...f, done: value, doneBy: value?currentUser.name:null, doneAt: value?Date.now():null} : f);
   const updates = { customFields };
   const updated = { ...d, customFields };
   if (grIsComplete(updated) && !d.completedAt) {
@@ -6554,17 +6558,29 @@ function renderGRCompleted() {
   }
   const typePillClassOf = (type) => ({'AS-IS':'as-is','RETAIL':'retail','WHOLESALE':'wholesale'})[type]||'as-is';
 
+  const fmtDT = (ts) => ts ? new Date(ts).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : '';
+
   function makeRow(d) {
     const dealNote = d.dealCompleted ? '✓ Deal delivered' : d.dealStatus === 'on_hold' ? '⏸ On hold' : d.dealStatus === 'declined' ? '❌ Dead deal' : '';
     // Full date+time, not just the date - same precision as the who/when
     // stamps shown under each checklist item before it shifted down here.
     const readyLine = [
-      d.completedAt ? new Date(d.completedAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : '',
+      d.completedAt ? fmtDT(d.completedAt) : '',
       d.completedBy || '',
       dealNote,
     ].filter(Boolean).join(' · ');
     const isExpanded = grCompletedExpanded.has(d.id);
-    const row = `<div class="tracker-list-row gr-row" id="gr-${d.id}" onclick="grToggleCompletedExpand('${d.id}')" style="cursor:pointer">
+    // The most-asked-about details at a glance, right in the row - no need
+    // to expand just to see who sold it or when it was actually delivered.
+    const metaBits = [
+      d.dealNum||d.deal ? `🧾 Deal #${esc(d.dealNum||d.deal)}` : '',
+      d.ts ? `Created ${fmtDT(d.ts)}` : '',
+      d.dealCompletedAt ? `Delivered ${fmtDT(d.dealCompletedAt)}` : '',
+      d.salesperson ? `👤 ${esc(d.salesperson)} (Sales)` : '',
+      d.fni ? `${esc(d.fni)} (F&amp;I)` : '',
+      d.deskManager ? `${esc(d.deskManager)} (Desk)` : '',
+    ].filter(Boolean).join(' &middot; ');
+    const row = `<div class="tracker-list-row gr-row" id="gr-${d.id}" onclick="grToggleCompletedExpand('${d.id}')" style="cursor:pointer${metaBits?';border-bottom:none':''}">
       <div class="tlr-stock">${stockCopy(d.stock)}</div>
       <div class="tlr-vehicle" title="${esc(d.vehicle||'')}">${esc(d.vehicle||'-')}</div>
       <div class="tlr-vehicle" title="${esc(d.customer||'')}">${esc(d.customer||'-')}</div>
@@ -6578,7 +6594,8 @@ function renderGRCompleted() {
         <button class="btn-tdel" onclick="deleteGR('${d.id}','${(d.stock||d.customer||'').replace(/"/g,'&quot;').replace(/'/g,"\\'")}')">✕</button></span>`:''}
       </div>
     </div>`;
-    return row + (isExpanded ? grCompletedDetailHtml(d) : '');
+    const metaRow = metaBits ? `<div class="gr-completed-meta" onclick="grToggleCompletedExpand('${d.id}')" style="cursor:pointer;padding:0 16px 8px 16px;font-size:11px;color:var(--text-faint);display:flex;flex-wrap:wrap;gap:4px 10px;border-bottom:1px solid var(--border)">${metaBits}</div>` : '';
+    return row + metaRow + (isExpanded ? grCompletedDetailHtml(d) : '');
   }
 
   body.innerHTML = `<div class="tracker-list-head gr-row"><span>Stock</span><span>Vehicle</span><span>Customer</span><span>Type</span><span>Delivery</span><span>Ready</span><span></span></div>`
@@ -6592,31 +6609,42 @@ window.grToggleCompletedExpand = function(id) {
 };
 
 // The compact completed row only has room for a handful of columns - this
-// fills in the rest (VIN, contacts, trade-ins, plates, notes, etc.) as an
-// expandable panel so staff don't have to reopen the edit modal just to
-// look something up on a deal that's already done.
+// fills in the rest (VIN, contacts, trade-ins, plates, notes, checklist/
+// addon timestamps, etc.) as an expandable panel so staff don't have to
+// reopen the edit modal just to look something up on a deal that's done.
+// Deal #, salesperson, desk manager, F&I manager, and the created/delivered
+// dates are NOT repeated here - they're already always visible in the
+// row's own meta line, see makeRow above.
 function grCompletedDetailHtml(d) {
   const dealTrades = Array.isArray(d.trades) ? d.trades.filter(t=>t.stock) : [d.trade1, d.trade2].filter(t=>t?.stock);
   const financingLabel = ({CASH:'Cash',COMMERCIAL_LEASE:'Commercial Lease',FINANCE:'Finance',FORD_RCL:'Ford RCL'})[d.financing];
   const field = (label, value) => value ? `<div><span style="color:var(--text-faint)">${label}:</span> ${value}</div>` : '';
   const fmtDT = (ts) => ts ? new Date(ts).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : '';
+  const whoWhen = (doneBy, doneAt) => doneBy ? `${esc(doneBy)}${doneAt ? ' · '+fmtDT(doneAt) : ''}` : '';
   const customDone = (d.customFields||[]).filter(f=>f.label);
+  // Same "required, or every item for legacy deals with no req_ flags"
+  // rule the active card's checklist uses (see renderGRCard/cbBtn).
+  const hasReqFlags = GR_CHECKLIST.some(([key]) => d['req_'+key] !== undefined);
+  const checklistItems = GR_CHECKLIST.filter(([key]) => !hasReqFlags || d['req_'+key]);
   return `<div class="gr-completed-detail" style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg);font-size:12px;color:var(--text)">
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px 16px;margin-bottom:${dealTrades.length||d.instructions||d.notes||customDone.length?'10px':'0'}">
-      ${field('Date created', fmtDT(d.ts))}
-      ${field('Date delivered', fmtDT(d.dealCompletedAt))}
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px 16px;margin-bottom:10px">
       ${field('VIN', esc(d.vin||d.vin6||'')||null)}
-      ${field('Deal #', esc(d.dealNum||d.deal||''))}
       ${field('DMS deal #', esc(d.dmsId||''))}
       ${field('Phone', d.phone?esc(d.phone):'')}
       ${field('Email', d.email?esc(d.email):'')}
-      ${field('Salesperson', esc(d.salesperson||''))}
-      ${field('Desk Manager', esc(d.deskManager||''))}
-      ${field('F&amp;I Manager', esc(d.fni||''))}
       ${field('Financing', financingLabel||'')}
       ${field('Plates', d.plateType==='TRANSFER'?'License Plate Transfer':'New License Plates')}
       ${field('Licensing notes', d.licensingNotes?esc(d.licensingNotes):'')}
     </div>
+    ${checklistItems.length ? `<div style="margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Recon tasks</div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        ${checklistItems.map(([key,label]) => {
+          const ww = whoWhen(d[key+'By'], d[key+'At']);
+          return `<div>${d[key]?'✓':'○'} ${esc(label)}${ww?` <span style="color:var(--text-faint)">- ${ww}</span>`:''}</div>`;
+        }).join('')}
+      </div>
+    </div>` : ''}
     ${dealTrades.length ? `<div style="margin-bottom:10px">
       <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Trade-ins</div>
       <div style="display:flex;flex-direction:column;gap:4px">
@@ -6628,9 +6656,12 @@ function grCompletedDetailHtml(d) {
       </div>
     </div>` : ''}
     ${customDone.length ? `<div style="margin-bottom:10px">
-      <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Other</div>
+      <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Other / Addons</div>
       <div style="display:flex;flex-direction:column;gap:2px">
-        ${customDone.map(f=>`<div>${f.done?'✓':'○'} ${esc(f.label)}</div>`).join('')}
+        ${customDone.map(f=>{
+          const ww = whoWhen(f.doneBy, f.doneAt);
+          return `<div>${f.done?'✓':'○'} ${esc(f.label)}${ww?` <span style="color:var(--text-faint)">- ${ww}</span>`:''}</div>`;
+        }).join('')}
       </div>
     </div>` : ''}
     ${d.instructions?`<div style="margin-bottom:6px"><span style="color:var(--text-faint)">Special instructions:</span> ${esc(d.instructions)}</div>`:''}
