@@ -49,7 +49,7 @@
   running stale in-memory JS until someone manually clears their cache.
   Whoever edits this file next should update this value.
 -->
-<meta name="app-build" content="2026-08-19T16:35:02Z"/>
+<meta name="app-build" content="2026-08-19T16:46:57Z"/>
 <title>Vehicle Manager - Barrie Ford</title>
 <!-- The favicon uses the same app icon as the Home Screen/manifest icons
      (see icon-*.png) - one consistent icon everywhere instead of the old
@@ -8949,6 +8949,13 @@ window.cmClearSpot = async function() {
   cmCloseSpot();
 };
 
+// The vehicle-related fields on a freeform spot record - everything else in
+// that record (x/y/w/h/rot/label/z/kind) is the physical parking space
+// itself. Shared by cmClearKey (strip these back to an empty spot) and
+// cmPointerUp's freeform drag-swap (move a car between two spots without
+// touching either spot's own shape/position).
+const CM_VEHICLE_FIELDS = ['stock','year','trim','type','colour','status','flagged','note','notes','dateAdded','needsGas','needsWash','atDealership','blockLabel'];
+
 window.cmClearKey = async function(key) {
   if (!perm('compoundEdit')) return;
   const prevVeh = (cmVehicles[cmCurrentLot]||{})[key];
@@ -8957,11 +8964,9 @@ window.cmClearKey = async function(key) {
     // x/y/w/h/rot/label) - clearing the vehicle must never delete that space.
     // Deleting the space itself is a separate action, only available in Edit
     // mode. Strip just the vehicle-related fields, nothing else.
-    await update(ref(db, `compound_v2/${cmCurrentLot}/${key}`), {
-      stock: null, year: null, trim: null, type: null, colour: null, status: null,
-      flagged: null, note: null, notes: null, dateAdded: null,
-      needsGas: null, needsWash: null, atDealership: null, blockLabel: null,
-    });
+    const clearUpdates = {};
+    CM_VEHICLE_FIELDS.forEach(f => { clearUpdates[f] = null; });
+    await update(ref(db, `compound_v2/${cmCurrentLot}/${key}`), clearUpdates);
   } else {
     await remove(ref(db, `compound_v2/${cmCurrentLot}/${key}`));
   }
@@ -9264,7 +9269,11 @@ let cmGestureMode = null; // 'holding' | 'scrolling' | 'armed'
 window.cmSpotPointerDown = function(e, key) {
   if (!perm('compoundEdit') || cmEditMode) return;
   const veh = (cmVehicles[cmCurrentLot]||{})[key];
-  if (!veh) return;
+  // A grid cell with nothing parked has no record at all, so !veh already
+  // covers it there - but a freeform spot's record always exists (it's the
+  // physical parking space itself), so an empty one still needs its own
+  // check: nothing to actually drag if there's no car in it.
+  if (!veh || !veh.stock) return;
   cmHoldKey = key;
   cmHoldEl = e.currentTarget;
   cmHoldStartX = cmLastX = e.clientX;
@@ -9289,8 +9298,10 @@ function cmHoldPointerMove(e) {
     }
   }
   if (cmGestureMode === 'scrolling') {
-    const mapEl = cmHoldEl ? cmHoldEl.closest('#cm-map') : null;
-    const scrollWrap = mapEl ? mapEl.parentElement : null; // #cm-map's parent is the overflow:auto wrapper
+    // #cm-map's parent is the grid's overflow:auto wrapper; #fl-canvas's
+    // parent (#fl-canvas-outer) is the freeform canvas's equivalent.
+    const mapEl = cmHoldEl ? (cmHoldEl.closest('#cm-map') || cmHoldEl.closest('#fl-canvas')) : null;
+    const scrollWrap = mapEl ? mapEl.parentElement : null;
     if (scrollWrap) {
       scrollWrap.scrollLeft -= (e.clientX - cmLastX);
       scrollWrap.scrollTop -= (e.clientY - cmLastY);
@@ -9354,10 +9365,29 @@ async function cmPointerUp(e) {
   if (!perm('compoundEdit')) return;
 
   const destVeh = (cmVehicles[cmCurrentLot]||{})[destKey];
+  // A building/fence has no vehicle fields at all - not a valid drop target.
+  if (destVeh && (destVeh.kind === 'object' || destVeh.kind === 'fence')) return;
+
   // Single atomic update - both keys written in one call to prevent double-render duplication
   const updates = {};
-  updates[`compound_v2/${cmCurrentLot}/${destKey}`] = srcData;
-  updates[`compound_v2/${cmCurrentLot}/${srcKey}`] = destVeh || null;
+  if (FREEFORM_LOTS.has(cmCurrentLot)) {
+    // A freeform spot's record is the physical parking space (x/y/w/h/rot/
+    // label/z) PLUS whatever car is parked there - a plain whole-record swap
+    // (the grid's approach below) would swap the spots' shapes and positions
+    // too. Swap only the vehicle fields, leaving each spot's own physical
+    // fields exactly where they were.
+    const newDestData = { ...destVeh };
+    const newSrcData = { ...srcData };
+    CM_VEHICLE_FIELDS.forEach(f => {
+      newDestData[f] = srcData[f] !== undefined ? srcData[f] : null;
+      newSrcData[f] = (destVeh && destVeh[f] !== undefined) ? destVeh[f] : null;
+    });
+    updates[`compound_v2/${cmCurrentLot}/${destKey}`] = newDestData;
+    updates[`compound_v2/${cmCurrentLot}/${srcKey}`] = newSrcData;
+  } else {
+    updates[`compound_v2/${cmCurrentLot}/${destKey}`] = srcData;
+    updates[`compound_v2/${cmCurrentLot}/${srcKey}`] = destVeh || null;
+  }
   await update(ref(db), updates);
   const desc = destVeh?.stock
     ? `Swapped ${srcData.stock} (${srcKey}) with ${destVeh.stock} (${destKey})`
@@ -9883,9 +9913,15 @@ function flSpotHtml(id, veh, maps) {
   const stock = veh.stock || ''; // shown in full now (see flFitStyle) - no more hard 10-char cut
   const typeLine = [veh.year, veh.type, veh.trim, veh.colour].filter(Boolean).join(' ').substring(0,18);
   const CM_TYPE_LABELS = { new:'New', used:'Used', wholesale:'Wholesale', fleet:'Fleet', leasereturn:'Lease Return' };
+  // Same hold-to-drag reassignment as the grid map (see cmSpotPointerDown) -
+  // touch-action:none stops the browser's native scroll from fighting the
+  // hold gesture while it's deciding whether this is a drag or a pan.
+  const canDrag = perm('compoundEdit');
 
   return `<div class="cm-spot ${cls}${isFlagged?' cm-flagged':''}${heatCls}${lockCls}" data-cm-key="${id}"
-    style="${posStyle}${heatStyleVar}" onclick="cmOpenQuickActions('${id}',0,0)" ${isMismatch?`title="⚠ Wrong spot - this is a ${CM_TYPE_LABELS[zoneType]||zoneType} spot but ${esc(veh.stock)} is ${CM_TYPE_LABELS[cmTypeClass(veh.status)]||cmTypeClass(veh.status)}"`:''}>
+    style="${posStyle}${heatStyleVar}${canDrag?'touch-action:none;':''}" onclick="cmOpenQuickActions('${id}',0,0)"
+    ${canDrag?`onpointerdown="cmSpotPointerDown(event,'${id}')" oncontextmenu="return false"`:''}
+    ${isMismatch?`title="⚠ Wrong spot - this is a ${CM_TYPE_LABELS[zoneType]||zoneType} spot but ${esc(veh.stock)} is ${CM_TYPE_LABELS[cmTypeClass(veh.status)]||cmTypeClass(veh.status)}"`:''}>
     ${(veh.note || (Array.isArray(veh.notes) && veh.notes.length)) ? `<div class="cm-spot-note"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
     ${(isFlagged || veh.needsGas || veh.needsWash || veh.atDealership) ? `<div class="cm-spot-flags">${isFlagged?'<span class="cm-spot-flag" title="Flagged" style="background:#fecaca;color:#7f1d1d">🚩</span>':''}${veh.needsGas?'<span class="cm-spot-flag" title="Needs gas">⛽</span>':''}${veh.needsWash?'<span class="cm-spot-flag" title="Needs wash">🧼</span>':''}${veh.atDealership?'<span class="cm-spot-flag" title="At dealership - needs to return to 323 Bayview" style="background:#fecaca">🏢</span>':''}</div>` : ''}
     ${flTextWrap(veh, `<div class="cm-spot-stock" style="${flFitStyle(veh, stock)}">${esc(stock)}</div>
