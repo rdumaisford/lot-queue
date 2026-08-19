@@ -49,7 +49,7 @@
   running stale in-memory JS until someone manually clears their cache.
   Whoever edits this file next should update this value.
 -->
-<meta name="app-build" content="2026-08-19T12:43:19Z"/>
+<meta name="app-build" content="2026-08-19T12:55:08Z"/>
 <title>Vehicle Manager - Barrie Ford</title>
 <!-- The favicon uses the same app icon as the Home Screen/manifest icons
      (see icon-*.png) - one consistent icon everywhere instead of the old
@@ -1465,8 +1465,7 @@ body.cm-fullscreen #cm-grid-zoom,body.cm-fullscreen #cm-fl-zoom{display:none!imp
         <!-- Lot switcher -->
         <div id="cm-lot-switcher" style="display:flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
           <button id="cm-lot-btn-bayview700" onclick="cmSwitchLot('bayview700')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--ford);color:#fff">700 Bayview</button>
-          <button id="cm-lot-btn-bayview323" onclick="cmSwitchLot('bayview323')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">323 Bayview</button>
-          <button id="cm-lot-btn-bayview323new" onclick="cmSwitchLot('bayview323new')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">323 Bayview (NEW)</button>
+          <button id="cm-lot-btn-bayview323new" onclick="cmSwitchLot('bayview323new')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">323 Bayview</button>
           <button id="cm-lot-btn-dealership" onclick="cmSwitchLot('dealership')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">Dealership</button>
         </div>
         <!-- Zoom - mainly for mobile, where the map's own hold-to-drag touch
@@ -1696,7 +1695,6 @@ body.cm-fullscreen #cm-grid-zoom,body.cm-fullscreen #cm-fl-zoom{display:none!imp
           <label>Lots to audit</label>
           <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
             <label style="display:flex;align-items:center;gap:8px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" id="audit-lot-bayview700" checked style="width:16px;height:16px;accent-color:var(--ford)"/> 700 Bayview</label>
-            <label style="display:flex;align-items:center;gap:8px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" id="audit-lot-bayview323" style="width:16px;height:16px;accent-color:var(--ford)"/> 323 Bayview</label>
           </div>
         </div>
 
@@ -7005,7 +7003,7 @@ async function logCompoundChange(lot, action, detail) {
   } catch(e) { /* logging failures shouldn't block the actual map edit */ }
 }
 
-const CM_LOT_LABELS = { bayview700:'700 Bayview', bayview323:'323 Bayview', bayview323new:'323 Bayview (NEW)', dealership:'Dealership', mapleview55:'55 Mapleview' };
+const CM_LOT_LABELS = { bayview700:'700 Bayview', bayview323:'323 Bayview (old grid)', bayview323new:'323 Bayview', dealership:'Dealership', mapleview55:'55 Mapleview' };
 
 function filteredCompoundHistory() {
   const all = Object.values(compoundHistoryData);
@@ -7896,8 +7894,8 @@ window.deleteAnnouncement = async function(id) {
 // ── Compound Map ──────────────────────────────────────
 const CM_LOTS = {
   bayview700:  { label: '700 Bayview' },
-  bayview323:  { label: '323 Bayview' },
-  bayview323new: { label: '323 Bayview (NEW)' },
+  bayview323:  { label: '323 Bayview (old grid)' },
+  bayview323new: { label: '323 Bayview' },
   dealership: { label: 'Dealership' },
 };
 // Lots that use the freeform (real-scale, feet-based, freely placed/rotated
@@ -10248,7 +10246,7 @@ window.auditOpenStart = function() {
 };
 
 window.auditStart = async function() {
-  const lots = ['bayview700','bayview323'].filter(id => document.getElementById(`audit-lot-${id}`)?.checked);
+  const lots = ['bayview700'].filter(id => document.getElementById(`audit-lot-${id}`)?.checked);
   if (!lots.length) { alert('Select at least one lot.'); return; }
 
   const requirements = {
