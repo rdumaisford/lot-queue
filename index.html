@@ -49,7 +49,7 @@
   running stale in-memory JS until someone manually clears their cache.
   Whoever edits this file next should update this value.
 -->
-<meta name="app-build" content="2026-08-19T13:04:34Z"/>
+<meta name="app-build" content="2026-08-19T13:11:11Z"/>
 <title>Vehicle Manager - Barrie Ford</title>
 <!-- The favicon uses the same app icon as the Home Screen/manifest icons
      (see icon-*.png) - one consistent icon everywhere instead of the old
@@ -8177,12 +8177,16 @@ function cmBuildOverlayMaps() {
     tdMap[t.stock.toUpperCase().trim()] = true;
   });
 
-  // Build a single stock# → duplicate-count lookup across every lot (700
-  // Bayview, 323 Bayview, Dealership) - a car can't physically be parked in
-  // two spots at once anywhere on the property, so the same stock # showing
-  // up twice anywhere is always worth flagging.
+  // Build a single stock# → duplicate-count lookup across the active lots
+  // (700 Bayview, 323 Bayview, Dealership) - a car can't physically be
+  // parked in two spots at once anywhere on the property, so the same
+  // stock # showing up twice anywhere is always worth flagging. The old,
+  // retired grid 323 Bayview is deliberately excluded - its leftover data
+  // was never cleared out (see the "take out the old 323" removal), so
+  // comparing against it would flag nearly every car as a false duplicate.
   const stockCounts = {};
-  Object.values(cmVehicles||{}).forEach(lotVehs => {
+  Object.entries(cmVehicles||{}).forEach(([lotId, lotVehs]) => {
+    if (lotId === 'bayview323') return;
     Object.values(lotVehs||{}).forEach(v => {
       if (!v || !v.stock || v.status==='blocked' || v.status==='void') return;
       const s = v.stock.toUpperCase().trim();
