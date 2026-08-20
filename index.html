@@ -49,7 +49,7 @@
   running stale in-memory JS until someone manually clears their cache.
   Whoever edits this file next should update this value.
 -->
-<meta name="app-build" content="2026-08-19T20:20:23Z"/>
+<meta name="app-build" content="2026-08-20T19:09:56Z"/>
 <title>Vehicle Manager - Barrie Ford</title>
 <!-- The favicon uses the same app icon as the Home Screen/manifest icons
      (see icon-*.png) - one consistent icon everywhere instead of the old
@@ -5265,7 +5265,15 @@ function photoRequired(u) {
   return u.status !== 'TURNOVER' && u.status !== 'SOLD';
 }
 
+function isUnitStockMissing(u) {
+  return !(u.stock||'').trim();
+}
+
 function isUnitComplete(u) {
+  // Can't be considered done without a real stock # and an actual status -
+  // "?" is the modal's own placeholder for "not yet known", not a real answer.
+  if (isUnitStockMissing(u)) return false;
+  if (!u.status || u.status === '?') return false;
   if (u.condition === 'used') {
     // Used units track File Received + Added to iRecon + IC Moved - no PDI/Photo requirement
     return !!u.fileReceived && !!u.irecon && !!u.icMoved;
@@ -5508,6 +5516,7 @@ function renderTracker() {
   function makeCard(u) {
     const isSelected = selectedUnits.has(u.id);
     const dupeBadge = isDupe(u) ? `<span class="complete-badge dupe-blink" style="background:#dc2626">⚠ Duplicate</span>` : '';
+    const missingStockBadge = isUnitStockMissing(u) ? `<span class="complete-badge dupe-blink" style="background:#dc2626">⚠ Stock No. Missing!</span>` : '';
     const lockInfo = activeLockFor('tracker', u.id);
 
     const statusClass = {STOCK:'status-stock',SOLD:'status-sold',TURNOVER:'status-turnover'}[u.status]||'status-other';
@@ -5553,7 +5562,7 @@ function renderTracker() {
         <div class="tracker-card-stock">
           ${canEdit?`<input type="checkbox" class="row-select row-cb" ${isSelected?'checked':''} onchange="toggleRowSelect('${u.id}',this.checked)" style="width:15px;height:15px;accent-color:var(--ford);cursor:pointer;flex-shrink:0"/>`:''}
           ${stockCopy(u.stock)}
-          ${condBadge}${dupeBadge}
+          ${condBadge}${dupeBadge}${missingStockBadge}
         </div>
         <div class="tracker-card-vin">${vinWithCopy(u.vin)}</div>
         <div class="tracker-card-vehicle">${u.vehicle||[u.year,u.type,u.trim,u.colour].filter(Boolean).join(' · ')||''}</div>
