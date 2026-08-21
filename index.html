@@ -49,7 +49,7 @@
   running stale in-memory JS until someone manually clears their cache.
   Whoever edits this file next should update this value.
 -->
-<meta name="app-build" content="2026-08-20T19:09:56Z"/>
+<meta name="app-build" content="2026-08-21T14:06:04Z"/>
 <title>Vehicle Manager - Barrie Ford</title>
 <!-- The favicon uses the same app icon as the Home Screen/manifest icons
      (see icon-*.png) - one consistent icon everywhere instead of the old
@@ -965,10 +965,21 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot.appointed .cm-spot-num{color:#7c3aed}
 .cm-spot.appointed .cm-spot-stock{color:#6d28d9}
 .cm-spot-appt{font-size:7px;font-weight:700;color:#7c3aed;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
-.cm-spot.ontestdrive{background:#fff7ed;border-color:#ea580c;border-width:2px}
-.cm-spot.ontestdrive .cm-spot-num{color:#ea580c}
+.cm-spot.ontestdrive{background:#fff7ed;border-color:#f97316;border-width:3px}
+.cm-spot.ontestdrive .cm-spot-num{color:#f97316}
 .cm-spot.ontestdrive .cm-spot-stock{color:#c2410c}
 .cm-spot-td{font-size:7px;font-weight:700;color:#c2410c;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+.cm-spot-td-timer{font-size:7px;font-weight:800;color:#c2410c;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cm-spot-td-timer.overdue{color:#dc2626}
+/* Needs gas/wash - lower priority than an active test drive, but still a
+   real "someone needs to act on this" signal, so it gets the map's other
+   thick-colored-border treatment rather than just the small flag icon. */
+.cm-spot.needs-gas{background:#fef2f2;border-color:#dc2626;border-width:2px}
+.cm-spot.needs-gas .cm-spot-num{color:#dc2626}
+.cm-spot.needs-gas .cm-spot-stock{color:#991b1b}
+.cm-spot.needs-wash{background:#fdf2f8;border-color:#ec4899;border-width:2px}
+.cm-spot.needs-wash .cm-spot-num{color:#ec4899}
+.cm-spot.needs-wash .cm-spot-stock{color:#9d174d}
 @keyframes cmDupeBlink{0%,49%{background:#fef2f2;border-color:#dc2626}50%,100%{background:#fca5a5;border-color:#991b1b}}
 .cm-spot.cm-duplicate{border-width:2px;animation:cmDupeBlink .7s steps(1) infinite}
 .cm-spot.cm-duplicate .cm-spot-num{color:#991b1b}
@@ -7435,6 +7446,12 @@ setInterval(()=>{
   const homePanel = document.getElementById('panel-home');
   if (homePanel && homePanel.classList.contains('active')) renderHomeGrid();
   if (document.getElementById('panel-rides')?.classList.contains('active')) renderRidesTab();
+  // Keeps a test drive's countdown actually ticking on the Vehicle Locator
+  // map - only bothers re-rendering when something's actually out, so an
+  // idle lot doesn't get a pointless full re-render every second.
+  if (document.getElementById('panel-compound')?.classList.contains('active') && Object.values(testDrives||{}).some(t=>t.status==='out')) {
+    if (FREEFORM_LOTS.has(cmCurrentLot)) flRender(); else cmRenderMap();
+  }
 },1000);
 
 // Re-checks Get Ready's charging-overdue blink (12hr+ in progress) against
@@ -8113,11 +8130,12 @@ function cmBuildOverlayMaps() {
   });
 
   // Build stock# → active test drive lookup - the spot is just a placeholder
-  // while the car is actually out with a customer.
+  // while the car is actually out with a customer. Keeps the whole record
+  // (not just a flag) so the map can show who has it and a live countdown.
   const tdMap = {};
   Object.values(testDrives||{}).forEach(t => {
     if (!t.stock || t.status !== 'out') return;
-    tdMap[t.stock.toUpperCase().trim()] = true;
+    tdMap[t.stock.toUpperCase().trim()] = t;
   });
 
   // Build a single stock# → duplicate-count lookup across the active lots
@@ -8186,6 +8204,7 @@ function cmRenderMap() {
       const appt = veh ? apptMap[(veh.stock||'').toUpperCase().trim()] : null;
       const gr   = veh ? grMap[(veh.stock||'').toUpperCase().trim()] : null;
       const onTd = veh ? tdMap[(veh.stock||'').toUpperCase().trim()] : null;
+      const tdCountdown = onTd ? computeCountdown(onTd.startedAt, onTd.durationMins || 120) : null;
       const isDupe = veh && veh.stock && veh.status!=='blocked' && veh.status!=='void' && (stockSpotCounts[veh.stock.toUpperCase().trim()]||0) > 1;
 
       if (!veh && !cmEditMode) {
@@ -8207,7 +8226,18 @@ function cmRenderMap() {
         const isBlocked = veh.status === 'blocked';
         const isVoid = veh.status === 'void';
         const isFlagged = !isBlocked && !isVoid && cmIsFlagged(veh);
-        const cls = isDupe && !isBlocked && !isVoid ? 'cm-duplicate' : onTd && !isBlocked && !isVoid ? 'ontestdrive' : appt && !isBlocked && !isVoid ? 'appointed' : gr && !isBlocked && !isVoid ? 'getready' : cmTypeClass(veh.status);
+        // Priority when more than one applies at once: a data error (duplicate)
+        // always wins, then "the car is physically gone right now" (test
+        // drive), then the two prep flags (gas before wash - a car with no
+        // gas can't be driven at all, so it's the more blocking of the two),
+        // then the softer scheduling signals (appointment/get ready).
+        const cls = isDupe && !isBlocked && !isVoid ? 'cm-duplicate'
+          : onTd && !isBlocked && !isVoid ? 'ontestdrive'
+          : veh.needsGas && !isBlocked && !isVoid ? 'needs-gas'
+          : veh.needsWash && !isBlocked && !isVoid ? 'needs-wash'
+          : appt && !isBlocked && !isVoid ? 'appointed'
+          : gr && !isBlocked && !isVoid ? 'getready'
+          : cmTypeClass(veh.status);
 
         if (isVoid) {
           // Void - completely inert in normal mode, selectable/deletable in edit mode only
@@ -8250,7 +8280,7 @@ function cmRenderMap() {
             <div class="cm-spot-stock">${stock}</div>
             <div class="cm-spot-desc">${lockInfo ? `🔒 ${lockInfo.lockedBy}` : heatOn ? (ageDays!=null ? `${ageDays}d on lot` : 'no arrival date') : typeLine}</div>
             ${isDupe && !cmEditMode ? `<div class="cm-spot-dupe">⚠ DUPLICATE</div>` : ''}
-            ${!heatOn && onTd && !isDupe && !cmEditMode ? `<div class="cm-spot-td">🚗 Out - Test Drive</div>` : ''}
+            ${!heatOn && onTd && !isDupe && !cmEditMode ? `<div class="cm-spot-td">🚗 ${esc(onTd.salesperson||'')}</div><div class="cm-spot-td-timer${tdCountdown.overdue?' overdue':''}">${tdCountdown.overdue?'⚠ +':'⏱ '}${tdCountdown.text.replace(/^\+/,'')}</div>` : ''}
             ${!heatOn && appt && !onTd && !isDupe && !cmEditMode ? `<div class="cm-spot-appt">${appt.label}</div>` : ''}
             ${!heatOn && gr && !appt && !onTd && !isDupe && !cmEditMode ? `<div class="cm-spot-gr">${gr.label}</div>` : ''}
             ${cmEditMode&&cmSelected.has(key)?'<div style="font-size:10px;color:#f59e0b;font-weight:800;position:absolute;bottom:2px;right:3px">✓</div>':''}
@@ -9717,6 +9747,7 @@ function flSpotHtml(id, veh, maps) {
   const { apptMap, grMap, tdMap, stockSpotCounts, ageMap } = maps;
   const stockUpper = (veh.stock||'').toUpperCase().trim();
   const appt = apptMap[stockUpper], gr = grMap[stockUpper], onTd = tdMap[stockUpper];
+  const tdCountdown = onTd ? computeCountdown(onTd.startedAt, onTd.durationMins || 120) : null;
   const isDupe = (stockSpotCounts[stockUpper]||0) > 1;
   const isFlagged = cmIsFlagged(veh);
   // "Incorrect parking" - the spot's own label designates a zone (e.g.
@@ -9727,7 +9758,17 @@ function flSpotHtml(id, veh, maps) {
   // being in the wrong row).
   const zoneType = flDesignatedType(veh.label);
   const isMismatch = zoneType && zoneType !== cmTypeClass(veh.status);
-  const cls = isDupe ? 'cm-duplicate' : isMismatch ? 'cm-mismatch' : onTd ? 'ontestdrive' : appt ? 'appointed' : gr ? 'getready' : cmTypeClass(veh.status);
+  // Same priority as the grid map: data error > car physically out on a
+  // test drive > needs gas (more blocking than a wash) > needs wash >
+  // softer scheduling signals.
+  const cls = isDupe ? 'cm-duplicate'
+    : isMismatch ? 'cm-mismatch'
+    : onTd ? 'ontestdrive'
+    : veh.needsGas ? 'needs-gas'
+    : veh.needsWash ? 'needs-wash'
+    : appt ? 'appointed'
+    : gr ? 'getready'
+    : cmTypeClass(veh.status);
   const ageDays = ageMap ? ageMap[stockUpper] : null;
   const heatOn = cmHeatmapMode && !isDupe && !isMismatch;
   const heatCls = heatOn ? ' cm-heatmap-active' : '';
@@ -9751,7 +9792,7 @@ function flSpotHtml(id, veh, maps) {
     ${flTextWrap(veh, `<div class="cm-spot-stock" style="${flFitStyle(veh, stock)}">${esc(stock)}</div>
     <div class="cm-spot-desc">${lockInfo ? `🔒 ${esc(lockInfo.lockedBy)}` : heatOn ? (ageDays!=null ? `${ageDays}d on lot` : 'no arrival date') : isMismatch ? `Should be ${esc(veh.label)}` : esc(typeLine)}</div>
     ${isDupe ? '<div class="cm-spot-dupe">⚠ DUPLICATE</div>' : isMismatch ? '<div class="cm-spot-dupe">⚠ WRONG SPOT</div>' : ''}
-    ${!heatOn && onTd && !isDupe && !isMismatch ? '<div class="cm-spot-td">🚗 Out - Test Drive</div>' : ''}
+    ${!heatOn && onTd && !isDupe && !isMismatch ? `<div class="cm-spot-td">🚗 ${esc(onTd.salesperson||'')}</div><div class="cm-spot-td-timer${tdCountdown.overdue?' overdue':''}">${tdCountdown.overdue?'⚠ +':'⏱ '}${tdCountdown.text.replace(/^\+/,'')}</div>` : ''}
     ${!heatOn && appt && !onTd && !isDupe && !isMismatch ? `<div class="cm-spot-appt">${appt.label}</div>` : ''}
     ${!heatOn && gr && !appt && !onTd && !isDupe && !isMismatch ? `<div class="cm-spot-gr">${gr.label}</div>` : ''}`)}
   </div>`;
