@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+<meta name="robots" content="noindex,nofollow"/>
+<title>Delivery Appointments - Barrie Ford</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:#00095b;
+  background-image:radial-gradient(circle at 15% 0%,#001080 0%,#00095b 55%);
+  color:#fff;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.board-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 32px;flex-shrink:0;
+  border-bottom:1px solid rgba(255,255,255,.15);
+}
+.board-title{display:flex;align-items:center;gap:14px}
+.board-title img{height:38px;width:auto;display:block}
+.board-title span{font-size:22px;font-weight:800;letter-spacing:.02em}
+.board-clock{font-size:20px;font-weight:700;color:rgba(255,255,255,.75);font-variant-numeric:tabular-nums}
+.board-body{flex:1;min-height:0;padding:22px 32px 28px;display:flex;flex-direction:column}
+.board-empty{
+  flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;
+  color:rgba(255,255,255,.5);text-align:center;
+}
+.board-empty .big{font-size:26px;font-weight:700;color:rgba(255,255,255,.75)}
+.appt-table{width:100%;border-collapse:collapse;flex:1}
+.appt-table thead th{
+  text-align:left;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+  color:rgba(255,255,255,.5);padding:0 18px 12px;border-bottom:1px solid rgba(255,255,255,.2);
+}
+.appt-table tbody td{
+  padding:16px 18px;font-size:20px;font-weight:600;border-bottom:1px solid rgba(255,255,255,.08);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:1px;
+}
+.appt-table tbody tr:last-child td{border-bottom:none}
+.appt-table tbody tr.is-today td{background:rgba(255,255,255,.05)}
+.appt-when{color:#fff;font-weight:800;white-space:nowrap}
+.appt-when .day{color:rgba(255,255,255,.55);font-weight:700;font-size:14px;display:block;text-transform:uppercase;letter-spacing:.04em}
+.today-pill{
+  display:inline-block;margin-left:8px;padding:2px 9px;font-size:11px;font-weight:800;
+  background:#f97316;color:#fff;border-radius:20px;text-transform:uppercase;letter-spacing:.03em;vertical-align:middle;
+}
+.conn-dot{width:8px;height:8px;border-radius:50%;background:#94a3b8;display:inline-block;margin-right:6px;transition:background .3s}
+.conn-wrap{display:flex;align-items:center;font-size:12px;color:rgba(255,255,255,.4);position:fixed;bottom:10px;right:16px}
+</style>
+</head>
+<body>
+  <div class="board-header">
+    <div class="board-title">
+      <img src="/icon-192.png" alt=""/>
+      <span>Delivery Appointments</span>
+    </div>
+    <div class="board-clock" id="board-clock"></div>
+  </div>
+  <div class="board-body" id="board-body">
+    <div class="board-empty"><div class="big">Loading…</div></div>
+  </div>
+  <div class="conn-wrap"><span class="conn-dot" id="conn-dot"></span><span id="conn-label">Connecting…</span></div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, onValue } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDYj9RC-cmfcfZ6sPo_9TmF67mWeEkxkwo",
+  authDomain: "lot-queue.firebaseapp.com",
+  databaseURL: "https://lot-queue-default-rtdb.firebaseio.com",
+  projectId: "lot-queue",
+  storageBucket: "lot-queue.firebasestorage.app",
+  messagingSenderId: "729445608944",
+  appId: "1:729445608944:web:7bfe67714631e279b54135"
+};
+
+const appFB = initializeApp(firebaseConfig);
+const db = getDatabase(appFB);
+const auth = getAuth(appFB);
+
+function esc(val) {
+  return String(val ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function apptTs(d) {
+  if (!d.date || !d.time) return 0;
+  const t = new Date(d.date + 'T' + d.time).getTime();
+  return isNaN(t) ? 0 : t;
+}
+
+function todayStartTs() { const dt = new Date(); dt.setHours(0,0,0,0); return dt.getTime(); }
+
+function renderClock() {
+  const el = document.getElementById('board-clock');
+  if (el) el.textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+}
+renderClock();
+setInterval(renderClock, 1000);
+
+let latestData = {};
+
+function render() {
+  const body = document.getElementById('board-body');
+  const now = Date.now();
+  const todayStart = todayStartTs();
+  const todayEnd = todayStart + 24*60*60*1000;
+
+  const list = Object.values(latestData || {})
+    .filter(d => apptTs(d) >= todayStart) // hide anything before today - a lobby board only needs today onward
+    .sort((a,b) => apptTs(a) - apptTs(b));
+
+  if (!list.length) {
+    body.innerHTML = `<div class="board-empty"><div class="big">No delivery appointments scheduled</div><div>Check back soon.</div></div>`;
+    return;
+  }
+
+  const rows = list.map(d => {
+    const ts = apptTs(d);
+    const isToday = ts >= todayStart && ts < todayEnd;
+    const dt = new Date(ts);
+    const dayLabel = isToday ? 'Today' : dt.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+    const timeLabel = dt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    return `<tr class="${isToday ? 'is-today' : ''}">
+      <td class="appt-when"><span class="day">${esc(dayLabel)}</span>${esc(timeLabel)}${isToday ? '<span class="today-pill">Today</span>' : ''}</td>
+      <td>${esc(d.customer)}</td>
+      <td>${esc(d.salesperson)}</td>
+      <td>${esc(d.vehicle)}</td>
+    </tr>`;
+  }).join('');
+
+  body.innerHTML = `<table class="appt-table">
+    <thead><tr><th>When</th><th>Customer</th><th>Salesperson</th><th>Vehicle</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+onAuthStateChanged(auth, user => {
+  const dot = document.getElementById('conn-dot');
+  const label = document.getElementById('conn-label');
+  if (user) {
+    if (dot) dot.style.background = '#22c55e';
+    if (label) label.textContent = 'Live';
+  } else {
+    if (dot) dot.style.background = '#94a3b8';
+    if (label) label.textContent = 'Connecting…';
+    signInAnonymously(auth).catch(() => {
+      if (label) label.textContent = 'Connection error';
+    });
+  }
+});
+
+onValue(ref(db, 'deliveryAppointments'), snap => {
+  latestData = snap.val() || {};
+  render();
+});
+
+// Re-render every minute even with no data change, so "Today" rows correctly
+// age off into a new calendar day without needing a manual refresh.
+setInterval(render, 60000);
+
+// This page is meant to run unattended on a lobby TV for weeks at a time -
+// a periodic hard reload keeps it picking up any future code changes and
+// clears out any long-lived connection weirdness, instead of quietly going
+// stale until someone notices and manually refreshes it.
+setTimeout(() => location.reload(), 6 * 60 * 60 * 1000);
+</script>
+</body>
+</html>

@@ -49,7 +49,7 @@
   running stale in-memory JS until someone manually clears their cache.
   Whoever edits this file next should update this value.
 -->
-<meta name="app-build" content="2026-08-21T14:06:04Z"/>
+<meta name="app-build" content="2026-08-24T14:08:48Z"/>
 <title>Vehicle Manager - Barrie Ford</title>
 <!-- The favicon uses the same app icon as the Home Screen/manifest icons
      (see icon-*.png) - one consistent icon everywhere instead of the old
@@ -950,7 +950,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot-stock{font-size:9px;font-weight:800;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;margin-top:8px}
 .cm-spot-desc{font-size:7.5px;color:#64748b;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
 .cm-spot.cm-hi{box-shadow:0 0 0 2.5px #f59e0b,0 2px 8px rgba(0,0,0,.15)!important;transform:translateY(-2px)!important;z-index:2}
-.cm-spot.cm-dim{opacity:.2}
 .cm-gap{width:16px;height:46px;flex-shrink:0;background:repeating-linear-gradient(90deg,#e2e8f0 0,#e2e8f0 2px,transparent 2px,transparent 8px);border-radius:3px;margin:2px 2px}
 .cm-lane-bar{height:20px;display:flex;align-items:center;gap:0;margin:2px 0 2px 28px}
 .cm-lane-inner{flex:1;border-top:2px dashed #e2e8f0}
@@ -1227,6 +1226,10 @@ body.cm-fullscreen #cm-grid-zoom,body.cm-fullscreen #cm-fl-zoom{display:none!imp
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
       Get Ready <span class="tab-count" id="tc-getready">0</span>
     </button>
+    <button class="tab" id="tab-deliveries" onclick="switchTab('deliveries',this)" style="display:none">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+      Deliveries <span class="tab-count" id="tc-deliveries">0</span>
+    </button>
     <button class="tab" id="tab-testdrive" onclick="switchTab('testdrive',this)" style="display:none">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg>
       Test Drives <span class="tab-count" id="tc-testdrive">0</span>
@@ -1480,6 +1483,15 @@ body.cm-fullscreen #cm-grid-zoom,body.cm-fullscreen #cm-fl-zoom{display:none!imp
           <button id="cm-lot-btn-bayview323new" onclick="cmSwitchLot('bayview323new')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">323 Bayview</button>
           <button id="cm-lot-btn-dealership" onclick="cmSwitchLot('dealership')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">Dealership</button>
         </div>
+        <!-- Search - right next to the lot switcher, so it's easy to reach
+             without hunting for it elsewhere in the toolbar. Searches every
+             compound, not just this one; a match elsewhere shows as a
+             clickable "Located in..." pill below it. -->
+        <div id="cm-grid-search-wrap" style="position:relative">
+          <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-faint);font-size:12px">🔍</span>
+          <input id="cm-search" type="text" placeholder="Search stock #…" oninput="cmSearch(this.value)" style="padding:6px 10px 6px 28px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);background:var(--bg);color:var(--text);outline:none;width:160px"/>
+          <button id="cm-search-elsewhere" onclick="cmGoToElsewhereMatch()" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;white-space:nowrap;padding:6px 10px;font-size:12px;font-weight:600;border:1px solid #93c5fd;border-radius:var(--radius-sm);background:#eff6ff;color:#1d4ed8;cursor:pointer;z-index:10;text-align:left"></button>
+        </div>
         <!-- Zoom - mainly for mobile, where the map's own hold-to-drag touch
              handling blocks the browser's native pinch-to-zoom gesture. -->
         <div id="cm-grid-zoom" style="display:flex;align-items:center;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
@@ -1497,14 +1509,7 @@ body.cm-fullscreen #cm-grid-zoom,body.cm-fullscreen #cm-fl-zoom{display:none!imp
         </div>
         <!-- Stats -->
         <div id="cm-stats" style="display:flex;gap:14px;font-size:13px;flex-wrap:wrap"></div>
-        <!-- Search - searches every compound, not just this one; a match
-             elsewhere shows as a clickable "Located in..." pill below it. -->
-        <div id="cm-grid-search-wrap" style="position:relative;margin-left:auto">
-          <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-faint);font-size:12px">🔍</span>
-          <input id="cm-search" type="text" placeholder="Search stock #…" oninput="cmSearch(this.value)" style="padding:6px 10px 6px 28px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);background:var(--bg);color:var(--text);outline:none;width:160px"/>
-          <button id="cm-search-elsewhere" onclick="cmGoToElsewhereMatch()" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;white-space:nowrap;padding:6px 10px;font-size:12px;font-weight:600;border:1px solid #93c5fd;border-radius:var(--radius-sm);background:#eff6ff;color:#1d4ed8;cursor:pointer;z-index:10;text-align:left"></button>
-        </div>
-        <button id="cm-heatmap-btn" onclick="cmToggleHeatmap()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer">🌡️ Age Heatmap</button>
+        <button id="cm-heatmap-btn" onclick="cmToggleHeatmap()" style="margin-left:auto;padding:6px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer">🌡️ Age Heatmap</button>
         <button id="cm-edit-btn" onclick="cmToggleEdit()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid #fcd34d;border-radius:var(--radius-sm);background:#fef9ec;color:#b45309;cursor:pointer;display:none">✏️ Edit</button>
         <button id="cm-qr-btn" onclick="cmOpenQR()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer">🖨 QR</button>
         <!-- Management-only: temporarily hide a lot's tab from everyone else
@@ -1875,6 +1880,52 @@ body.cm-fullscreen #cm-grid-zoom,body.cm-fullscreen #cm-fl-zoom{display:none!imp
     </div>
 
     <!-- TEST DRIVES -->
+    <!-- DELIVERY APPOINTMENTS -->
+    <div id="panel-deliveries" class="panel">
+      <div class="queue-toolbar">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <button class="btn-new-request" id="btn-new-delivery" onclick="toggleDeliveryForm()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            New Delivery Appointment
+          </button>
+          <div class="stats" style="margin-bottom:0;display:flex;gap:10px;flex-wrap:wrap">
+            <div class="stat" style="padding:8px 14px;min-width:0"><div class="stat-num" id="da-today-count" style="font-size:20px">0</div><div class="stat-label">Today</div></div>
+            <div class="stat" style="padding:8px 14px;min-width:0"><div class="stat-num" id="da-upcoming-count" style="font-size:20px">0</div><div class="stat-label">Upcoming</div></div>
+          </div>
+          <button id="da-copy-link-btn" onclick="copyDeliveryBoardLink()" style="display:none;margin-left:auto;padding:8px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer">🔗 Copy Board Link</button>
+        </div>
+      </div>
+
+      <!-- Slide-down new delivery appointment form -->
+      <div class="request-form-wrap" id="delivery-form-wrap">
+        <div class="request-form-inner">
+          <div style="font-size:16px;font-weight:600;margin-bottom:6px" id="delivery-form-title">Book a delivery appointment</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">Shows up on the lobby delivery board - keep it accurate.</div>
+          <div id="da-form-toast" class="toast"></div>
+          <input type="hidden" id="da-edit-id" value=""/>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+            <div class="form-row" style="margin-bottom:0"><label>Customer <span style="color:#e24b4a">*</span></label><input id="da-customer" type="text" placeholder="e.g. John Smith" autocomplete="off"/></div>
+            <div class="form-row" style="margin-bottom:0"><label>Salesperson <span style="color:#e24b4a">*</span></label><input id="da-salesperson" type="text" placeholder="e.g. Michael Prince" autocomplete="off"/></div>
+          </div>
+          <div class="form-row"><label>Vehicle <span style="color:#e24b4a">*</span></label><input id="da-vehicle" type="text" placeholder="e.g. 2024 F-150 XLT - B1234" autocomplete="off"/></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+            <div class="form-row" style="margin-bottom:0"><label>Date <span style="color:#e24b4a">*</span></label><input id="da-date" type="date"/></div>
+            <div class="form-row" style="margin-bottom:0"><label>Time <span style="color:#e24b4a">*</span></label><input id="da-time" type="time"/></div>
+          </div>
+          <div class="form-row"><label>Notes <span style="color:var(--text-faint);font-weight:400;text-transform:none;letter-spacing:0">optional</span></label><textarea id="da-notes" placeholder="Trade-in, financing questions, special requests…" style="min-height:60px"></textarea></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-submit" id="da-btn-submit" onclick="submitDeliveryAppt()" style="margin-top:0">Save appointment</button>
+            <button onclick="toggleDeliveryForm()" style="padding:11px 18px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);font-size:14px;cursor:pointer;color:var(--text-muted);margin-top:0">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-label">Upcoming</div>
+      <div id="delivery-upcoming-list" class="tracker-card-grid"></div>
+      <div class="section-label" style="margin-top:24px">Past</div>
+      <div id="delivery-past-list" class="tracker-card-grid"></div>
+    </div>
+
     <div id="panel-testdrive" class="panel">
       <div class="queue-toolbar">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -2537,7 +2588,7 @@ function esc(val) {
 }
 
 // ── State ─────────────────────────────────────────────
-let entries = {}, historyData = {}, units = {}, getReadyDeals = {}, hitchhikers = {}, testDrives = {}, compoundHistoryData = {};
+let entries = {}, historyData = {}, units = {}, getReadyDeals = {}, hitchhikers = {}, testDrives = {}, compoundHistoryData = {}, deliveryAppts = {};
 let announcements = {}, annSelectedId = null, annVisibleCount = 8, editingAnnId = null;
 let emailSettings = {}; // {grAddress, incAddress, digestTime} - sending itself now happens server-side (see functions/index.js)
 let currentAlertState = null;
@@ -2567,16 +2618,16 @@ const ROLE_LABELS = {lot:'Inventory Control',reception:'Reception',service:'Serv
 
 // Default permission matrix - used until Firebase settings/permissions loads (or if a role/perm is missing there)
 const DEFAULT_PERMISSIONS = {
-  lot:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  cbIRecon:false,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:false, grGasConfirm:true,  grChecklistApprove:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false  },
-  reception:    { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  cbIRecon:false,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  service:      { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, cbIRecon:false,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  sales:        { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, cbIRecon:false,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  fandi:        { tabHome:true,  tabQueue:true,  tabTracker:false, tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, cbIRecon:false,  queueAdmin:false, clearCompleted:false, getReadyEdit:true,  grGasConfirm:true,  grChecklistApprove:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  detail:       { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, cbIRecon:false,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  pdi:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:true,  trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:false, cbIC:false, cbIRecon:false,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  merchandiser: { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:true,  tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:true,  trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:true,  cbIC:false, cbIRecon:true,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  management:   { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  cbIRecon:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  grGasConfirm:true,  grChecklistApprove:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false  },
-  shuttle:      { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, cbIRecon:false,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false },
+  lot:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  cbIRecon:false,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:false, grGasConfirm:true,  grChecklistApprove:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false, tabDeliveries:false },
+  reception:    { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  cbIRecon:false,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabDeliveries:true  },
+  service:      { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, cbIRecon:false,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabDeliveries:false },
+  sales:        { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, cbIRecon:false,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabDeliveries:true  },
+  fandi:        { tabHome:true,  tabQueue:true,  tabTracker:false, tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, cbIRecon:false,  queueAdmin:false, clearCompleted:false, getReadyEdit:true,  grGasConfirm:true,  grChecklistApprove:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabDeliveries:true  },
+  detail:       { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, cbIRecon:false,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabDeliveries:false },
+  pdi:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:true,  trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:false, cbIC:false, cbIRecon:false,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabDeliveries:false },
+  merchandiser: { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:true,  tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:true,  trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:true,  cbIC:false, cbIRecon:true,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabDeliveries:false },
+  management:   { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  cbIRecon:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  grGasConfirm:true,  grChecklistApprove:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false, tabDeliveries:true  },
+  shuttle:      { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, cbIRecon:false,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false, tabDeliveries:false },
 };
 
 let PERMISSIONS = JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS)); // live copy, overwritten by Firebase
@@ -2590,7 +2641,7 @@ function perm(key) {
 
 function applyPermissions() {
   if (!currentUser) return;
-  const tabMap = { tabHome:'tab-home', tabQueue:'tab-rides', tabTracker:'tab-tracker', tabGetReady:'tab-getready', tabTestDrive:'tab-testdrive', tabTV:'tab-tv', tabShuttle:'tab-shuttle', tabCompound:'tab-compound', tabAudit:'tab-audit', tabHistory:'tab-history', tabSettings:'tab-settings' };
+  const tabMap = { tabHome:'tab-home', tabQueue:'tab-rides', tabTracker:'tab-tracker', tabGetReady:'tab-getready', tabDeliveries:'tab-deliveries', tabTestDrive:'tab-testdrive', tabTV:'tab-tv', tabShuttle:'tab-shuttle', tabCompound:'tab-compound', tabAudit:'tab-audit', tabHistory:'tab-history', tabSettings:'tab-settings' };
   for (const key in tabMap) {
     const el = document.getElementById(tabMap[key]);
     if (el) el.style.display = perm(key) ? '' : 'none';
@@ -2614,6 +2665,8 @@ function applyPermissions() {
   if (clearHistBtn) clearHistBtn.style.display = currentUser?.role === 'management' ? '' : 'none';
   const alertWrap = document.getElementById('alert-settings-wrap');
   if (alertWrap) alertWrap.style.display = currentUser?.role === 'management' ? 'block' : 'none';
+  const daLinkBtn = document.getElementById('da-copy-link-btn');
+  if (daLinkBtn) daLinkBtn.style.display = currentUser?.role === 'management' ? '' : 'none';
 
   // Vehicle Appointments are for internal departments (Service, Reception)
   // plus whoever fulfills them (lot, management) - sales handles their own
@@ -2633,7 +2686,7 @@ function applyPermissions() {
 // ── Permissions matrix editor (Settings tab) ──────────
 const PERM_GROUPS = [
   { label:'Tabs', keys: [
-    ['tabHome','Home'], ['tabQueue','Rides'], ['tabTracker','Incoming'], ['tabGetReady','Get Ready'], ['tabTestDrive','Test Drives'],
+    ['tabHome','Home'], ['tabQueue','Rides'], ['tabTracker','Incoming'], ['tabGetReady','Get Ready'], ['tabDeliveries','Deliveries'], ['tabTestDrive','Test Drives'],
     ['tabCompound','Vehicle Locator'], ['tabTV','TV Display'], ['tabShuttle','Shuttle Dashboard'], ['tabHistory','History'], ['tabSettings','Settings'],
   ]},
   { label:'Shuttle Dashboard', keys: [
@@ -3341,6 +3394,11 @@ function startApp() {
     if (document.getElementById('panel-tv')?.classList.contains('active')) renderTVCompoundMap();
   });
 
+  onValue(ref(db,'deliveryAppointments'), snap=>{
+    deliveryAppts = snap.val()||{};
+    renderDeliveryAppts();
+  });
+
   if (perm('tabHistory')) {
     onValue(ref(db,'history'), snap=>{ historyData=snap.val()||{}; renderHistory(); });
     onValue(ref(db,'compound_history'), snap=>{ compoundHistoryData=snap.val()||{}; renderCompoundHistory(); });
@@ -3497,6 +3555,168 @@ function renderTestDrives() {
   const tcEl = document.getElementById('tc-testdrive');
   if (tcEl) tcEl.textContent = active.length;
 }
+
+// ── Delivery Appointments ────────────────────────────────
+// Replaces the public "appointment board" DriveCentric used to offer as a
+// linkable page - DriveCentric pulled that feature, so this app now owns
+// booking + the public read-only board (see delivery-board.html) that gets
+// embedded on the lobby TV.
+function deliveryApptTs(d) {
+  if (!d.date || !d.time) return 0;
+  const t = new Date(d.date+'T'+d.time).getTime();
+  return isNaN(t) ? 0 : t;
+}
+function fmtApptDateTime(d) {
+  const ts = deliveryApptTs(d);
+  if (!ts) return '';
+  const dt = new Date(ts);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dtDay = new Date(dt); dtDay.setHours(0,0,0,0);
+  const dayLabel = dtDay.getTime() === today.getTime() ? 'Today' : dt.toLocaleDateString([],{weekday:'short', month:'short', day:'numeric'});
+  return `${dayLabel} at ${dt.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}`;
+}
+
+window.toggleDeliveryForm = function(editId) {
+  const wrap = document.getElementById('delivery-form-wrap');
+  const idEl = document.getElementById('da-edit-id');
+  const titleEl = document.getElementById('delivery-form-title');
+  const btnEl = document.getElementById('da-btn-submit');
+  if (editId) {
+    const d = deliveryAppts[editId];
+    if (!d) return;
+    idEl.value = editId;
+    document.getElementById('da-customer').value = d.customer || '';
+    document.getElementById('da-salesperson').value = d.salesperson || '';
+    document.getElementById('da-vehicle').value = d.vehicle || '';
+    document.getElementById('da-date').value = d.date || '';
+    document.getElementById('da-time').value = d.time || '';
+    document.getElementById('da-notes').value = d.notes || '';
+    titleEl.textContent = 'Edit delivery appointment';
+    btnEl.textContent = 'Save changes';
+    wrap.classList.add('open');
+    setTimeout(()=>document.getElementById('da-customer').focus(), 350);
+    return;
+  }
+  const isOpen = wrap.classList.contains('open');
+  wrap.classList.toggle('open', !isOpen);
+  if (!isOpen) {
+    idEl.value = '';
+    document.getElementById('da-customer').value = '';
+    document.getElementById('da-salesperson').value = '';
+    document.getElementById('da-vehicle').value = '';
+    document.getElementById('da-date').value = '';
+    document.getElementById('da-time').value = '';
+    document.getElementById('da-notes').value = '';
+    titleEl.textContent = 'Book a delivery appointment';
+    btnEl.textContent = 'Save appointment';
+    setTimeout(()=>document.getElementById('da-customer').focus(), 350);
+  }
+};
+
+function daToast(msg, type) {
+  const t = document.getElementById('da-form-toast');
+  if (!t) return;
+  t.textContent = msg; t.className = 'toast ' + type; t.style.display = 'block';
+  setTimeout(()=>{ t.style.display = 'none'; }, 4500);
+}
+
+window.submitDeliveryAppt = async function() {
+  const editId = document.getElementById('da-edit-id').value.trim();
+  const customer = document.getElementById('da-customer').value.trim();
+  const salesperson = document.getElementById('da-salesperson').value.trim();
+  const vehicle = document.getElementById('da-vehicle').value.trim();
+  const date = document.getElementById('da-date').value;
+  const time = document.getElementById('da-time').value;
+  const notes = document.getElementById('da-notes').value.trim();
+  if (!customer) { daToast('Please enter the customer name.', 'error'); return; }
+  if (!salesperson) { daToast('Please enter the salesperson.', 'error'); return; }
+  if (!vehicle) { daToast('Please enter the vehicle.', 'error'); return; }
+  if (!date || !time) { daToast('Please pick a date and time.', 'error'); return; }
+  const btn = document.getElementById('da-btn-submit');
+  btn.disabled = true; btn.textContent = editId ? 'Saving…' : 'Saving…';
+  try {
+    if (editId) {
+      await update(ref(db,'deliveryAppointments/'+editId), {
+        customer, salesperson, vehicle, date, time, notes,
+        updatedBy: currentUser.name, updatedAt: Date.now(),
+      });
+    } else {
+      await push(ref(db,'deliveryAppointments'), {
+        customer, salesperson, vehicle, date, time, notes,
+        createdBy: currentUser.name, createdAt: Date.now(),
+      });
+    }
+    daToast(editId ? '✓ Appointment updated' : '✓ Appointment booked', 'success');
+    toggleDeliveryForm();
+  } catch(e) { daToast('Error saving - check connection.', 'error'); }
+  btn.disabled = false;
+};
+
+window.editDeliveryAppt = function(id) { toggleDeliveryForm(id); };
+
+window.deleteDeliveryAppt = async function(id) {
+  if (!confirm('Delete this delivery appointment?')) return;
+  await remove(ref(db,'deliveryAppointments/'+id));
+};
+
+window.copyDeliveryBoardLink = function() {
+  const url = location.origin + '/delivery-board.html';
+  navigator.clipboard.writeText(url).then(() => {
+    daToast('✓ Board link copied - paste it into the lobby display.', 'success');
+  }).catch(() => {
+    prompt('Copy this link into the lobby display:', url);
+  });
+};
+
+function deliveryApptHTML(d) {
+  const isMine = currentUser && d.salesperson === currentUser.name;
+  const canManage = currentUser && (['management','reception'].includes(currentUser.role) || isMine);
+  return `<div class="tracker-card">
+    <div class="tracker-card-header">
+      <div class="tracker-card-stock"><span>${esc(d.customer)}</span></div>
+      <div class="tracker-card-vehicle">🚗 ${esc(d.vehicle)}</div>
+    </div>
+    <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="font-size:12px;font-weight:700;color:#1d4ed8">📅 ${esc(fmtApptDateTime(d))}</span>
+    </div>
+    ${d.notes?`<div style="padding:8px 16px;font-size:12px;color:var(--text-muted);border-bottom:1px solid var(--border);font-style:italic">${esc(d.notes)}</div>`:''}
+    <div class="tracker-card-meta">
+      <span style="font-size:12px;color:var(--text-faint)">Salesperson: ${esc(d.salesperson)}</span>
+    </div>
+    <div class="tracker-card-actions">
+      ${canManage?`<button class="btn-tedit" onclick="editDeliveryAppt('${d.id}')">✎ Edit</button>`:''}
+      ${canManage?`<button class="btn-tdel" onclick="deleteDeliveryAppt('${d.id}')">✕</button>`:''}
+    </div>
+  </div>`;
+}
+
+function renderDeliveryAppts() {
+  const now = Date.now();
+  const list = Object.entries(deliveryAppts||{}).map(([id,d])=>({id,...d}));
+  const upcoming = list.filter(d=>deliveryApptTs(d) >= now).sort((a,b)=>deliveryApptTs(a)-deliveryApptTs(b));
+  const past = list.filter(d=>deliveryApptTs(d) < now).sort((a,b)=>deliveryApptTs(b)-deliveryApptTs(a));
+
+  const upcomingEl = document.getElementById('delivery-upcoming-list');
+  const pastEl = document.getElementById('delivery-past-list');
+  if (upcomingEl) upcomingEl.innerHTML = upcoming.length
+    ? upcoming.map(deliveryApptHTML).join('')
+    : '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)">No upcoming delivery appointments.</div>';
+  if (pastEl) pastEl.innerHTML = past.length
+    ? past.map(deliveryApptHTML).join('')
+    : '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-faint);font-size:13px">None yet.</div>';
+
+  const todayCount = list.filter(d=>{
+    const ts = deliveryApptTs(d);
+    return ts >= todayStartTs() && ts < todayStartTs() + 24*60*60*1000;
+  }).length;
+  const todayEl = document.getElementById('da-today-count');
+  if (todayEl) todayEl.textContent = todayCount;
+  const upcomingCountEl = document.getElementById('da-upcoming-count');
+  if (upcomingCountEl) upcomingCountEl.textContent = upcoming.length;
+  const tcEl = document.getElementById('tc-deliveries');
+  if (tcEl) tcEl.textContent = todayCount;
+}
+
 // ── Soft edit-locks ─────────────────────────────────────
 // Lets an edit form warn "so-and-so is already editing this" and disable Save,
 // instead of silently letting the second person's save clobber the first's.
@@ -7652,6 +7872,22 @@ function renderHomeGrid() {
     });
   }
 
+  if (perm('tabDeliveries')) {
+    tiles.push({
+      name: 'deliveries', tone: 'blue',
+      icon: `<rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>`,
+      title: 'Deliveries',
+      desc: 'Book and track customer delivery appointments.',
+      badge: () => {
+        const now = Date.now(), start = todayStartTs();
+        return Object.values(deliveryAppts).filter(d=>{
+          const ts = deliveryApptTs(d);
+          return ts >= start && ts < start + 24*60*60*1000;
+        }).length;
+      }
+    });
+  }
+
   // Lot Audit tile intentionally removed - feature parked for now (see auditShowTab).
 
   if (perm('tabHistory')) {
@@ -8848,7 +9084,7 @@ function cmMatchingKeys(lotId, query) {
 }
 
 function cmApplySearchHighlight() {
-  document.querySelectorAll('.cm-spot').forEach(el => el.classList.remove('cm-hi','cm-dim'));
+  document.querySelectorAll('.cm-spot').forEach(el => el.classList.remove('cm-hi'));
   cmElsewhereLot = null;
   const elsewhereEl = document.getElementById('cm-search-elsewhere');
   if (!cmSearchQuery) { if (elsewhereEl) elsewhereEl.style.display = 'none'; return; }
@@ -8856,7 +9092,7 @@ function cmApplySearchHighlight() {
   document.querySelectorAll('.cm-spot').forEach(el => {
     const key = el.dataset.cmKey;
     if (!key) return;
-    el.classList.add(matched.has(key) ? 'cm-hi' : 'cm-dim');
+    if (matched.has(key)) el.classList.add('cm-hi');
   });
   // Not on this compound's board - check the other two before giving up,
   // so a car parked at a different lot still turns up instead of just
@@ -8893,11 +9129,17 @@ function cmScrollToFirstMatch() {
 }
 
 window.cmSearch = function(q) {
+  const trimmed = q.trim().toLowerCase();
+  // Clearing the box is a no-op: leave whatever's currently highlighted
+  // (and the map's scroll position) exactly as-is, rather than losing your
+  // place on the vehicle you were just looking at. The highlight only ever
+  // changes again once a new, non-empty search is typed.
+  if (!trimmed) return;
   // Persisted so the highlight survives the map's automatic re-renders
   // (it repaints every second to keep appointment/get-ready timers live).
-  cmSearchQuery = q.trim().toLowerCase();
+  cmSearchQuery = trimmed;
   cmApplySearchHighlight();
-  if (cmSearchQuery) cmScrollToFirstMatch();
+  cmScrollToFirstMatch();
 };
 
 window.cmOpenQR = function() {
