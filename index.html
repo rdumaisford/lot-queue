@@ -1007,9 +1007,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot.blocked .cm-spot-num{color:#94a3b8}
 .cm-spot.blocked .cm-spot-stock{color:#64748b;font-size:8px;font-weight:600}
 .cm-spot.blocked:hover{background:#cbd5e1!important}
-.cm-spot-note{position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:3px;background:#f59e0b;display:flex;align-items:center;justify-content:center;z-index:2}
+.cm-spot-note{position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:3px;background:#f59e0b;display:flex;align-items:center;justify-content:center;z-index:2;transform:rotate(calc(-1 * var(--spot-rot,0deg)))}
 .cm-spot-note svg{width:9px;height:9px;stroke:#fff;fill:none;stroke-width:2.5}
-.cm-spot-flags{position:absolute;top:2px;left:2px;display:flex;flex-direction:column;gap:1px;z-index:2}
+.cm-spot-flags{position:absolute;top:2px;left:2px;display:flex;flex-direction:column;gap:1px;z-index:2;transform:rotate(calc(-1 * var(--spot-rot,0deg)))}
 .cm-spot-flag{font-size:8px;line-height:1;background:rgba(255,255,255,.85);border-radius:2px;padding:1px 2px}
 .cm-del-spot{position:absolute;top:1px;right:1px;width:13px;height:13px;border-radius:50%;background:#ef4444;color:#fff;font-size:9px;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:3;line-height:1}
 .cm-edit-active .cm-del-spot{display:flex}
@@ -9168,7 +9168,7 @@ function flSpotHtml(id, veh, maps) {
     return `<div class="cm-spot ${kindCls}${selCls}" data-cm-key="${id}"
       style="${posStyle}${cmEditMode?'cursor:pointer;touch-action:none':'cursor:default'}" ${cmEditMode?'oncontextmenu="return false"':''}>
       ${cmEditMode ? `<div class="cm-del-spot" style="display:flex" onclick="event.stopPropagation();flDeleteSpot('${id}')">✕</div>` : ''}
-      <div class="cm-spot-stock">${esc(veh.label||'')}</div>
+      <div class="cm-spot-info"><div class="cm-spot-stock">${esc(veh.label||'')}</div></div>
     </div>`;
   }
 
@@ -9180,7 +9180,7 @@ function flSpotHtml(id, veh, maps) {
     return `<div class="cm-spot ${cmTypeClass(veh.status)}${selCls}" data-cm-key="${id}"
       style="${posStyle}cursor:pointer;touch-action:none" oncontextmenu="return false">
       <div class="cm-del-spot" style="display:flex" onclick="event.stopPropagation();flDeleteSpot('${id}')">✕</div>
-      <div class="cm-spot-stock">${esc(label)}</div>
+      <div class="cm-spot-info"><div class="cm-spot-stock">${esc(label)}</div></div>
     </div>`;
   }
 
@@ -9194,7 +9194,7 @@ function flSpotHtml(id, veh, maps) {
     const zoneType = flDesignatedType(veh.label);
     const emptyCls = zoneType ? zoneType : 'empty';
     return `<div class="cm-spot ${emptyCls}" data-cm-key="${id}" style="${posStyle}" onclick="cmSpotClick('${id}',0,0)">
-      <div class="cm-spot-stock" style="opacity:.6;font-weight:600">${esc(veh.label||'')}</div>
+      <div class="cm-spot-info"><div class="cm-spot-stock" style="opacity:.6;font-weight:600">${esc(veh.label||'')}</div></div>
     </div>`;
   }
   if (isVoid) {
