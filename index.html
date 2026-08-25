@@ -8726,6 +8726,10 @@ let cmHoldEl = null;
 let cmHoldStartX = 0, cmHoldStartY = 0;
 let cmLastX = 0, cmLastY = 0;
 let cmGestureMode = null; // 'holding' | 'scrolling' | 'armed'
+// True while any vehicle-position drag (grid single-spot, grid group, or
+// freeform) is actively in progress - see reloadForUpdateIfSafe, which
+// checks this so a mid-drag auto-update reload can't abort an unsaved move.
+let cmDragBusy = false;
 
 window.cmSpotPointerDown = function(e, key) {
   if (!perm('compoundEdit') || cmEditMode) return;
@@ -8785,6 +8789,7 @@ function cmArmDrag(key) {
   cmDragKey = key;
   cmDragData = veh;
   cmDragEl = cmHoldEl;
+  cmDragBusy = true;
   cmDragEl.style.opacity = '0.4';
   cmDragEl.style.zIndex = '5';
   cmDragEl.classList.add('cm-armed');
@@ -8816,19 +8821,24 @@ async function cmPointerUp(e) {
   const srcData = cmDragData;
   cmDragKey = null; cmDragData = null; cmDragEl = null; cmDragOverEl = null; cmGestureMode = null;
 
-  if (!destKey || destKey === srcKey || !srcData) return;
-  if (!perm('compoundEdit')) return;
+  try {
+    if (!destKey || destKey === srcKey || !srcData) return;
+    if (!perm('compoundEdit')) return;
 
-  const destVeh = (cmVehicles[cmCurrentLot]||{})[destKey];
-  // Single atomic update - both keys written in one call to prevent double-render duplication
-  const updates = {};
-  updates[`compound_v2/${cmCurrentLot}/${destKey}`] = srcData;
-  updates[`compound_v2/${cmCurrentLot}/${srcKey}`] = destVeh || null;
-  await update(ref(db), updates);
-  const desc = destVeh?.stock
-    ? `Swapped ${srcData.stock} (${srcKey}) with ${destVeh.stock} (${destKey})`
-    : `Moved ${srcData.stock} from ${srcKey} to ${destKey}`;
-  logCompoundChange(cmCurrentLot, 'drag', desc);
+    const destVeh = (cmVehicles[cmCurrentLot]||{})[destKey];
+    // Single atomic update - both keys written in one call to prevent double-render duplication
+    const updates = {};
+    updates[`compound_v2/${cmCurrentLot}/${destKey}`] = srcData;
+    updates[`compound_v2/${cmCurrentLot}/${srcKey}`] = destVeh || null;
+    await update(ref(db), updates);
+    const desc = destVeh?.stock
+      ? `Swapped ${srcData.stock} (${srcKey}) with ${destVeh.stock} (${destKey})`
+      : `Moved ${srcData.stock} from ${srcKey} to ${destKey}`;
+    logCompoundChange(cmCurrentLot, 'drag', desc);
+  } finally {
+    cmDragBusy = false;
+    reloadForUpdateIfSafe();
+  }
 }
 
 // ── Group drag (edit mode) - drag any already-selected spot to move every
@@ -8858,6 +8868,7 @@ function cmGroupPointerMove(e) {
     const dx = e.clientX - cmGroupDragStartX, dy = e.clientY - cmGroupDragStartY;
     if (Math.sqrt(dx*dx + dy*dy) < CM_MOVE_CANCEL_PX) return;
     cmGroupDragMoved = true;
+    cmDragBusy = true;
     document.querySelectorAll('.cm-spot.cm-selected').forEach(el => el.classList.add('cm-armed'));
   }
   const el = document.elementFromPoint(e.clientX, e.clientY);
@@ -8872,6 +8883,8 @@ function cmGroupPointerCancel() {
   document.querySelectorAll('.cm-spot.cm-armed').forEach(el => el.classList.remove('cm-armed'));
   if (cmGroupDragOverEl) cmGroupDragOverEl.classList.remove('cm-drag-over');
   cmGroupDragKey = null; cmGroupDragOverEl = null; cmGroupDragMoved = false;
+  cmDragBusy = false;
+  reloadForUpdateIfSafe();
 }
 
 async function cmGroupPointerUp() {
@@ -8884,12 +8897,13 @@ async function cmGroupPointerUp() {
   const destKey = cmGroupDragOverEl ? cmGroupDragOverEl.dataset.cmKey : null;
   const moved = cmGroupDragMoved;
   cmGroupDragKey = null; cmGroupDragOverEl = null; cmGroupDragMoved = false;
-  if (!moved || !destKey || destKey === anchorKey) return; // a plain tap - let the click toggle selection as usual
+  try {
+    if (!moved || !destKey || destKey === anchorKey) return; // a plain tap - let the click toggle selection as usual
 
-  // The click event this same gesture is about to fire on the (now stale)
-  // anchor element must not also toggle its selection - see cmSelectSpot.
-  cmGroupSuppressClick = true;
-  setTimeout(() => { cmGroupSuppressClick = false; }, 0);
+    // The click event this same gesture is about to fire on the (now stale)
+    // anchor element must not also toggle its selection - see cmSelectSpot.
+    cmGroupSuppressClick = true;
+    setTimeout(() => { cmGroupSuppressClick = false; }, 0);
 
   const [, arStr, acStr] = anchorKey.match(/R(\d+)-C(\d+)/);
   const [, drStr, dcStr] = destKey.match(/R(\d+)-C(\d+)/);
@@ -8922,6 +8936,10 @@ async function cmGroupPointerUp() {
   cmSelected = new Set(destKeys.map(d => d.key));
   cmUpdateSelectionUI();
   cmRenderMap();
+  } finally {
+    cmDragBusy = false;
+    reloadForUpdateIfSafe();
+  }
 }
 
 // Fix cmStartListeners - always store data and render regardless of active tab
@@ -9387,6 +9405,7 @@ window.flDeleteSelected = function() {
     const startSpot = (cmVehicles[FL_LOT]||{})[id];
     if (!startSpot) return;
     e.preventDefault();
+    cmDragBusy = true;
     const startX = e.clientX, startY = e.clientY;
     let moved = false;
     spotEl.setPointerCapture(e.pointerId);
@@ -9404,13 +9423,22 @@ window.flDeleteSelected = function() {
     };
     const onUp = async () => {
       spotEl.removeEventListener('pointermove', onMove);
-      if (moved) {
-        await update(ref(db, `compound_v2/${FL_LOT}/${id}`), { x: cmVehicles[FL_LOT][id].x, y: cmVehicles[FL_LOT][id].y });
-        flPopulateSidePanel();
+      try {
+        if (moved) {
+          await update(ref(db, `compound_v2/${FL_LOT}/${id}`), { x: cmVehicles[FL_LOT][id].x, y: cmVehicles[FL_LOT][id].y });
+          flPopulateSidePanel();
+        }
+      } finally {
+        cmDragBusy = false;
+        reloadForUpdateIfSafe();
       }
     };
     spotEl.addEventListener('pointermove', onMove);
     spotEl.addEventListener('pointerup', onUp, { once: true });
+    // Also needed on cancel (e.g. a touch gesture interrupted mid-drag) -
+    // without it, cmDragBusy would stay stuck true forever since onUp would
+    // never otherwise run, permanently blocking the auto-update reload.
+    spotEl.addEventListener('pointercancel', onUp, { once: true });
   });
 })();
 
@@ -9731,6 +9759,13 @@ function reloadForUpdateIfSafe() {
   // staff only get reloaded once no modal is open, so an in-progress edit is
   // never yanked out from under them.
   if (!isDisplay && modalOpen) return;
+  // Same idea for an in-progress vehicle drag on the Vehicle Locator map
+  // (grid or freeform) - it isn't a modal, but the MutationObserver below
+  // re-runs this check on every style-attribute change, and a drag updates
+  // the spot's position style on every pointermove. Without this, the very
+  // next pixel of movement after a deploy ships would yank the page out from
+  // under whoever's mid-drag, aborting the move before it's saved.
+  if (cmDragBusy) return;
   const url = new URL(location.href);
   url.searchParams.set('_v', Date.now());
   location.href = url.toString();
