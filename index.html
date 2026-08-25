@@ -7732,7 +7732,13 @@ function cmRenderStats() {
   const el = document.getElementById('cm-stats');
   if (!el) return;
   const v = cmVehicles[cmCurrentLot] || {};
-  const total = cmCurrentLot === 'bayview700' ? CM_BAYVIEW700_SEED.reduce((a,r)=>a+r.length,0) : 200;
+  // The grid lot's capacity is its fixed row×col cell count. The freeform
+  // lot has no such fixed size - every spot (occupied or empty) is its own
+  // placed entry, so its capacity is just how many of those aren't purely
+  // decorative (a building/fence has no parking capacity of its own).
+  const total = cmCurrentLot === 'bayview700'
+    ? CM_BAYVIEW700_SEED.reduce((a,r)=>a+r.length,0)
+    : Object.values(v).filter(x=>x.kind!=='object' && x.kind!=='fence').length;
   const occupied = Object.values(v).filter(x=>x.stock && !['blocked','void','special','reserved'].includes(x.status)).length;
   const reserved = Object.values(v).filter(x=>x.status==='reserved').length;
   const special  = Object.values(v).filter(x=>x.status==='special').length;
@@ -7951,7 +7957,6 @@ window.cmSwitchLot = function(id) {
   const isFreeform = id === 'bayview323new';
   document.getElementById('cm-grid-zoom').style.display = isFreeform ? 'none' : '';
   document.getElementById('cm-fl-zoom').style.display = isFreeform ? 'flex' : 'none';
-  document.getElementById('cm-stats').style.display = isFreeform ? 'none' : '';
   document.getElementById('cm-qr-btn').style.display = isFreeform ? 'none' : '';
   document.getElementById('cm-edit-btn').style.display = cmCanEditLayout() ? '' : 'none';
   document.getElementById('cm-map-wrap').style.display = isFreeform ? 'none' : '';
