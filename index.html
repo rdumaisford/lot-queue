@@ -938,7 +938,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot-stock{font-size:9px;font-weight:800;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;margin-top:8px}
 .cm-spot-desc{font-size:7.5px;color:#64748b;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
 .cm-spot.cm-hi{box-shadow:0 0 0 2.5px #f59e0b,0 2px 8px rgba(0,0,0,.15)!important;transform:translateY(-2px)!important;z-index:2}
-.cm-spot.cm-dim{opacity:.2}
 .cm-gap{width:16px;height:46px;flex-shrink:0;background:repeating-linear-gradient(90deg,#e2e8f0 0,#e2e8f0 2px,transparent 2px,transparent 8px);border-radius:3px;margin:2px 2px}
 .cm-lane-bar{height:20px;display:flex;align-items:center;gap:0;margin:2px 0 2px 28px}
 .cm-lane-inner{flex:1;border-top:2px dashed #e2e8f0}
@@ -1376,8 +1375,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <!-- Lot switcher -->
         <div style="display:flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
           <button id="cm-lot-btn-bayview700" onclick="cmSwitchLot('bayview700')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--ford);color:#fff">700 Bayview</button>
-          <button id="cm-lot-btn-bayview323" onclick="cmSwitchLot('bayview323')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">323 Bayview</button>
-          <button id="cm-lot-btn-bayview323new" onclick="cmSwitchLot('bayview323new')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">323 Bayview (NEW)</button>
+          <button id="cm-lot-btn-bayview323new" onclick="cmSwitchLot('bayview323new')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">323 Bayview</button>
+        </div>
+        <!-- Search - searches every compound, not just this one; a match
+             elsewhere shows as a clickable "Located in..." pill below it.
+             Kept right next to the lot switcher (rather than off at the far
+             end of the toolbar) so it's within easy reach while looking at
+             the map, not something you have to hunt for. -->
+        <div id="cm-grid-search-wrap" style="position:relative">
+          <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-faint);font-size:12px">🔍</span>
+          <input id="cm-search" type="text" placeholder="Search stock #…" oninput="cmSearch(this.value)" style="padding:6px 10px 6px 28px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);background:var(--bg);color:var(--text);outline:none;width:160px"/>
+          <button id="cm-search-elsewhere" onclick="cmGoToElsewhereMatch()" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;white-space:nowrap;padding:6px 10px;font-size:12px;font-weight:600;border:1px solid #93c5fd;border-radius:var(--radius-sm);background:#eff6ff;color:#1d4ed8;cursor:pointer;z-index:10;text-align:left"></button>
         </div>
         <!-- Zoom - mainly for mobile, where the map's own hold-to-drag touch
              handling blocks the browser's native pinch-to-zoom gesture. -->
@@ -1386,7 +1394,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <span id="cm-zoom-label" onclick="cmZoomReset()" title="Reset zoom" style="padding:6px 8px;font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;min-width:38px;text-align:center">100%</span>
           <button onclick="cmZoomIn()" title="Zoom in" style="padding:6px 12px;font-size:15px;font-weight:700;border:none;border-left:1px solid var(--border);cursor:pointer;background:var(--surface);color:var(--text)">+</button>
         </div>
-        <!-- Freeform (323 Bayview NEW) has its own canvas, so it needs its own
+        <!-- Freeform (323 Bayview) has its own canvas, so it needs its own
              zoom control targeting #fl-canvas instead of #cm-map. Shown in
              both Normal and Edit mode - useful either way. -->
         <div id="cm-fl-zoom" style="display:none;align-items:center;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
@@ -1396,14 +1404,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         </div>
         <!-- Stats -->
         <div id="cm-stats" style="display:flex;gap:14px;font-size:13px;flex-wrap:wrap"></div>
-        <!-- Search - searches every compound, not just this one; a match
-             elsewhere shows as a clickable "Located in..." pill below it. -->
-        <div id="cm-grid-search-wrap" style="position:relative;margin-left:auto">
-          <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-faint);font-size:12px">🔍</span>
-          <input id="cm-search" type="text" placeholder="Search stock #…" oninput="cmSearch(this.value)" style="padding:6px 10px 6px 28px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);background:var(--bg);color:var(--text);outline:none;width:160px"/>
-          <button id="cm-search-elsewhere" onclick="cmGoToElsewhereMatch()" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;white-space:nowrap;padding:6px 10px;font-size:12px;font-weight:600;border:1px solid #93c5fd;border-radius:var(--radius-sm);background:#eff6ff;color:#1d4ed8;cursor:pointer;z-index:10;text-align:left"></button>
-        </div>
-        <button id="cm-heatmap-btn" onclick="cmToggleHeatmap()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer">🌡️ Age Heatmap</button>
+        <button id="cm-heatmap-btn" onclick="cmToggleHeatmap()" style="margin-left:auto;padding:6px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer">🌡️ Age Heatmap</button>
         <button id="cm-edit-btn" onclick="cmToggleEdit()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid #fcd34d;border-radius:var(--radius-sm);background:#fef9ec;color:#b45309;cursor:pointer;display:none">✏️ Edit</button>
         <button id="cm-qr-btn" onclick="cmOpenQR()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer">🖨 QR</button>
       </div>
@@ -1595,7 +1596,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <label>Lots to audit</label>
           <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
             <label style="display:flex;align-items:center;gap:8px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" id="audit-lot-bayview700" checked style="width:16px;height:16px;accent-color:var(--ford)"/> 700 Bayview</label>
-            <label style="display:flex;align-items:center;gap:8px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" id="audit-lot-bayview323" style="width:16px;height:16px;accent-color:var(--ford)"/> 323 Bayview</label>
           </div>
         </div>
 
@@ -6714,7 +6714,7 @@ async function logCompoundChange(lot, action, detail) {
   } catch(e) { /* logging failures shouldn't block the actual map edit */ }
 }
 
-const CM_LOT_LABELS = { bayview700:'700 Bayview', bayview323:'323 Bayview', mapleview55:'55 Mapleview' };
+const CM_LOT_LABELS = { bayview700:'700 Bayview', bayview323new:'323 Bayview', mapleview55:'55 Mapleview' };
 
 function filteredCompoundHistory() {
   const all = Object.values(compoundHistoryData);
@@ -7588,8 +7588,7 @@ window.deleteAnnouncement = async function(id) {
 // ── Compound Map ──────────────────────────────────────
 const CM_LOTS = {
   bayview700:  { label: '700 Bayview' },
-  bayview323:  { label: '323 Bayview' },
-  bayview323new: { label: '323 Bayview (NEW)' },
+  bayview323new: { label: '323 Bayview' },
 };
 
 // Real layout from CSV - 13 parking rows × 52 cols
@@ -7930,6 +7929,7 @@ window.cmSwitchLot = function(id) {
   cmEditMode = false;
   cmSelected.clear();
   cmSearchQuery = '';
+  cmHighlightQuery = '';
   flSelected = null;
   document.getElementById('cm-edit-bar').style.display = 'none';
   document.getElementById('fl-edit-bar').style.display = 'none';
@@ -8429,6 +8429,11 @@ window.cmCloseSpot = function() {
 };
 
 let cmSearchQuery = '';
+// What actually gets highlighted - stays pointed at the last real search
+// even after cmSearchQuery is cleared out, so clearing the box doesn't yank
+// the highlight off the vehicle you were just looking at. Only moves when a
+// new (non-empty) search is typed, or the lot is switched.
+let cmHighlightQuery = '';
 let cmElsewhereLot = null; // set when the search only matched a *different* compound
 
 function cmMatchingKeys(lotId, query) {
@@ -8443,20 +8448,28 @@ function cmMatchingKeys(lotId, query) {
 }
 
 function cmApplySearchHighlight() {
-  document.querySelectorAll('.cm-spot').forEach(el => el.classList.remove('cm-hi','cm-dim'));
-  cmElsewhereLot = null;
+  document.querySelectorAll('.cm-spot').forEach(el => el.classList.remove('cm-hi'));
   const elsewhereEl = document.getElementById('cm-search-elsewhere');
-  if (!cmSearchQuery) { if (elsewhereEl) elsewhereEl.style.display = 'none'; return; }
-  const matched = new Set(cmMatchingKeys(cmCurrentLot, cmSearchQuery));
-  document.querySelectorAll('.cm-spot').forEach(el => {
-    const key = el.dataset.cmKey;
-    if (!key) return;
-    el.classList.add(matched.has(key) ? 'cm-hi' : 'cm-dim');
-  });
-  // Not on this compound's board - check the other two before giving up,
-  // so a car parked at a different lot still turns up instead of just
-  // coming back empty.
-  if (matched.size === 0 && elsewhereEl) {
+  // Only highlight the matching vehicle itself - no dimming everything else,
+  // so the rest of the map still reads normally while one spot pops.
+  if (cmHighlightQuery) {
+    const matched = new Set(cmMatchingKeys(cmCurrentLot, cmHighlightQuery));
+    document.querySelectorAll('.cm-spot').forEach(el => {
+      const key = el.dataset.cmKey;
+      if (key && matched.has(key)) el.classList.add('cm-hi');
+    });
+  }
+  // The "Located elsewhere" pill only makes sense while the search box
+  // actually has text in it - once it's cleared, hide it even though the
+  // highlight itself sticks around.
+  cmElsewhereLot = null;
+  if (!elsewhereEl) return;
+  if (!cmSearchQuery) { elsewhereEl.style.display = 'none'; return; }
+  const matchedHere = cmMatchingKeys(cmCurrentLot, cmSearchQuery);
+  if (matchedHere.length === 0) {
+    // Not on this compound's board - check the other lot before giving up,
+    // so a car parked elsewhere still turns up instead of just coming back
+    // empty.
     const otherLot = Object.keys(CM_LOTS).find(id => id !== cmCurrentLot && cmMatchingKeys(id, cmSearchQuery).length > 0);
     if (otherLot) {
       cmElsewhereLot = otherLot;
@@ -8473,6 +8486,7 @@ window.cmGoToElsewhereMatch = function() {
   const query = cmSearchQuery;
   window.cmSwitchLot(cmElsewhereLot);
   cmSearchQuery = query;
+  cmHighlightQuery = query;
   document.getElementById('cm-search').value = query;
   cmRenderMap(); // re-applies the highlight for the new lot, since cmSwitchLot cleared it
   cmScrollToFirstMatch();
@@ -8482,17 +8496,26 @@ window.cmGoToElsewhereMatch = function() {
 // style. Only called when the user actually types a new search - not from
 // the map's automatic once-a-second re-render, or it'd keep yanking the
 // viewport back even after someone manually scrolled away to look around.
+// Also never called when the search box is cleared out (see cmSearch) - a
+// clear just leaves the map exactly where it is.
 function cmScrollToFirstMatch() {
   const el = document.querySelector('.cm-spot.cm-hi');
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
 }
 
 window.cmSearch = function(q) {
-  // Persisted so the highlight survives the map's automatic re-renders
-  // (it repaints every second to keep appointment/get-ready timers live).
   cmSearchQuery = q.trim().toLowerCase();
-  cmApplySearchHighlight();
-  if (cmSearchQuery) cmScrollToFirstMatch();
+  if (cmSearchQuery) {
+    // Persisted so the highlight survives the map's automatic re-renders
+    // (it repaints every second to keep appointment/get-ready timers live).
+    cmHighlightQuery = cmSearchQuery;
+    cmApplySearchHighlight();
+    cmScrollToFirstMatch();
+  } else {
+    // Cleared - keep whatever was last found highlighted and leave the
+    // viewport alone, instead of losing the vehicle and jumping the map.
+    cmApplySearchHighlight();
+  }
 };
 
 window.cmOpenQR = function() {
@@ -8908,7 +8931,6 @@ function cmStartListeners() {
     const meta = snap.val() || {};
     cmGridSize = {
       bayview700:  { rows: meta.bayview700?.rows  || 13, cols: meta.bayview700?.cols  || 52 },
-      bayview323:  { rows: meta.bayview323?.rows  || 10, cols: meta.bayview323?.cols  || 30 },
     };
     // The freeform lot's real-world size in feet - editable (see
     // flUpdatePropertySize) since the property itself can grow, unlike the
@@ -8937,10 +8959,6 @@ function cmStartListeners() {
       if (cmCurrentLot === 'bayview700') cmRender();
       if (document.getElementById('panel-tv')?.classList.contains('active')) renderTVCompoundMap();
     }
-  });
-  onValue(ref(db, 'compound_v2/bayview323'), snap => {
-    cmVehicles['bayview323'] = snap.val() || {};
-    if (cmCurrentLot === 'bayview323') cmRender();
   });
   onValue(ref(db, 'compound_v2/bayview323new'), snap => {
     cmVehicles['bayview323new'] = snap.val() || {};
@@ -9570,7 +9588,7 @@ window.auditOpenStart = function() {
 };
 
 window.auditStart = async function() {
-  const lots = ['bayview700','bayview323'].filter(id => document.getElementById(`audit-lot-${id}`)?.checked);
+  const lots = ['bayview700'].filter(id => document.getElementById(`audit-lot-${id}`)?.checked);
   if (!lots.length) { alert('Select at least one lot.'); return; }
 
   const requirements = {
