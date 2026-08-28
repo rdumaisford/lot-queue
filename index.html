@@ -945,6 +945,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
    this is a no-op rotate(0deg) there. */
 .cm-spot-info{display:flex;flex-direction:column;align-items:center;transform:rotate(calc(-1 * var(--spot-rot,0deg)))}
 .cm-spot.cm-hi{box-shadow:0 0 0 2.5px #f59e0b,0 2px 8px rgba(0,0,0,.15)!important;transform:rotate(var(--spot-rot,0deg)) translateY(-2px)!important;z-index:2}
+.cm-spot.cm-dim{opacity:.2}
 .cm-gap{width:16px;height:46px;flex-shrink:0;background:repeating-linear-gradient(90deg,#e2e8f0 0,#e2e8f0 2px,transparent 2px,transparent 8px);border-radius:3px;margin:2px 2px}
 .cm-lane-bar{height:20px;display:flex;align-items:center;gap:0;margin:2px 0 2px 28px}
 .cm-lane-inner{flex:1;border-top:2px dashed #e2e8f0}
@@ -8460,15 +8461,19 @@ function cmMatchingKeys(lotId, query) {
 }
 
 function cmApplySearchHighlight() {
-  document.querySelectorAll('.cm-spot').forEach(el => el.classList.remove('cm-hi'));
+  document.querySelectorAll('.cm-spot').forEach(el => el.classList.remove('cm-hi','cm-dim'));
   const elsewhereEl = document.getElementById('cm-search-elsewhere');
-  // Only highlight the matching vehicle itself - no dimming everything else,
-  // so the rest of the map still reads normally while one spot pops.
   if (cmHighlightQuery) {
     const matched = new Set(cmMatchingKeys(cmCurrentLot, cmHighlightQuery));
     document.querySelectorAll('.cm-spot').forEach(el => {
       const key = el.dataset.cmKey;
-      if (key && matched.has(key)) el.classList.add('cm-hi');
+      if (!key) return;
+      if (matched.has(key)) el.classList.add('cm-hi');
+      // Dim everything else only while a search is actively being typed
+      // (cmSearchQuery) - not once it's been cleared back out, so clearing
+      // just relaxes the focus back to normal instead of also losing the
+      // vehicle you found.
+      else if (cmSearchQuery) el.classList.add('cm-dim');
     });
   }
   // The "Located elsewhere" pill only makes sense while the search box
