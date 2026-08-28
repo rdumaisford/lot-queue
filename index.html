@@ -3069,7 +3069,7 @@ function startApp() {
   // without opening anything themselves.
   onValue(ref(db, 'locks'), snap => {
     allLocks = snap.val() || {};
-    if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
+    if (document.getElementById('panel-compound')?.classList.contains('active')) { if (cmCurrentLot === 'bayview323new') flRender(); else cmRenderMap(); }
     if (document.getElementById('panel-tracker')?.classList.contains('active')) renderTracker();
   });
 
@@ -3088,7 +3088,7 @@ function startApp() {
     ridesAutoLumpPending();
     if (document.getElementById('panel-rides')?.classList.contains('active')) renderRidesTab();
     if (document.getElementById('panel-tv')?.classList.contains('active')) { renderTVRides(); renderTVCompoundMap(); }
-    if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
+    if (document.getElementById('panel-compound')?.classList.contains('active')) { if (cmCurrentLot === 'bayview323new') flRender(); else cmRenderMap(); }
     tvUpdateShuttleRoutes();
   });
 
@@ -3096,7 +3096,7 @@ function startApp() {
     appointments = snap.val() || {};
     if (document.getElementById('panel-rides')?.classList.contains('active')) renderRidesTab();
     if (document.getElementById('panel-tv')?.classList.contains('active')) renderTVAppointments();
-    if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
+    if (document.getElementById('panel-compound')?.classList.contains('active')) { if (cmCurrentLot === 'bayview323new') flRender(); else cmRenderMap(); }
   });
 
   onValue(ref(db, 'pendingReturns'), snap => {
@@ -3258,7 +3258,7 @@ function startApp() {
     document.getElementById('tc-getready').textContent = active.length;
     renderGetReady(); renderGetReadySummary();
     if (grView === 'calendar') renderGRCalendar();
-    if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
+    if (document.getElementById('panel-compound')?.classList.contains('active')) { if (cmCurrentLot === 'bayview323new') flRender(); else cmRenderMap(); }
     if (document.getElementById('panel-tv')?.classList.contains('active')) { renderTVGetReady(); renderTVCompoundMap(); }
   });
 
@@ -3270,7 +3270,7 @@ function startApp() {
   onValue(ref(db,'testdrives'), snap=>{
     testDrives = snap.val()||{};
     renderTestDrives();
-    if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
+    if (document.getElementById('panel-compound')?.classList.contains('active')) { if (cmCurrentLot === 'bayview323new') flRender(); else cmRenderMap(); }
     if (document.getElementById('panel-tv')?.classList.contains('active')) renderTVCompoundMap();
   });
 
