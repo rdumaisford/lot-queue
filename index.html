@@ -312,8 +312,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tv-cm-spot.reserved{background:#f59e0b}
 .tv-cm-spot.void{background:rgba(255,255,255,.15)}
 .tv-cm-spot.blocked{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
-.tv-cm-spot.appointed{background:#a78bfa}
-.tv-cm-spot.getready{background:#34d399}
+.tv-cm-spot.getready{background:#d946ef}
 .tv-cm-spot.special{background:#f472b6}
 .tv-empty{text-align:center;padding:60px 24px;opacity:.2;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .tv-empty p{font-size:24px;margin-top:16px}
@@ -937,7 +936,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
    against every occupied state's 2px coloured border. */
 .cm-spot.empty{background:#f0fdf4;border-color:#22c55e;border-width:1px}
 .cm-spot-num{font-size:9px;font-weight:700;color:#94a3b8;line-height:1;position:absolute;top:3px;left:4px}
-.cm-spot.appointed .cm-spot-num{color:#7c3aed}
 .cm-spot-stock{font-size:9px;font-weight:800;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;margin-top:8px}
 .cm-spot-desc{font-size:7.5px;color:#64748b;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
 /* Wraps the stock #/desc/status-banner lines on a freeform spot so they can
@@ -955,14 +953,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-lane-txt{font-size:9px;font-weight:700;color:#cbd5e1;text-transform:uppercase;letter-spacing:.1em;padding:0 8px;white-space:nowrap}
 .cm-add-spot{width:28px;height:46px;border-radius:5px;border:1.5px dashed #cbd5e1;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:18px;font-weight:300;flex-shrink:0;transition:all .15s;margin-left:3px}
 .cm-add-spot:hover{border-color:var(--ford);color:var(--ford);background:#eff6ff}
-.cm-spot.getready{background:#f0fdf4;border-color:#16a34a;border-width:2px}
-.cm-spot.getready .cm-spot-num{color:#16a34a}
-.cm-spot.getready .cm-spot-stock{color:#15803d}
-.cm-spot-gr{font-size:7px;font-weight:700;color:#15803d;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
-.cm-spot.appointed{background:#f3e8ff;border-color:#7c3aed;border-width:2px}
-.cm-spot.appointed .cm-spot-num{color:#7c3aed}
-.cm-spot.appointed .cm-spot-stock{color:#6d28d9}
-.cm-spot-appt{font-size:7px;font-weight:700;color:#7c3aed;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+.cm-spot.getready{background:#fdf4ff;border-color:#a21caf;border-width:2px}
+.cm-spot.getready .cm-spot-num{color:#a21caf}
+.cm-spot.getready .cm-spot-stock{color:#86198f}
+.cm-spot-gr{font-size:7px;font-weight:700;color:#86198f;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
 .cm-spot.ontestdrive{background:#fff7ed;border-color:#ea580c;border-width:2px}
 .cm-spot.ontestdrive .cm-spot-num{color:#ea580c}
 .cm-spot.ontestdrive .cm-spot-stock{color:#c2410c}
@@ -1486,17 +1480,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <details id="cm-legend-details" open style="border-bottom:1px solid var(--border);background:var(--bg)">
         <summary style="padding:6px 16px;font-size:11px;font-weight:700;color:var(--text-muted);cursor:pointer;user-select:none">Legend</summary>
         <div style="display:flex;align-items:center;gap:14px;padding:0 16px 8px;font-size:11px;color:var(--text-muted);flex-wrap:wrap">
-          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#eff6ff;border:1.5px solid #1d4ed8"></div>New</div>
-          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f1f5f9;border:1.5px solid #64748b"></div>Used</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fef2f2;border:1.5px solid #dc2626"></div>⚠ Duplicate stock #</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fff7ed;border:1.5px solid #ea580c"></div>Out - Test Drive</div>
           <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fefce8;border:1.5px solid #ca8a04"></div>Wholesale</div>
           <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f0fdf4;border:1.5px solid #15803d"></div>Fleet</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#eff6ff;border:1.5px solid #1d4ed8"></div>New</div>
           <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f5f3ff;border:2px solid #7c3aed"></div>Lease Return</div>
-          <div style="display:flex;align-items:center;gap:5px"><span style="font-size:13px">🚩</span>Flagged (checkbox or has a note)</div>
-          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f0fdf4;border:1.5px solid #16a34a"></div>Get Ready</div>
-          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f3e8ff;border:1.5px solid #7c3aed"></div>Appointment</div>
-          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fff7ed;border:1.5px solid #ea580c"></div>Out - Test Drive</div>
-          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fef2f2;border:1.5px solid #dc2626"></div>⚠ Duplicate stock #</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fdf4ff;border:1.5px solid #a21caf"></div>Get Ready</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f1f5f9;border:1.5px solid #64748b"></div>Used</div>
           <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#e2e8f0;border:1.5px dashed #94a3b8"></div>Blocked</div>
+          <div style="display:flex;align-items:center;gap:5px"><span style="font-size:13px">🚩</span>Flagged (checkbox or has a note)</div>
           <span style="color:var(--text-faint);margin-left:8px">🖐 Hold a car ~3s to move it</span>
           <span style="color:var(--text-faint)">· Tap a car for gas / wash / test drive</span>
           <span id="cm-edit-hint" style="display:none;color:#b45309;font-weight:600;margin-left:8px">✏️ Edit mode - click any spot to edit</span>
@@ -4853,8 +4846,7 @@ function renderTVCompoundMap() {
         else if (st === 'blocked') bg = 'rgba(255,255,255,.1)';
         else if (dupeStocks.has(s.trim())) bg = '#dc2626';   // red - duplicate stock #, data error
         else if (tdStocks.has(s))    bg = '#fb923c';        // orange - out on test drive
-        else if (apptStocks.has(s)) bg = '#a78bfa';        // purple - appointment
-        else if (grStocks.has(s))   bg = '#34d399';        // green - get ready
+        else if (grStocks.has(s))   bg = '#d946ef';        // magenta - get ready
         else if (cmIsFlagged(veh))    bg = '#7f1d1d';      // dark red - flagged
         else if (st === 'wholesale')  bg = '#eab308';      // yellow
         else if (st === 'fleet')      bg = '#22c55e';      // green
@@ -7892,7 +7884,7 @@ function cmRenderMap() {
   const numCols = cmGridSize[cmCurrentLot]?.cols || (cmCurrentLot === 'bayview700' ? 52 : 30);
   const numRows = cmGridSize[cmCurrentLot]?.rows || (cmCurrentLot === 'bayview700' ? 13 : 10);
 
-  const { apptMap, grMap, tdMap, stockSpotCounts } = cmBuildOverlayMaps();
+  const { grMap, tdMap, stockSpotCounts } = cmBuildOverlayMaps();
   const ageMap = cmHeatmapMode ? cmBuildAgeMap() : null;
 
   mapEl.className = `cm-grid${cmEditMode?' cm-edit-active':''}`;
@@ -7922,7 +7914,6 @@ function cmRenderMap() {
     for (let ci=0; ci<numCols; ci++) {
       const key = `R${ri}-C${ci}`;
       const veh = v[key];
-      const appt = veh ? apptMap[(veh.stock||'').toUpperCase().trim()] : null;
       const gr   = veh ? grMap[(veh.stock||'').toUpperCase().trim()] : null;
       const onTd = veh ? tdMap[(veh.stock||'').toUpperCase().trim()] : null;
       const isDupe = veh && veh.stock && veh.status!=='blocked' && veh.status!=='void' && (stockSpotCounts[veh.stock.toUpperCase().trim()]||0) > 1;
@@ -7946,7 +7937,7 @@ function cmRenderMap() {
         const isBlocked = veh.status === 'blocked';
         const isVoid = veh.status === 'void';
         const isFlagged = !isBlocked && !isVoid && cmIsFlagged(veh);
-        const cls = isDupe && !isBlocked && !isVoid ? 'cm-duplicate' : onTd && !isBlocked && !isVoid ? 'ontestdrive' : appt && !isBlocked && !isVoid ? 'appointed' : gr && !isBlocked && !isVoid ? 'getready' : cmTypeClass(veh.status);
+        const cls = isDupe && !isBlocked && !isVoid ? 'cm-duplicate' : onTd && !isBlocked && !isVoid ? 'ontestdrive' : gr && !isBlocked && !isVoid ? 'getready' : cmTypeClass(veh.status);
 
         if (isVoid) {
           // Void - completely inert in normal mode, selectable/deletable in edit mode only
@@ -7991,8 +7982,7 @@ function cmRenderMap() {
             <div class="cm-spot-desc">${lockInfo ? `🔒 ${lockInfo.lockedBy}` : heatOn ? (ageDays!=null ? `${ageDays}d on lot` : 'no arrival date') : typeLine}</div>
             ${isDupe && !cmEditMode ? `<div class="cm-spot-dupe">⚠ DUPLICATE</div>` : ''}
             ${!heatOn && onTd && !isDupe && !cmEditMode ? `<div class="cm-spot-td">🚗 Out - Test Drive</div>` : ''}
-            ${!heatOn && appt && !onTd && !isDupe && !cmEditMode ? `<div class="cm-spot-appt">${appt.label}</div>` : ''}
-            ${!heatOn && gr && !appt && !onTd && !isDupe && !cmEditMode ? `<div class="cm-spot-gr">${gr.label}</div>` : ''}
+            ${!heatOn && gr && !onTd && !isDupe && !cmEditMode ? `<div class="cm-spot-gr">${gr.label}</div>` : ''}
             ${cmEditMode&&cmSelected.has(key)?'<div style="font-size:10px;color:#f59e0b;font-weight:800;position:absolute;bottom:2px;right:3px">✓</div>':''}
           </div>`;
         }
@@ -9197,10 +9187,10 @@ function flRender() {
   if (countEl) countEl.textContent = `${ids.length} item${ids.length!==1?'s':''}`;
   if (flSelected && !v[flSelected]) flSelected = null;
 
-  const { apptMap, grMap, tdMap, stockSpotCounts } = cmBuildOverlayMaps();
+  const { grMap, tdMap, stockSpotCounts } = cmBuildOverlayMaps();
   const ageMap = cmHeatmapMode ? cmBuildAgeMap() : null;
 
-  canvas.innerHTML = ids.map(id => flSpotHtml(id, v[id], { apptMap, grMap, tdMap, stockSpotCounts, ageMap })).join('');
+  canvas.innerHTML = ids.map(id => flSpotHtml(id, v[id], { grMap, tdMap, stockSpotCounts, ageMap })).join('');
   cmApplySearchHighlight();
   flPopulateSidePanel();
 }
@@ -9282,9 +9272,9 @@ function flSpotHtml(id, veh, maps) {
     </div>`;
   }
 
-  const { apptMap, grMap, tdMap, stockSpotCounts, ageMap } = maps;
+  const { grMap, tdMap, stockSpotCounts, ageMap } = maps;
   const stockUpper = (veh.stock||'').toUpperCase().trim();
-  const appt = apptMap[stockUpper], gr = grMap[stockUpper], onTd = tdMap[stockUpper];
+  const gr = grMap[stockUpper], onTd = tdMap[stockUpper];
   const isDupe = (stockSpotCounts[stockUpper]||0) > 1;
   const isFlagged = cmIsFlagged(veh);
   // "Incorrect parking" - the spot's own label designates a zone (e.g.
@@ -9299,7 +9289,7 @@ function flSpotHtml(id, veh, maps) {
   // most of them end up disposed of anyway) - a real, allowed combination,
   // not a parking error, so it's exempted from the mismatch flag.
   const isMismatch = zoneType && zoneType !== actualType && !(zoneType === 'wholesale' && actualType === 'leasereturn');
-  const cls = isDupe ? 'cm-duplicate' : isMismatch ? 'cm-mismatch' : onTd ? 'ontestdrive' : appt ? 'appointed' : gr ? 'getready' : actualType;
+  const cls = isDupe ? 'cm-duplicate' : isMismatch ? 'cm-mismatch' : onTd ? 'ontestdrive' : gr ? 'getready' : actualType;
   const ageDays = ageMap ? ageMap[stockUpper] : null;
   const heatOn = cmHeatmapMode && !isDupe && !isMismatch;
   const heatCls = heatOn ? ' cm-heatmap-active' : '';
@@ -9320,8 +9310,7 @@ function flSpotHtml(id, veh, maps) {
       <div class="cm-spot-desc">${lockInfo ? `🔒 ${esc(lockInfo.lockedBy)}` : heatOn ? (ageDays!=null ? `${ageDays}d on lot` : 'no arrival date') : isMismatch ? `Should be ${esc(veh.label)}` : esc(typeLine)}</div>
       ${isDupe ? '<div class="cm-spot-dupe">⚠ DUPLICATE</div>' : isMismatch ? '<div class="cm-spot-dupe">⚠ WRONG SPOT</div>' : ''}
       ${!heatOn && onTd && !isDupe && !isMismatch ? '<div class="cm-spot-td">🚗 Out - Test Drive</div>' : ''}
-      ${!heatOn && appt && !onTd && !isDupe && !isMismatch ? `<div class="cm-spot-appt">${appt.label}</div>` : ''}
-      ${!heatOn && gr && !appt && !onTd && !isDupe && !isMismatch ? `<div class="cm-spot-gr">${gr.label}</div>` : ''}
+      ${!heatOn && gr && !onTd && !isDupe && !isMismatch ? `<div class="cm-spot-gr">${gr.label}</div>` : ''}
     </div>
   </div>`;
 }
