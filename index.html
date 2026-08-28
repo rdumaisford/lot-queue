@@ -7692,6 +7692,20 @@ function cmIsFlagged(veh) {
   return !!(veh && (veh.flagged || veh.status === 'flag' || (veh.note && String(veh.note).trim())));
 }
 
+// Plain-text version of a spot's note(s), for the note icon's hover tooltip -
+// same content and order as the note bubbles in the quick-actions modal
+// (legacy single note first, then the threaded notes newest-first), just
+// joined into one string so it's readable at a glance without opening
+// anything. Native title tooltips render \n as line breaks.
+function cmNoteTooltipText(veh) {
+  const parts = [];
+  if (veh && veh.note) parts.push(String(veh.note).trim());
+  if (veh && Array.isArray(veh.notes)) {
+    veh.notes.slice().reverse().forEach(n => { if (n && n.text) parts.push(n.text); });
+  }
+  return parts.join('\n');
+}
+
 // Grid spots are always "Spot R#-C#"; freeform spots (323 Bayview NEW) have
 // no row/col - use whatever label the spot was given in the layout builder.
 function cmSpotTitle(key, veh) {
@@ -7916,8 +7930,8 @@ function cmRenderMap() {
             ${cmEditMode?`onpointerdown="cmGroupPointerDown(event,'${key}')" oncontextmenu="return false"`:''}
             ${extraStyle?`style="${extraStyle}"`:''}>
             ${cmEditMode ? `<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
-            ${(veh.note || (Array.isArray(veh.notes) && veh.notes.length)) && !cmEditMode ? `<div class="cm-spot-note"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
-            ${!cmEditMode && (isFlagged || veh.needsGas || veh.needsWash || veh.atDealership) ? `<div class="cm-spot-flags">${isFlagged?'<span class="cm-spot-flag" title="Flagged" style="background:#fecaca;color:#7f1d1d">🚩</span>':''}${veh.needsGas?'<span class="cm-spot-flag" title="Needs gas">⛽</span>':''}${veh.needsWash?'<span class="cm-spot-flag" title="Needs wash">🧼</span>':''}${veh.atDealership?'<span class="cm-spot-flag" title="At dealership - needs to return to 323 Bayview" style="background:#fecaca">🏢</span>':''}</div>` : ''}
+            ${(veh.note || (Array.isArray(veh.notes) && veh.notes.length)) && !cmEditMode ? `<div class="cm-spot-note" title="${esc(cmNoteTooltipText(veh))}"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
+            ${!cmEditMode && (isFlagged || veh.needsGas || veh.needsWash || veh.atDealership) ? `<div class="cm-spot-flags">${isFlagged?`<span class="cm-spot-flag" title="${esc(cmNoteTooltipText(veh) || 'Flagged')}" style="background:#fecaca;color:#7f1d1d">🚩</span>`:''}${veh.needsGas?'<span class="cm-spot-flag" title="Needs gas">⛽</span>':''}${veh.needsWash?'<span class="cm-spot-flag" title="Needs wash">🧼</span>':''}${veh.atDealership?'<span class="cm-spot-flag" title="At dealership - needs to return to 323 Bayview" style="background:#fecaca">🏢</span>':''}</div>` : ''}
             <div class="cm-spot-num">${ci+1}</div>
             <div class="cm-spot-stock">${stock}</div>
             <div class="cm-spot-desc">${lockInfo ? `🔒 ${lockInfo.lockedBy}` : heatOn ? (ageDays!=null ? `${ageDays}d on lot` : 'no arrival date') : typeLine}</div>
@@ -9226,8 +9240,12 @@ function flSpotHtml(id, veh, maps) {
   // an actual duplicate (a real data error, ranked worse than a car just
   // being in the wrong row).
   const zoneType = flDesignatedType(veh.label);
-  const isMismatch = zoneType && zoneType !== cmTypeClass(veh.status);
-  const cls = isDupe ? 'cm-duplicate' : isMismatch ? 'cm-mismatch' : onTd ? 'ontestdrive' : appt ? 'appointed' : gr ? 'getready' : cmTypeClass(veh.status);
+  const actualType = cmTypeClass(veh.status);
+  // Lease returns routinely get parked in the wholesale zone (that's where
+  // most of them end up disposed of anyway) - a real, allowed combination,
+  // not a parking error, so it's exempted from the mismatch flag.
+  const isMismatch = zoneType && zoneType !== actualType && !(zoneType === 'wholesale' && actualType === 'leasereturn');
+  const cls = isDupe ? 'cm-duplicate' : isMismatch ? 'cm-mismatch' : onTd ? 'ontestdrive' : appt ? 'appointed' : gr ? 'getready' : actualType;
   const ageDays = ageMap ? ageMap[stockUpper] : null;
   const heatOn = cmHeatmapMode && !isDupe && !isMismatch;
   const heatCls = heatOn ? ' cm-heatmap-active' : '';
@@ -9239,9 +9257,9 @@ function flSpotHtml(id, veh, maps) {
   const CM_TYPE_LABELS = { new:'New', used:'Used', wholesale:'Wholesale', fleet:'Fleet', leasereturn:'Lease Return' };
 
   return `<div class="cm-spot ${cls}${isFlagged?' cm-flagged':''}${heatCls}${lockCls}" data-cm-key="${id}"
-    style="${posStyle}${heatStyleVar}" onclick="cmOpenQuickActions('${id}',0,0)" ${isMismatch?`title="⚠ Wrong spot - this is a ${CM_TYPE_LABELS[zoneType]||zoneType} spot but ${esc(veh.stock)} is ${CM_TYPE_LABELS[cmTypeClass(veh.status)]||cmTypeClass(veh.status)}"`:''}>
-    ${(veh.note || (Array.isArray(veh.notes) && veh.notes.length)) ? `<div class="cm-spot-note"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
-    ${(isFlagged || veh.needsGas || veh.needsWash || veh.atDealership) ? `<div class="cm-spot-flags">${isFlagged?'<span class="cm-spot-flag" title="Flagged" style="background:#fecaca;color:#7f1d1d">🚩</span>':''}${veh.needsGas?'<span class="cm-spot-flag" title="Needs gas">⛽</span>':''}${veh.needsWash?'<span class="cm-spot-flag" title="Needs wash">🧼</span>':''}${veh.atDealership?'<span class="cm-spot-flag" title="At dealership - needs to return to 323 Bayview" style="background:#fecaca">🏢</span>':''}</div>` : ''}
+    style="${posStyle}${heatStyleVar}" onclick="cmOpenQuickActions('${id}',0,0)" ${isMismatch?`title="⚠ Wrong spot - this is a ${CM_TYPE_LABELS[zoneType]||zoneType} spot but ${esc(veh.stock)} is ${CM_TYPE_LABELS[actualType]||actualType}"`:''}>
+    ${(veh.note || (Array.isArray(veh.notes) && veh.notes.length)) ? `<div class="cm-spot-note" title="${esc(cmNoteTooltipText(veh))}"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
+    ${(isFlagged || veh.needsGas || veh.needsWash || veh.atDealership) ? `<div class="cm-spot-flags">${isFlagged?`<span class="cm-spot-flag" title="${esc(cmNoteTooltipText(veh) || 'Flagged')}" style="background:#fecaca;color:#7f1d1d">🚩</span>`:''}${veh.needsGas?'<span class="cm-spot-flag" title="Needs gas">⛽</span>':''}${veh.needsWash?'<span class="cm-spot-flag" title="Needs wash">🧼</span>':''}${veh.atDealership?'<span class="cm-spot-flag" title="At dealership - needs to return to 323 Bayview" style="background:#fecaca">🏢</span>':''}</div>` : ''}
     <div class="cm-spot-info">
       <div class="cm-spot-stock">${esc(stock)}</div>
       <div class="cm-spot-desc">${lockInfo ? `🔒 ${esc(lockInfo.lockedBy)}` : heatOn ? (ageDays!=null ? `${ageDays}d on lot` : 'no arrival date') : isMismatch ? `Should be ${esc(veh.label)}` : esc(typeLine)}</div>
