@@ -933,10 +933,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot.void{background:#d1d5db;border-color:#d1d5db;cursor:default}
 .cm-spot.void *{display:none!important}
 .cm-spot.blocked{background:#e2e8f0;border-color:#94a3b8;border-style:dashed;cursor:default}
-/* Thinner, lighter border than any occupied state (all of which are 2px) -
-   an empty spot should visually recede so an occupied one pops at a glance
-   instead of every spot reading with the same weight. */
-.cm-spot.empty{background:#f8fafc;border-color:#e2e8f0;border-width:1px}
+/* Green + thin so an available spot reads as available at a glance,
+   against every occupied state's 2px coloured border. */
+.cm-spot.empty{background:#f0fdf4;border-color:#22c55e;border-width:1px}
 .cm-spot-num{font-size:9px;font-weight:700;color:#94a3b8;line-height:1;position:absolute;top:3px;left:4px}
 .cm-spot.appointed .cm-spot-num{color:#7c3aed}
 .cm-spot-stock{font-size:9px;font-weight:800;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;margin-top:8px}
@@ -9211,12 +9210,12 @@ function flSpotHtml(id, veh, maps) {
   const isVoid = veh.status === 'void';
   if (!veh.stock && !isBlocked && !isVoid) {
     // An empty physical spot - click to assign a car, same as an empty grid
-    // cell. If its own label designates a zone (e.g. "Wholesale 3"), show
-    // that zone's colour even with nothing parked there yet, so the
-    // designation is visible at a glance before anyone's parked wrong.
-    const zoneType = flDesignatedType(veh.label);
-    const emptyCls = zoneType ? zoneType : 'empty';
-    return `<div class="cm-spot ${emptyCls}" data-cm-key="${id}" style="${posStyle}" onclick="cmSpotClick('${id}',0,0)">
+    // cell. Always styled as available (green/thin), same as any other
+    // empty spot, even if its own label designates a zone (e.g. "Wholesale
+    // 3") - whether a car is actually parked here takes priority over what
+    // zone it's in, so an empty spot never reads as occupied. The zone
+    // label itself still shows as text either way.
+    return `<div class="cm-spot empty" data-cm-key="${id}" style="${posStyle}" onclick="cmSpotClick('${id}',0,0)">
       <div class="cm-spot-info"><div class="cm-spot-stock" style="opacity:.6;font-weight:600">${esc(veh.label||'')}</div></div>
     </div>`;
   }
