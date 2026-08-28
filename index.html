@@ -919,20 +919,24 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spots-wrap{display:flex;gap:3px;flex-wrap:nowrap;align-items:center;padding:2px 0}
 .cm-spot{width:68px;height:46px;border-radius:5px;border:1.5px solid #cbd5e1;background:#f1f5f9;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;flex-shrink:0;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;transition:box-shadow .12s,transform .12s;overflow:hidden}
 .cm-spot:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.12)}
-.cm-spot.new{background:#eff6ff;border-color:#1d4ed8}
+.cm-spot.new{background:#eff6ff;border-color:#1d4ed8;border-width:2px}
 .cm-spot.new .cm-spot-num{color:#1d4ed8}
-.cm-spot.used{background:#f1f5f9;border-color:#64748b}
+.cm-spot.used{background:#f1f5f9;border-color:#64748b;border-width:2px}
 .cm-spot.used .cm-spot-num{color:#475569}
-.cm-spot.wholesale{background:#fefce8;border-color:#ca8a04}
+.cm-spot.wholesale{background:#fefce8;border-color:#ca8a04;border-width:2px}
 .cm-spot.wholesale .cm-spot-num{color:#a16207}
-.cm-spot.fleet{background:#f0fdf4;border-color:#15803d}
+.cm-spot.fleet{background:#f0fdf4;border-color:#15803d;border-width:2px}
 .cm-spot.fleet .cm-spot-num{color:#15803d}
 .cm-spot.leasereturn{background:#f5f3ff;border-color:#7c3aed;border-width:2px}
 .cm-spot.leasereturn .cm-spot-num{color:#7c3aed}
 .cm-spot.cm-flagged{border-color:#dc2626!important;border-width:2px}
 .cm-spot.void{background:#d1d5db;border-color:#d1d5db;cursor:default}
 .cm-spot.void *{display:none!important}
-.cm-spot.blocked{background:#e2e8f0;border-color:#94a3b8;border-style:dashed;cursor:default}.cm-spot.empty{background:#f8fafc;border-color:#e2e8f0}
+.cm-spot.blocked{background:#e2e8f0;border-color:#94a3b8;border-style:dashed;cursor:default}
+/* Thinner, lighter border than any occupied state (all of which are 2px) -
+   an empty spot should visually recede so an occupied one pops at a glance
+   instead of every spot reading with the same weight. */
+.cm-spot.empty{background:#f8fafc;border-color:#e2e8f0;border-width:1px}
 .cm-spot-num{font-size:9px;font-weight:700;color:#94a3b8;line-height:1;position:absolute;top:3px;left:4px}
 .cm-spot.appointed .cm-spot-num{color:#7c3aed}
 .cm-spot-stock{font-size:9px;font-weight:800;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;margin-top:8px}
