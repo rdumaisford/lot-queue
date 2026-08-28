@@ -1015,6 +1015,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot-note svg{width:9px;height:9px;stroke:#fff;fill:none;stroke-width:2.5}
 .cm-spot-flags{position:absolute;top:2px;left:2px;display:flex;flex-direction:column;gap:1px;z-index:2;transform:rotate(calc(-1 * var(--spot-rot,0deg)))}
 .cm-spot-flag{font-size:8px;line-height:1;background:rgba(255,255,255,.85);border-radius:2px;padding:1px 2px}
+/* Custom note tooltip - a single shared element, moved/shown/hidden by JS
+   (see cmWireNoteHover) instead of the browser's slow, plain native title
+   tooltip, so it appears fast and reads clearly against everything else on
+   the map. */
+#cm-note-tooltip{position:fixed;display:none;opacity:0;max-width:220px;background:#fffbeb;border:2px solid #f59e0b;color:#78350f;font-size:12px;font-weight:600;line-height:1.4;padding:8px 10px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.22);white-space:pre-wrap;z-index:10000;pointer-events:none;transition:opacity .06s ease}
+#cm-note-tooltip.show{display:block;opacity:1}
 .cm-del-spot{position:absolute;top:1px;right:1px;width:13px;height:13px;border-radius:50%;background:#ef4444;color:#fff;font-size:9px;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:3;line-height:1}
 .cm-edit-active .cm-del-spot{display:flex}
 .cm-row-label.cm-row-del{cursor:pointer;flex-direction:column;gap:0;color:#dc2626;font-weight:800;border-radius:3px}
@@ -7709,6 +7715,50 @@ function cmNoteTooltipText(veh) {
   return parts.join('\n');
 }
 
+// Custom hover tooltip for a spot's note - fast (no native title delay) and
+// triggers over the whole tile, not just the small note icon. Delegated on
+// the scroll containers (stable across re-renders) rather than attached per
+// spot, so it keeps working without re-wiring every time the map repaints.
+let cmNoteTooltipEl = null;
+function cmShowNoteTooltip(spotEl) {
+  const text = spotEl.dataset.note;
+  if (!text) return;
+  if (!cmNoteTooltipEl) {
+    cmNoteTooltipEl = document.createElement('div');
+    cmNoteTooltipEl.id = 'cm-note-tooltip';
+    document.body.appendChild(cmNoteTooltipEl);
+  }
+  const el = cmNoteTooltipEl;
+  el.textContent = text;
+  el.classList.add('show');
+  const spotRect = spotEl.getBoundingClientRect();
+  const elRect = el.getBoundingClientRect();
+  let top = spotRect.top - elRect.height - 8;
+  if (top < 4) top = spotRect.bottom + 8; // not enough room above - flip below
+  let left = spotRect.left + spotRect.width / 2 - elRect.width / 2;
+  left = Math.max(4, Math.min(left, window.innerWidth - elRect.width - 4));
+  el.style.top = `${top}px`;
+  el.style.left = `${left}px`;
+}
+function cmHideNoteTooltip() {
+  if (cmNoteTooltipEl) cmNoteTooltipEl.classList.remove('show');
+}
+function cmWireNoteHover(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el || el.dataset.noteHoverWired) return;
+  el.dataset.noteHoverWired = '1';
+  el.addEventListener('mouseover', e => {
+    const spot = e.target.closest('.cm-spot[data-note]');
+    if (spot) cmShowNoteTooltip(spot);
+  });
+  el.addEventListener('mouseout', e => {
+    const spot = e.target.closest('.cm-spot[data-note]');
+    if (spot && !spot.contains(e.relatedTarget)) cmHideNoteTooltip();
+  });
+}
+cmWireNoteHover('cm-map-wrap');
+cmWireNoteHover('fl-canvas-outer');
+
 // Grid spots are always "Spot R#-C#"; freeform spots (323 Bayview NEW) have
 // no row/col - use whatever label the spot was given in the layout builder.
 function cmSpotTitle(key, veh) {
@@ -7927,14 +7977,15 @@ function cmRenderMap() {
           const lockInfo = activeLockFor('compound', `${cmCurrentLot}_${key}`);
           const lockCls = lockInfo ? ' cm-locked-by-other' : '';
           const extraStyle = `${canDrag?'touch-action:none;':''}${heatStyleVar}`;
-          html += `<div class="cm-spot ${cls}${isFlagged?' cm-flagged':''}${selCls}${heatCls}${lockCls}" data-cm-key="${key}"
+          const noteText = (!cmEditMode && (veh.note || (Array.isArray(veh.notes) && veh.notes.length))) ? cmNoteTooltipText(veh) : '';
+          html += `<div class="cm-spot ${cls}${isFlagged?' cm-flagged':''}${selCls}${heatCls}${lockCls}" data-cm-key="${key}"${noteText?` data-note="${esc(noteText)}"`:''}
             onclick="${cmEditMode?`cmSelectSpot(event,'${key}',${ri},${ci})`:`cmOpenQuickActions('${key}',${ri},${ci})`}"
             ${canDrag?`onpointerdown="cmSpotPointerDown(event,'${key}')" oncontextmenu="return false"`:''}
             ${cmEditMode?`onpointerdown="cmGroupPointerDown(event,'${key}')" oncontextmenu="return false"`:''}
             ${extraStyle?`style="${extraStyle}"`:''}>
             ${cmEditMode ? `<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
-            ${(veh.note || (Array.isArray(veh.notes) && veh.notes.length)) && !cmEditMode ? `<div class="cm-spot-note" title="${esc(cmNoteTooltipText(veh))}"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
-            ${!cmEditMode && (isFlagged || veh.needsGas || veh.needsWash || veh.atDealership) ? `<div class="cm-spot-flags">${isFlagged?`<span class="cm-spot-flag" title="${esc(cmNoteTooltipText(veh) || 'Flagged')}" style="background:#fecaca;color:#7f1d1d">🚩</span>`:''}${veh.needsGas?'<span class="cm-spot-flag" title="Needs gas">⛽</span>':''}${veh.needsWash?'<span class="cm-spot-flag" title="Needs wash">🧼</span>':''}${veh.atDealership?'<span class="cm-spot-flag" title="At dealership - needs to return to 323 Bayview" style="background:#fecaca">🏢</span>':''}</div>` : ''}
+            ${noteText ? `<div class="cm-spot-note"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
+            ${!cmEditMode && (isFlagged || veh.needsGas || veh.needsWash || veh.atDealership) ? `<div class="cm-spot-flags">${isFlagged?'<span class="cm-spot-flag" style="background:#fecaca;color:#7f1d1d">🚩</span>':''}${veh.needsGas?'<span class="cm-spot-flag" title="Needs gas">⛽</span>':''}${veh.needsWash?'<span class="cm-spot-flag" title="Needs wash">🧼</span>':''}${veh.atDealership?'<span class="cm-spot-flag" title="At dealership - needs to return to 323 Bayview" style="background:#fecaca">🏢</span>':''}</div>` : ''}
             <div class="cm-spot-num">${ci+1}</div>
             <div class="cm-spot-stock">${stock}</div>
             <div class="cm-spot-desc">${lockInfo ? `🔒 ${lockInfo.lockedBy}` : heatOn ? (ageDays!=null ? `${ageDays}d on lot` : 'no arrival date') : typeLine}</div>
@@ -9259,10 +9310,11 @@ function flSpotHtml(id, veh, maps) {
   const typeLine = [veh.year, veh.type, veh.trim, veh.colour].filter(Boolean).join(' ').substring(0,18);
   const CM_TYPE_LABELS = { new:'New', used:'Used', wholesale:'Wholesale', fleet:'Fleet', leasereturn:'Lease Return' };
 
-  return `<div class="cm-spot ${cls}${isFlagged?' cm-flagged':''}${heatCls}${lockCls}" data-cm-key="${id}"
+  const noteText = (veh.note || (Array.isArray(veh.notes) && veh.notes.length)) ? cmNoteTooltipText(veh) : '';
+  return `<div class="cm-spot ${cls}${isFlagged?' cm-flagged':''}${heatCls}${lockCls}" data-cm-key="${id}"${noteText?` data-note="${esc(noteText)}"`:''}
     style="${posStyle}${heatStyleVar}" onclick="cmOpenQuickActions('${id}',0,0)" ${isMismatch?`title="⚠ Wrong spot - this is a ${CM_TYPE_LABELS[zoneType]||zoneType} spot but ${esc(veh.stock)} is ${CM_TYPE_LABELS[actualType]||actualType}"`:''}>
-    ${(veh.note || (Array.isArray(veh.notes) && veh.notes.length)) ? `<div class="cm-spot-note" title="${esc(cmNoteTooltipText(veh))}"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
-    ${(isFlagged || veh.needsGas || veh.needsWash || veh.atDealership) ? `<div class="cm-spot-flags">${isFlagged?`<span class="cm-spot-flag" title="${esc(cmNoteTooltipText(veh) || 'Flagged')}" style="background:#fecaca;color:#7f1d1d">🚩</span>`:''}${veh.needsGas?'<span class="cm-spot-flag" title="Needs gas">⛽</span>':''}${veh.needsWash?'<span class="cm-spot-flag" title="Needs wash">🧼</span>':''}${veh.atDealership?'<span class="cm-spot-flag" title="At dealership - needs to return to 323 Bayview" style="background:#fecaca">🏢</span>':''}</div>` : ''}
+    ${noteText ? `<div class="cm-spot-note"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
+    ${(isFlagged || veh.needsGas || veh.needsWash || veh.atDealership) ? `<div class="cm-spot-flags">${isFlagged?'<span class="cm-spot-flag" style="background:#fecaca;color:#7f1d1d">🚩</span>':''}${veh.needsGas?'<span class="cm-spot-flag" title="Needs gas">⛽</span>':''}${veh.needsWash?'<span class="cm-spot-flag" title="Needs wash">🧼</span>':''}${veh.atDealership?'<span class="cm-spot-flag" title="At dealership - needs to return to 323 Bayview" style="background:#fecaca">🏢</span>':''}</div>` : ''}
     <div class="cm-spot-info">
       <div class="cm-spot-stock">${esc(stock)}</div>
       <div class="cm-spot-desc">${lockInfo ? `🔒 ${esc(lockInfo.lockedBy)}` : heatOn ? (ageDays!=null ? `${ageDays}d on lot` : 'no arrival date') : isMismatch ? `Should be ${esc(veh.label)}` : esc(typeLine)}</div>
