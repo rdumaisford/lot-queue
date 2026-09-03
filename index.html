@@ -6152,8 +6152,8 @@ function renderGRCard(d, perms, isDupe) {
       gasBanner = `<div class="gr-gas-banner ${d.gasFilled?'no-gas-needed':''}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${d.gasFilled?'':'background:#fef2f2'}">
           <span style="font-size:20px">⛽</span>
           <div style="flex:1">
-            <div style="font-weight:700;color:${d.gasFilled?'':'#991b1b'}">${d.gasFilled?'Gas Filled':'Needs Gas'}${!d.gasFilled?gasAmountBadge:''}</div>
-            <div style="font-size:11px;font-weight:400;opacity:.7">${d.gasFilled?`Tank topped up and ready${doneWhoWhen}`:'Before delivery'}</div>
+            <div style="font-weight:700;color:${d.gasFilled?'':'#991b1b'}">${d.gasFilled?`Gas Filled - $${Number(d.gasAmount||0).toFixed(2)}`:'Needs Gas'}${!d.gasFilled?gasAmountBadge:''}</div>
+            <div style="font-size:11px;font-weight:400;opacity:.7">${d.gasFilled?(d.gasFilledBy?`${d.gasFilledBy}${d.gasFilledAt?' · '+new Date(d.gasFilledAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}):''}`:''):'Before delivery'}</div>
           </div>
           ${canGas?`<div class="gr-tap" style="width:auto;height:32px;padding:0 14px;border-radius:20px;${d.gasFilled?'background:#f1f5f9;border-color:#e2e8f0':''}" onclick="toggleGRField('${d.id}','gasFilled',${!d.gasFilled})">
             <span style="font-size:12px;font-weight:700;color:${d.gasFilled?'#94a3b8':'#991b1b'}">${d.gasFilled?'✓ Done':'Mark done'}</span>
