@@ -29,7 +29,7 @@
   script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com https://www.gstatic.com;
   style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com;
   img-src 'self' data: https://*.tile.openstreetmap.org;
-  connect-src 'self' https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://api.emailjs.com https://router.project-osrm.org;
+  connect-src 'self' https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://us-central1-lot-queue.cloudfunctions.net https://router.project-osrm.org;
   font-src 'self' data:;
   frame-ancestors 'self';
   base-uri 'self';
@@ -559,9 +559,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .gr-gas-banner.no-gas-needed{background:#f0fdf4;border-bottom-color:#86efac;color:#15803d}
 .gr-delivery{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-muted);flex-wrap:wrap}
 .gr-delivery strong{color:var(--text)}
-.gr-checklist{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:12px 16px;border-bottom:1px solid var(--border)}
-.gr-check-item{display:flex;flex-direction:column;align-items:center;gap:4px}
-.gr-check-label{font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;text-align:center}
 .gr-tap{width:100%;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid var(--border);background:var(--bg);transition:all .15s}
 .gr-tap:hover{border-color:#94a3b8}
 .gr-tap.on{background:#dcfce7;border-color:#86efac}
@@ -1075,7 +1072,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"/>
 <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -2034,14 +2030,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <div style="max-width:480px">
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-top:16px">
           <div style="font-size:15px;font-weight:600;margin-bottom:4px">📧 Email Notifications</div>
-          <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Uses a free <a href="https://www.emailjs.com" target="_blank" style="color:var(--ford)">EmailJS</a> account to send email directly from the browser - no server needed. New Get Ready deals email automatically. Incoming units are summarized into one email at the end of each day. Both only fire while at least one person has the app open.</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Sent via <a href="https://resend.com" target="_blank" style="color:var(--ford)">Resend</a> through a Cloud Function - the send key never touches the browser. New Get Ready deals email automatically (with the Get Ready sheet PDF attached, if one's uploaded). Incoming units are summarized into one email at the end of each day. Both only fire while at least one person has the app open.</div>
           <div class="modal-form-row" style="margin-bottom:10px"><label>Get Ready notification email</label><input id="email-gr-address" type="email" placeholder="getready@yourdealership.com" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
           <div class="modal-form-row" style="margin-bottom:10px"><label>Incoming daily digest email</label><input id="email-inc-address" type="email" placeholder="incoming@yourdealership.com" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
-          <div class="modal-form-row" style="margin-bottom:10px"><label>Digest send time</label><input id="email-digest-time" type="time" value="18:00" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
-          <div class="modal-form-row" style="margin-bottom:10px"><label>EmailJS Public Key</label><input id="email-public-key" type="text" placeholder="e.g. user_Ab12Cd34" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
-          <div class="modal-form-row" style="margin-bottom:10px"><label>EmailJS Service ID</label><input id="email-service-id" type="text" placeholder="e.g. service_abc123" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
-          <div class="modal-form-row" style="margin-bottom:10px"><label>Get Ready Template ID</label><input id="email-gr-template" type="text" placeholder="e.g. template_getready" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
-          <div class="modal-form-row" style="margin-bottom:14px"><label>Incoming Digest Template ID</label><input id="email-inc-template" type="text" placeholder="e.g. template_incoming_digest" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
+          <div class="modal-form-row" style="margin-bottom:14px"><label>Digest send time</label><input id="email-digest-time" type="time" value="18:00" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
           <div style="display:flex;gap:8px">
             <button onclick="saveEmailSettings()" style="flex:1;padding:11px;border:none;border-radius:var(--radius-sm);background:var(--ford);color:#fff;font-size:14px;font-weight:700;cursor:pointer">Save</button>
             <button onclick="sendTestEmail()" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer">Send Test</button>
@@ -2378,7 +2370,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       </div>
     </div>
 
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin:14px 0 6px">Which steps are required <span style="font-weight:400;color:var(--text-faint);text-transform:none;letter-spacing:0">- these start unchecked and get marked done as work happens</span></div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin:14px 0 6px">Services this deal is getting</div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
       <div class="checkbox-row" style="border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-pdi"/><label for="gr-c-pdi">PDI</label></div>
       <div class="checkbox-row" style="border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-lof"/><label for="gr-c-lof">LOF</label></div>
@@ -2408,6 +2400,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getDatabase, ref, push, get, set, onValue, update, remove, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 import { getAuth, signInAnonymously, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
+import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDYj9RC-cmfcfZ6sPo_9TmF67mWeEkxkwo",
@@ -2423,6 +2416,8 @@ const appFB = initializeApp(firebaseConfig);
 const db = getDatabase(appFB);
 const auth = getAuth(appFB);
 const storage = getStorage(appFB);
+const functionsFB = getFunctions(appFB, 'us-central1');
+const callSendNotificationEmail = httpsCallable(functionsFB, 'sendNotificationEmail');
 // Human staff authenticate via email/password sign-in (see loadIdentity/watchUserApproval below).
 // TV/display kiosk screens (?display=true) use a silent anonymous session instead -
 // that's handled inside loadIdentity() since there's no person present to sign in.
@@ -2447,9 +2442,8 @@ function esc(val) {
 // ── State ─────────────────────────────────────────────
 let entries = {}, historyData = {}, units = {}, getReadyDeals = {}, hitchhikers = {}, testDrives = {}, compoundHistoryData = {};
 let announcements = {}, annSelectedId = null, annVisibleCount = 8, editingAnnId = null;
-let emailSettings = {}; // {notifyAddress, publicKey, serviceId, grTemplateId, incTemplateId}
+let emailSettings = {}; // {grAddress, incAddress, digestTime}
 let currentAlertState = null;
-let emailjsReady = false;
 let vehicleSpecs = {}; // stock# -> {year,trim,type,colour,status} - shared between Incoming and Compound so specs entered once autofill everywhere else
 let vehicleRequests = {}, vehicleReturns = {}; // one unified pickup/return flow across all lots
 let driverLocations = {}; // live mirror of /driverLocation - who's currently sharing, and where
@@ -3155,18 +3149,10 @@ function startApp() {
 
     emailSettings = s.email || {};
     const eGrAddr=document.getElementById('email-gr-address'), eIncAddr=document.getElementById('email-inc-address'),
-          eDigestTime=document.getElementById('email-digest-time'), ePub=document.getElementById('email-public-key'),
-          eSvc=document.getElementById('email-service-id'), eGr=document.getElementById('email-gr-template'), eInc=document.getElementById('email-inc-template');
+          eDigestTime=document.getElementById('email-digest-time');
     if (eGrAddr && !eGrAddr.matches(':focus')) eGrAddr.value = emailSettings.grAddress || '';
     if (eIncAddr && !eIncAddr.matches(':focus')) eIncAddr.value = emailSettings.incAddress || '';
     if (eDigestTime && !eDigestTime.matches(':focus')) eDigestTime.value = emailSettings.digestTime || '18:00';
-    if (ePub && !ePub.matches(':focus')) ePub.value = emailSettings.publicKey || '';
-    if (eSvc && !eSvc.matches(':focus')) eSvc.value = emailSettings.serviceId || '';
-    if (eGr && !eGr.matches(':focus')) eGr.value = emailSettings.grTemplateId || '';
-    if (eInc && !eInc.matches(':focus')) eInc.value = emailSettings.incTemplateId || '';
-    if (emailSettings.publicKey && typeof emailjs !== 'undefined' && !emailjsReady) {
-      try { emailjs.init({ publicKey: emailSettings.publicKey }); emailjsReady = true; } catch(e) {}
-    }
 
     // System-wide alert - banner persists for everyone until management
     // clears it; the popup fires once per browser per distinct alert
@@ -3228,17 +3214,17 @@ function startApp() {
   // first - the transaction flag prevents every other open session from also
   // sending a duplicate for the same deal.
   async function sendGetReadyEmail(id, d, retried) {
-    if (!emailSettings.grTemplateId || !emailSettings.grAddress) {
+    if (!emailSettings.grAddress) {
       // Settings may just not have finished loading yet right after sign-in —
       // give it one short retry before actually giving up and logging why.
       if (!retried) { setTimeout(() => sendGetReadyEmail(id, d, true), 2000); return; }
-      console.warn('Get Ready email skipped - not configured (missing template ID or address) for deal', d.stock);
+      console.warn('Get Ready email skipped - not configured (missing address) for deal', d.stock);
       return;
     }
     try {
       const result = await runTransaction(ref(db, 'getready/'+id+'/emailSent'), curr => curr ? undefined : true);
       if (!result.committed) { console.log('Get Ready email skipped - already sent by another session for', d.stock); return; }
-      const ok = await sendNotificationEmail(emailSettings.grTemplateId, buildGREmailParams(
+      const ok = await sendNotificationEmail('getReady', buildGREmailParams(
         d,
         `New Get Ready Deal - ${d.stock||'no stock #'}`,
         `A new Get Ready deal was added for ${d.vehicle||d.stock||'a vehicle'}.`,
@@ -4718,12 +4704,10 @@ function renderTVGetReady() {
       return false;
     })()) ? '#ef4444' : typeBorder;
 
-    // Progress
-    const reqChecks = GR_CHECKLIST.filter(([k]) => d['req_'+k]);
-    const toCheck = reqChecks.length > 0 ? reqChecks : GR_CHECKLIST;
-    const done = toCheck.filter(([k]) => d[k]).length;
-    const pct = toCheck.length ? Math.round((done/toCheck.length)*100) : 100;
-    const barColor = pct===100?'#16a34a':pct>60?'#f59e0b':'#1d4ed8';
+    // Progress - services are a single manual complete/not-complete toggle now,
+    // not a per-step tally, so the bar is just empty or full.
+    const pct = d.servicesComplete ? 100 : 0;
+    const barColor = pct===100?'#16a34a':'#1d4ed8';
 
     // Gas / Charge - charging gets its own "in progress" colour/label since
     // it takes a while, unlike a quick gas fill-up. Past 12 hours in
@@ -5747,11 +5731,8 @@ const GR_CHECKLIST = [
 ];
 
 function grIsComplete(d) {
-  const required = GR_CHECKLIST.filter(([key]) => d['req_'+key]);
-  const toCheck = required.length > 0 ? required : GR_CHECKLIST;
-  const checklistDone = toCheck.every(([key]) => d[key]);
   const customDone = (d.customFields||[]).filter(f=>f.label).every(f=>f.done);
-  return checklistDone && customDone && (grEffectiveFuelStatus(d)==='none' || d.gasFilled);
+  return !!d.servicesComplete && customDone && (grEffectiveFuelStatus(d)==='none' || d.gasFilled);
 }
 
 // A deal only leaves the active list for "Ready for delivery" once BOTH the
@@ -6175,44 +6156,14 @@ function renderGRCard(d, perms, isDupe) {
     const updatedBadge = d.needsAcknowledgment ? `<span class="gr-complete-badge" style="background:#7c3aed">🔶 UPDATED</span>` : '';
     const canCompleteDeal = currentUser && ['sales','fandi','management'].includes(currentUser.role);
 
-    const cbBtn = (field, label) => {
-      const required = d['req_'+field];
-      const done = d[field];
-      // If not required and not done, hide entirely
-      if (!required && !done) return '';
-      // If not required but somehow done, show greyed out
-      const dimmed = !required;
-      const doneBy = d[field+'By'];
-      const doneAt = d[field+'At'];
-      const whoWhen = (done && doneBy) ? `${doneBy}${doneAt ? ' · '+new Date(doneAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : ''}` : '';
-      return `<div class="gr-check-item${dimmed?' gr-check-na':''}" ${whoWhen?`title="Done by ${whoWhen}"`:''}>
-        <div class="gr-tap ${done?'on':''}" onclick="${canChecklist&&required?`toggleGRField('${d.id}','${field}',${!done})`:''}" style="${(!canChecklist||!required)?'pointer-events:none;':''} ${dimmed?'opacity:.4':''}">
-          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
-        <span class="gr-check-label" style="${dimmed?'opacity:.4':''}">${label}</span>
-        ${whoWhen?`<span style="font-size:9px;color:var(--text-faint);display:block;width:100%;text-align:center;margin-top:1px">${whoWhen}</span>`:''}
-        ${field==='pdi'?pdiAtIncomingNote:''}
-      </div>`;
-    };
-
-    // For legacy deals with no req_ flags, show all
-    const hasReqFlags = GR_CHECKLIST.some(([key]) => d['req_'+key] !== undefined);
-    const renderChecklist = hasReqFlags
-      ? GR_CHECKLIST.map(([key,label]) => cbBtn(key, label)).join('')
-      : GR_CHECKLIST.map(([key,label]) => {
-          const done = d[key];
-          const doneBy = d[key+'By'];
-          const doneAt = d[key+'At'];
-          const whoWhen = (done && doneBy) ? `${doneBy}${doneAt ? ' · '+new Date(doneAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : ''}` : '';
-          return `<div class="gr-check-item" ${whoWhen?`title="Done by ${whoWhen}"`:''}>
-            <div class="gr-tap ${done?'on':''}" onclick="${canChecklist?`toggleGRField('${d.id}','${key}',${!done})`:''}" style="${canChecklist?'':'pointer-events:none;opacity:.6'}">
-              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-            </div>
-            <span class="gr-check-label">${label}</span>
-            ${whoWhen?`<span style="font-size:9px;color:var(--text-faint);display:block;width:100%;text-align:center;margin-top:1px">${whoWhen}</span>`:''}
-            ${key==='pdi'?pdiAtIncomingNote:''}
-          </div>`;
-        }).join('');
+    // Which services this deal needs is decided once at intake (the "which
+    // services" checkboxes on the add/edit form) - the card just shows that
+    // as a plain glanceable list, no per-step checkboxes or timestamps.
+    // Completion is a single manual toggle (servicesComplete) below.
+    const servicesText = GR_CHECKLIST.filter(([key]) => d['req_'+key]).map(([,label]) => label).join(', ');
+    const servicesCompleteWhoWhen = (d.servicesComplete && d.servicesCompleteBy)
+      ? `${d.servicesCompleteBy}${d.servicesCompleteAt ? ' · '+new Date(d.servicesCompleteAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : ''}`
+      : '';
 
     // Gas / Charge - a gas vehicle needing fuel is a quick done/not-done
     // (with a $ amount); an EV needing a charge takes a while, so it gets
@@ -6320,8 +6271,16 @@ function renderGRCard(d, perms, isDupe) {
           <div style="font-size:11px;color:var(--text-muted)">${[t.year,t.make,t.model,t.colour].filter(Boolean).join(' · ')}${t.vin?` · ${esc(t.vin)}`:''}</div>
         </div>`).join('')}
       </div>` : ''}
-      <div class="gr-checklist">
-        ${renderChecklist}
+      <div style="padding:10px 16px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint)">Services</div>
+          ${canChecklist?`<div class="gr-tap" style="width:auto;height:26px;padding:0 10px;border-radius:14px;${d.servicesComplete?'background:#f1f5f9;border-color:#e2e8f0':''}" onclick="toggleGRField('${d.id}','servicesComplete',${!d.servicesComplete})" title="${servicesCompleteWhoWhen?`Done by ${servicesCompleteWhoWhen}`:''}">
+            <span style="font-size:11px;font-weight:700;color:${d.servicesComplete?'#94a3b8':'#991b1b'}">${d.servicesComplete?'✓ Complete':'Mark complete'}</span>
+          </div>`:`<span style="font-size:11px;font-weight:700;color:${d.servicesComplete?'#16a34a':'#991b1b'}">${d.servicesComplete?'✓ Complete':'Pending'}</span>`}
+        </div>
+        <div style="font-size:13px;color:var(--text)">${servicesText ? esc(servicesText) : '<span style="color:var(--text-faint)">No services selected</span>'}</div>
+        ${servicesCompleteWhoWhen?`<div style="font-size:10px;color:var(--text-faint);margin-top:2px">${servicesCompleteWhoWhen}</div>`:''}
+        ${d['req_pdi'] && pdiAtIncomingNote?pdiAtIncomingNote:''}
       </div>
       ${(d.customFields||[]).filter(f=>f.label).length ? `
       <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px">
@@ -6544,10 +6503,8 @@ window.openGRModal = function(id) {
   setGRPlateType(d.plateType || 'NEW');
   setGRFuelStatus(id ? grEffectiveFuelStatus(d) : 'gas');
   document.getElementById('gr-gas-amount').value = d.gasAmount || '';
-  // Required-steps checkboxes reflect which steps are REQUIRED for this deal
-  // (req_key), never actual completion - actual progress only ever changes
-  // via the card's own tap-to-check boxes, so new deals always start with
-  // every step showing as not-yet-done regardless of what's selected here.
+  // Which services this deal needs - selected once at intake, shown as a
+  // plain list on the card (not tracked per-step from here on).
   GR_CHECKLIST.forEach(([key]) => { document.getElementById('gr-c-'+key).checked = d['req_'+key] || false; });
   // Trade-ins - supports the old trade1/trade2 shape for existing deals, and
   // the new flexible array for everything going forward. Defaults to 2 empty
@@ -6664,14 +6621,6 @@ function pdfTimeToInput(s) {
   return `${String(h).padStart(2,'0')}:${m[2]}`;
 }
 
-// Maps the Get Ready sheet's raw checkbox field names to this app's
-// checklist keys - confirmed stable across multiple real deal PDFs (same
-// template, same field positions each time), so this can be hardcoded.
-const GR_PDF_CHECKLIST_MAP = {
-  'Check Box23':'pdi', 'Check Box24':'leather', 'Check Box25':'lof', 'Check Box26':'fabric',
-  'Check Box27':'detail', 'Check Box28':'module', 'Check Box29':'paint', 'Check Box30':'safety',
-};
-
 // Only ever called for a brand-new (not-yet-saved) deal, so it's safe to
 // fill every field outright - there's nothing hand-entered yet to clobber.
 function applyGRPdfFields(form) {
@@ -6692,15 +6641,6 @@ function applyGRPdfFields(form) {
   if (pdfFieldChecked(form,'Cash_ck')) document.getElementById('gr-financing').value = 'CASH';
   else if (pdfFieldChecked(form,'Finance_ck')) document.getElementById('gr-financing').value = 'FINANCE';
   else if (pdfFieldChecked(form,'leaseck')) document.getElementById('gr-financing').value = 'FORD_RCL';
-
-  // A checked box on the sheet means this step is required for this vehicle
-  // (never actual completion - see the note on the checklist UI below).
-  Object.entries(GR_PDF_CHECKLIST_MAP).forEach(([boxName, key]) => {
-    if (pdfFieldChecked(form, boxName)) {
-      const cb = document.getElementById('gr-c-'+key);
-      if (cb) cb.checked = true;
-    }
-  });
 
   // The gas amount box sits at the bottom-right of the checklist grid (its
   // own checkboxes there carry no printed label and showed no consistent
@@ -6799,16 +6739,14 @@ window.saveGR = async function() {
     ts: editingGRId ? (getReadyDeals[editingGRId]?.ts || Date.now()) : Date.now(),
     customFields: grCustomFields.filter(f => f.label.trim()),
   };
-  // These checkboxes only ever select which steps are REQUIRED for this deal
-  // - actual completion (deal[key]) is never touched here, whether adding or
-  // editing. Progress only ever happens via the card's own tap-to-check boxes,
-  // so a step marked required always starts (and stays, through edits) as not
-  // yet done until someone actually checks it off on the card.
+  // "Which services" checkboxes just tag what this deal needs - completion
+  // is tracked separately via the single Mark Complete toggle on the card,
+  // never touched here whether adding or editing.
   GR_CHECKLIST.forEach(([key]) => {
-    const required = document.getElementById('gr-c-'+key).checked;
-    deal['req_'+key] = required;
-    deal[key] = editingGRId ? (getReadyDeals[editingGRId]?.[key] || false) : false;
+    deal['req_'+key] = document.getElementById('gr-c-'+key).checked;
   });
+  if (editingGRId) deal.servicesComplete = getReadyDeals[editingGRId]?.servicesComplete || false;
+  else deal.servicesComplete = false;
   if (editingGRId) deal.gasFilled = getReadyDeals[editingGRId]?.gasFilled || false;
   else deal.gasFilled = false;
   if (editingGRId) deal.chargeInProgress = getReadyDeals[editingGRId]?.chargeInProgress || false;
@@ -7032,51 +6970,40 @@ window.saveEmailSettings = async function() {
     grAddress: document.getElementById('email-gr-address').value.trim(),
     incAddress: document.getElementById('email-inc-address').value.trim(),
     digestTime: document.getElementById('email-digest-time').value.trim() || '18:00',
-    publicKey: document.getElementById('email-public-key').value.trim(),
-    serviceId: document.getElementById('email-service-id').value.trim(),
-    grTemplateId: document.getElementById('email-gr-template').value.trim(),
-    incTemplateId: document.getElementById('email-inc-template').value.trim(),
   };
   try {
     await update(ref(db,'settings'), { email: settings });
-    if (settings.publicKey && typeof emailjs !== 'undefined') {
-      emailjs.init({ publicKey: settings.publicKey });
-      emailjsReady = true;
-    }
     showEmailToast('✓ Email settings saved.', 'success');
   } catch(e) { showEmailToast('Error saving - check connection.', 'error'); }
 };
 
 // Shared send helper - every email notification in the app goes through this.
-// Callers must include to_email in params, since Get Ready and Incoming now
-// go to two different addresses. Returns true/false so callers can react.
+// Callers must include `to` in params, since Get Ready and Incoming now go
+// to two different addresses. Returns true/false so callers can react.
+// Actual sending happens server-side (see functions/index.js) via Resend -
+// the browser never sees the send key, it just calls the Cloud Function.
 let lastEmailError = '';
 
-async function sendNotificationEmail(templateId, params) {
+async function sendNotificationEmail(emailType, params) {
   lastEmailError = '';
-  if (typeof emailjs === 'undefined') { lastEmailError = 'EmailJS SDK not loaded (check your internet connection and reload).'; console.error(lastEmailError); return false; }
-  if (!emailSettings.publicKey || !emailSettings.serviceId || !templateId) {
-    lastEmailError = 'Not configured - missing Public Key, Service ID, or Template ID.';
-    console.warn(lastEmailError);
-    return false;
-  }
-  if (!emailjsReady) { emailjs.init({ publicKey: emailSettings.publicKey }); emailjsReady = true; }
   try {
-    await emailjs.send(emailSettings.serviceId, templateId, params);
+    await callSendNotificationEmail({ emailType, ...params });
     return true;
   } catch(e) {
-    // EmailJS errors normally carry a status code and a text description -
-    // e.g. 400 "The recipients address is empty", 401/403 for a bad key or
-    // blocked origin, 404 for a template/service ID that doesn't exist.
-    lastEmailError = e?.text ? `${e.status ? e.status+': ' : ''}${esc(e.text)}` : (e?.message || String(e));
+    // Firebase callable errors carry a human-readable .message (either the
+    // HttpsError text thrown server-side - e.g. a bad Resend response - or a
+    // client-side failure like being offline).
+    lastEmailError = e?.message || String(e);
     console.error('Email send failed:', e);
     return false;
   }
 }
 
-// Builds the full set of template variables from a deal - shared by both the
+// Builds the full set of template fields from a deal - shared by both the
 // "new deal" and "deal updated" emails so they stay in sync with each other.
-function buildGREmailParams(d, subject, message) {
+// If the deal has an uploaded Get Ready sheet, its URL/filename are passed
+// along too so the Cloud Function can attach the PDF to the email.
+function buildGREmailParams(d, subject, intro) {
   const financingLabel = {CASH:'Cash',COMMERCIAL_LEASE:'Commercial Lease',FINANCE:'Finance',FORD_RCL:'Ford RCL'}[d.financing] || d.financing || '';
   const plateLabel = d.plateType === 'TRANSFER' ? 'License Plate Transfer' : 'New License Plates';
   const fuelStatus = grEffectiveFuelStatus(d);
@@ -7088,10 +7015,11 @@ function buildGREmailParams(d, subject, message) {
   const tradesText = trades.length
     ? trades.map((t,i) => `Trade ${i+1}: ${t.stock} - ${[t.year,t.make,t.model].filter(Boolean).join(' ')}${t.colour?' - '+t.colour:''}${t.vin?' - VIN '+t.vin:''}${t.kms?' - '+t.kms+' km':''} (${catLabel[t.category]||'Retail'})`).join('\n')
     : 'None';
-  const requiredSteps = GR_CHECKLIST.filter(([key]) => d['req_'+key]).map(([,label]) => label).join(', ') || 'None selected';
+  const steps = GR_CHECKLIST.filter(([key]) => d['req_'+key]).map(([,label]) => label).join(', ') || 'None selected';
   return {
-    to_email: emailSettings.grAddress,
+    to: emailSettings.grAddress,
     subject,
+    intro,
     stock: d.stock||'',
     dealNum: d.dealNum||'',
     vehicle: d.vehicle||'',
@@ -7107,10 +7035,10 @@ function buildGREmailParams(d, subject, message) {
     gasStatus: gasLabel,
     instructions: d.instructions||'(none)',
     notes: d.notes||'(none)',
-    requiredSteps,
+    steps,
     trades: tradesText,
-    pdfLink: d.pdfUrl || '',
-    message,
+    pdfUrl: d.pdfUrl || undefined,
+    pdfFileName: d.pdfFileName || undefined,
   };
 }
 
@@ -7138,9 +7066,9 @@ function hasSignificantGRChange(oldDeal, newDeal) {
 }
 
 async function sendGetReadyUpdateEmail(id, d) {
-  if (!emailSettings.grTemplateId || !emailSettings.grAddress) return; // not configured - silently skip
+  if (!emailSettings.grAddress) return; // not configured - silently skip
   try {
-    await sendNotificationEmail(emailSettings.grTemplateId, buildGREmailParams(
+    await sendNotificationEmail('getReady', buildGREmailParams(
       d,
       `UPDATED: Get Ready Deal - ${d.stock||'no stock #'}`,
       `This Get Ready deal was just updated by ${currentUser?.name||'someone'}.`,
@@ -7149,18 +7077,18 @@ async function sendGetReadyUpdateEmail(id, d) {
 }
 
 window.sendTestEmail = async function() {
-  // Uses whichever template/address is filled in - Get Ready first, falling back to Incoming.
-  const templateId = document.getElementById('email-gr-template').value.trim() || document.getElementById('email-inc-template').value.trim();
+  // Uses whichever address is filled in - Get Ready first, falling back to Incoming.
   const toAddr = document.getElementById('email-gr-address').value.trim() || document.getElementById('email-inc-address').value.trim();
-  if (!document.getElementById('email-public-key').value.trim() || !document.getElementById('email-service-id').value.trim() || !templateId || !toAddr) {
-    showEmailToast('Fill in an email address, Public Key, Service ID, and at least one Template ID first.', 'error');
+  if (!toAddr) {
+    showEmailToast('Fill in an email address first.', 'error');
     return;
   }
   // Save first so the test uses whatever's currently in the fields, not stale saved values.
   await window.saveEmailSettings();
-  const ok = await sendNotificationEmail(templateId, {
-    to_email: toAddr,
+  const ok = await sendNotificationEmail('getReady', {
+    to: toAddr,
     subject: 'Test notification - Vehicle Manager',
+    intro: 'If you got this, your email notifications are working correctly.',
     stock: 'TEST123',
     dealNum: 'D-00000',
     vehicle: 'This is a test email',
@@ -7176,10 +7104,8 @@ window.sendTestEmail = async function() {
     gasStatus: 'Needs Gas - $25.00',
     instructions: '(none)',
     notes: '(none)',
-    requiredSteps: 'PDI, Detail',
+    steps: 'PDI, LOF, Detail, Paint, Safety, Leather, Fabric, Module',
     trades: 'Trade 1: A1000A - 2018 Honda Civic - Blue - 85000 km (Wholesale)',
-    count: 3,
-    message: 'If you got this, your email notifications are working correctly.',
   });
   showEmailToast(ok ? '✓ Test email sent - check your inbox.' : `Failed to send: ${lastEmailError || 'unknown error - check console'}`, ok ? 'success' : 'error');
 };
@@ -7190,7 +7116,7 @@ window.sendTestEmail = async function() {
 // Unit added that day. The transaction flag means only one open session
 // actually sends it even if several people have the app open at the time.
 async function checkAndSendDailyDigest() {
-  if (!emailSettings.incTemplateId || !emailSettings.incAddress) return; // not configured
+  if (!emailSettings.incAddress) return; // not configured
   const now = new Date();
   const todayStr = now.toISOString().slice(0,10);
   const [digestH, digestM] = (emailSettings.digestTime || '18:00').split(':').map(Number);
@@ -7212,11 +7138,11 @@ async function checkAndSendDailyDigest() {
       return `${u.stock||u.vin||'-'} - ${u.vehicle || specLine || 'no description'} - ${condLabel}${u.kms?' - '+u.kms+' km':''}`;
     }).join('\n');
 
-    await sendNotificationEmail(emailSettings.incTemplateId, {
-      to_email: emailSettings.incAddress,
+    await sendNotificationEmail('incomingDigest', {
+      to: emailSettings.incAddress,
       subject: `Incoming Vehicles - Daily Summary (${todaysUnits.length} unit${todaysUnits.length!==1?'s':''})`,
       count: todaysUnits.length,
-      message: lines,
+      lines,
     });
   } catch(e) { console.error('Daily digest failed:', e); }
 }
