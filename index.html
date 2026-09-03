@@ -3226,7 +3226,7 @@ function startApp() {
       if (!result.committed) { console.log('Get Ready email skipped - already sent by another session for', d.stock); return; }
       const ok = await sendNotificationEmail('getReady', buildGREmailParams(
         d,
-        `New Get Ready Deal - ${d.stock||'no stock #'}`,
+        grEmailSubject('New Get Ready Deal', d),
         `A new Get Ready deal was added for ${d.vehicle||d.stock||'a vehicle'}.`,
       ));
       console.log(ok ? `Get Ready email sent for ${d.stock}` : `Get Ready email FAILED to send for ${d.stock}`);
@@ -6999,6 +6999,14 @@ async function sendNotificationEmail(emailType, params) {
   }
 }
 
+// Subject line for both the "new deal" and "deal updated" emails - customer
+// name, stock #, and delivery date all at a glance in the inbox, without
+// having to open the email.
+function grEmailSubject(prefix, d) {
+  const bits = [d.stock||'no stock #', d.customer||'', d.deliveryDate?('Delivery '+fmtGRDate(d.deliveryDate)):''].filter(Boolean);
+  return `${prefix} - ${bits.join(' - ')}`;
+}
+
 // Builds the full set of template fields from a deal - shared by both the
 // "new deal" and "deal updated" emails so they stay in sync with each other.
 // If the deal has an uploaded Get Ready sheet, its URL/filename are passed
@@ -7070,7 +7078,7 @@ async function sendGetReadyUpdateEmail(id, d) {
   try {
     await sendNotificationEmail('getReady', buildGREmailParams(
       d,
-      `UPDATED: Get Ready Deal - ${d.stock||'no stock #'}`,
+      grEmailSubject('UPDATED: Get Ready Deal', d),
       `This Get Ready deal was just updated by ${currentUser?.name||'someone'}.`,
     ));
   } catch(e) { console.error('Get Ready update email failed:', e); }
