@@ -2119,7 +2119,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     <div id="cm-spot-current" style="margin-bottom:12px"></div>
     <div class="field">
       <label>Stock #</label>
-      <input id="cm-f-stock" type="text" placeholder="e.g. B0394" autocomplete="off" oninput="cmLookupSpecsForSpot()" style="width:100%;padding:10px 12px;font-size:15px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box;font-weight:700"/>
+      <input id="cm-f-stock" type="text" placeholder="e.g. B0394" autocomplete="off" onblur="cmLookupSpecsForSpot()" style="width:100%;padding:10px 12px;font-size:15px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box;font-weight:700"/>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="field">
@@ -2222,7 +2222,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 
     <div class="modal-grid">
       <div class="modal-form-row"><label>Arrived date</label><input id="m-arrived" type="date"/></div>
-      <div class="modal-form-row"><label>Stock #</label><input id="m-stock" type="text" placeholder="e.g. B1234" oninput="cmLookupSpecsForUnit()"/></div>
+      <div class="modal-form-row"><label>Stock #</label><input id="m-stock" type="text" placeholder="e.g. B1234" onblur="cmLookupSpecsForUnit()"/></div>
       <div class="modal-form-row modal-full"><label>VIN</label><input id="m-vin" type="text" placeholder="17-digit VIN" style="font-family:monospace;letter-spacing:.05em" maxlength="17"/></div>
 
       <div class="modal-form-row"><label id="m-category-label">Category</label>
@@ -5580,10 +5580,12 @@ window.setUnitCondition = function(cond, isInitialLoad) {
   }
 };
 
-// Live spec lookup as a stock # is typed into Incoming - if that stock # was
-// already specced elsewhere (e.g. placed on the Vehicle Locator map first),
-// autofill year/trim/type/colour here too. Never overwrites fields someone's
-// already typed into, and is silent/no-op if there's no match.
+// Spec lookup once a stock # is done being typed into Incoming (on blur, not
+// on every keystroke - see cmLookupSpecsForSpot above for why) - if that
+// stock # was already specced elsewhere (e.g. placed on the Vehicle Locator
+// map first), autofill year/trim/type/colour here too. Never overwrites
+// fields someone's already typed into, and is silent/no-op if there's no
+// match.
 window.cmLookupSpecsForUnit = function() {
   const stock = document.getElementById('m-stock').value.trim().toUpperCase();
   if (!stock) return;
@@ -8377,11 +8379,17 @@ window.cmOpenFullEditFromQuick = function() {
   cmSpotClick(key, ri, ci);
 };
 
-// Live spec lookup as a stock # is typed on the Vehicle Locator - if that
-// stock # was already specced elsewhere (e.g. entered at Incoming first),
-// autofill year/trim/type/colour here too. Only fills blank fields - never
-// overwrites something someone's already typed, and only applies when adding
-// a brand-new vehicle to an empty spot, not when editing an existing one.
+// Spec lookup once a stock # is done being typed on the Vehicle Locator (on
+// blur, not on every keystroke) - if that stock # was already specced
+// elsewhere (e.g. entered at Incoming first), autofill year/trim/type/colour
+// here too. Only fills blank fields - never overwrites something someone's
+// already typed, and only applies when adding a brand-new vehicle to an
+// empty spot, not when editing an existing one.
+// On blur rather than oninput because trade-ins routinely share a prefix
+// with the stock # they're replacing (B0681 purchased, trade-in becomes
+// B0681AX) - firing on every keystroke would match B0681's specs the
+// instant that prefix is typed, before the rest of the trade-in's own
+// stock # is even entered.
 window.cmLookupSpecsForSpot = function() {
   const existing = (cmVehicles[cmCurrentLot]||{})[cmActiveKey];
   if (existing && existing.stock) return; // editing an existing vehicle - don't overwrite its specs
