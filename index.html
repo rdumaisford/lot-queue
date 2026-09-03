@@ -5034,9 +5034,6 @@ function photoRequired(u) {
 }
 
 function isUnitComplete(u) {
-  // A sold unit isn't actually done from IC's side until it's been moved
-  // into the sold row, regardless of new/used.
-  if (u.status === 'SOLD' && !u.soldRowParked) return false;
   if (u.condition === 'used') {
     // Used units track File Received + IC Moved only - no PDI/Photo requirement
     return !!u.fileReceived && !!u.icMoved;
@@ -5390,7 +5387,6 @@ function renderTracker() {
           ${cbBtn('photo','Photo',u.photo,isNoPhoto,'cb-photo',canPhoto)}
           ${cbBtn('icMoved','IC Moved',u.icMoved,false,'cb-ic',canIC)}
         `}
-        ${u.status==='SOLD'?cbBtn('soldRowParked','Sold Row',u.soldRowParked,false,'cb-ic',canIC):''}
       </div>
       <div class="tracker-card-meta">
         ${canEdit?`<select class="inline-status" onchange="inlineStatus('${u.id}',this.value)">
@@ -5512,7 +5508,6 @@ function renderTrackerCompleted() {
           ${cbBtn('photo','Photo',u.photo,isNoPhoto,'cb-photo',canPhoto)}
           ${cbBtn('icMoved','IC Moved',u.icMoved,false,'cb-ic',canIC)}
         `}
-        ${u.status==='SOLD'?cbBtn('soldRowParked','Sold Row',u.soldRowParked,false,'cb-ic',canIC):''}
       </div>
       <div>${canEdit?`<select class="trow-inline-status" onchange="inlineStatus('${u.id}',this.value)">
         <option value="STOCK" ${u.status==='STOCK'?'selected':''}>Stock</option>
