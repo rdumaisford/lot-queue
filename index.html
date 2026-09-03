@@ -910,6 +910,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   .tv-slide-grid-4{grid-template-columns:repeat(2,1fr)}
   .tv-slide-grid-3{grid-template-columns:repeat(2,1fr)}
   .tv-slide-grid-6{grid-template-columns:repeat(3,1fr)}
+
+  /* Get Ready - starting a new deal (trade-ins, financing, PDF import) is a
+     desktop task; hide the button regardless of permission rather than
+     leaving a form that's painful to fill out on a phone reachable there. */
+  #btn-add-getready{display:none !important}
 }
 
 /* ── Compound Map ── */
@@ -1645,7 +1650,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <div class="tracker-toolbar">
         <div class="search-wrap">
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-          <input class="search-input" id="t-search" type="text" placeholder="Search stock, VIN, vehicle, notes…" oninput="renderTracker()"/>
+          <input class="search-input" id="t-search" type="text" placeholder="Search stock, VIN, vehicle, notes… (active & completed)" oninput="renderTracker()"/>
         </div>
         <button class="filter-chip active" onclick="setTrackerFilter('ALL',this)">All</button>
         <button class="filter-chip" onclick="setTrackerFilter('STOCK',this)">Stock</button>
@@ -1692,14 +1697,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div id="tracker-body" class="tracker-card-grid"></div>
       </div>
 
-      <!-- Completed units - kept forever, but shown as a compact list with its
-           own search/filter so it never has to share the active board's toolbar. -->
+      <!-- Completed units - kept forever, shown as a compact list below the
+           active board. Shares the active board's search box above (one
+           query covers both, so a stock # turns up whether it's still
+           active or already completed) - just keeps its own filter chips,
+           since active/completed use different status breakdowns. -->
       <div class="section-divider" id="tracker-completed-divider" style="display:none">✓ Completed</div>
       <div class="tracker-completed-toolbar" id="tracker-completed-toolbar" style="display:none">
-        <div class="search-wrap">
-          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-          <input class="search-input" id="tc-search" type="text" placeholder="Search completed…" oninput="renderTrackerCompleted()"/>
-        </div>
         <button class="filter-chip active" onclick="setCompletedFilter('ALL',this)">All</button>
         <button class="filter-chip" onclick="setCompletedFilter('NEW',this)">New</button>
         <button class="filter-chip" onclick="setCompletedFilter('USED',this)">Used</button>
@@ -5127,10 +5131,11 @@ window.setCompletedFilter = function(status, btn) {
 
 // Completed units are kept forever (see renderTrackerSummary - the old
 // 30-day auto-delete is gone), so this list can grow to years' worth of
-// history - independent search/filter from the active board above, and
-// sorted most-recently-finished first.
+// history - shares the active board's search box (t-search) so one query
+// covers both, but keeps its own filter chips since active/completed use
+// different status breakdowns. Sorted most-recently-finished first.
 function getCompletedFiltered() {
-  const q=(document.getElementById('tc-search')?.value||'').trim().toLowerCase();
+  const q=(document.getElementById('t-search')?.value||'').trim().toLowerCase();
   let rows=Object.entries(units).map(([id,u])=>({id,...u})).filter(isUnitComplete);
   if(tcFilterStatus==='NEW') rows=rows.filter(u=>u.condition!=='used');
   else if(tcFilterStatus==='USED') rows=rows.filter(u=>u.condition==='used');
@@ -6097,8 +6102,12 @@ function renderGRCard(d, perms, isDupe) {
     // Get Ready's own PDI (recon's PDI can mean something more thorough
     // than the arrival check).
     const incomingUnit = findIncomingUnitByStock(d.stock);
-    const pdiAtIncomingNote = incomingUnit?.pdi
-      ? `<span style="font-size:8px;font-weight:700;color:#15803d;display:block;width:100%;text-align:center;margin-top:2px">📋 ${incomingUnit.pdiAt ? new Date(incomingUnit.pdiAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : 'at Incoming'}</span>`
+    const pdiIncomingWhoWhen = [
+      incomingUnit?.pdiBy,
+      incomingUnit?.pdiAt ? new Date(incomingUnit.pdiAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : '',
+    ].filter(Boolean).join(' · ');
+    const pdiAtIncomingNote = (incomingUnit?.pdi && pdiIncomingWhoWhen)
+      ? `<span style="font-size:8px;font-weight:700;color:#15803d;display:block;width:100%;text-align:center;margin-top:2px">📋 ${esc(pdiIncomingWhoWhen)}</span>`
       : '';
     const isComplete = grIsComplete(d);
     const typeClass = {'AS-IS':'type-as-is','RETAIL':'type-retail','WHOLESALE':'type-wholesale'}[d.type]||'';
