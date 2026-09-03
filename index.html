@@ -573,6 +573,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .gr-card-actions{display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--border)}
 .gr-complete-badge{font-size:10px;font-weight:700;background:#15803d;color:white;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em}
 .gr-filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.gr-day-row{transition:background .15s}
+.gr-day-row:hover{background:var(--bg)}
+@keyframes grJumpFlash{0%,100%{box-shadow:0 0 0 0 rgba(29,78,216,0);background:none}20%,60%{box-shadow:0 0 0 4px rgba(29,78,216,.35);background:#eff6ff}}
+.gr-jump-highlight{animation:grJumpFlash 1.6s ease-out}
 
 /* Row select */
 .row-select{width:15px;height:15px;accent-color:var(--ford);cursor:pointer}
@@ -4682,7 +4686,7 @@ function renderTVGetReady() {
   // completed deals would just pile up on the board forever.
   const isCompletedToday = (d) => new Date(d.completedAt || d.ts).toDateString() === now.toDateString();
   const deals = Object.values(getReadyDeals||{})
-    .filter(d => !grIsComplete(d) || isCompletedToday(d))
+    .filter(d => !grIsReadyForDelivery(d) || isCompletedToday(d))
     .sort((a,b) => {
       const ag = (grEffectiveFuelStatus(a)!=='none' && a.gasFilled)?1:0, bg = (grEffectiveFuelStatus(b)!=='none' && b.gasFilled)?1:0;
       if (ag!==bg) return ag-bg;
@@ -4699,7 +4703,7 @@ function renderTVGetReady() {
   }
 
   el.innerHTML = deals.map(d => {
-    const isDone = grIsComplete(d);
+    const isDone = grIsReadyForDelivery(d);
     // Type colour
     const typeBorder = d.type==='RETAIL' ? '#8b5cf6' : d.type==='WHOLESALE' ? '#eab308' : '#3b82f6';
     const typeLabel  = d.type==='RETAIL' ? 'Retail'  : d.type==='WHOLESALE' ? 'Wholesale' : 'As-Is';
@@ -4778,7 +4782,7 @@ function renderTVCompoundMap() {
   // Build appointment + GR + test-drive lookup for colour coding
   const apptStocks = new Set(Object.values(appointments||{}).filter(a=>a.stock&&a.status!=='delivered').map(a=>a.stock.toUpperCase()));
   Object.values(rides||{}).filter(r=>r.stock && r.type==='vehicle' && !['done','cancelled'].includes(r.status)).forEach(r=>apptStocks.add(r.stock.toUpperCase()));
-  const grStocks = new Set(Object.values(getReadyDeals||{}).filter(d=>d.stock&&!grIsComplete(d)).map(d=>d.stock.toUpperCase()));
+  const grStocks = new Set(Object.values(getReadyDeals||{}).filter(d=>d.stock&&!grIsReadyForDelivery(d)).map(d=>d.stock.toUpperCase()));
   const tdStocks = new Set(Object.values(testDrives||{}).filter(t=>t.stock&&t.status==='out').map(t=>t.stock.toUpperCase()));
   const dupeCounts = {};
   Object.values(cmVehicles||{}).forEach(lotVehs => {
@@ -5750,6 +5754,15 @@ function grIsComplete(d) {
   return checklistDone && customDone && (grEffectiveFuelStatus(d)==='none' || d.gasFilled);
 }
 
+// A deal only leaves the active list for "Ready for delivery" once BOTH the
+// prep checklist is fully done AND someone has actually clicked "Deal
+// Completed" - checklist-done alone used to move it there automatically,
+// but staff need it to stay visible/actionable until the deal itself is
+// wrapped up, not just the physical prep work.
+function grIsReadyForDelivery(d) {
+  return grIsComplete(d) && !!d.dealCompleted;
+}
+
 window.setGRFilter = function(status, btn) {
   grFilterStatus = status;
   document.querySelectorAll('#panel-getready .filter-chip').forEach(b=>b.classList.remove('active'));
@@ -5806,7 +5819,7 @@ window.setGRCompletedFilter = function(status, btn) {
 
 function getGRCompletedFiltered() {
   const q = (document.getElementById('grc-search')?.value||'').trim().toLowerCase();
-  let rows = grScopedDeals().filter(grIsComplete);
+  let rows = grScopedDeals().filter(grIsReadyForDelivery);
   if (grcFilterStatus !== 'ALL') rows = rows.filter(d => d.type === grcFilterStatus);
   if (q) rows = rows.filter(d => [d.stock,d.dealNum,d.vehicle,d.vin,d.customer,d.salesperson,d.notes].join(' ').toLowerCase().includes(q));
   rows.sort((a,b) => (b.completedAt||0) - (a.completedAt||0));
@@ -5972,12 +5985,12 @@ function fmtGRDate(dateStr, timeStr) {
 
 function renderGetReadySummary() {
   const all = Object.values(getReadyDeals);
-  const active = all.filter(d => !grIsComplete(d));
+  const active = all.filter(d => !grIsReadyForDelivery(d));
   const asIs = all.filter(d=>d.type==='AS-IS').length;
   const retail = all.filter(d=>d.type==='RETAIL').length;
   const wholesale = all.filter(d=>d.type==='WHOLESALE').length;
   const needsGas = all.filter(d=>grEffectiveFuelStatus(d)!=='none' && !d.gasFilled).length;
-  const done = all.filter(d=>grIsComplete(d)).length;
+  const done = all.filter(d=>grIsReadyForDelivery(d)).length;
   const el = document.getElementById('gr-summary');
   if (!el) return;
   el.innerHTML = `
@@ -6013,19 +6026,62 @@ window.grShowDayDeals = function(dateStr) {
   const dateLabel = new Date(yr,mo-1,dy).toLocaleDateString([], {weekday:'long', month:'long', day:'numeric'});
   document.getElementById('gr-day-modal-title').textContent = dateLabel;
 
-  const grPerms = { full: perm('getReadyEdit'), gas: perm('grGasConfirm'), checklist: perm('grChecklistApprove') };
   // Duplicate detection across every deal currently loaded, same as the main list
   const allDeals = Object.values(getReadyDeals||{});
   const stockCounts = {};
   allDeals.forEach(d => { const s=(d.stock||'').toUpperCase().trim(); if(s) stockCounts[s]=(stockCounts[s]||0)+1; });
   const isDupe = (d) => { const s=(d.stock||'').toUpperCase().trim(); return s && stockCounts[s] > 1; };
 
-  document.getElementById('gr-day-modal-list').innerHTML = deals.map(d => renderGRCard(d, grPerms, isDupe)).join('');
+  // Just a summarized, clickable one-line-per-deal list here - not the full
+  // checklist card (that's the whole point of the calendar view: a fast
+  // overview). Clicking a row jumps to the actual card/row in the list view.
+  document.getElementById('gr-day-modal-list').innerHTML = deals.map(d => {
+    const ready = grIsReadyForDelivery(d);
+    const statusColor = ready ? '#22c55e' : '#f97316';
+    const statusLabel = ready ? 'Ready to go' : 'In progress';
+    return `<div class="gr-day-row" onclick="grJumpToDeal('${d.id}')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer">
+      <span title="${statusLabel}" style="width:10px;height:10px;border-radius:50%;background:${statusColor};flex-shrink:0"></span>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;color:var(--text)">
+          ${stockCopy(d.stock)}
+          ${isDupe(d) ? `<span class="gr-complete-badge dupe-blink" style="background:#dc2626">⚠</span>` : ''}
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.vehicle||'')}${d.customer?' · '+esc(d.customer):''}</div>
+      </div>
+      ${d.deliveryTime?`<div style="font-size:11px;color:var(--text-faint);flex-shrink:0">${esc(d.deliveryTime)}</div>`:''}
+      <span style="font-size:10px;font-weight:700;color:${statusColor};flex-shrink:0;text-transform:uppercase;white-space:nowrap">${statusLabel}</span>
+    </div>`;
+  }).join('');
   document.getElementById('gr-day-modal').style.display = 'flex';
 };
 
 window.closeGRDayModal = function() {
   document.getElementById('gr-day-modal').style.display = 'none';
+};
+
+// Jump from a calendar-day summary row to that deal's actual card/row in the
+// main list - switches out of calendar view and clears any search/filter
+// that would otherwise hide it, then scrolls to and briefly flashes it.
+window.grJumpToDeal = function(id) {
+  closeGRDayModal();
+  if (grView !== 'list') setGRView('list');
+  const searchEl = document.getElementById('gr-search');
+  const grcSearchEl = document.getElementById('grc-search');
+  if (searchEl) searchEl.value = '';
+  if (grcSearchEl) grcSearchEl.value = '';
+  grFilterStatus = 'ALL';
+  grcFilterStatus = 'ALL';
+  document.querySelectorAll('#panel-getready .filter-chip').forEach(b => {
+    b.classList.toggle('active', (b.getAttribute('onclick')||'').includes("'ALL'"));
+  });
+  renderGetReady();
+  setTimeout(() => {
+    const el = document.getElementById('gr-'+id);
+    if (!el) return;
+    el.scrollIntoView({behavior:'smooth', block:'center'});
+    el.classList.add('gr-jump-highlight');
+    setTimeout(() => el.classList.remove('gr-jump-highlight'), 1600);
+  }, 50);
 };
 
 function renderGRCalendar() {
@@ -6063,7 +6119,7 @@ function renderGRCalendar() {
     // Up to 3 dots shown directly, a "+N" text instead of more dots beyond that
     const dotsToShow = Math.min(deals.length, 3);
     const dots = Array.from({length: dotsToShow}).map((_, i) => {
-      const done = grIsComplete(deals[i]);
+      const done = grIsReadyForDelivery(deals[i]);
       return `<span style="width:6px;height:6px;border-radius:50%;background:${done?'#22c55e':'#f97316'};display:inline-block"></span>`;
     }).join('');
     html += `<div ${hasDeals?`onclick="grShowDayDeals('${dateStr}')"`:''} style="min-height:56px;border:1px solid var(--border);border-radius:8px;padding:6px;background:${isToday?'#eff6ff':'var(--surface)'};${isToday?'border-color:#93c5fd':''}${hasDeals?';cursor:pointer':''};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px">
@@ -6299,10 +6355,10 @@ function renderGRCard(d, perms, isDupe) {
 // Active (not-yet-ready) deals only - ready-for-delivery deals have their
 // own list/search/filter below (renderGRCompleted), same split as Incoming.
 function renderGetReady() {
-  const rows = getGRFiltered().filter(d => !grIsComplete(d));
+  const rows = getGRFiltered().filter(d => !grIsReadyForDelivery(d));
   const grPerms = { full: perm('getReadyEdit'), gas: perm('grGasConfirm'), checklist: perm('grChecklistApprove') };
   const scopeFilter = ['sales','fandi'].includes(currentUser?.role) ? ' · your deals only' : '';
-  const allActive = grScopedDeals().filter(d => !grIsComplete(d));
+  const allActive = grScopedDeals().filter(d => !grIsReadyForDelivery(d));
   document.getElementById('gr-row-count').textContent = rows.length+' of '+allActive.length+' active deal'+(allActive.length!==1?'s':'')+scopeFilter;
 
   // Flag stock #s that appear in more than one Get Ready deal, active or ready
@@ -6323,7 +6379,7 @@ window.renderGetReady = renderGetReady;
 
 function renderGRCompleted() {
   const canFull = perm('getReadyEdit');
-  const allCompletedCount = grScopedDeals().filter(grIsComplete).length;
+  const allCompletedCount = grScopedDeals().filter(grIsReadyForDelivery).length;
   const toolbar = document.getElementById('gr-completed-toolbar');
   const divider = document.getElementById('gr-completed-divider');
   const body = document.getElementById('gr-completed-body');
@@ -7480,7 +7536,7 @@ function renderHomeGrid() {
       icon: `<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>`,
       title: 'Get Ready',
       desc: 'Track deal prep - PDI, detail, delivery dates and trades.',
-      badge: () => Object.values(getReadyDeals).filter(d=>!grIsComplete(d)).length
+      badge: () => Object.values(getReadyDeals).filter(d=>!grIsReadyForDelivery(d)).length
     });
   }
 
@@ -7963,7 +8019,7 @@ function cmBuildOverlayMaps() {
   // Build stock# → get ready lookup
   const grMap = {};
   Object.values(getReadyDeals||{}).forEach(d => {
-    if (!d.stock || grIsComplete(d)) return;
+    if (!d.stock || grIsReadyForDelivery(d)) return;
     grMap[d.stock.toUpperCase().trim()] = {
       label: d.deliveryDate ? `📋 ${new Date(d.deliveryDate+'T12:00').toLocaleDateString('en-CA',{month:'short',day:'numeric'})}` : '📋 Get Ready',
     };
