@@ -508,7 +508,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 /* Completed units - compact list instead of cards, with its own search/filter
    so paging through years of history never disturbs the active board above. */
 .tracker-completed-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 10px}
-.tracker-list{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface)}
+.tracker-list{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--radius);overflow:auto hidden;background:var(--surface)}
 .tracker-list-head{display:grid;grid-template-columns:90px 150px 1fr 60px 90px 150px 70px;gap:10px;padding:8px 14px;background:#f8fafc;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint)}
 .tracker-list-row{display:grid;grid-template-columns:90px 150px 1fr 60px 90px 150px 70px;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);align-items:center;font-size:13px}
 .tracker-list-row:last-child{border-bottom:none}
@@ -537,7 +537,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 /* Get Ready's completed (ready-for-delivery) list reuses the same
    .tracker-list/.tracker-list-row shell as Incoming's, just with column
    widths suited to its own fields instead of VIN/status. */
-.tracker-list-row.gr-row,.tracker-list-head.gr-row{grid-template-columns:90px 1fr 130px 90px 100px 150px 70px}
+.tracker-list-row.gr-row,.tracker-list-head.gr-row{grid-template-columns:90px 1fr 130px 90px 90px 110px 110px 110px 100px 150px 70px;min-width:1300px}
 
 /* ── Get Ready ── */
 .gr-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;transition:box-shadow .15s}
@@ -757,7 +757,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   /* Completed list rows - stack instead of a wide grid */
   .tracker-list-head{display:none}
   .tracker-list-row{grid-template-columns:1fr;gap:4px;padding:12px 14px}
-  .tracker-list-row.gr-row{grid-template-columns:1fr}
+  .tracker-list-row.gr-row{grid-template-columns:1fr;min-width:0}
   .tlr-actions{justify-content:flex-start;margin-top:6px}
 
   /* Quick links - always wrap on a phone, however many roles gives us */
@@ -6413,6 +6413,10 @@ function renderGRCompleted() {
       <div class="tlr-vehicle" title="${esc(d.vehicle||'')}">${esc(d.vehicle||'-')}</div>
       <div class="tlr-vehicle" title="${esc(d.customer||'')}">${esc(d.customer||'-')}</div>
       <span class="gr-type-pill ${typePillClassOf(d.type)}">${esc(d.type||'-')}</span>
+      <div class="tlr-vehicle" title="Deal #">${esc(d.dealNum||'-')}</div>
+      <div class="tlr-vehicle" title="Salesperson: ${esc(d.salesperson||'')}">${esc(d.salesperson||'-')}</div>
+      <div class="tlr-vehicle" title="F&amp;I Manager: ${esc(d.fniManager||'')}">${esc(d.fniManager||'-')}</div>
+      <div class="tlr-vehicle" title="Desk Manager: ${esc(d.deskManager||'')}">${esc(d.deskManager||'-')}</div>
       <div class="tlr-completed">${d.deliveryDate?fmtGRDate(d.deliveryDate,d.deliveryTime):''}</div>
       <div class="tlr-completed" title="${esc(readyLine)}">${esc(readyLine)}</div>
       ${canFull?`<div class="tlr-actions">
@@ -6422,7 +6426,7 @@ function renderGRCompleted() {
     </div>`;
   }
 
-  body.innerHTML = `<div class="tracker-list-head gr-row"><span>Stock</span><span>Vehicle</span><span>Customer</span><span>Type</span><span>Delivery</span><span>Ready</span><span></span></div>`
+  body.innerHTML = `<div class="tracker-list-head gr-row"><span>Stock</span><span>Vehicle</span><span>Customer</span><span>Type</span><span>Deal #</span><span>Salesperson</span><span>F&amp;I</span><span>Desk Mgr</span><span>Delivery</span><span>Ready</span><span></span></div>`
     + rows.map(makeRow).join('');
 }
 window.renderGRCompleted = renderGRCompleted;
