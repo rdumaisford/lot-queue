@@ -6247,6 +6247,17 @@ function renderGRCard(d, perms, isDupe) {
         ${d.needsAcknowledgment?`<div style="font-size:11px;color:#7c3aed;font-weight:700;margin-top:4px">🔶 Updated by ${esc(d.updatedFieldsBy||'someone')} - delivery, gas, or trade-in info changed</div>`:''}
       </div>
       ${gasBanner}
+      <div class="gr-gas-banner ${d.servicesComplete?'no-gas-needed':''}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${d.servicesComplete?'':'background:#fef2f2'}">
+        <span style="font-size:20px">🔧</span>
+        <div style="flex:1">
+          <div style="font-weight:700;color:${d.servicesComplete?'':'#991b1b'}">${d.servicesComplete?'Services Complete':'Services Pending'}</div>
+          <div style="font-size:11px;font-weight:400;opacity:.7">${servicesText ? esc(servicesText) : 'No services selected'}</div>
+          ${d['req_pdi'] && pdiAtIncomingNote?pdiAtIncomingNote:''}
+        </div>
+        ${canChecklist?`<div class="gr-tap" style="width:auto;height:32px;padding:0 14px;border-radius:20px;${d.servicesComplete?'background:#f1f5f9;border-color:#e2e8f0':''}" onclick="toggleGRField('${d.id}','servicesComplete',${!d.servicesComplete})" title="${servicesCompleteWhoWhen?`Done by ${servicesCompleteWhoWhen}`:''}">
+          <span style="font-size:12px;font-weight:700;color:${d.servicesComplete?'#94a3b8':'#991b1b'}">${d.servicesComplete?'✓ Complete':'Mark complete'}</span>
+        </div>`:`<span style="font-size:12px;font-weight:700;color:${d.servicesComplete?'#94a3b8':'#991b1b'}">${d.servicesComplete?'✓ Complete':'Pending'}</span>`}
+      </div>
       <div class="gr-gas-banner ${d.soldRowParked?'no-gas-needed':''}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${d.soldRowParked?'':'background:#eff6ff;border-bottom-color:#93c5fd;color:#1d4ed8'}">
         <span style="font-size:20px">🅿️</span>
         <div style="flex:1">
@@ -6271,17 +6282,6 @@ function renderGRCard(d, perms, isDupe) {
           <div style="font-size:11px;color:var(--text-muted)">${[t.year,t.make,t.model,t.colour].filter(Boolean).join(' · ')}${t.vin?` · ${esc(t.vin)}`:''}</div>
         </div>`).join('')}
       </div>` : ''}
-      <div style="padding:10px 16px;border-bottom:1px solid var(--border)">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint)">Services</div>
-          ${canChecklist?`<div class="gr-tap" style="width:auto;height:26px;padding:0 10px;border-radius:14px;${d.servicesComplete?'background:#f1f5f9;border-color:#e2e8f0':''}" onclick="toggleGRField('${d.id}','servicesComplete',${!d.servicesComplete})" title="${servicesCompleteWhoWhen?`Done by ${servicesCompleteWhoWhen}`:''}">
-            <span style="font-size:11px;font-weight:700;color:${d.servicesComplete?'#94a3b8':'#991b1b'}">${d.servicesComplete?'✓ Complete':'Mark complete'}</span>
-          </div>`:`<span style="font-size:11px;font-weight:700;color:${d.servicesComplete?'#16a34a':'#991b1b'}">${d.servicesComplete?'✓ Complete':'Pending'}</span>`}
-        </div>
-        <div style="font-size:13px;color:var(--text)">${servicesText ? esc(servicesText) : '<span style="color:var(--text-faint)">No services selected</span>'}</div>
-        ${servicesCompleteWhoWhen?`<div style="font-size:10px;color:var(--text-faint);margin-top:2px">${servicesCompleteWhoWhen}</div>`:''}
-        ${d['req_pdi'] && pdiAtIncomingNote?pdiAtIncomingNote:''}
-      </div>
       ${(d.customFields||[]).filter(f=>f.label).length ? `
       <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px">
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:2px">Other</div>
