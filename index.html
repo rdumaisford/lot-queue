@@ -6098,7 +6098,7 @@ function renderGRCard(d, perms, isDupe) {
     // than the arrival check).
     const incomingUnit = findIncomingUnitByStock(d.stock);
     const pdiAtIncomingNote = incomingUnit?.pdi
-      ? `<span style="font-size:8px;font-weight:700;color:#15803d;display:block;width:100%;text-align:center;margin-top:2px">📋 Done at Incoming</span>`
+      ? `<span style="font-size:8px;font-weight:700;color:#15803d;display:block;width:100%;text-align:center;margin-top:2px">📋 ${incomingUnit.pdiAt ? new Date(incomingUnit.pdiAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : 'at Incoming'}</span>`
       : '';
     const isComplete = grIsComplete(d);
     const typeClass = {'AS-IS':'type-as-is','RETAIL':'type-retail','WHOLESALE':'type-wholesale'}[d.type]||'';
