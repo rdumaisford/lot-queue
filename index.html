@@ -5069,6 +5069,16 @@ function syncIcMovedFromMap() {
   if (Object.keys(updates).length) update(ref(db), updates).catch(()=>{});
 }
 
+// The Incoming and Get Ready cards both show a car's live map location
+// (cmFindStockLocation) - re-render whichever of those panels is actually
+// open whenever the map itself changes, so pulling a car off a spot (or
+// placing it) is reflected there right away instead of only on the next
+// unrelated tracker/getready update.
+function cmRefreshLocationDependentPanels() {
+  if (document.getElementById('panel-tracker')?.classList.contains('active')) renderTracker();
+  if (document.getElementById('panel-getready')?.classList.contains('active')) renderGetReady();
+}
+
 // Sort key = when the unit was actually added to the tracker (ts), not the
 // free-typed "arrived" date - that field is often left blank or inconsistent,
 // which made the list look unsorted even after date-based sorting. ts is
@@ -6069,7 +6079,6 @@ function renderGRCard(d, perms, isDupe) {
     const isComplete = grIsComplete(d);
     const typeClass = {'AS-IS':'type-as-is','RETAIL':'type-retail','WHOLESALE':'type-wholesale'}[d.type]||'';
     const typePillClass = {'AS-IS':'as-is','RETAIL':'retail','WHOLESALE':'wholesale'}[d.type]||'as-is';
-    const completeBadge = isComplete ? `<span class="gr-complete-badge">✓ Ready</span>` : `<span class="gr-complete-badge" style="background:#f97316">🔧 Work In Progress</span>`;
     const dupeBadge = isDupe(d) ? `<span class="gr-complete-badge dupe-blink" style="background:#dc2626">⚠ Duplicate</span>` : '';
     const hasTrade = Array.isArray(d.trades) ? d.trades.some(t=>t?.stock) : !!(d.trade1?.stock || d.trade2?.stock);
     const holdBadge = d.dealStatus === 'on_hold' ? `<span class="gr-complete-badge" style="background:#94a3b8">⏸ On Hold</span>`
@@ -6186,7 +6195,7 @@ function renderGRCard(d, perms, isDupe) {
         <div class="gr-card-top">
           <span class="gr-card-stock">${stockCopy(d.stock)}</span>
           <span class="gr-type-pill ${typePillClass}">${esc(d.type||'-')}</span>
-          ${completeBadge}${holdBadge}${updatedBadge}${dupeBadge}${grLocBadge}
+          ${holdBadge}${updatedBadge}${dupeBadge}${grLocBadge}
         </div>
         <div class="gr-card-vehicle">${esc(d.vehicle||'-')}${d.vin?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">${esc(d.vin)}</span>`:d.vin6?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">…${esc(d.vin6)}</span>`:''}</div>
         ${d.customer?`<div class="gr-card-customer">${esc(d.customer)}${d.salesperson?' · '+esc(d.salesperson):''}</div>`:''}
@@ -9118,12 +9127,14 @@ function cmStartListeners() {
       if (cmCurrentLot === 'bayview700') cmRender();
       if (document.getElementById('panel-tv')?.classList.contains('active')) renderTVCompoundMap();
       syncIcMovedFromMap();
+      cmRefreshLocationDependentPanels();
     }
   });
   onValue(ref(db, 'compound_v2/bayview323new'), snap => {
     cmVehicles['bayview323new'] = snap.val() || {};
     if (cmCurrentLot === 'bayview323new') flRender();
     syncIcMovedFromMap();
+    cmRefreshLocationDependentPanels();
   });
 }
 
