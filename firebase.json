@@ -6,7 +6,8 @@
       "**/.*",
       "**/node_modules/**",
       "README.md",
-      "CNAME"
+      "CNAME",
+      "deploy.sh"
     ]
   },
   "database": {
