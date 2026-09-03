@@ -3206,6 +3206,7 @@ function startApp() {
     document.getElementById('tc-tracker').textContent = Object.values(units).filter(u=>!isUnitComplete(u)).length;
     renderTracker(); renderTrackerSummary();
     renderTVIncoming();
+    syncIcMovedFromMap();
   });
 
   onValue(ref(db,'vehicleSpecs'), snap=>{
@@ -5031,6 +5032,9 @@ function photoRequired(u) {
 }
 
 function isUnitComplete(u) {
+  // A sold unit isn't actually done from IC's side until it's been moved
+  // into the sold row, regardless of new/used.
+  if (u.status === 'SOLD' && !u.soldRowParked) return false;
   if (u.condition === 'used') {
     // Used units track File Received + IC Moved only - no PDI/Photo requirement
     return !!u.fileReceived && !!u.icMoved;
@@ -5040,6 +5044,29 @@ function isUnitComplete(u) {
   if (!u.pdi || !u.icMoved) return false;
   if (photoRequired(u) && !u.photo) return false;
   return true;
+}
+
+// Auto-checks "IC Moved" the moment a still-active unit's stock # shows up
+// anywhere on the Vehicle Locator map - placing the car on the map already
+// proves IC moved it, so nobody has to separately remember to come back
+// and tick this box by hand. Runs whenever either the tracker or the map
+// data changes (see the 'tracker'/'compound_v2/*' listeners), so it's
+// picked up within moments of either happening, from whichever direction.
+function syncIcMovedFromMap() {
+  if (!perm('cbIC')) return; // only a client that's actually allowed to move this checkbox writes it
+  const updates = {};
+  Object.entries(units).forEach(([id, u]) => {
+    if (isUnitComplete(u) || u.icMoved || !u.stock) return;
+    if (!cmFindStockLocation(u.stock)) return;
+    updates[`tracker/${id}/icMoved`] = true;
+    updates[`tracker/${id}/icMovedBy`] = 'Auto (found on map)';
+    updates[`tracker/${id}/icMovedAt`] = Date.now();
+    if (isUnitComplete({ ...u, icMoved: true })) {
+      updates[`tracker/${id}/completedAt`] = Date.now();
+      updates[`tracker/${id}/completedBy`] = 'Auto (found on map)';
+    }
+  });
+  if (Object.keys(updates).length) update(ref(db), updates).catch(()=>{});
 }
 
 // Sort key = when the unit was actually added to the tracker (ts), not the
@@ -5311,6 +5338,14 @@ function renderTracker() {
       ? `<a href="http://www.windowsticker.forddirect.com/windowsticker.pdf?vin=${encodeURIComponent(u.vin)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#1d4ed8;text-decoration:none;padding:2px 8px;border:1px solid #93c5fd;border-radius:12px;background:#eff6ff;white-space:nowrap" onclick="event.stopPropagation()">🪟 Window Sticker</a>`
       : '';
 
+    // Where this stock # actually is on the Vehicle Locator map right now,
+    // if it's been placed - so whoever still has work to do on it (a photo,
+    // PDI, etc.) doesn't have to separately open the map and search for it.
+    const loc = cmFindStockLocation(u.stock);
+    const locBadge = loc
+      ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;${loc.isOffsite?'background:#e1f5ee;color:#085041':'background:#eff6ff;color:#1d4ed8'}">📍 ${esc(loc.lotLabel)}${loc.isOffsite?' (off-site)':''}</span>`
+      : '';
+
     return `<div class="tracker-card ${statusClass}" id="tc-${u.id}" style="${isDupe(u)?'border-left:4px solid #dc2626':lockInfo?'border-left:4px solid #1d4ed8':''}">
       ${lockInfo ? `<div class="tracker-lock-banner">🔒 ${lockInfo.lockedBy} is editing this…</div>` : ''}
       <div class="tracker-card-header">
@@ -5321,7 +5356,7 @@ function renderTracker() {
         </div>
         <div class="tracker-card-vin">${vinWithCopy(u.vin)}</div>
         <div class="tracker-card-vehicle">${u.vehicle||[u.year,u.type,u.trim,u.colour].filter(Boolean).join(' · ')||''}</div>
-        ${stickerBtn?`<div style="margin-top:6px">${stickerBtn}</div>`:''}
+        ${stickerBtn||locBadge?`<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">${stickerBtn}${locBadge}</div>`:''}
       </div>
       <div class="tracker-card-checks">
         ${u.condition === 'used' ? `
@@ -5333,6 +5368,7 @@ function renderTracker() {
           ${cbBtn('photo','Photo',u.photo,isNoPhoto,'cb-photo',canPhoto)}
           ${cbBtn('icMoved','IC Moved',u.icMoved,false,'cb-ic',canIC)}
         `}
+        ${u.status==='SOLD'?cbBtn('soldRowParked','Sold Row',u.soldRowParked,false,'cb-ic',canIC):''}
       </div>
       <div class="tracker-card-meta">
         ${canEdit?`<select class="inline-status" onchange="inlineStatus('${u.id}',this.value)">
@@ -5454,6 +5490,7 @@ function renderTrackerCompleted() {
           ${cbBtn('photo','Photo',u.photo,isNoPhoto,'cb-photo',canPhoto)}
           ${cbBtn('icMoved','IC Moved',u.icMoved,false,'cb-ic',canIC)}
         `}
+        ${u.status==='SOLD'?cbBtn('soldRowParked','Sold Row',u.soldRowParked,false,'cb-ic',canIC):''}
       </div>
       <div>${canEdit?`<select class="trow-inline-status" onchange="inlineStatus('${u.id}',this.value)">
         <option value="STOCK" ${u.status==='STOCK'?'selected':''}>Stock</option>
@@ -6136,12 +6173,20 @@ function renderGRCard(d, perms, isDupe) {
     const dealTrades = Array.isArray(d.trades) ? d.trades.filter(t=>t.stock) : [d.trade1, d.trade2].filter(t=>t?.stock);
     const financingLabel = ({CASH:'Cash',COMMERCIAL_LEASE:'Commercial Lease',FINANCE:'Finance',FORD_RCL:'Ford RCL'})[d.financing];
 
+    // Where this stock # actually is on the Vehicle Locator map, if it's
+    // been placed - only worth showing while there's still work to do here
+    // (once ready, nobody needs to go find the car for this deal anymore).
+    const grLoc = !isComplete ? cmFindStockLocation(d.stock) : null;
+    const grLocBadge = grLoc
+      ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;${grLoc.isOffsite?'background:#e1f5ee;color:#085041':'background:#eff6ff;color:#1d4ed8'}">📍 ${esc(grLoc.lotLabel)}${grLoc.isOffsite?' (off-site)':''}</span>`
+      : '';
+
     return `<div class="gr-card${isComplete?' is-complete':' '+typeClass}" id="gr-${d.id}" style="${d.needsAcknowledgment?'border-left:4px solid #7c3aed;background:#faf5ff':isDupe(d)?'border-left:4px solid #dc2626':''}">
       <div class="gr-card-header">
         <div class="gr-card-top">
           <span class="gr-card-stock">${stockCopy(d.stock)}</span>
           <span class="gr-type-pill ${typePillClass}">${esc(d.type||'-')}</span>
-          ${completeBadge}${holdBadge}${updatedBadge}${dupeBadge}
+          ${completeBadge}${holdBadge}${updatedBadge}${dupeBadge}${grLocBadge}
         </div>
         <div class="gr-card-vehicle">${esc(d.vehicle||'-')}${d.vin?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">${esc(d.vin)}</span>`:d.vin6?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">…${esc(d.vin6)}</span>`:''}</div>
         ${d.customer?`<div class="gr-card-customer">${esc(d.customer)}${d.salesperson?' · '+esc(d.salesperson):''}</div>`:''}
@@ -7693,6 +7738,27 @@ function cmIsFlagged(veh) {
   return !!(veh && (veh.flagged || veh.status === 'flag' || (veh.note && String(veh.note).trim())));
 }
 
+// Finds where a stock # currently sits on the Vehicle Locator map, if
+// anywhere - used elsewhere in the app (Incoming, Get Ready) so staff don't
+// have to separately open the map and search for a car just to know where
+// to go photograph/prep it. bayview323new is the off-site lot; bayview700
+// is the main dealership property.
+function cmFindStockLocation(stock) {
+  if (!stock) return null;
+  const target = String(stock).toUpperCase().trim();
+  if (!target) return null;
+  for (const lotId of Object.keys(CM_LOTS)) {
+    const lotVehs = cmVehicles[lotId] || {};
+    for (const veh of Object.values(lotVehs)) {
+      if (!veh || !veh.stock || veh.status === 'blocked' || veh.status === 'void') continue;
+      if (veh.stock.toUpperCase().trim() === target) {
+        return { lotId, lotLabel: CM_LOTS[lotId].label, isOffsite: lotId === 'bayview323new' };
+      }
+    }
+  }
+  return null;
+}
+
 // Plain-text version of a spot's note(s), for the note icon's hover tooltip -
 // same content and order as the note bubbles in the quick-actions modal
 // (legacy single note first, then the threaded notes newest-first), just
@@ -9051,11 +9117,13 @@ function cmStartListeners() {
       cmVehicles['bayview700'] = snap.val();
       if (cmCurrentLot === 'bayview700') cmRender();
       if (document.getElementById('panel-tv')?.classList.contains('active')) renderTVCompoundMap();
+      syncIcMovedFromMap();
     }
   });
   onValue(ref(db, 'compound_v2/bayview323new'), snap => {
     cmVehicles['bayview323new'] = snap.val() || {};
     if (cmCurrentLot === 'bayview323new') flRender();
+    syncIcMovedFromMap();
   });
 }
 
