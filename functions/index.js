@@ -45,7 +45,7 @@ function renderTemplate(emailType, data) {
       ['Customer', data.customer], ['Salesperson', data.salesperson], ['Type', data.type],
       ['Financing', data.financing], ['Delivery Date', data.deliveryDate], ['Delivery Time', data.deliveryTime],
       ['Plates', data.plateType], ['Licensing Notes', data.licensingNotes], ['Gas/Charge', data.gasStatus],
-      ['Instructions', data.instructions], ['Notes', data.notes], ['Steps', data.steps],
+      ['Instructions', data.instructions], ['Notes', data.notes], ['Services', data.steps],
       ['Trades', data.trades],
     ]);
     return wrap(data.subject || 'Get Ready Deal', intro + rows);
