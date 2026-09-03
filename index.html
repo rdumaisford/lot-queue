@@ -2353,18 +2353,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       </div>
     </div>
 
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin:14px 0 6px">Which steps are required <span style="font-weight:400;color:var(--text-faint);text-transform:none;letter-spacing:0">- these start unchecked and get marked done as work happens</span></div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
-      <div class="checkbox-row" style="border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-pdi"/><label for="gr-c-pdi">PDI</label></div>
-      <div class="checkbox-row" style="border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-lof"/><label for="gr-c-lof">LOF</label></div>
-      <div class="checkbox-row" style="border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-detail"/><label for="gr-c-detail">Detail</label></div>
-      <div class="checkbox-row" style="border-right:1px solid var(--border)"><input type="checkbox" id="gr-c-paint"/><label for="gr-c-paint">Paint</label></div>
-      <div class="checkbox-row" style="border-right:1px solid var(--border)"><input type="checkbox" id="gr-c-safety"/><label for="gr-c-safety">Safety</label></div>
-      <div class="checkbox-row" style="border-right:1px solid var(--border)"><input type="checkbox" id="gr-c-leather"/><label for="gr-c-leather">Leather</label></div>
-      <div class="checkbox-row"><input type="checkbox" id="gr-c-fabric"/><label for="gr-c-fabric">Fabric</label></div>
-      <div class="checkbox-row" style="border-right:1px solid var(--border);border-top:1px solid var(--border)"><input type="checkbox" id="gr-c-module"/><label for="gr-c-module">Module</label></div>
-    </div>
-
     <!-- Custom / Other fields -->
     <div style="margin-top:10px">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:6px">Other / Custom</div>
@@ -4687,10 +4675,8 @@ function renderTVGetReady() {
     })()) ? '#ef4444' : typeBorder;
 
     // Progress
-    const reqChecks = GR_CHECKLIST.filter(([k]) => d['req_'+k]);
-    const toCheck = reqChecks.length > 0 ? reqChecks : GR_CHECKLIST;
-    const done = toCheck.filter(([k]) => d[k]).length;
-    const pct = toCheck.length ? Math.round((done/toCheck.length)*100) : 100;
+    const done = GR_CHECKLIST.filter(([k]) => d[k]).length;
+    const pct = GR_CHECKLIST.length ? Math.round((done/GR_CHECKLIST.length)*100) : 100;
     const barColor = pct===100?'#16a34a':pct>60?'#f59e0b':'#1d4ed8';
 
     // Gas / Charge - charging gets its own "in progress" colour/label since
@@ -5662,9 +5648,7 @@ const GR_CHECKLIST = [
 ];
 
 function grIsComplete(d) {
-  const required = GR_CHECKLIST.filter(([key]) => d['req_'+key]);
-  const toCheck = required.length > 0 ? required : GR_CHECKLIST;
-  const checklistDone = toCheck.every(([key]) => d[key]);
+  const checklistDone = GR_CHECKLIST.every(([key]) => d[key]);
   const customDone = (d.customFields||[]).filter(f=>f.label).every(f=>f.done);
   return checklistDone && customDone && (grEffectiveFuelStatus(d)==='none' || d.gasFilled);
 }
@@ -6020,42 +6004,21 @@ function renderGRCard(d, perms, isDupe) {
     const updatedBadge = d.needsAcknowledgment ? `<span class="gr-complete-badge" style="background:#7c3aed">🔶 UPDATED</span>` : '';
     const canCompleteDeal = currentUser && ['sales','fandi','management'].includes(currentUser.role);
 
-    const cbBtn = (field, label) => {
-      const required = d['req_'+field];
-      const done = d[field];
-      // If not required and not done, hide entirely
-      if (!required && !done) return '';
-      // If not required but somehow done, show greyed out
-      const dimmed = !required;
-      const doneBy = d[field+'By'];
-      const doneAt = d[field+'At'];
+    // Every deal always tracks the same fixed list of steps - no more
+    // per-deal "which steps apply" selection, just a plain checklist.
+    const renderChecklist = GR_CHECKLIST.map(([key,label]) => {
+      const done = d[key];
+      const doneBy = d[key+'By'];
+      const doneAt = d[key+'At'];
       const whoWhen = (done && doneBy) ? `${doneBy}${doneAt ? ' · '+new Date(doneAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : ''}` : '';
-      return `<div class="gr-check-item${dimmed?' gr-check-na':''}" ${whoWhen?`title="Done by ${whoWhen}"`:''}>
-        <div class="gr-tap ${done?'on':''}" onclick="${canChecklist&&required?`toggleGRField('${d.id}','${field}',${!done})`:''}" style="${(!canChecklist||!required)?'pointer-events:none;':''} ${dimmed?'opacity:.4':''}">
+      return `<div class="gr-check-item" ${whoWhen?`title="Done by ${whoWhen}"`:''}>
+        <div class="gr-tap ${done?'on':''}" onclick="${canChecklist?`toggleGRField('${d.id}','${key}',${!done})`:''}" style="${canChecklist?'':'pointer-events:none;opacity:.6'}">
           <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
-        <span class="gr-check-label" style="${dimmed?'opacity:.4':''}">${label}</span>
+        <span class="gr-check-label">${label}</span>
         ${whoWhen?`<span style="font-size:9px;color:var(--text-faint);display:block;width:100%;text-align:center;margin-top:1px">${whoWhen}</span>`:''}
       </div>`;
-    };
-
-    // For legacy deals with no req_ flags, show all
-    const hasReqFlags = GR_CHECKLIST.some(([key]) => d['req_'+key] !== undefined);
-    const renderChecklist = hasReqFlags
-      ? GR_CHECKLIST.map(([key,label]) => cbBtn(key, label)).join('')
-      : GR_CHECKLIST.map(([key,label]) => {
-          const done = d[key];
-          const doneBy = d[key+'By'];
-          const doneAt = d[key+'At'];
-          const whoWhen = (done && doneBy) ? `${doneBy}${doneAt ? ' · '+new Date(doneAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : ''}` : '';
-          return `<div class="gr-check-item" ${whoWhen?`title="Done by ${whoWhen}"`:''}>
-            <div class="gr-tap ${done?'on':''}" onclick="${canChecklist?`toggleGRField('${d.id}','${key}',${!done})`:''}" style="${canChecklist?'':'pointer-events:none;opacity:.6'}">
-              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-            </div>
-            <span class="gr-check-label">${label}</span>
-            ${whoWhen?`<span style="font-size:9px;color:var(--text-faint);display:block;width:100%;text-align:center;margin-top:1px">${whoWhen}</span>`:''}
-          </div>`;
-        }).join('');
+    }).join('');
 
     // Gas / Charge - a gas vehicle needing fuel is a quick done/not-done
     // (with a $ amount); an EV needing a charge takes a while, so it gets
@@ -6365,11 +6328,6 @@ window.openGRModal = function(id) {
   setGRPlateType(d.plateType || 'NEW');
   setGRFuelStatus(id ? grEffectiveFuelStatus(d) : 'gas');
   document.getElementById('gr-gas-amount').value = d.gasAmount || '';
-  // Required-steps checkboxes reflect which steps are REQUIRED for this deal
-  // (req_key), never actual completion - actual progress only ever changes
-  // via the card's own tap-to-check boxes, so new deals always start with
-  // every step showing as not-yet-done regardless of what's selected here.
-  GR_CHECKLIST.forEach(([key]) => { document.getElementById('gr-c-'+key).checked = d['req_'+key] || false; });
   // Trade-ins - supports the old trade1/trade2 shape for existing deals, and
   // the new flexible array for everything going forward. Defaults to 2 empty
   // slots for a brand-new deal.
@@ -6485,14 +6443,6 @@ function pdfTimeToInput(s) {
   return `${String(h).padStart(2,'0')}:${m[2]}`;
 }
 
-// Maps the Get Ready sheet's raw checkbox field names to this app's
-// checklist keys - confirmed stable across multiple real deal PDFs (same
-// template, same field positions each time), so this can be hardcoded.
-const GR_PDF_CHECKLIST_MAP = {
-  'Check Box23':'pdi', 'Check Box24':'leather', 'Check Box25':'lof', 'Check Box26':'fabric',
-  'Check Box27':'detail', 'Check Box28':'module', 'Check Box29':'paint', 'Check Box30':'safety',
-};
-
 // Only ever called for a brand-new (not-yet-saved) deal, so it's safe to
 // fill every field outright - there's nothing hand-entered yet to clobber.
 function applyGRPdfFields(form) {
@@ -6513,15 +6463,6 @@ function applyGRPdfFields(form) {
   if (pdfFieldChecked(form,'Cash_ck')) document.getElementById('gr-financing').value = 'CASH';
   else if (pdfFieldChecked(form,'Finance_ck')) document.getElementById('gr-financing').value = 'FINANCE';
   else if (pdfFieldChecked(form,'leaseck')) document.getElementById('gr-financing').value = 'FORD_RCL';
-
-  // A checked box on the sheet means this step is required for this vehicle
-  // (never actual completion - see the note on the checklist UI below).
-  Object.entries(GR_PDF_CHECKLIST_MAP).forEach(([boxName, key]) => {
-    if (pdfFieldChecked(form, boxName)) {
-      const cb = document.getElementById('gr-c-'+key);
-      if (cb) cb.checked = true;
-    }
-  });
 
   // The gas amount box sits at the bottom-right of the checklist grid (its
   // own checkboxes there carry no printed label and showed no consistent
@@ -6620,14 +6561,11 @@ window.saveGR = async function() {
     ts: editingGRId ? (getReadyDeals[editingGRId]?.ts || Date.now()) : Date.now(),
     customFields: grCustomFields.filter(f => f.label.trim()),
   };
-  // These checkboxes only ever select which steps are REQUIRED for this deal
-  // - actual completion (deal[key]) is never touched here, whether adding or
-  // editing. Progress only ever happens via the card's own tap-to-check boxes,
-  // so a step marked required always starts (and stays, through edits) as not
-  // yet done until someone actually checks it off on the card.
+  // Checklist completion is never touched here, whether adding or editing -
+  // it only ever changes via the card's own tap-to-check boxes, so every
+  // step starts (and stays, through edits) as not yet done until someone
+  // actually checks it off on the card.
   GR_CHECKLIST.forEach(([key]) => {
-    const required = document.getElementById('gr-c-'+key).checked;
-    deal['req_'+key] = required;
     deal[key] = editingGRId ? (getReadyDeals[editingGRId]?.[key] || false) : false;
   });
   if (editingGRId) deal.gasFilled = getReadyDeals[editingGRId]?.gasFilled || false;
@@ -6898,7 +6836,7 @@ function buildGREmailParams(d, subject, intro) {
   const tradesText = trades.length
     ? trades.map((t,i) => `Trade ${i+1}: ${t.stock} - ${[t.year,t.make,t.model].filter(Boolean).join(' ')}${t.colour?' - '+t.colour:''}${t.vin?' - VIN '+t.vin:''}${t.kms?' - '+t.kms+' km':''} (${catLabel[t.category]||'Retail'})`).join('\n')
     : 'None';
-  const requiredSteps = GR_CHECKLIST.filter(([key]) => d['req_'+key]).map(([,label]) => label).join(', ') || 'None selected';
+  const steps = GR_CHECKLIST.map(([,label]) => label).join(', ');
   return {
     to: emailSettings.grAddress,
     subject,
@@ -6918,7 +6856,7 @@ function buildGREmailParams(d, subject, intro) {
     gasStatus: gasLabel,
     instructions: d.instructions||'(none)',
     notes: d.notes||'(none)',
-    requiredSteps,
+    steps,
     trades: tradesText,
     pdfUrl: d.pdfUrl || undefined,
     pdfFileName: d.pdfFileName || undefined,
@@ -6987,7 +6925,7 @@ window.sendTestEmail = async function() {
     gasStatus: 'Needs Gas - $25.00',
     instructions: '(none)',
     notes: '(none)',
-    requiredSteps: 'PDI, Detail',
+    steps: 'PDI, LOF, Detail, Paint, Safety, Leather, Fabric, Module',
     trades: 'Trade 1: A1000A - 2018 Honda Civic - Blue - 85000 km (Wholesale)',
   });
   showEmailToast(ok ? '✓ Test email sent - check your inbox.' : `Failed to send: ${lastEmailError || 'unknown error - check console'}`, ok ? 'success' : 'error');
