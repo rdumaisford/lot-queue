@@ -6212,14 +6212,15 @@ function renderGRCard(d, perms, isDupe) {
         ${d.needsAcknowledgment?`<div style="font-size:11px;color:#7c3aed;font-weight:700;margin-top:4px">🔶 Updated by ${esc(d.updatedFieldsBy||'someone')} - delivery, gas, or trade-in info changed</div>`:''}
       </div>
       ${gasBanner}
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);${d.soldRowParked?'background:#f0fdf4':''}">
-        <div class="gr-tap ${d.soldRowParked?'on':''}" onclick="${canIC?`toggleGRField('${d.id}','soldRowParked',${!d.soldRowParked})`:''}" style="${canIC?'':'pointer-events:none;opacity:.6'}">
-          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
+      <div class="gr-gas-banner ${d.soldRowParked?'no-gas-needed':''}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${d.soldRowParked?'':'background:#eff6ff;border-bottom-color:#93c5fd;color:#1d4ed8'}">
+        <span style="font-size:20px">🅿️</span>
         <div style="flex:1">
-          <div style="font-weight:700;${d.soldRowParked?'color:#15803d':''}">Parked in Sold Row</div>
-          <div style="font-size:11px;color:var(--text-faint)">${d.soldRowParked && d.soldRowParkedBy ? `${esc(d.soldRowParkedBy)}${d.soldRowParkedAt?' · '+new Date(d.soldRowParkedAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}):''}` : 'Inventory Control'}</div>
+          <div style="font-weight:700;${d.soldRowParked?'':'color:#1d4ed8'}">${d.soldRowParked?'Parked in Sold Row':'Needs to be Parked in Sold Row'}</div>
+          <div style="font-size:11px;font-weight:400;opacity:.7">${d.soldRowParked && d.soldRowParkedBy ? `${esc(d.soldRowParkedBy)}${d.soldRowParkedAt?' · '+new Date(d.soldRowParkedAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}):''}` : 'Inventory Control'}</div>
         </div>
+        ${canIC?`<div class="gr-tap" style="width:auto;height:32px;padding:0 14px;border-radius:20px;${d.soldRowParked?'background:#f1f5f9;border-color:#e2e8f0':''}" onclick="toggleGRField('${d.id}','soldRowParked',${!d.soldRowParked})">
+          <span style="font-size:12px;font-weight:700;color:${d.soldRowParked?'#94a3b8':'#1d4ed8'}">${d.soldRowParked?'✓ Done':'Mark done'}</span>
+        </div>`:`<span style="font-size:12px;font-weight:700;color:${d.soldRowParked?'#94a3b8':'#1d4ed8'}">${d.soldRowParked?'✓ Done':'Pending'}</span>`}
       </div>
       ${d.deliveryDate?`<div class="gr-delivery">📅 Delivery: <strong>${fmtGRDate(d.deliveryDate,d.deliveryTime)}</strong></div>`:''}
       <div style="padding:6px 16px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text-muted)">🪪 ${d.plateType==='TRANSFER'?'License Plate Transfer':'New License Plates'}${d.licensingNotes?` - ${esc(d.licensingNotes)}`:''}</div>
