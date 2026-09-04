@@ -1102,6 +1102,22 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   <button onclick="resetSignInState()" style="padding:11px 20px;font-size:13px;font-weight:600;background:#fff;border:1px solid #fca5a5;border-radius:20px;box-shadow:0 2px 12px rgba(0,0,0,.18);color:#991b1b;cursor:pointer">⚠ Stuck signing in? Tap to reset</button>
 </div>
 
+<!-- Shown whenever the connection dot (header sync dot / TV corner dot) has
+     been red for more than a moment - a brief blip clears on its own before
+     this debounce fires, so it only appears for a connection that's actually
+     stuck, not every momentary reconnect. Blurs everything behind it via
+     backdrop-filter (not a filter on #app itself, which would fight the map
+     and modal stacking) so it's obvious at a glance, even from across a
+     showroom on the TV board. -->
+<div id="conn-lost-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.25);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:24px">
+  <div style="background:#fff;border-radius:16px;padding:28px 32px;max-width:360px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.35)">
+    <div style="font-size:36px;margin-bottom:8px">📡</div>
+    <div style="font-size:17px;font-weight:800;color:#0f172a;margin-bottom:6px">Reconnecting…</div>
+    <div style="font-size:13px;color:#64748b;margin-bottom:18px;line-height:1.5">Lost connection to the server. This usually clears on its own - if it doesn't in a few seconds, refresh the page.</div>
+    <button onclick="location.reload()" style="width:100%;padding:11px;border:none;border-radius:10px;background:#00095b;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Refresh Page</button>
+  </div>
+</div>
+
 <!-- Setup -->
 <div id="setup-screen">
   <div class="setup-wrap">
@@ -2639,6 +2655,7 @@ let tvLocation = null; // e.g. '323 Bayview' - set via ?loc= on the TV display U
 // Firebase cache for a moment.
 let browserOnline = navigator.onLine;
 let firebaseConnected = false;
+let connLostTimer = null;
 function updateConnectionIndicator() {
   const isLive = browserOnline && firebaseConnected;
   const dot = document.getElementById('tv-conn-dot');
@@ -2647,6 +2664,19 @@ function updateConnectionIndicator() {
   if (label) label.textContent = isLive ? 'Live' : (browserOnline ? 'Reconnecting…' : 'Offline');
   const syncDot = document.getElementById('sync-dot');
   if (syncDot) syncDot.className = 'sync-dot ' + (isLive ? 'live' : 'error');
+
+  // Full-screen blur+banner - debounced so a connection blip that clears in
+  // under 2s (very common, e.g. a brief Wi-Fi hiccup) never even shows it.
+  clearTimeout(connLostTimer);
+  if (isLive) {
+    const overlay = document.getElementById('conn-lost-overlay');
+    if (overlay) overlay.style.display = 'none';
+  } else {
+    connLostTimer = setTimeout(() => {
+      const overlay = document.getElementById('conn-lost-overlay');
+      if (overlay) overlay.style.display = 'flex';
+    }, 2000);
+  }
 }
 window.addEventListener('online', () => { browserOnline = true; updateConnectionIndicator(); });
 window.addEventListener('offline', () => { browserOnline = false; updateConnectionIndicator(); });
