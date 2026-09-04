@@ -7198,7 +7198,9 @@ async function checkAndSendDailyDigest() {
 // Not wired into Settings (unlike grAddress/incAddress) since these three
 // were given as a fixed list, not something staff need to edit day-to-day -
 // change this array directly if the recipients ever need to change.
-const DROP_BATCH_EMAILS = ['salesmanagers@barrieford.com', 'rdumais@barrieford.com', 'reception@barrieford.com'];
+// TEMP: narrowed to just rdumais@barrieford.com for testing - restore the
+// other two once confirmed working: ['salesmanagers@barrieford.com', 'rdumais@barrieford.com', 'reception@barrieford.com']
+const DROP_BATCH_EMAILS = ['rdumais@barrieford.com'];
 // How long the tracker has to go quiet (no new units) before a batch is
 // considered "done" and gets emailed - long enough that a truckload entered
 // over several minutes lands in one email, short enough management sees it
