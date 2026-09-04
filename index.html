@@ -7203,7 +7203,7 @@ const DROP_BATCH_EMAILS = ['salesmanagers@barrieford.com', 'rdumais@barrieford.c
 // considered "done" and gets emailed - long enough that a truckload entered
 // over several minutes lands in one email, short enough management sees it
 // same-day, close to real time.
-const DROP_BATCH_QUIET_MS = 15 * 60 * 1000;
+const DROP_BATCH_QUIET_MS = 1 * 60 * 1000; // TEMP: shrunk from 15 min for testing - bump back up once confirmed working
 
 // Runs on the same 60s poll as the daily digest (see setInterval below).
 // Each new unit is stamped dropEmailed:false at creation (saveUnit above);
