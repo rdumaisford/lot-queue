@@ -5700,6 +5700,9 @@ window.openUnitModal = function(id) {
     // Try to parse old text format - fall back to today
     arrivedDate = new Date().toISOString().split('T')[0];
   }
+  // Brand-new unit, nothing stored yet - default to today so staff don't
+  // have to pick the date themselves on every single arrival.
+  if (!id && !arrivedDate) arrivedDate = new Date().toISOString().split('T')[0];
   document.getElementById('m-arrived').value=arrivedDate;
   document.getElementById('m-stock').value=u.stock||'';
   document.getElementById('m-vin').value=u.vin||'';
