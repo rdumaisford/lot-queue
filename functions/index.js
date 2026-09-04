@@ -58,7 +58,73 @@ function renderTemplate(emailType, data) {
       .join('');
     return wrap(data.subject || 'Incoming Vehicles', lines || '<p style="font-size:14px">No units.</p>');
   }
+  if (emailType === 'dropBatch') {
+    return renderDropBatchTable(data.subject || 'Incoming Vehicle Batch', data.units || []);
+  }
   return null;
+}
+
+// Mirrors the look of the app's own "Today's Drops" print report (same
+// navy-header table, striped rows, status pill, check icons) so the email
+// management gets is visually the same document they'd print, not a
+// generic bullet list.
+function renderDropBatchTable(subject, units) {
+  const ck = val => val
+    ? `<span style="display:inline-block;width:14px;height:14px;background:#dcfce7;border:1px solid #86efac;border-radius:3px;text-align:center;font-size:9px;line-height:14px;color:#15803d">&#10003;</span>`
+    : `<span style="display:inline-block;width:14px;height:14px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:3px"></span>`;
+  const td = 'padding:7px 8px;border-bottom:1px solid #e2e2df';
+  const th = 'padding:7px 8px;text-align:left;color:#fff;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap';
+
+  const rows = units.map((u, i) => {
+    const statusBg = u.status === 'SOLD' ? '#dcfce7' : u.status === 'TURNOVER' ? '#fef3c7' : '#dbeafe';
+    const statusColor = u.status === 'SOLD' ? '#15803d' : u.status === 'TURNOVER' ? '#92400e' : '#1d4ed8';
+    return `<tr style="background:${i % 2 === 0 ? '#fff' : '#f8fafc'}">
+      <td style="${td}">${esc(u.arrived || '-')}</td>
+      <td style="${td};font-weight:700;color:#00095b">${esc(u.stock || '-')}</td>
+      <td style="${td};font-size:10px;font-family:monospace;color:#71717a">${esc(u.vin || '-')}</td>
+      <td style="${td};font-weight:500">${esc(u.vehicle || '-')}</td>
+      <td style="${td};text-align:center">${esc(u.kms || '-')}</td>
+      <td style="${td};text-align:center"><span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;background:${statusBg};color:${statusColor}">${esc(u.status || '-')}</span></td>
+      <td style="${td};font-family:monospace;font-size:10px;color:#71717a">${esc(u.workReq || '-')}</td>
+      <td style="${td};text-align:center">${ck(u.accessories)}</td>
+      <td style="${td};text-align:center">${ck(u.pdi)}</td>
+      <td style="${td};max-width:160px;font-size:10px;color:#475569">${esc(u.notes || '')}</td>
+    </tr>`;
+  }).join('');
+
+  const table = units.length
+    ? `<table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr style="background:#00095b">
+          <th style="${th}">Arrived</th><th style="${th}">Stock #</th><th style="${th}">VIN</th>
+          <th style="${th}">Vehicle</th><th style="${th};text-align:center">KMs</th>
+          <th style="${th};text-align:center">Status</th><th style="${th}">Keypad Code</th>
+          <th style="${th};text-align:center">Acc.</th><th style="${th};text-align:center">PDI</th>
+          <th style="${th}">Notes</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`
+    : `<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px">No units in this batch.</div>`;
+
+  return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#1a1a1a">
+    <div style="max-width:900px;margin:0 auto;padding:24px">
+      <div style="background:#fff;border:1px solid #e4e4e7;border-radius:8px;padding:20px;overflow-x:auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #00095b;flex-wrap:wrap;gap:10px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:28px;height:28px;background:#00095b;border-radius:6px;flex-shrink:0"></div>
+            <div>
+              <div style="font-size:18px;font-weight:700;color:#00095b;letter-spacing:-.02em">Barrie Ford</div>
+              <div style="font-size:11px;color:#64748b;margin-top:1px">Incoming Vehicle Tracker</div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:13px;font-weight:600;color:#00095b">${esc(subject)} <span style="display:inline-block;background:#00095b;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:8px">${units.length} unit${units.length !== 1 ? 's' : ''}</span></div>
+          </div>
+        </div>
+        ${table}
+      </div>
+      <div style="text-align:center;color:#a1a1aa;font-size:11px;margin-top:16px">Sent automatically by Vehicle Manager</div>
+    </div>
+  </body></html>`;
 }
 
 async function buildPdfAttachment(pdfUrl, pdfFileName) {

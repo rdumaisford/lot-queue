@@ -7231,18 +7231,23 @@ async function checkAndSendDropBatch() {
     const batchNum = result.snapshot.val().count;
 
     const batch = pending.filter(([,u]) => (u.ts||0) <= latestTs);
-    const lines = batch.map(([,u]) => formatUnitDigestLine(u)).join('\n');
+    // Same fields/shape as the "Today's Drops" print report - the Cloud
+    // Function renders them into the same navy-header table look, so the
+    // email is visually the same document as that printout.
+    const batchUnits = batch.map(([,u]) => ({
+      arrived: u.arrived, stock: u.stock, vin: u.vin, vehicle: u.vehicle, kms: u.kms,
+      status: u.status, workReq: u.workReq, accessories: u.accessories, pdi: u.pdi, notes: u.notes,
+    }));
     const now = new Date();
     const dy = now.getDate();
     const suffix = dy===1||dy===21||dy===31?'st':dy===2||dy===22?'nd':dy===3||dy===23?'rd':'th';
     const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     const subject = `Incoming Vehicle Batch #${batchNum}; ${months[now.getMonth()]} ${dy}${suffix}, ${now.getFullYear()}`;
 
-    const ok = await sendNotificationEmail('incomingDigest', {
+    const ok = await sendNotificationEmail('dropBatch', {
       to: DROP_BATCH_EMAILS,
       subject,
-      count: batch.length,
-      lines,
+      units: batchUnits,
     });
     if (ok) {
       const patch = {};
