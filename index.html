@@ -1966,6 +1966,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 
     <!-- SETTINGS -->
     <div id="panel-settings" class="panel">
+      <div class="section-label" style="margin-top:0">General</div>
       <div style="max-width:480px">
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:16px">
           <div style="font-size:16px;font-weight:600;margin-bottom:6px">Lot settings</div>
@@ -1988,8 +1989,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         </div>
       </div>
 
+      <div class="section-label">Staff &amp; Permissions</div>
       <!-- Staff Sign-ins (email/password approvals) - management only -->
-      <div id="user-mgmt-wrap" style="display:none;margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;max-width:100%">
+      <div id="user-mgmt-wrap" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;max-width:100%">
         <div style="font-size:16px;font-weight:600;margin-bottom:4px">Add a staff account</div>
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Creates the login and approves it in one step, with whatever role you pick - no separate approval step, and no need to touch the Firebase console.</div>
         <div class="modal-grid" style="margin-bottom:10px">
@@ -2031,8 +2033,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div id="permissions-editor" style="margin-top:8px;overflow-x:auto"></div>
       </div>
 
+      <div class="section-label">Tools</div>
       <div style="max-width:480px">
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-top:16px">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px">
           <div style="font-size:15px;font-weight:600;margin-bottom:4px">Quick Links</div>
           <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Opens a dedicated view in a new tab - handy for setting up a kiosk tablet or TV screen.</div>
           <div style="display:flex;flex-direction:column;gap:8px">
@@ -2043,13 +2046,19 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         </div>
       </div>
 
+      <div class="section-label">Notifications</div>
       <div style="max-width:480px">
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-top:16px">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px">
           <div style="font-size:15px;font-weight:600;margin-bottom:4px">📧 Email Notifications</div>
           <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Sent via <a href="https://resend.com" target="_blank" style="color:var(--ford)">Resend</a> through a Cloud Function - the send key never touches the browser. New Get Ready deals email automatically (with the Get Ready sheet PDF attached, if one's uploaded). Incoming units are summarized into one email at the end of each day. Both only fire while at least one person has the app open.</div>
           <div class="modal-form-row" style="margin-bottom:10px"><label>Get Ready notification email</label><input id="email-gr-address" type="email" placeholder="getready@yourdealership.com" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
           <div class="modal-form-row" style="margin-bottom:10px"><label>Incoming daily digest email</label><input id="email-inc-address" type="email" placeholder="incoming@yourdealership.com" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
-          <div class="modal-form-row" style="margin-bottom:14px"><label>Digest send time</label><input id="email-digest-time" type="time" value="18:00" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
+          <div class="modal-form-row" style="margin-bottom:10px"><label>Digest send time</label><input id="email-digest-time" type="time" value="18:00" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
+          <div class="modal-form-row" style="margin-bottom:14px">
+            <label>Drop batch emails <span style="font-weight:400;color:var(--text-faint)">(comma-separated)</span></label>
+            <input id="email-drop-addresses" type="text" placeholder="salesmanagers@yourdealership.com, manager@yourdealership.com" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/>
+            <div style="font-size:11px;color:var(--text-faint);margin-top:4px">One email per truckload of new arrivals ("Incoming Vehicle Batch #N") instead of one per vehicle - sent once the tracker's gone quiet for a few minutes after the last one added.</div>
+          </div>
           <div style="display:flex;gap:8px">
             <button onclick="saveEmailSettings()" style="flex:1;padding:11px;border:none;border-radius:var(--radius-sm);background:var(--ford);color:#fff;font-size:14px;font-weight:700;cursor:pointer">Save</button>
             <button onclick="sendTestEmail()" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer">Send Test</button>
@@ -3179,10 +3188,11 @@ function startApp() {
 
     emailSettings = s.email || {};
     const eGrAddr=document.getElementById('email-gr-address'), eIncAddr=document.getElementById('email-inc-address'),
-          eDigestTime=document.getElementById('email-digest-time');
+          eDigestTime=document.getElementById('email-digest-time'), eDropAddr=document.getElementById('email-drop-addresses');
     if (eGrAddr && !eGrAddr.matches(':focus')) eGrAddr.value = emailSettings.grAddress || '';
     if (eIncAddr && !eIncAddr.matches(':focus')) eIncAddr.value = emailSettings.incAddress || '';
     if (eDigestTime && !eDigestTime.matches(':focus')) eDigestTime.value = emailSettings.digestTime || '18:00';
+    if (eDropAddr && !eDropAddr.matches(':focus')) eDropAddr.value = emailSettings.dropAddresses || '';
 
     // System-wide alert - banner persists for everyone until management
     // clears it; the popup fires once per browser per distinct alert
@@ -7004,6 +7014,7 @@ window.saveEmailSettings = async function() {
     grAddress: document.getElementById('email-gr-address').value.trim(),
     incAddress: document.getElementById('email-inc-address').value.trim(),
     digestTime: document.getElementById('email-digest-time').value.trim() || '18:00',
+    dropAddresses: document.getElementById('email-drop-addresses').value.trim(),
   };
   try {
     await update(ref(db,'settings'), { email: settings });
@@ -7192,15 +7203,6 @@ async function checkAndSendDailyDigest() {
   } catch(e) { console.error('Daily digest failed:', e); }
 }
 
-// Fixed recipient list for "drop batch" emails - a truckload of new units
-// arriving together, reported as one email per batch instead of one per
-// vehicle, so management has a running log of batches to report to Ford.
-// Not wired into Settings (unlike grAddress/incAddress) since these three
-// were given as a fixed list, not something staff need to edit day-to-day -
-// change this array directly if the recipients ever need to change.
-// TEMP: narrowed to just rdumais@barrieford.com for testing - restore the
-// other two once confirmed working: ['salesmanagers@barrieford.com', 'rdumais@barrieford.com', 'reception@barrieford.com']
-const DROP_BATCH_EMAILS = ['rdumais@barrieford.com'];
 // How long the tracker has to go quiet (no new units) before a batch is
 // considered "done" and gets emailed - long enough that a truckload entered
 // over several minutes lands in one email, short enough management sees it
@@ -7214,6 +7216,9 @@ const DROP_BATCH_QUIET_MS = 1 * 60 * 1000; // TEMP: shrunk from 15 min for testi
 // is considered one finished "drop" and goes out as a single email - a
 // truckload entered over 10 minutes is one email, not one per vehicle.
 async function checkAndSendDropBatch() {
+  const dropEmails = (emailSettings.dropAddresses||'').split(',').map(a=>a.trim()).filter(Boolean);
+  if (!dropEmails.length) return; // not configured
+
   const pending = Object.entries(units||{}).filter(([,u]) => u.dropEmailed === false);
   if (!pending.length) return;
   const latestTs = Math.max(...pending.map(([,u]) => u.ts||0));
@@ -7247,7 +7252,7 @@ async function checkAndSendDropBatch() {
     const subject = `Incoming Vehicle Batch #${batchNum}; ${months[now.getMonth()]} ${dy}${suffix}, ${now.getFullYear()}`;
 
     const ok = await sendNotificationEmail('dropBatch', {
-      to: DROP_BATCH_EMAILS,
+      to: dropEmails,
       subject,
       units: batchUnits,
     });
