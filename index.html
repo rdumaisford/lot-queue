@@ -151,6 +151,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .btn-ghost{padding:7px 14px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;color:var(--text-muted)}
 .btn-ghost:hover{color:var(--text);border-color:var(--border-strong)}
 .section-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin:20px 0 8px}
+.settings-section{margin-bottom:4px}
+.settings-section-header{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;padding:4px 0}
+.settings-section-header:hover .section-label{color:var(--text-muted)}
+.settings-section-header .section-label{margin:0}
+.settings-chevron{width:12px;height:12px;flex-shrink:0;transition:transform .15s;color:var(--text-faint);stroke:currentColor;fill:none;stroke-width:2.5}
+.settings-section.collapsed .settings-chevron{transform:rotate(-90deg)}
+.settings-section.collapsed .settings-section-body{display:none}
 .entry{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:8px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
 .entry.status-progress{border-left:3px solid #3b82f6}
 .entry.status-onroute{border-left:3px solid #f97316}
@@ -1966,7 +1973,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 
     <!-- SETTINGS -->
     <div id="panel-settings" class="panel">
-      <div class="section-label" style="margin-top:0">General</div>
+      <div class="settings-section" data-section="general">
+        <div class="settings-section-header" onclick="toggleSettingsSection(this)">
+          <svg class="settings-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          <span class="section-label">General</span>
+        </div>
+        <div class="settings-section-body">
       <div style="max-width:480px">
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:16px">
           <div style="font-size:16px;font-weight:600;margin-bottom:6px">Lot settings</div>
@@ -1988,8 +2000,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           </div>
         </div>
       </div>
+        </div>
+      </div>
 
-      <div class="section-label">Staff &amp; Permissions</div>
+      <div class="settings-section" data-section="staff">
+        <div class="settings-section-header" onclick="toggleSettingsSection(this)">
+          <svg class="settings-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          <span class="section-label">Staff &amp; Permissions</span>
+        </div>
+        <div class="settings-section-body">
       <!-- Staff Sign-ins (email/password approvals) - management only -->
       <div id="user-mgmt-wrap" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;max-width:100%">
         <div style="font-size:16px;font-weight:600;margin-bottom:4px">Add a staff account</div>
@@ -2032,8 +2051,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div style="font-size:12px;color:var(--text-faint);margin-top:12px">Display accounts aren't shown here - they're always locked to TV Display only and can't be given any other access.</div>
         <div id="permissions-editor" style="margin-top:8px;overflow-x:auto"></div>
       </div>
+        </div>
+      </div>
 
-      <div class="section-label">Tools</div>
+      <div class="settings-section" data-section="tools">
+        <div class="settings-section-header" onclick="toggleSettingsSection(this)">
+          <svg class="settings-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          <span class="section-label">Tools</span>
+        </div>
+        <div class="settings-section-body">
       <div style="max-width:480px">
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px">
           <div style="font-size:15px;font-weight:600;margin-bottom:4px">Quick Links</div>
@@ -2045,8 +2071,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           </div>
         </div>
       </div>
+        </div>
+      </div>
 
-      <div class="section-label">Notifications</div>
+      <div class="settings-section" data-section="notifications">
+        <div class="settings-section-header" onclick="toggleSettingsSection(this)">
+          <svg class="settings-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          <span class="section-label">Notifications</span>
+        </div>
+        <div class="settings-section-body">
       <div style="max-width:480px">
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px">
           <div style="font-size:15px;font-weight:600;margin-bottom:4px">📧 Email Notifications</div>
@@ -2076,9 +2109,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <div id="alert-settings-toast" class="toast" style="margin-top:10px"></div>
         </div>
       </div>
+        </div>
+      </div>
 
+      <div class="settings-section" data-section="danger">
+        <div class="settings-section-header" onclick="toggleSettingsSection(this)">
+          <svg class="settings-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          <span class="section-label">Danger Zone</span>
+        </div>
+        <div class="settings-section-body">
       <div style="max-width:480px">
-        <div style="background:var(--surface);border:1px solid #fca5a5;border-radius:var(--radius);padding:24px;margin-top:16px">
+        <div style="background:var(--surface);border:1px solid #fca5a5;border-radius:var(--radius);padding:24px">
           <div style="font-size:15px;font-weight:600;margin-bottom:4px;color:#dc2626">Danger zone</div>
           <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">These actions are permanent and cannot be undone.</div>
           <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:#fef2f2;border-radius:var(--radius-sm);border:1px solid #fecaca">
@@ -2089,6 +2130,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
             <button onclick="clearAllTrackerUnits()" style="padding:8px 16px;background:#dc2626;color:white;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;margin-left:16px">Clear tracker</button>
           </div>
           <div id="clear-tracker-toast" class="toast" style="margin-top:12px"></div>
+        </div>
+      </div>
         </div>
       </div>
     </div>
@@ -7290,6 +7333,23 @@ window.clearAllTrackerUnits = async function() {
 // ── Sound ─────────────────────────────────────────────
 let audioCtx=null;
 window.toggleSound=function(val){soundEnabled=val;localStorage.setItem('lq-sound',val?'true':'false');};
+
+// Settings panel's category sections (General/Staff & Permissions/Tools/
+// Notifications/Danger Zone) collapse independently - state remembered per
+// browser (not synced) so each person's Settings tab stays how they left it.
+window.toggleSettingsSection = function(headerEl) {
+  const section = headerEl.closest('.settings-section');
+  if (!section) return;
+  const collapsed = section.classList.toggle('collapsed');
+  try { localStorage.setItem('lq-settings-collapsed-'+section.dataset.section, collapsed ? '1' : '0'); } catch(e) {}
+};
+function initSettingsSections() {
+  document.querySelectorAll('#panel-settings .settings-section').forEach(section => {
+    let collapsed = false;
+    try { collapsed = localStorage.getItem('lq-settings-collapsed-'+section.dataset.section) === '1'; } catch(e) {}
+    section.classList.toggle('collapsed', collapsed);
+  });
+}
 function getAudioCtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
 function playTone(freq,startTime,duration,gainVal,type='sine'){
   const ctx=getAudioCtx(),osc=ctx.createOscillator(),gain=ctx.createGain();
@@ -7332,7 +7392,7 @@ window.switchTab=function(name,btn){
   document.getElementById('main-wrap').style.padding=isTV?'0':'24px';
   document.getElementById('main-wrap').style.maxWidth=isTV?'none':'1100px';
   if(!isTV){const c=document.getElementById('tv-controls');if(c)c.style.display='none';}
-  if(name==='settings'){const sc=document.getElementById('s-sound');if(sc)sc.checked=soundEnabled;renderPermissionsEditor();}
+  if(name==='settings'){const sc=document.getElementById('s-sound');if(sc)sc.checked=soundEnabled;renderPermissionsEditor();initSettingsSections();}
   if(name==='history') { renderHistory(); renderCompoundHistory(); }
   if(name==='tracker'){renderTracker();renderTrackerSummary();}
   if(name==='tv'){ renderTVRides(); renderTVAppointments(); setTimeout(()=>tvShuttleMap?.invalidateSize(), 50); }
