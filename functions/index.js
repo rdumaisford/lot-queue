@@ -84,7 +84,7 @@ exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-
   }
 
   const { emailType, to, subject, pdfUrl, pdfFileName, ...data } = request.data || {};
-  if (!to || !subject) throw new HttpsError('invalid-argument', 'Missing to/subject.');
+  if (!to || !subject || (Array.isArray(to) && !to.length)) throw new HttpsError('invalid-argument', 'Missing to/subject.');
 
   const html = renderTemplate(emailType, { ...data, subject });
   if (!html) throw new HttpsError('invalid-argument', `Unknown email type: ${emailType}`);
@@ -97,7 +97,7 @@ exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-
 
   const payload = {
     from: FROM_EMAIL.value(),
-    to: [to],
+    to: Array.isArray(to) ? to : [to],
     subject,
     html,
     ...(attachments.length ? { attachments } : {}),

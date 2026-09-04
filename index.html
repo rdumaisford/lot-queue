@@ -5720,6 +5720,10 @@ window.saveUnit = async function() {
   };
   const isNoPhoto = unit.status === 'TURNOVER' || unit.status === 'SOLD';
   if (isNoPhoto) { unit.photo = true; unit.photoNA = true; }
+  // Marks this as not yet included in a "drop batch" email - only stamped on
+  // brand-new units, never touched on an edit, so update() merging leaves an
+  // already-sent unit's flag alone. See checkAndSendDropBatch() below.
+  if (!editingUnitId) unit.dropEmailed = false;
   // Stamp who/when each PDI-style checkbox actually changed on this save,
   // same per-field "last actor + last timestamp" pattern as Get Ready's
   // toggleGRField. Only touches a field that actually flipped - update()
@@ -7153,6 +7157,15 @@ window.sendTestEmail = async function() {
 // today's digest, this composes and sends one summarizing every Incoming
 // Unit added that day. The transaction flag means only one open session
 // actually sends it even if several people have the app open at the time.
+// Shared by the daily digest and drop-batch emails below - one line per unit.
+function formatUnitDigestLine(u) {
+  const specLine = [u.year, u.type, u.trim, u.colour].filter(Boolean).join(' ');
+  const condLabel = u.condition === 'used'
+    ? `Used - ${({TRADEIN:'Trade-In',AUCTION:'Auction'})[u.category]||u.category||''}${u.subcategory?' / '+({RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'})[u.subcategory]:''}`
+    : `New - ${({RETAIL:'Retail',FLEET:'Fleet'})[u.category]||u.category||''}`;
+  return `${u.stock||u.vin||'-'} - ${u.vehicle || specLine || 'no description'} - ${condLabel}${u.kms?' - '+u.kms+' km':''}`;
+}
+
 async function checkAndSendDailyDigest() {
   if (!emailSettings.incAddress) return; // not configured
   const now = new Date();
@@ -7168,13 +7181,7 @@ async function checkAndSendDailyDigest() {
     const todaysUnits = Object.values(units||{}).filter(u => u.arrivedDate === todayStr);
     if (!todaysUnits.length) return; // nothing arrived today - nothing to send, and the flag above still prevents re-checking all day
 
-    const lines = todaysUnits.map(u => {
-      const specLine = [u.year, u.type, u.trim, u.colour].filter(Boolean).join(' ');
-      const condLabel = u.condition === 'used'
-        ? `Used - ${({TRADEIN:'Trade-In',AUCTION:'Auction'})[u.category]||u.category||''}${u.subcategory?' / '+({RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'})[u.subcategory]:''}`
-        : `New - ${({RETAIL:'Retail',FLEET:'Fleet'})[u.category]||u.category||''}`;
-      return `${u.stock||u.vin||'-'} - ${u.vehicle || specLine || 'no description'} - ${condLabel}${u.kms?' - '+u.kms+' km':''}`;
-    }).join('\n');
+    const lines = todaysUnits.map(formatUnitDigestLine).join('\n');
 
     await sendNotificationEmail('incomingDigest', {
       to: emailSettings.incAddress,
@@ -7183,6 +7190,66 @@ async function checkAndSendDailyDigest() {
       lines,
     });
   } catch(e) { console.error('Daily digest failed:', e); }
+}
+
+// Fixed recipient list for "drop batch" emails - a truckload of new units
+// arriving together, reported as one email per batch instead of one per
+// vehicle, so management has a running log of batches to report to Ford.
+// Not wired into Settings (unlike grAddress/incAddress) since these three
+// were given as a fixed list, not something staff need to edit day-to-day -
+// change this array directly if the recipients ever need to change.
+const DROP_BATCH_EMAILS = ['salesmanagers@barrieford.com', 'rdumais@barrieford.com', 'reception@barrieford.com'];
+// How long the tracker has to go quiet (no new units) before a batch is
+// considered "done" and gets emailed - long enough that a truckload entered
+// over several minutes lands in one email, short enough management sees it
+// same-day, close to real time.
+const DROP_BATCH_QUIET_MS = 15 * 60 * 1000;
+
+// Runs on the same 60s poll as the daily digest (see setInterval below).
+// Each new unit is stamped dropEmailed:false at creation (saveUnit above);
+// once the most recently added still-unsent unit has sat quiet for
+// DROP_BATCH_QUIET_MS with nothing newer arriving, whatever's still unsent
+// is considered one finished "drop" and goes out as a single email - a
+// truckload entered over 10 minutes is one email, not one per vehicle.
+async function checkAndSendDropBatch() {
+  const pending = Object.entries(units||{}).filter(([,u]) => u.dropEmailed === false);
+  if (!pending.length) return;
+  const latestTs = Math.max(...pending.map(([,u]) => u.ts||0));
+  if (Date.now() - latestTs < DROP_BATCH_QUIET_MS) return; // still might be mid-drop - wait for it to go quiet
+
+  const dateStr = new Date().toISOString().slice(0,10);
+  try {
+    // Atomically claims this batch (so only one open session actually sends
+    // it) and hands out the next sequential batch number for today, in one
+    // transaction - same idea as dailyDigestSent's claim, but also counting.
+    const result = await runTransaction(ref(db, 'dropBatch/'+dateStr), curr => {
+      const claimedThrough = curr?.claimedThrough || 0;
+      if (claimedThrough >= latestTs) return; // abort - already claimed through this point
+      return { claimedThrough: latestTs, count: (curr?.count||0) + 1 };
+    });
+    if (!result.committed) return;
+    const batchNum = result.snapshot.val().count;
+
+    const batch = pending.filter(([,u]) => (u.ts||0) <= latestTs);
+    const lines = batch.map(([,u]) => formatUnitDigestLine(u)).join('\n');
+    const now = new Date();
+    const dy = now.getDate();
+    const suffix = dy===1||dy===21||dy===31?'st':dy===2||dy===22?'nd':dy===3||dy===23?'rd':'th';
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const subject = `Incoming Vehicle Batch #${batchNum}; ${months[now.getMonth()]} ${dy}${suffix}, ${now.getFullYear()}`;
+
+    const ok = await sendNotificationEmail('incomingDigest', {
+      to: DROP_BATCH_EMAILS,
+      subject,
+      count: batch.length,
+      lines,
+    });
+    if (ok) {
+      const patch = {};
+      batch.forEach(([id]) => { patch[id+'/dropEmailed'] = true; });
+      await update(ref(db,'tracker'), patch);
+    }
+  } catch(e) { console.error('Drop batch email failed:', e); }
 }
 
 window.clearAllTrackerUnits = async function() {
@@ -7337,6 +7404,9 @@ setInterval(() => { if (currentUser) checkAndSendDailyDigest(); }, 60000);
 // Also check once shortly after sign-in, in case the digest time already
 // passed earlier today before anyone had the app open.
 setTimeout(() => { if (currentUser) checkAndSendDailyDigest(); }, 5000);
+
+setInterval(() => { if (currentUser) checkAndSendDropBatch(); }, 60000);
+setTimeout(() => { if (currentUser) checkAndSendDropBatch(); }, 5000);
 
 // ── Today's Drops PDF print ───────────────────────────
 window.printTodaysDrops = function() {
