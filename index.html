@@ -29,20 +29,22 @@
   script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com https://www.gstatic.com;
   style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com;
   img-src 'self' data: https://*.tile.openstreetmap.org;
-  connect-src 'self' https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://api.emailjs.com https://router.project-osrm.org;
+  connect-src 'self' https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://us-central1-lot-queue.cloudfunctions.net https://router.project-osrm.org;
   font-src 'self' data:;
   frame-ancestors 'self';
   base-uri 'self';
   form-action 'self';
 "/>
 <!--
-  Bumped on every deploy that touches this file - lets already-open tabs
-  (staff who never close their browser, always-on TV kiosks) detect that a
-  newer version has shipped and reload themselves, instead of silently
-  running stale in-memory JS until someone manually clears their cache.
-  Whoever edits this file next should update this value.
+  Bumped on every deploy - lets already-open tabs (staff who never close
+  their browser, always-on TV kiosks) detect that a newer version has
+  shipped and reload themselves, instead of silently running stale
+  in-memory JS until someone manually clears their cache. Open tabs poll
+  a separate tiny file, app-build.txt (not this page), for this same
+  value - keep the two in sync on every deploy, or stale tabs stop
+  noticing updates. deploy.sh (if present) stamps both automatically.
 -->
-<meta name="app-build" content="2026-07-27T23:22:16Z"/>
+<meta name="app-build" content="2026-09-04T20:11:42Z"/>
 <title>Vehicle Manager - Barrie Ford</title>
 <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,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"/>
 <style>
@@ -149,6 +151,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .btn-ghost{padding:7px 14px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;color:var(--text-muted)}
 .btn-ghost:hover{color:var(--text);border-color:var(--border-strong)}
 .section-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin:20px 0 8px}
+.settings-section{margin-bottom:4px}
+.settings-section-header{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;padding:4px 0}
+.settings-section-header:hover .section-label{color:var(--text-muted)}
+.settings-section-header .section-label{margin:0}
+.settings-chevron{width:12px;height:12px;flex-shrink:0;transition:transform .15s;color:var(--text-faint);stroke:currentColor;fill:none;stroke-width:2.5}
+.settings-section.collapsed .settings-chevron{transform:rotate(-90deg)}
+.settings-section.collapsed .settings-section-body{display:none}
 .entry{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:8px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
 .entry.status-progress{border-left:3px solid #3b82f6}
 .entry.status-onroute{border-left:3px solid #f97316}
@@ -312,8 +321,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .tv-cm-spot.reserved{background:#f59e0b}
 .tv-cm-spot.void{background:rgba(255,255,255,.15)}
 .tv-cm-spot.blocked{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
-.tv-cm-spot.appointed{background:#a78bfa}
-.tv-cm-spot.getready{background:#34d399}
+.tv-cm-spot.getready{background:#d946ef}
 .tv-cm-spot.special{background:#f472b6}
 .tv-empty{text-align:center;padding:60px 24px;opacity:.2;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .tv-empty p{font-size:24px;margin-top:16px}
@@ -507,7 +515,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 /* Completed units - compact list instead of cards, with its own search/filter
    so paging through years of history never disturbs the active board above. */
 .tracker-completed-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 10px}
-.tracker-list{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface)}
+.tracker-list{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--radius);overflow:auto hidden;background:var(--surface)}
 .tracker-list-head{display:grid;grid-template-columns:90px 150px 1fr 60px 90px 150px 70px;gap:10px;padding:8px 14px;background:#f8fafc;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint)}
 .tracker-list-row{display:grid;grid-template-columns:90px 150px 1fr 60px 90px 150px 70px;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);align-items:center;font-size:13px}
 .tracker-list-row:last-child{border-bottom:none}
@@ -536,7 +544,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 /* Get Ready's completed (ready-for-delivery) list reuses the same
    .tracker-list/.tracker-list-row shell as Incoming's, just with column
    widths suited to its own fields instead of VIN/status. */
-.tracker-list-row.gr-row,.tracker-list-head.gr-row{grid-template-columns:90px 1fr 130px 90px 100px 150px 70px}
+.tracker-list-row.gr-row,.tracker-list-head.gr-row{grid-template-columns:90px 1fr 130px 90px 90px 110px 110px 110px 100px 150px 70px;min-width:1300px}
 
 /* ── Get Ready ── */
 .gr-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;transition:box-shadow .15s}
@@ -558,9 +566,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .gr-gas-banner.no-gas-needed{background:#f0fdf4;border-bottom-color:#86efac;color:#15803d}
 .gr-delivery{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-muted);flex-wrap:wrap}
 .gr-delivery strong{color:var(--text)}
-.gr-checklist{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:12px 16px;border-bottom:1px solid var(--border)}
-.gr-check-item{display:flex;flex-direction:column;align-items:center;gap:4px}
-.gr-check-label{font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;text-align:center}
 .gr-tap{width:100%;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid var(--border);background:var(--bg);transition:all .15s}
 .gr-tap:hover{border-color:#94a3b8}
 .gr-tap.on{background:#dcfce7;border-color:#86efac}
@@ -572,6 +577,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .gr-card-actions{display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--border)}
 .gr-complete-badge{font-size:10px;font-weight:700;background:#15803d;color:white;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em}
 .gr-filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.gr-day-row{transition:background .15s}
+.gr-day-row:hover{background:var(--bg)}
+@keyframes grJumpFlash{0%,100%{box-shadow:0 0 0 0 rgba(29,78,216,0);background:none}20%,60%{box-shadow:0 0 0 4px rgba(29,78,216,.35);background:#eff6ff}}
+.gr-jump-highlight{animation:grJumpFlash 1.6s ease-out}
 
 /* Row select */
 .row-select{width:15px;height:15px;accent-color:var(--ford);cursor:pointer}
@@ -752,7 +761,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   /* Completed list rows - stack instead of a wide grid */
   .tracker-list-head{display:none}
   .tracker-list-row{grid-template-columns:1fr;gap:4px;padding:12px 14px}
-  .tracker-list-row.gr-row{grid-template-columns:1fr}
+  .tracker-list-row.gr-row{grid-template-columns:1fr;min-width:0}
   .tlr-actions{justify-content:flex-start;margin-top:6px}
 
   /* Quick links - always wrap on a phone, however many roles gives us */
@@ -909,6 +918,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
   .tv-slide-grid-4{grid-template-columns:repeat(2,1fr)}
   .tv-slide-grid-3{grid-template-columns:repeat(2,1fr)}
   .tv-slide-grid-6{grid-template-columns:repeat(3,1fr)}
+
+  /* Get Ready - starting a new deal (trade-ins, financing, PDF import) is a
+     desktop task; hide the button regardless of permission rather than
+     leaving a form that's painful to fill out on a phone reachable there. */
+  #btn-add-getready{display:none !important}
 }
 
 /* ── Compound Map ── */
@@ -919,25 +933,34 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spots-wrap{display:flex;gap:3px;flex-wrap:nowrap;align-items:center;padding:2px 0}
 .cm-spot{width:68px;height:46px;border-radius:5px;border:1.5px solid #cbd5e1;background:#f1f5f9;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;flex-shrink:0;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;transition:box-shadow .12s,transform .12s;overflow:hidden}
 .cm-spot:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.12)}
-.cm-spot.new{background:#eff6ff;border-color:#1d4ed8}
+.cm-spot.new{background:#eff6ff;border-color:#1d4ed8;border-width:2px}
 .cm-spot.new .cm-spot-num{color:#1d4ed8}
-.cm-spot.used{background:#f1f5f9;border-color:#64748b}
+.cm-spot.used{background:#f1f5f9;border-color:#64748b;border-width:2px}
 .cm-spot.used .cm-spot-num{color:#475569}
-.cm-spot.wholesale{background:#fefce8;border-color:#ca8a04}
+.cm-spot.wholesale{background:#fefce8;border-color:#ca8a04;border-width:2px}
 .cm-spot.wholesale .cm-spot-num{color:#a16207}
-.cm-spot.fleet{background:#f0fdf4;border-color:#15803d}
+.cm-spot.fleet{background:#f0fdf4;border-color:#15803d;border-width:2px}
 .cm-spot.fleet .cm-spot-num{color:#15803d}
 .cm-spot.leasereturn{background:#f5f3ff;border-color:#7c3aed;border-width:2px}
 .cm-spot.leasereturn .cm-spot-num{color:#7c3aed}
 .cm-spot.cm-flagged{border-color:#dc2626!important;border-width:2px}
 .cm-spot.void{background:#d1d5db;border-color:#d1d5db;cursor:default}
 .cm-spot.void *{display:none!important}
-.cm-spot.blocked{background:#e2e8f0;border-color:#94a3b8;border-style:dashed;cursor:default}.cm-spot.empty{background:#f8fafc;border-color:#e2e8f0}
+.cm-spot.blocked{background:#e2e8f0;border-color:#94a3b8;border-style:dashed;cursor:default}
+/* Green + thin so an available spot reads as available at a glance,
+   against every occupied state's 2px coloured border. */
+.cm-spot.empty{background:#f0fdf4;border-color:#22c55e;border-width:1px}
 .cm-spot-num{font-size:9px;font-weight:700;color:#94a3b8;line-height:1;position:absolute;top:3px;left:4px}
-.cm-spot.appointed .cm-spot-num{color:#7c3aed}
 .cm-spot-stock{font-size:9px;font-weight:800;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;margin-top:8px}
 .cm-spot-desc{font-size:7.5px;color:#64748b;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
-.cm-spot.cm-hi{box-shadow:0 0 0 2.5px #f59e0b,0 2px 8px rgba(0,0,0,.15)!important;transform:translateY(-2px)!important;z-index:2}
+/* Wraps the stock #/desc/status-banner lines on a freeform spot so they can
+   be counter-rotated as one already-stacked group, instead of rotating each
+   line separately - rotating each line on its own turned them into
+   individually-transformed flex items, which some browsers stack/overlap
+   instead of laying out top-to-bottom. Grid spots never set --spot-rot, so
+   this is a no-op rotate(0deg) there. */
+.cm-spot-info{display:flex;flex-direction:column;align-items:center;transform:rotate(calc(-1 * var(--spot-rot,0deg)))}
+.cm-spot.cm-hi{box-shadow:0 0 0 2.5px #f59e0b,0 2px 8px rgba(0,0,0,.15)!important;transform:rotate(var(--spot-rot,0deg)) translateY(-2px)!important;z-index:2}
 .cm-spot.cm-dim{opacity:.2}
 .cm-gap{width:16px;height:46px;flex-shrink:0;background:repeating-linear-gradient(90deg,#e2e8f0 0,#e2e8f0 2px,transparent 2px,transparent 8px);border-radius:3px;margin:2px 2px}
 .cm-lane-bar{height:20px;display:flex;align-items:center;gap:0;margin:2px 0 2px 28px}
@@ -945,14 +968,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-lane-txt{font-size:9px;font-weight:700;color:#cbd5e1;text-transform:uppercase;letter-spacing:.1em;padding:0 8px;white-space:nowrap}
 .cm-add-spot{width:28px;height:46px;border-radius:5px;border:1.5px dashed #cbd5e1;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:18px;font-weight:300;flex-shrink:0;transition:all .15s;margin-left:3px}
 .cm-add-spot:hover{border-color:var(--ford);color:var(--ford);background:#eff6ff}
-.cm-spot.getready{background:#f0fdf4;border-color:#16a34a;border-width:2px}
-.cm-spot.getready .cm-spot-num{color:#16a34a}
-.cm-spot.getready .cm-spot-stock{color:#15803d}
-.cm-spot-gr{font-size:7px;font-weight:700;color:#15803d;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
-.cm-spot.appointed{background:#f3e8ff;border-color:#7c3aed;border-width:2px}
-.cm-spot.appointed .cm-spot-num{color:#7c3aed}
-.cm-spot.appointed .cm-spot-stock{color:#6d28d9}
-.cm-spot-appt{font-size:7px;font-weight:700;color:#7c3aed;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+.cm-spot.getready{background:#fdf4ff;border-color:#a21caf;border-width:2px}
+.cm-spot.getready .cm-spot-num{color:#a21caf}
+.cm-spot.getready .cm-spot-stock{color:#86198f}
+.cm-spot-gr{font-size:7px;font-weight:700;color:#86198f;line-height:1.2;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
 .cm-spot.ontestdrive{background:#fff7ed;border-color:#ea580c;border-width:2px}
 .cm-spot.ontestdrive .cm-spot-num{color:#ea580c}
 .cm-spot.ontestdrive .cm-spot-stock{color:#c2410c}
@@ -1001,10 +1020,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot.blocked .cm-spot-num{color:#94a3b8}
 .cm-spot.blocked .cm-spot-stock{color:#64748b;font-size:8px;font-weight:600}
 .cm-spot.blocked:hover{background:#cbd5e1!important}
-.cm-spot-note{position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:3px;background:#f59e0b;display:flex;align-items:center;justify-content:center;z-index:2}
+.cm-spot-note{position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:3px;background:#f59e0b;display:flex;align-items:center;justify-content:center;z-index:2;transform:rotate(calc(-1 * var(--spot-rot,0deg)))}
 .cm-spot-note svg{width:9px;height:9px;stroke:#fff;fill:none;stroke-width:2.5}
-.cm-spot-flags{position:absolute;top:2px;left:2px;display:flex;flex-direction:column;gap:1px;z-index:2}
+.cm-spot-flags{position:absolute;top:2px;left:2px;display:flex;flex-direction:column;gap:1px;z-index:2;transform:rotate(calc(-1 * var(--spot-rot,0deg)))}
 .cm-spot-flag{font-size:8px;line-height:1;background:rgba(255,255,255,.85);border-radius:2px;padding:1px 2px}
+/* Custom note tooltip - a single shared element, moved/shown/hidden by JS
+   (see cmWireNoteHover) instead of the browser's slow, plain native title
+   tooltip, so it appears fast and reads clearly against everything else on
+   the map. */
+#cm-note-tooltip{position:fixed;display:none;opacity:0;max-width:220px;background:#fffbeb;border:2px solid #f59e0b;color:#78350f;font-size:12px;font-weight:600;line-height:1.4;padding:8px 10px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.22);white-space:pre-wrap;z-index:10000;pointer-events:none;transition:opacity .06s ease}
+#cm-note-tooltip.show{display:block;opacity:1}
 .cm-del-spot{position:absolute;top:1px;right:1px;width:13px;height:13px;border-radius:50%;background:#ef4444;color:#fff;font-size:9px;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:3;line-height:1}
 .cm-edit-active .cm-del-spot{display:flex}
 .cm-row-label.cm-row-del{cursor:pointer;flex-direction:column;gap:0;color:#dc2626;font-weight:800;border-radius:3px}
@@ -1054,7 +1079,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"/>
 <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -1083,6 +1107,22 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
      people don't know how to do (or where) on their own. -->
 <div id="signin-stuck-help" style="display:none;position:fixed;bottom:20px;left:0;right:0;text-align:center;z-index:9999">
   <button onclick="resetSignInState()" style="padding:11px 20px;font-size:13px;font-weight:600;background:#fff;border:1px solid #fca5a5;border-radius:20px;box-shadow:0 2px 12px rgba(0,0,0,.18);color:#991b1b;cursor:pointer">⚠ Stuck signing in? Tap to reset</button>
+</div>
+
+<!-- Shown whenever the connection dot (header sync dot / TV corner dot) has
+     been red for more than a moment - a brief blip clears on its own before
+     this debounce fires, so it only appears for a connection that's actually
+     stuck, not every momentary reconnect. Blurs everything behind it via
+     backdrop-filter (not a filter on #app itself, which would fight the map
+     and modal stacking) so it's obvious at a glance, even from across a
+     showroom on the TV board. -->
+<div id="conn-lost-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.25);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:24px">
+  <div style="background:#fff;border-radius:16px;padding:28px 32px;max-width:360px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.35)">
+    <div style="font-size:36px;margin-bottom:8px">📡</div>
+    <div style="font-size:17px;font-weight:800;color:#0f172a;margin-bottom:6px">Reconnecting…</div>
+    <div style="font-size:13px;color:#64748b;margin-bottom:18px;line-height:1.5">Lost connection to the server. This usually clears on its own - if it doesn't in a few seconds, refresh the page.</div>
+    <button onclick="location.reload()" style="width:100%;padding:11px;border:none;border-radius:10px;background:#00095b;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Refresh Page</button>
+  </div>
 </div>
 
 <!-- Setup -->
@@ -1176,10 +1216,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     <button class="tab" id="tab-testdrive" onclick="switchTab('testdrive',this)" style="display:none">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg>
       Test Drives <span class="tab-count" id="tc-testdrive">0</span>
-    </button>
-    <button class="tab" id="tab-tv" onclick="switchTab('tv',this)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-      TV display <span class="tab-count" id="tc-tv">0</span>
     </button>
     <button class="tab" id="tab-audit" onclick="switchTab('audit',this)" style="display:none">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
@@ -1376,8 +1412,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <!-- Lot switcher -->
         <div style="display:flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
           <button id="cm-lot-btn-bayview700" onclick="cmSwitchLot('bayview700')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--ford);color:#fff">700 Bayview</button>
-          <button id="cm-lot-btn-bayview323" onclick="cmSwitchLot('bayview323')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">323 Bayview</button>
-          <button id="cm-lot-btn-bayview323new" onclick="cmSwitchLot('bayview323new')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">323 Bayview (NEW)</button>
+          <button id="cm-lot-btn-bayview323new" onclick="cmSwitchLot('bayview323new')" style="padding:6px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--bg);color:var(--text-muted)">323 Bayview</button>
+        </div>
+        <!-- Search - searches every compound, not just this one; a match
+             elsewhere shows as a clickable "Located in..." pill below it.
+             Kept right next to the lot switcher (rather than off at the far
+             end of the toolbar) so it's within easy reach while looking at
+             the map, not something you have to hunt for. -->
+        <div id="cm-grid-search-wrap" style="position:relative">
+          <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-faint);font-size:12px">🔍</span>
+          <input id="cm-search" type="text" placeholder="Search stock #…" oninput="cmSearch(this.value)" style="padding:6px 10px 6px 28px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);background:var(--bg);color:var(--text);outline:none;width:160px"/>
+          <button id="cm-search-elsewhere" onclick="cmGoToElsewhereMatch()" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;white-space:nowrap;padding:6px 10px;font-size:12px;font-weight:600;border:1px solid #93c5fd;border-radius:var(--radius-sm);background:#eff6ff;color:#1d4ed8;cursor:pointer;z-index:10;text-align:left"></button>
         </div>
         <!-- Zoom - mainly for mobile, where the map's own hold-to-drag touch
              handling blocks the browser's native pinch-to-zoom gesture. -->
@@ -1386,7 +1431,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <span id="cm-zoom-label" onclick="cmZoomReset()" title="Reset zoom" style="padding:6px 8px;font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;min-width:38px;text-align:center">100%</span>
           <button onclick="cmZoomIn()" title="Zoom in" style="padding:6px 12px;font-size:15px;font-weight:700;border:none;border-left:1px solid var(--border);cursor:pointer;background:var(--surface);color:var(--text)">+</button>
         </div>
-        <!-- Freeform (323 Bayview NEW) has its own canvas, so it needs its own
+        <!-- Freeform (323 Bayview) has its own canvas, so it needs its own
              zoom control targeting #fl-canvas instead of #cm-map. Shown in
              both Normal and Edit mode - useful either way. -->
         <div id="cm-fl-zoom" style="display:none;align-items:center;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
@@ -1396,14 +1441,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         </div>
         <!-- Stats -->
         <div id="cm-stats" style="display:flex;gap:14px;font-size:13px;flex-wrap:wrap"></div>
-        <!-- Search - searches every compound, not just this one; a match
-             elsewhere shows as a clickable "Located in..." pill below it. -->
-        <div id="cm-grid-search-wrap" style="position:relative;margin-left:auto">
-          <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-faint);font-size:12px">🔍</span>
-          <input id="cm-search" type="text" placeholder="Search stock #…" oninput="cmSearch(this.value)" style="padding:6px 10px 6px 28px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);background:var(--bg);color:var(--text);outline:none;width:160px"/>
-          <button id="cm-search-elsewhere" onclick="cmGoToElsewhereMatch()" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;white-space:nowrap;padding:6px 10px;font-size:12px;font-weight:600;border:1px solid #93c5fd;border-radius:var(--radius-sm);background:#eff6ff;color:#1d4ed8;cursor:pointer;z-index:10;text-align:left"></button>
-        </div>
-        <button id="cm-heatmap-btn" onclick="cmToggleHeatmap()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer">🌡️ Age Heatmap</button>
+        <button id="cm-heatmap-btn" onclick="cmToggleHeatmap()" style="margin-left:auto;padding:6px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer">🌡️ Age Heatmap</button>
         <button id="cm-edit-btn" onclick="cmToggleEdit()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid #fcd34d;border-radius:var(--radius-sm);background:#fef9ec;color:#b45309;cursor:pointer;display:none">✏️ Edit</button>
         <button id="cm-qr-btn" onclick="cmOpenQR()" style="padding:6px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer">🖨 QR</button>
       </div>
@@ -1468,17 +1506,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <details id="cm-legend-details" open style="border-bottom:1px solid var(--border);background:var(--bg)">
         <summary style="padding:6px 16px;font-size:11px;font-weight:700;color:var(--text-muted);cursor:pointer;user-select:none">Legend</summary>
         <div style="display:flex;align-items:center;gap:14px;padding:0 16px 8px;font-size:11px;color:var(--text-muted);flex-wrap:wrap">
-          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#eff6ff;border:1.5px solid #1d4ed8"></div>New</div>
-          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f1f5f9;border:1.5px solid #64748b"></div>Used</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fef2f2;border:1.5px solid #dc2626"></div>⚠ Duplicate stock #</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fff7ed;border:1.5px solid #ea580c"></div>Out - Test Drive</div>
           <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fefce8;border:1.5px solid #ca8a04"></div>Wholesale</div>
           <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f0fdf4;border:1.5px solid #15803d"></div>Fleet</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#eff6ff;border:1.5px solid #1d4ed8"></div>New</div>
           <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f5f3ff;border:2px solid #7c3aed"></div>Lease Return</div>
-          <div style="display:flex;align-items:center;gap:5px"><span style="font-size:13px">🚩</span>Flagged (checkbox or has a note)</div>
-          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f0fdf4;border:1.5px solid #16a34a"></div>Get Ready</div>
-          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f3e8ff;border:1.5px solid #7c3aed"></div>Appointment</div>
-          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fff7ed;border:1.5px solid #ea580c"></div>Out - Test Drive</div>
-          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fef2f2;border:1.5px solid #dc2626"></div>⚠ Duplicate stock #</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#fdf4ff;border:1.5px solid #a21caf"></div>Get Ready</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#f1f5f9;border:1.5px solid #64748b"></div>Used</div>
           <div style="display:flex;align-items:center;gap:5px"><div style="width:24px;height:14px;border-radius:3px;background:#e2e8f0;border:1.5px dashed #94a3b8"></div>Blocked</div>
+          <div style="display:flex;align-items:center;gap:5px"><span style="font-size:13px">🚩</span>Flagged (checkbox or has a note)</div>
           <span style="color:var(--text-faint);margin-left:8px">🖐 Hold a car ~3s to move it</span>
           <span style="color:var(--text-faint)">· Tap a car for gas / wash / test drive</span>
           <span id="cm-edit-hint" style="display:none;color:#b45309;font-weight:600;margin-left:8px">✏️ Edit mode - click any spot to edit</span>
@@ -1595,7 +1632,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <label>Lots to audit</label>
           <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
             <label style="display:flex;align-items:center;gap:8px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" id="audit-lot-bayview700" checked style="width:16px;height:16px;accent-color:var(--ford)"/> 700 Bayview</label>
-            <label style="display:flex;align-items:center;gap:8px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" id="audit-lot-bayview323" style="width:16px;height:16px;accent-color:var(--ford)"/> 323 Bayview</label>
           </div>
         </div>
 
@@ -1633,7 +1669,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <div class="tracker-toolbar">
         <div class="search-wrap">
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-          <input class="search-input" id="t-search" type="text" placeholder="Search stock, VIN, vehicle, notes…" oninput="renderTracker()"/>
+          <input class="search-input" id="t-search" type="text" placeholder="Search stock, VIN, vehicle, notes… (active & completed)" oninput="renderTracker()"/>
         </div>
         <button class="filter-chip active" onclick="setTrackerFilter('ALL',this)">All</button>
         <button class="filter-chip" onclick="setTrackerFilter('STOCK',this)">Stock</button>
@@ -1680,14 +1716,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div id="tracker-body" class="tracker-card-grid"></div>
       </div>
 
-      <!-- Completed units - kept forever, but shown as a compact list with its
-           own search/filter so it never has to share the active board's toolbar. -->
+      <!-- Completed units - kept forever, shown as a compact list below the
+           active board. Shares the active board's search box above (one
+           query covers both, so a stock # turns up whether it's still
+           active or already completed) - just keeps its own filter chips,
+           since active/completed use different status breakdowns. -->
       <div class="section-divider" id="tracker-completed-divider" style="display:none">✓ Completed</div>
       <div class="tracker-completed-toolbar" id="tracker-completed-toolbar" style="display:none">
-        <div class="search-wrap">
-          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-          <input class="search-input" id="tc-search" type="text" placeholder="Search completed…" oninput="renderTrackerCompleted()"/>
-        </div>
         <button class="filter-chip active" onclick="setCompletedFilter('ALL',this)">All</button>
         <button class="filter-chip" onclick="setCompletedFilter('NEW',this)">New</button>
         <button class="filter-chip" onclick="setCompletedFilter('USED',this)">Used</button>
@@ -1934,6 +1969,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 
     <!-- SETTINGS -->
     <div id="panel-settings" class="panel">
+      <div class="settings-section" data-section="general">
+        <div class="settings-section-header" onclick="toggleSettingsSection(this)">
+          <svg class="settings-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          <span class="section-label">General</span>
+        </div>
+        <div class="settings-section-body">
       <div style="max-width:480px">
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:16px">
           <div style="font-size:16px;font-weight:600;margin-bottom:6px">Lot settings</div>
@@ -1955,9 +1996,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           </div>
         </div>
       </div>
+        </div>
+      </div>
 
+      <div class="settings-section" data-section="staff">
+        <div class="settings-section-header" onclick="toggleSettingsSection(this)">
+          <svg class="settings-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          <span class="section-label">Staff &amp; Permissions</span>
+        </div>
+        <div class="settings-section-body">
       <!-- Staff Sign-ins (email/password approvals) - management only -->
-      <div id="user-mgmt-wrap" style="display:none;margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;max-width:100%">
+      <div id="user-mgmt-wrap" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;max-width:100%">
         <div style="font-size:16px;font-weight:600;margin-bottom:4px">Add a staff account</div>
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Creates the login and approves it in one step, with whatever role you pick - no separate approval step, and no need to touch the Firebase console.</div>
         <div class="modal-grid" style="margin-bottom:10px">
@@ -1998,30 +2047,50 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div style="font-size:12px;color:var(--text-faint);margin-top:12px">Display accounts aren't shown here - they're always locked to TV Display only and can't be given any other access.</div>
         <div id="permissions-editor" style="margin-top:8px;overflow-x:auto"></div>
       </div>
+        </div>
+      </div>
 
+      <div class="settings-section" data-section="tools">
+        <div class="settings-section-header" onclick="toggleSettingsSection(this)">
+          <svg class="settings-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          <span class="section-label">Tools</span>
+        </div>
+        <div class="settings-section-body">
       <div style="max-width:480px">
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-top:16px">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px">
           <div style="font-size:15px;font-weight:600;margin-bottom:4px">Quick Links</div>
-          <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Opens a dedicated view in a new tab - handy for setting up a kiosk tablet or TV screen.</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Opens a dedicated view in a new tab.</div>
           <div style="display:flex;flex-direction:column;gap:8px">
-            <button onclick="openDisplayLink('323bayview')" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px">📺 Display - 323 Bayview (off-site lot)</button>
-            <button onclick="openDisplayLink()" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px">📺 Display - unfiltered (shows everything)</button>
             <button onclick="openDriveLink()" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px">🚐 Driver Dashboard (sign in, jumps straight to Drive)</button>
           </div>
         </div>
       </div>
+        </div>
+      </div>
 
+      <div class="settings-section" data-section="notifications">
+        <div class="settings-section-header" onclick="toggleSettingsSection(this)">
+          <svg class="settings-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          <span class="section-label">Notifications</span>
+        </div>
+        <div class="settings-section-body">
       <div style="max-width:480px">
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-top:16px">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px">
           <div style="font-size:15px;font-weight:600;margin-bottom:4px">📧 Email Notifications</div>
-          <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Uses a free <a href="https://www.emailjs.com" target="_blank" style="color:var(--ford)">EmailJS</a> account to send email directly from the browser - no server needed. New Get Ready deals email automatically. Incoming units are summarized into one email at the end of each day. Both only fire while at least one person has the app open.</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Sent via <a href="https://resend.com" target="_blank" style="color:var(--ford)">Resend</a> through a Cloud Function - the send key never touches the browser. New Get Ready deals email automatically (with the Get Ready sheet PDF attached, if one's uploaded). Incoming units are summarized into one email at the end of each day. Both only fire while at least one person has the app open.</div>
           <div class="modal-form-row" style="margin-bottom:10px"><label>Get Ready notification email</label><input id="email-gr-address" type="email" placeholder="getready@yourdealership.com" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
           <div class="modal-form-row" style="margin-bottom:10px"><label>Incoming daily digest email</label><input id="email-inc-address" type="email" placeholder="incoming@yourdealership.com" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
           <div class="modal-form-row" style="margin-bottom:10px"><label>Digest send time</label><input id="email-digest-time" type="time" value="18:00" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
-          <div class="modal-form-row" style="margin-bottom:10px"><label>EmailJS Public Key</label><input id="email-public-key" type="text" placeholder="e.g. user_Ab12Cd34" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
-          <div class="modal-form-row" style="margin-bottom:10px"><label>EmailJS Service ID</label><input id="email-service-id" type="text" placeholder="e.g. service_abc123" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
-          <div class="modal-form-row" style="margin-bottom:10px"><label>Get Ready Template ID</label><input id="email-gr-template" type="text" placeholder="e.g. template_getready" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
-          <div class="modal-form-row" style="margin-bottom:14px"><label>Incoming Digest Template ID</label><input id="email-inc-template" type="text" placeholder="e.g. template_incoming_digest" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
+          <div class="modal-form-row" style="margin-bottom:10px">
+            <label>Drop batch emails <span style="font-weight:400;color:var(--text-faint)">(comma-separated)</span></label>
+            <input id="email-drop-addresses" type="text" placeholder="salesmanagers@yourdealership.com, manager@yourdealership.com" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/>
+            <div style="font-size:11px;color:var(--text-faint);margin-top:4px">One email per truckload of new arrivals ("Incoming Vehicle Batch #N") instead of one per vehicle.</div>
+          </div>
+          <div class="modal-form-row" style="margin-bottom:14px">
+            <label>Drop batch send interval <span style="font-weight:400;color:var(--text-faint)">(minutes of no new arrivals)</span></label>
+            <input id="email-drop-interval" type="number" min="1" max="120" value="15" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/>
+            <div style="font-size:11px;color:var(--text-faint);margin-top:4px">How long the tracker has to go quiet after the last new unit before that batch is considered done and gets emailed.</div>
+          </div>
           <div style="display:flex;gap:8px">
             <button onclick="saveEmailSettings()" style="flex:1;padding:11px;border:none;border-radius:var(--radius-sm);background:var(--ford);color:#fff;font-size:14px;font-weight:700;cursor:pointer">Save</button>
             <button onclick="sendTestEmail()" style="padding:11px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer">Send Test</button>
@@ -2039,9 +2108,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <div id="alert-settings-toast" class="toast" style="margin-top:10px"></div>
         </div>
       </div>
+        </div>
+      </div>
 
+      <div class="settings-section" data-section="danger">
+        <div class="settings-section-header" onclick="toggleSettingsSection(this)">
+          <svg class="settings-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          <span class="section-label">Danger Zone</span>
+        </div>
+        <div class="settings-section-body">
       <div style="max-width:480px">
-        <div style="background:var(--surface);border:1px solid #fca5a5;border-radius:var(--radius);padding:24px;margin-top:16px">
+        <div style="background:var(--surface);border:1px solid #fca5a5;border-radius:var(--radius);padding:24px">
           <div style="font-size:15px;font-weight:600;margin-bottom:4px;color:#dc2626">Danger zone</div>
           <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">These actions are permanent and cannot be undone.</div>
           <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:#fef2f2;border-radius:var(--radius-sm);border:1px solid #fecaca">
@@ -2052,6 +2129,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
             <button onclick="clearAllTrackerUnits()" style="padding:8px 16px;background:#dc2626;color:white;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;margin-left:16px">Clear tracker</button>
           </div>
           <div id="clear-tracker-toast" class="toast" style="margin-top:12px"></div>
+        </div>
+      </div>
         </div>
       </div>
     </div>
@@ -2109,7 +2188,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     <div id="cm-spot-current" style="margin-bottom:12px"></div>
     <div class="field">
       <label>Stock #</label>
-      <input id="cm-f-stock" type="text" placeholder="e.g. B0394" autocomplete="off" oninput="cmLookupSpecsForSpot()" style="width:100%;padding:10px 12px;font-size:15px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box;font-weight:700"/>
+      <input id="cm-f-stock" type="text" placeholder="e.g. B0394" autocomplete="off" onblur="cmLookupSpecsForSpot()" style="width:100%;padding:10px 12px;font-size:15px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;box-sizing:border-box;font-weight:700"/>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="field">
@@ -2212,7 +2291,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 
     <div class="modal-grid">
       <div class="modal-form-row"><label>Arrived date</label><input id="m-arrived" type="date"/></div>
-      <div class="modal-form-row"><label>Stock #</label><input id="m-stock" type="text" placeholder="e.g. B1234" oninput="cmLookupSpecsForUnit()"/></div>
+      <div class="modal-form-row"><label>Stock #</label><input id="m-stock" type="text" placeholder="e.g. B1234" onblur="cmLookupSpecsForUnit()"/></div>
       <div class="modal-form-row modal-full"><label>VIN</label><input id="m-vin" type="text" placeholder="17-digit VIN" style="font-family:monospace;letter-spacing:.05em" maxlength="17"/></div>
 
       <div class="modal-form-row"><label id="m-category-label">Category</label>
@@ -2358,7 +2437,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       </div>
     </div>
 
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin:14px 0 6px">Which steps are required <span style="font-weight:400;color:var(--text-faint);text-transform:none;letter-spacing:0">- these start unchecked and get marked done as work happens</span></div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin:14px 0 6px">Services this deal is getting</div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
       <div class="checkbox-row" style="border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-pdi"/><label for="gr-c-pdi">PDI</label></div>
       <div class="checkbox-row" style="border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-lof"/><label for="gr-c-lof">LOF</label></div>
@@ -2386,8 +2465,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getDatabase, ref, push, get, set, onValue, update, remove, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
-import { getAuth, signInAnonymously, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
+import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDYj9RC-cmfcfZ6sPo_9TmF67mWeEkxkwo",
@@ -2403,6 +2483,8 @@ const appFB = initializeApp(firebaseConfig);
 const db = getDatabase(appFB);
 const auth = getAuth(appFB);
 const storage = getStorage(appFB);
+const functionsFB = getFunctions(appFB, 'us-central1');
+const callSendNotificationEmail = httpsCallable(functionsFB, 'sendNotificationEmail');
 // Human staff authenticate via email/password sign-in (see loadIdentity/watchUserApproval below).
 // TV/display kiosk screens (?display=true) use a silent anonymous session instead -
 // that's handled inside loadIdentity() since there's no person present to sign in.
@@ -2424,12 +2506,21 @@ function esc(val) {
   return String(val ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// esc() alone doesn't stop a javascript:/data: URL from running when used
+// as an href - it only escapes HTML metacharacters, not the URL scheme.
+// pdfUrl is normally always a real Firebase Storage download URL (set via
+// getDownloadURL() after an actual upload), but nothing in the database
+// rules constrains its contents against direct DB access, so this is
+// checked explicitly before ever rendering it as a clickable link.
+function isSafeHttpsUrl(val) {
+  try { return new URL(val).protocol === 'https:'; } catch(e) { return false; }
+}
+
 // ── State ─────────────────────────────────────────────
 let entries = {}, historyData = {}, units = {}, getReadyDeals = {}, hitchhikers = {}, testDrives = {}, compoundHistoryData = {};
 let announcements = {}, annSelectedId = null, annVisibleCount = 8, editingAnnId = null;
-let emailSettings = {}; // {notifyAddress, publicKey, serviceId, grTemplateId, incTemplateId}
+let emailSettings = {}; // {grAddress, incAddress, digestTime}
 let currentAlertState = null;
-let emailjsReady = false;
 let vehicleSpecs = {}; // stock# -> {year,trim,type,colour,status} - shared between Incoming and Compound so specs entered once autofill everywhere else
 let vehicleRequests = {}, vehicleReturns = {}; // one unified pickup/return flow across all lots
 let driverLocations = {}; // live mirror of /driverLocation - who's currently sharing, and where
@@ -2479,7 +2570,7 @@ function perm(key) {
 
 function applyPermissions() {
   if (!currentUser) return;
-  const tabMap = { tabHome:'tab-home', tabQueue:'tab-rides', tabTracker:'tab-tracker', tabGetReady:'tab-getready', tabTestDrive:'tab-testdrive', tabTV:'tab-tv', tabShuttle:'tab-shuttle', tabCompound:'tab-compound', tabAudit:'tab-audit', tabHistory:'tab-history', tabSettings:'tab-settings' };
+  const tabMap = { tabHome:'tab-home', tabQueue:'tab-rides', tabTracker:'tab-tracker', tabGetReady:'tab-getready', tabTestDrive:'tab-testdrive', tabShuttle:'tab-shuttle', tabCompound:'tab-compound', tabAudit:'tab-audit', tabHistory:'tab-history', tabSettings:'tab-settings' };
   for (const key in tabMap) {
     const el = document.getElementById(tabMap[key]);
     if (el) el.style.display = perm(key) ? '' : 'none';
@@ -2513,10 +2604,6 @@ function applyPermissions() {
   const apptQueueSection = document.getElementById('rq-appt-section');
   if (apptQueueSection) apptQueueSection.style.display = canSeeAppointments ? 'block' : 'none';
 
-  // Land on the right tab for roles whose only access is TV
-  if (perm('tabTV') && !perm('tabHome')) {
-    switchTab('tv', document.getElementById('tab-tv'));
-  }
 }
 
 // ── Permissions matrix editor (Settings tab) ──────────
@@ -2625,6 +2712,7 @@ let tvLocation = null; // e.g. '323 Bayview' - set via ?loc= on the TV display U
 // Firebase cache for a moment.
 let browserOnline = navigator.onLine;
 let firebaseConnected = false;
+let connLostTimer = null;
 function updateConnectionIndicator() {
   const isLive = browserOnline && firebaseConnected;
   const dot = document.getElementById('tv-conn-dot');
@@ -2633,6 +2721,19 @@ function updateConnectionIndicator() {
   if (label) label.textContent = isLive ? 'Live' : (browserOnline ? 'Reconnecting…' : 'Offline');
   const syncDot = document.getElementById('sync-dot');
   if (syncDot) syncDot.className = 'sync-dot ' + (isLive ? 'live' : 'error');
+
+  // Full-screen blur+banner - debounced so a connection blip that clears in
+  // under 2s (very common, e.g. a brief Wi-Fi hiccup) never even shows it.
+  clearTimeout(connLostTimer);
+  if (isLive) {
+    const overlay = document.getElementById('conn-lost-overlay');
+    if (overlay) overlay.style.display = 'none';
+  } else {
+    connLostTimer = setTimeout(() => {
+      const overlay = document.getElementById('conn-lost-overlay');
+      if (overlay) overlay.style.display = 'flex';
+    }, 2000);
+  }
 }
 window.addEventListener('online', () => { browserOnline = true; updateConnectionIndicator(); });
 window.addEventListener('offline', () => { browserOnline = false; updateConnectionIndicator(); });
@@ -2652,34 +2753,11 @@ function applyTvLocationFromUrl() {
 }
 
 function loadIdentity() {
-  const isDisplay = new URLSearchParams(window.location.search).get('display') === 'true';
-  if (isDisplay) {
-    applyTvLocationFromUrl();
-    // TV kiosk screens have no person present to sign in - use a silent anonymous session.
-    currentUser = {name:'Display', role:'display'};
-    // The connection dot up top already shows live/offline at a glance, so this
-    // line stays empty unless something's actually wrong - there's no devtools
-    // on most kiosk hardware, so real errors need to be visible on-screen.
-    const showTvStatus = (msg) => {
-      const el = document.getElementById('tv-count');
-      if (el) { el.textContent = msg; el.style.color = '#fca5a5'; el.style.opacity = '1'; }
-    };
-    signInAnonymously(auth)
-      .catch(err => {
-        console.error('Firebase auth error:', err);
-        showTvStatus(`⚠ Sign-in failed: ${err.code || err.message || 'unknown error'}`);
-      });
-    startApp();
-    // If sign-in genuinely never resolved after a while, make that visible
-    // on-screen - there's no way to open devtools on most kiosk hardware.
-    // Checks the real auth state, not a text field nothing else updates.
-    setTimeout(() => {
-      if (!auth.currentUser) {
-        showTvStatus('⚠ Still not connected after 10s - Firebase sign-in likely failed silently. Check network/database rules.');
-      }
-    }, 10000);
-    return;
-  }
+  // The TV/kiosk display mode (?display=true, silent anonymous sign-in) is
+  // retired - not in use anymore, and anonymous auth was a real attack
+  // surface (see the security-hardening commits), so it's gone rather than
+  // just hidden. A visitor with that old URL param now just falls through to
+  // the normal sign-in screen below like anyone else.
   // Firebase persists the session in the browser, so returning staff are signed
   // back in automatically - this fires immediately with the cached session if any.
   onAuthStateChanged(auth, (user) => {
@@ -2839,10 +2917,6 @@ window.resetIdentity = function() {
 // ── Quick Links (Settings) - open a dedicated kiosk view in a new tab ──
 window.openShuttleLink = function() {
   const url = window.location.origin + window.location.pathname + '?view=shuttle';
-  window.open(url, '_blank');
-};
-window.openDisplayLink = function(loc) {
-  const url = window.location.origin + window.location.pathname + '?display=true' + (loc ? '&loc='+loc : '');
   window.open(url, '_blank');
 };
 window.openDriveLink = function() {
@@ -3052,7 +3126,7 @@ function startApp() {
   // without opening anything themselves.
   onValue(ref(db, 'locks'), snap => {
     allLocks = snap.val() || {};
-    if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
+    if (document.getElementById('panel-compound')?.classList.contains('active')) { if (cmCurrentLot === 'bayview323new') flRender(); else cmRenderMap(); }
     if (document.getElementById('panel-tracker')?.classList.contains('active')) renderTracker();
   });
 
@@ -3071,7 +3145,7 @@ function startApp() {
     ridesAutoLumpPending();
     if (document.getElementById('panel-rides')?.classList.contains('active')) renderRidesTab();
     if (document.getElementById('panel-tv')?.classList.contains('active')) { renderTVRides(); renderTVCompoundMap(); }
-    if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
+    if (document.getElementById('panel-compound')?.classList.contains('active')) { if (cmCurrentLot === 'bayview323new') flRender(); else cmRenderMap(); }
     tvUpdateShuttleRoutes();
   });
 
@@ -3079,7 +3153,7 @@ function startApp() {
     appointments = snap.val() || {};
     if (document.getElementById('panel-rides')?.classList.contains('active')) renderRidesTab();
     if (document.getElementById('panel-tv')?.classList.contains('active')) renderTVAppointments();
-    if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
+    if (document.getElementById('panel-compound')?.classList.contains('active')) { if (cmCurrentLot === 'bayview323new') flRender(); else cmRenderMap(); }
   });
 
   onValue(ref(db, 'pendingReturns'), snap => {
@@ -3135,18 +3209,13 @@ function startApp() {
 
     emailSettings = s.email || {};
     const eGrAddr=document.getElementById('email-gr-address'), eIncAddr=document.getElementById('email-inc-address'),
-          eDigestTime=document.getElementById('email-digest-time'), ePub=document.getElementById('email-public-key'),
-          eSvc=document.getElementById('email-service-id'), eGr=document.getElementById('email-gr-template'), eInc=document.getElementById('email-inc-template');
+          eDigestTime=document.getElementById('email-digest-time'), eDropAddr=document.getElementById('email-drop-addresses'),
+          eDropInterval=document.getElementById('email-drop-interval');
     if (eGrAddr && !eGrAddr.matches(':focus')) eGrAddr.value = emailSettings.grAddress || '';
     if (eIncAddr && !eIncAddr.matches(':focus')) eIncAddr.value = emailSettings.incAddress || '';
     if (eDigestTime && !eDigestTime.matches(':focus')) eDigestTime.value = emailSettings.digestTime || '18:00';
-    if (ePub && !ePub.matches(':focus')) ePub.value = emailSettings.publicKey || '';
-    if (eSvc && !eSvc.matches(':focus')) eSvc.value = emailSettings.serviceId || '';
-    if (eGr && !eGr.matches(':focus')) eGr.value = emailSettings.grTemplateId || '';
-    if (eInc && !eInc.matches(':focus')) eInc.value = emailSettings.incTemplateId || '';
-    if (emailSettings.publicKey && typeof emailjs !== 'undefined' && !emailjsReady) {
-      try { emailjs.init({ publicKey: emailSettings.publicKey }); emailjsReady = true; } catch(e) {}
-    }
+    if (eDropAddr && !eDropAddr.matches(':focus')) eDropAddr.value = emailSettings.dropAddresses || '';
+    if (eDropInterval && !eDropInterval.matches(':focus')) eDropInterval.value = emailSettings.dropIntervalMin || 15;
 
     // System-wide alert - banner persists for everyone until management
     // clears it; the popup fires once per browser per distinct alert
@@ -3196,6 +3265,7 @@ function startApp() {
     document.getElementById('tc-tracker').textContent = Object.values(units).filter(u=>!isUnitComplete(u)).length;
     renderTracker(); renderTrackerSummary();
     renderTVIncoming();
+    syncIcMovedFromMap();
   });
 
   onValue(ref(db,'vehicleSpecs'), snap=>{
@@ -3207,19 +3277,19 @@ function startApp() {
   // first - the transaction flag prevents every other open session from also
   // sending a duplicate for the same deal.
   async function sendGetReadyEmail(id, d, retried) {
-    if (!emailSettings.grTemplateId || !emailSettings.grAddress) {
+    if (!emailSettings.grAddress) {
       // Settings may just not have finished loading yet right after sign-in —
       // give it one short retry before actually giving up and logging why.
       if (!retried) { setTimeout(() => sendGetReadyEmail(id, d, true), 2000); return; }
-      console.warn('Get Ready email skipped - not configured (missing template ID or address) for deal', d.stock);
+      console.warn('Get Ready email skipped - not configured (missing address) for deal', d.stock);
       return;
     }
     try {
       const result = await runTransaction(ref(db, 'getready/'+id+'/emailSent'), curr => curr ? undefined : true);
       if (!result.committed) { console.log('Get Ready email skipped - already sent by another session for', d.stock); return; }
-      const ok = await sendNotificationEmail(emailSettings.grTemplateId, buildGREmailParams(
+      const ok = await sendNotificationEmail('getReady', buildGREmailParams(
         d,
-        `New Get Ready Deal - ${d.stock||'no stock #'}`,
+        grEmailSubject('New Get Ready Deal', d),
         `A new Get Ready deal was added for ${d.vehicle||d.stock||'a vehicle'}.`,
       ));
       console.log(ok ? `Get Ready email sent for ${d.stock}` : `Get Ready email FAILED to send for ${d.stock}`);
@@ -3241,7 +3311,7 @@ function startApp() {
     document.getElementById('tc-getready').textContent = active.length;
     renderGetReady(); renderGetReadySummary();
     if (grView === 'calendar') renderGRCalendar();
-    if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
+    if (document.getElementById('panel-compound')?.classList.contains('active')) { if (cmCurrentLot === 'bayview323new') flRender(); else cmRenderMap(); }
     if (document.getElementById('panel-tv')?.classList.contains('active')) { renderTVGetReady(); renderTVCompoundMap(); }
   });
 
@@ -3253,7 +3323,7 @@ function startApp() {
   onValue(ref(db,'testdrives'), snap=>{
     testDrives = snap.val()||{};
     renderTestDrives();
-    if (document.getElementById('panel-compound')?.classList.contains('active')) cmRenderMap();
+    if (document.getElementById('panel-compound')?.classList.contains('active')) { if (cmCurrentLot === 'bayview323new') flRender(); else cmRenderMap(); }
     if (document.getElementById('panel-tv')?.classList.contains('active')) renderTVCompoundMap();
   });
 
@@ -3784,7 +3854,7 @@ window.ridesCheckStockLocation = function() {
   });
   resultEl.style.display = 'block';
   if (!foundLot) {
-    resultEl.innerHTML = `<span style="color:#991b1b">⚠ Can't find "${stock}" anywhere on the Vehicle Locator map - double check the stock # and that it's actually placed on the map.</span>`;
+    resultEl.innerHTML = `<span style="color:#991b1b">⚠ Can't find "${esc(stock)}" anywhere on the Vehicle Locator map - double check the stock # and that it's actually placed on the map.</span>`;
     ridesRenderDirectionPickers();
     return;
   }
@@ -4086,7 +4156,7 @@ function renderRidesQueueAppointments() {
       <div style="flex:1">
         <div class="entry-stock">📅 ${esc(a.stock)} → ${esc(a.department)}</div>
         ${timeLabel?`<div style="font-size:12px;font-weight:700;color:#c2410c;margin-bottom:3px">${timeLabel}</div>`:''}
-        <div class="entry-meta" style="margin-bottom:5px">Requested by ${esc(a.requestedBy)}${a.currentLocation?' · 📍 '+a.currentLocation:''}</div>
+        <div class="entry-meta" style="margin-bottom:5px">Requested by ${esc(a.requestedBy)}${a.currentLocation?' · 📍 '+esc(a.currentLocation):''}</div>
         <div style="font-size:13px;font-weight:700;color:#1d4ed8">${stageLabel}</div>
         ${a.notes?`<div class="entry-notes">${esc(a.notes)}</div>`:''}
       </div>
@@ -4128,7 +4198,7 @@ function renderRidesQueuePickups() {
         <div class="entry-meta" style="margin-bottom:5px">${r.pickup} → ${r.dropoff} · Requested by ${esc(r.requestedBy)}</div>
         <div style="font-size:13px;font-weight:700;color:#1d4ed8">${stageLabel}</div>
         ${r.notes?`<div class="entry-notes">${esc(r.notes)}</div>`:''}
-        ${r.status==='pending' && r.droppedBy ? `<div style="font-size:12px;color:#991b1b;margin-top:2px">⚠️ Dropped by ${r.droppedBy}: "${r.dropReason}"</div>` : ''}
+        ${r.status==='pending' && r.droppedBy ? `<div style="font-size:12px;color:#991b1b;margin-top:2px">⚠️ Dropped by ${esc(r.droppedBy)}: "${esc(r.dropReason)}"</div>` : ''}
       </div>
       <div class="entry-actions">${action}<div class="entry-time">${timeAgo(r.ts)}</div></div>
     </div>`;
@@ -4158,7 +4228,7 @@ function renderMyActiveRide() {
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">${mine.pickup} → ${mine.dropoff}</div>
       ${mine.notes?`<div class="entry-notes" style="margin-bottom:14px">${esc(mine.notes)}</div>`:''}
       <div style="display:flex;margin-bottom:14px">${stepperHTML}</div>
-      ${mine.status === 'pending' && mine.droppedBy ? `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:10px 12px;margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:#991b1b;margin-bottom:2px">⚠️ ${mine.droppedBy} had to drop this ride</div><div style="font-size:12px;color:#7f1d1d">"${mine.dropReason}" - waiting for another driver to pick it up</div></div>` : ''}
+      ${mine.status === 'pending' && mine.droppedBy ? `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:10px 12px;margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:#991b1b;margin-bottom:2px">⚠️ ${esc(mine.droppedBy)} had to drop this ride</div><div style="font-size:12px;color:#7f1d1d">"${esc(mine.dropReason)}" - waiting for another driver to pick it up</div></div>` : ''}
       ${mine.claimedBy ? `<div style="font-size:13px;color:#1d4ed8;font-weight:700;margin-bottom:4px">🚐 Driver: ${esc(mine.claimedBy)}</div>` : ''}
       ${mine.etaMins && (Date.now()-mine.etaTs) < 5*60*1000 ? `<div style="font-size:13px;color:#15803d;font-weight:700;margin-bottom:10px">🕐 ~${mine.etaMins} min away</div>` : ''}
       ${mine.status === 'pending' ? `<button onclick="cancelRide('${mine.id}')" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:#991b1b;font-size:13px;cursor:pointer">Cancel Request</button>` : ''}
@@ -4277,7 +4347,7 @@ function renderDriverQueue() {
   };
 
   const otherCard = r => `<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:11px 14px;margin-bottom:8px;opacity:.7">
-      <div style="font-size:14px;font-weight:700">${r.type==='vehicle'?'🚗 '+r.stock:'🙋 Hitchhiker'} · ${r.pickup} → ${r.dropoff}</div>
+      <div style="font-size:14px;font-weight:700">${r.type==='vehicle'?'🚗 '+esc(r.stock):'🙋 Hitchhiker'} · ${esc(r.pickup)} → ${esc(r.dropoff)}</div>
       <div style="font-size:12px;color:rgba(255,255,255,.6)">🚐 ${esc(r.claimedBy)}</div>
     </div>`;
 
@@ -4665,7 +4735,7 @@ function renderTVGetReady() {
   // completed deals would just pile up on the board forever.
   const isCompletedToday = (d) => new Date(d.completedAt || d.ts).toDateString() === now.toDateString();
   const deals = Object.values(getReadyDeals||{})
-    .filter(d => !grIsComplete(d) || isCompletedToday(d))
+    .filter(d => !grIsReadyForDelivery(d) || isCompletedToday(d))
     .sort((a,b) => {
       const ag = (grEffectiveFuelStatus(a)!=='none' && a.gasFilled)?1:0, bg = (grEffectiveFuelStatus(b)!=='none' && b.gasFilled)?1:0;
       if (ag!==bg) return ag-bg;
@@ -4682,7 +4752,7 @@ function renderTVGetReady() {
   }
 
   el.innerHTML = deals.map(d => {
-    const isDone = grIsComplete(d);
+    const isDone = grIsReadyForDelivery(d);
     // Type colour
     const typeBorder = d.type==='RETAIL' ? '#8b5cf6' : d.type==='WHOLESALE' ? '#eab308' : '#3b82f6';
     const typeLabel  = d.type==='RETAIL' ? 'Retail'  : d.type==='WHOLESALE' ? 'Wholesale' : 'As-Is';
@@ -4697,12 +4767,10 @@ function renderTVGetReady() {
       return false;
     })()) ? '#ef4444' : typeBorder;
 
-    // Progress
-    const reqChecks = GR_CHECKLIST.filter(([k]) => d['req_'+k]);
-    const toCheck = reqChecks.length > 0 ? reqChecks : GR_CHECKLIST;
-    const done = toCheck.filter(([k]) => d[k]).length;
-    const pct = toCheck.length ? Math.round((done/toCheck.length)*100) : 100;
-    const barColor = pct===100?'#16a34a':pct>60?'#f59e0b':'#1d4ed8';
+    // Progress - services are a single manual complete/not-complete toggle now,
+    // not a per-step tally, so the bar is just empty or full.
+    const pct = d.servicesComplete ? 100 : 0;
+    const barColor = pct===100?'#16a34a':'#1d4ed8';
 
     // Gas / Charge - charging gets its own "in progress" colour/label since
     // it takes a while, unlike a quick gas fill-up. Past 12 hours in
@@ -4761,7 +4829,7 @@ function renderTVCompoundMap() {
   // Build appointment + GR + test-drive lookup for colour coding
   const apptStocks = new Set(Object.values(appointments||{}).filter(a=>a.stock&&a.status!=='delivered').map(a=>a.stock.toUpperCase()));
   Object.values(rides||{}).filter(r=>r.stock && r.type==='vehicle' && !['done','cancelled'].includes(r.status)).forEach(r=>apptStocks.add(r.stock.toUpperCase()));
-  const grStocks = new Set(Object.values(getReadyDeals||{}).filter(d=>d.stock&&!grIsComplete(d)).map(d=>d.stock.toUpperCase()));
+  const grStocks = new Set(Object.values(getReadyDeals||{}).filter(d=>d.stock&&!grIsReadyForDelivery(d)).map(d=>d.stock.toUpperCase()));
   const tdStocks = new Set(Object.values(testDrives||{}).filter(t=>t.stock&&t.status==='out').map(t=>t.stock.toUpperCase()));
   const dupeCounts = {};
   Object.values(cmVehicles||{}).forEach(lotVehs => {
@@ -4836,8 +4904,7 @@ function renderTVCompoundMap() {
         else if (st === 'blocked') bg = 'rgba(255,255,255,.1)';
         else if (dupeStocks.has(s.trim())) bg = '#dc2626';   // red - duplicate stock #, data error
         else if (tdStocks.has(s))    bg = '#fb923c';        // orange - out on test drive
-        else if (apptStocks.has(s)) bg = '#a78bfa';        // purple - appointment
-        else if (grStocks.has(s))   bg = '#34d399';        // green - get ready
+        else if (grStocks.has(s))   bg = '#d946ef';        // magenta - get ready
         else if (cmIsFlagged(veh))    bg = '#7f1d1d';      // dark red - flagged
         else if (st === 'wholesale')  bg = '#eab308';      // yellow
         else if (st === 'fleet')      bg = '#22c55e';      // green
@@ -4845,7 +4912,7 @@ function renderTVCompoundMap() {
         else if (st === 'used')       bg = '#64748b';      // slate
         else                          bg = '#3b82f6';      // blue - new (and legacy fallback)
       }
-      html += `<div style="width:${cellSize}px;height:${cellSize}px;flex-shrink:0;background:${bg};border-radius:1px" title="${veh?veh.stock:''}"></div>`;
+      html += `<div style="width:${cellSize}px;height:${cellSize}px;flex-shrink:0;background:${bg};border-radius:1px" title="${veh?esc(veh.stock):''}"></div>`;
     }
     html += `</div>`;
   }
@@ -5033,6 +5100,49 @@ function isUnitComplete(u) {
   return true;
 }
 
+// Auto-checks "IC Moved" the moment a still-active unit's stock # shows up
+// anywhere on the Vehicle Locator map - placing the car on the map already
+// proves IC moved it, so nobody has to separately remember to come back
+// and tick this box by hand. Runs whenever either the tracker or the map
+// data changes (see the 'tracker'/'compound_v2/*' listeners), so it's
+// picked up within moments of either happening, from whichever direction.
+function syncIcMovedFromMap() {
+  if (!perm('cbIC')) return; // only a client that's actually allowed to move this checkbox writes it
+  const updates = {};
+  Object.entries(units).forEach(([id, u]) => {
+    if (isUnitComplete(u) || u.icMoved || !u.stock) return;
+    if (!cmFindStockLocation(u.stock)) return;
+    updates[`tracker/${id}/icMoved`] = true;
+    updates[`tracker/${id}/icMovedBy`] = 'Auto (found on map)';
+    updates[`tracker/${id}/icMovedAt`] = Date.now();
+    if (isUnitComplete({ ...u, icMoved: true })) {
+      updates[`tracker/${id}/completedAt`] = Date.now();
+      updates[`tracker/${id}/completedBy`] = 'Auto (found on map)';
+    }
+  });
+  if (Object.keys(updates).length) update(ref(db), updates).catch(()=>{});
+}
+
+// The Incoming and Get Ready cards both show a car's live map location
+// (cmFindStockLocation) - re-render whichever of those panels is actually
+// open whenever the map itself changes, so pulling a car off a spot (or
+// placing it) is reflected there right away instead of only on the next
+// unrelated tracker/getready update.
+function cmRefreshLocationDependentPanels() {
+  if (document.getElementById('panel-tracker')?.classList.contains('active')) renderTracker();
+  if (document.getElementById('panel-getready')?.classList.contains('active')) renderGetReady();
+}
+
+// Finds the Incoming record for a stock #, if one exists - lets other tabs
+// (Get Ready) reference what was already recorded there (e.g. PDI already
+// done at intake) instead of staff having to cross-check by hand.
+function findIncomingUnitByStock(stock) {
+  if (!stock) return null;
+  const target = String(stock).toUpperCase().trim();
+  if (!target) return null;
+  return Object.values(units).find(u => (u.stock||'').toUpperCase().trim() === target) || null;
+}
+
 // Sort key = when the unit was actually added to the tracker (ts), not the
 // free-typed "arrived" date - that field is often left blank or inconsistent,
 // which made the list look unsorted even after date-based sorting. ts is
@@ -5072,10 +5182,11 @@ window.setCompletedFilter = function(status, btn) {
 
 // Completed units are kept forever (see renderTrackerSummary - the old
 // 30-day auto-delete is gone), so this list can grow to years' worth of
-// history - independent search/filter from the active board above, and
-// sorted most-recently-finished first.
+// history - shares the active board's search box (t-search) so one query
+// covers both, but keeps its own filter chips since active/completed use
+// different status breakdowns. Sorted most-recently-finished first.
 function getCompletedFiltered() {
-  const q=(document.getElementById('tc-search')?.value||'').trim().toLowerCase();
+  const q=(document.getElementById('t-search')?.value||'').trim().toLowerCase();
   let rows=Object.entries(units).map(([id,u])=>({id,...u})).filter(isUnitComplete);
   if(tcFilterStatus==='NEW') rows=rows.filter(u=>u.condition!=='used');
   else if(tcFilterStatus==='USED') rows=rows.filter(u=>u.condition==='used');
@@ -5302,6 +5413,14 @@ function renderTracker() {
       ? `<a href="http://www.windowsticker.forddirect.com/windowsticker.pdf?vin=${encodeURIComponent(u.vin)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#1d4ed8;text-decoration:none;padding:2px 8px;border:1px solid #93c5fd;border-radius:12px;background:#eff6ff;white-space:nowrap" onclick="event.stopPropagation()">🪟 Window Sticker</a>`
       : '';
 
+    // Where this stock # actually is on the Vehicle Locator map right now,
+    // if it's been placed - so whoever still has work to do on it (a photo,
+    // PDI, etc.) doesn't have to separately open the map and search for it.
+    const loc = cmFindStockLocation(u.stock);
+    const locBadge = loc
+      ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;${loc.isOffsite?'background:#e1f5ee;color:#085041':'background:#eff6ff;color:#1d4ed8'}">📍 ${esc(loc.lotLabel)}${loc.isOffsite?' (off-site)':''}</span>`
+      : '';
+
     return `<div class="tracker-card ${statusClass}" id="tc-${u.id}" style="${isDupe(u)?'border-left:4px solid #dc2626':lockInfo?'border-left:4px solid #1d4ed8':''}">
       ${lockInfo ? `<div class="tracker-lock-banner">🔒 ${lockInfo.lockedBy} is editing this…</div>` : ''}
       <div class="tracker-card-header">
@@ -5311,8 +5430,8 @@ function renderTracker() {
           ${condBadge}${dupeBadge}
         </div>
         <div class="tracker-card-vin">${vinWithCopy(u.vin)}</div>
-        <div class="tracker-card-vehicle">${u.vehicle||[u.year,u.type,u.trim,u.colour].filter(Boolean).join(' · ')||''}</div>
-        ${stickerBtn?`<div style="margin-top:6px">${stickerBtn}</div>`:''}
+        <div class="tracker-card-vehicle">${esc(u.vehicle||[u.year,u.type,u.trim,u.colour].filter(Boolean).join(' · ')||'')}</div>
+        ${stickerBtn||locBadge?`<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">${stickerBtn}${locBadge}</div>`:''}
       </div>
       <div class="tracker-card-checks">
         ${u.condition === 'used' ? `
@@ -5335,7 +5454,7 @@ function renderTracker() {
         </select>`:tStatusPill(u.status)}
         ${u.arrived?`<span style="font-size:12px;color:var(--text-faint)">${u.arrived}</span>`:''}
         ${u.kms?`<span style="font-size:12px;color:var(--text-faint)">${u.kms} km</span>`:''}
-        ${u.workReq?`<span style="font-size:12px;font-family:monospace;color:var(--text-faint)" title="Keypad Code">🔑 ${u.workReq}</span>`:''}
+        ${u.workReq?`<span style="font-size:12px;font-family:monospace;color:var(--text-faint)" title="Keypad Code">🔑 ${esc(u.workReq)}</span>`:''}
       </div>
       ${u.ts?`<div style="font-size:11px;color:var(--text-faint);padding:0 16px 8px">Added ${timeAgo(u.ts)} by ${esc(u.createdBy||u.updatedBy||'Unknown')}</div>`:''}
       <div class="tracker-card-notes">
@@ -5524,10 +5643,12 @@ window.setUnitCondition = function(cond, isInitialLoad) {
   }
 };
 
-// Live spec lookup as a stock # is typed into Incoming - if that stock # was
-// already specced elsewhere (e.g. placed on the Vehicle Locator map first),
-// autofill year/trim/type/colour here too. Never overwrites fields someone's
-// already typed into, and is silent/no-op if there's no match.
+// Spec lookup once a stock # is done being typed into Incoming (on blur, not
+// on every keystroke - see cmLookupSpecsForSpot above for why) - if that
+// stock # was already specced elsewhere (e.g. placed on the Vehicle Locator
+// map first), autofill year/trim/type/colour here too. Never overwrites
+// fields someone's already typed into, and is silent/no-op if there's no
+// match.
 window.cmLookupSpecsForUnit = function() {
   const stock = document.getElementById('m-stock').value.trim().toUpperCase();
   if (!stock) return;
@@ -5552,6 +5673,9 @@ window.openUnitModal = function(id) {
     // Try to parse old text format - fall back to today
     arrivedDate = new Date().toISOString().split('T')[0];
   }
+  // Brand-new unit, nothing stored yet - default to today so staff don't
+  // have to pick the date themselves on every single arrival.
+  if (!id && !arrivedDate) arrivedDate = new Date().toISOString().split('T')[0];
   document.getElementById('m-arrived').value=arrivedDate;
   document.getElementById('m-stock').value=u.stock||'';
   document.getElementById('m-vin').value=u.vin||'';
@@ -5632,6 +5756,10 @@ window.saveUnit = async function() {
   };
   const isNoPhoto = unit.status === 'TURNOVER' || unit.status === 'SOLD';
   if (isNoPhoto) { unit.photo = true; unit.photoNA = true; }
+  // Marks this as not yet included in a "drop batch" email - only stamped on
+  // brand-new units, never touched on an edit, so update() merging leaves an
+  // already-sent unit's flag alone. See checkAndSendDropBatch() below.
+  if (!editingUnitId) unit.dropEmailed = false;
   // Stamp who/when each PDI-style checkbox actually changed on this save,
   // same per-field "last actor + last timestamp" pattern as Get Ready's
   // toggleGRField. Only touches a field that actually flipped - update()
@@ -5673,11 +5801,17 @@ const GR_CHECKLIST = [
 ];
 
 function grIsComplete(d) {
-  const required = GR_CHECKLIST.filter(([key]) => d['req_'+key]);
-  const toCheck = required.length > 0 ? required : GR_CHECKLIST;
-  const checklistDone = toCheck.every(([key]) => d[key]);
   const customDone = (d.customFields||[]).filter(f=>f.label).every(f=>f.done);
-  return checklistDone && customDone && (grEffectiveFuelStatus(d)==='none' || d.gasFilled);
+  return !!d.servicesComplete && customDone && (grEffectiveFuelStatus(d)==='none' || d.gasFilled);
+}
+
+// A deal only leaves the active list for "Ready for delivery" once BOTH the
+// prep checklist is fully done AND someone has actually clicked "Deal
+// Completed" - checklist-done alone used to move it there automatically,
+// but staff need it to stay visible/actionable until the deal itself is
+// wrapped up, not just the physical prep work.
+function grIsReadyForDelivery(d) {
+  return grIsComplete(d) && !!d.dealCompleted;
 }
 
 window.setGRFilter = function(status, btn) {
@@ -5736,7 +5870,7 @@ window.setGRCompletedFilter = function(status, btn) {
 
 function getGRCompletedFiltered() {
   const q = (document.getElementById('grc-search')?.value||'').trim().toLowerCase();
-  let rows = grScopedDeals().filter(grIsComplete);
+  let rows = grScopedDeals().filter(grIsReadyForDelivery);
   if (grcFilterStatus !== 'ALL') rows = rows.filter(d => d.type === grcFilterStatus);
   if (q) rows = rows.filter(d => [d.stock,d.dealNum,d.vehicle,d.vin,d.customer,d.salesperson,d.notes].join(' ').toLowerCase().includes(q));
   rows.sort((a,b) => (b.completedAt||0) - (a.completedAt||0));
@@ -5902,12 +6036,12 @@ function fmtGRDate(dateStr, timeStr) {
 
 function renderGetReadySummary() {
   const all = Object.values(getReadyDeals);
-  const active = all.filter(d => !grIsComplete(d));
+  const active = all.filter(d => !grIsReadyForDelivery(d));
   const asIs = all.filter(d=>d.type==='AS-IS').length;
   const retail = all.filter(d=>d.type==='RETAIL').length;
   const wholesale = all.filter(d=>d.type==='WHOLESALE').length;
   const needsGas = all.filter(d=>grEffectiveFuelStatus(d)!=='none' && !d.gasFilled).length;
-  const done = all.filter(d=>grIsComplete(d)).length;
+  const done = all.filter(d=>grIsReadyForDelivery(d)).length;
   const el = document.getElementById('gr-summary');
   if (!el) return;
   el.innerHTML = `
@@ -5943,19 +6077,62 @@ window.grShowDayDeals = function(dateStr) {
   const dateLabel = new Date(yr,mo-1,dy).toLocaleDateString([], {weekday:'long', month:'long', day:'numeric'});
   document.getElementById('gr-day-modal-title').textContent = dateLabel;
 
-  const grPerms = { full: perm('getReadyEdit'), gas: perm('grGasConfirm'), checklist: perm('grChecklistApprove') };
   // Duplicate detection across every deal currently loaded, same as the main list
   const allDeals = Object.values(getReadyDeals||{});
   const stockCounts = {};
   allDeals.forEach(d => { const s=(d.stock||'').toUpperCase().trim(); if(s) stockCounts[s]=(stockCounts[s]||0)+1; });
   const isDupe = (d) => { const s=(d.stock||'').toUpperCase().trim(); return s && stockCounts[s] > 1; };
 
-  document.getElementById('gr-day-modal-list').innerHTML = deals.map(d => renderGRCard(d, grPerms, isDupe)).join('');
+  // Just a summarized, clickable one-line-per-deal list here - not the full
+  // checklist card (that's the whole point of the calendar view: a fast
+  // overview). Clicking a row jumps to the actual card/row in the list view.
+  document.getElementById('gr-day-modal-list').innerHTML = deals.map(d => {
+    const ready = grIsReadyForDelivery(d);
+    const statusColor = ready ? '#22c55e' : '#f97316';
+    const statusLabel = ready ? 'Ready to go' : 'In progress';
+    return `<div class="gr-day-row" onclick="grJumpToDeal('${d.id}')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer">
+      <span title="${statusLabel}" style="width:10px;height:10px;border-radius:50%;background:${statusColor};flex-shrink:0"></span>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;color:var(--text)">
+          ${stockCopy(d.stock)}
+          ${isDupe(d) ? `<span class="gr-complete-badge dupe-blink" style="background:#dc2626">⚠</span>` : ''}
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.vehicle||'')}${d.customer?' · '+esc(d.customer):''}</div>
+      </div>
+      ${d.deliveryTime?`<div style="font-size:11px;color:var(--text-faint);flex-shrink:0">${esc(d.deliveryTime)}</div>`:''}
+      <span style="font-size:10px;font-weight:700;color:${statusColor};flex-shrink:0;text-transform:uppercase;white-space:nowrap">${statusLabel}</span>
+    </div>`;
+  }).join('');
   document.getElementById('gr-day-modal').style.display = 'flex';
 };
 
 window.closeGRDayModal = function() {
   document.getElementById('gr-day-modal').style.display = 'none';
+};
+
+// Jump from a calendar-day summary row to that deal's actual card/row in the
+// main list - switches out of calendar view and clears any search/filter
+// that would otherwise hide it, then scrolls to and briefly flashes it.
+window.grJumpToDeal = function(id) {
+  closeGRDayModal();
+  if (grView !== 'list') setGRView('list');
+  const searchEl = document.getElementById('gr-search');
+  const grcSearchEl = document.getElementById('grc-search');
+  if (searchEl) searchEl.value = '';
+  if (grcSearchEl) grcSearchEl.value = '';
+  grFilterStatus = 'ALL';
+  grcFilterStatus = 'ALL';
+  document.querySelectorAll('#panel-getready .filter-chip').forEach(b => {
+    b.classList.toggle('active', (b.getAttribute('onclick')||'').includes("'ALL'"));
+  });
+  renderGetReady();
+  setTimeout(() => {
+    const el = document.getElementById('gr-'+id);
+    if (!el) return;
+    el.scrollIntoView({behavior:'smooth', block:'center'});
+    el.classList.add('gr-jump-highlight');
+    setTimeout(() => el.classList.remove('gr-jump-highlight'), 1600);
+  }, 50);
 };
 
 function renderGRCalendar() {
@@ -5993,7 +6170,7 @@ function renderGRCalendar() {
     // Up to 3 dots shown directly, a "+N" text instead of more dots beyond that
     const dotsToShow = Math.min(deals.length, 3);
     const dots = Array.from({length: dotsToShow}).map((_, i) => {
-      const done = grIsComplete(deals[i]);
+      const done = grIsReadyForDelivery(deals[i]);
       return `<span style="width:6px;height:6px;border-radius:50%;background:${done?'#22c55e':'#f97316'};display:inline-block"></span>`;
     }).join('');
     html += `<div ${hasDeals?`onclick="grShowDayDeals('${dateStr}')"`:''} style="min-height:56px;border:1px solid var(--border);border-radius:8px;padding:6px;background:${isToday?'#eff6ff':'var(--surface)'};${isToday?'border-color:#93c5fd':''}${hasDeals?';cursor:pointer':''};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px">
@@ -6020,10 +6197,28 @@ function renderGRCard(d, perms, isDupe) {
     const canFull = perms.full;
     const canGas = perms.gas;
     const canChecklist = perms.checklist;
+    // Inventory Control isn't part of the recon/prep checklist above (it has
+    // no getReadyEdit/grChecklistApprove) - this is the one field on a Get
+    // Ready deal IC can touch, tracking whether they've actually moved the
+    // car into the sold row once it's sold. Doesn't gate grIsComplete - a
+    // deal being ready for delivery and IC having relocated it are separate
+    // things that can happen in either order.
+    const canIC = perm('cbIC');
+    // Reference for the PDI checklist item below - was this stock # already
+    // PDI'd back at Incoming intake? Informational only, doesn't auto-check
+    // Get Ready's own PDI (recon's PDI can mean something more thorough
+    // than the arrival check).
+    const incomingUnit = findIncomingUnitByStock(d.stock);
+    const pdiIncomingWhoWhen = [
+      incomingUnit?.pdiBy,
+      incomingUnit?.pdiAt ? new Date(incomingUnit.pdiAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : '',
+    ].filter(Boolean).join(' · ');
+    const pdiAtIncomingNote = (incomingUnit?.pdi && pdiIncomingWhoWhen)
+      ? `<span style="font-size:8px;font-weight:700;color:#15803d;display:block;width:100%;text-align:center;margin-top:2px">📋 ${esc(pdiIncomingWhoWhen)}</span>`
+      : '';
     const isComplete = grIsComplete(d);
     const typeClass = {'AS-IS':'type-as-is','RETAIL':'type-retail','WHOLESALE':'type-wholesale'}[d.type]||'';
     const typePillClass = {'AS-IS':'as-is','RETAIL':'retail','WHOLESALE':'wholesale'}[d.type]||'as-is';
-    const completeBadge = isComplete ? `<span class="gr-complete-badge">✓ Ready</span>` : `<span class="gr-complete-badge" style="background:#f97316">🔧 Work In Progress</span>`;
     const dupeBadge = isDupe(d) ? `<span class="gr-complete-badge dupe-blink" style="background:#dc2626">⚠ Duplicate</span>` : '';
     const hasTrade = Array.isArray(d.trades) ? d.trades.some(t=>t?.stock) : !!(d.trade1?.stock || d.trade2?.stock);
     const holdBadge = d.dealStatus === 'on_hold' ? `<span class="gr-complete-badge" style="background:#94a3b8">⏸ On Hold</span>`
@@ -6031,42 +6226,14 @@ function renderGRCard(d, perms, isDupe) {
     const updatedBadge = d.needsAcknowledgment ? `<span class="gr-complete-badge" style="background:#7c3aed">🔶 UPDATED</span>` : '';
     const canCompleteDeal = currentUser && ['sales','fandi','management'].includes(currentUser.role);
 
-    const cbBtn = (field, label) => {
-      const required = d['req_'+field];
-      const done = d[field];
-      // If not required and not done, hide entirely
-      if (!required && !done) return '';
-      // If not required but somehow done, show greyed out
-      const dimmed = !required;
-      const doneBy = d[field+'By'];
-      const doneAt = d[field+'At'];
-      const whoWhen = (done && doneBy) ? `${doneBy}${doneAt ? ' · '+new Date(doneAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : ''}` : '';
-      return `<div class="gr-check-item${dimmed?' gr-check-na':''}" ${whoWhen?`title="Done by ${whoWhen}"`:''}>
-        <div class="gr-tap ${done?'on':''}" onclick="${canChecklist&&required?`toggleGRField('${d.id}','${field}',${!done})`:''}" style="${(!canChecklist||!required)?'pointer-events:none;':''} ${dimmed?'opacity:.4':''}">
-          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
-        <span class="gr-check-label" style="${dimmed?'opacity:.4':''}">${label}</span>
-        ${whoWhen?`<span style="font-size:9px;color:var(--text-faint);display:block;width:100%;text-align:center;margin-top:1px">${whoWhen}</span>`:''}
-      </div>`;
-    };
-
-    // For legacy deals with no req_ flags, show all
-    const hasReqFlags = GR_CHECKLIST.some(([key]) => d['req_'+key] !== undefined);
-    const renderChecklist = hasReqFlags
-      ? GR_CHECKLIST.map(([key,label]) => cbBtn(key, label)).join('')
-      : GR_CHECKLIST.map(([key,label]) => {
-          const done = d[key];
-          const doneBy = d[key+'By'];
-          const doneAt = d[key+'At'];
-          const whoWhen = (done && doneBy) ? `${doneBy}${doneAt ? ' · '+new Date(doneAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : ''}` : '';
-          return `<div class="gr-check-item" ${whoWhen?`title="Done by ${whoWhen}"`:''}>
-            <div class="gr-tap ${done?'on':''}" onclick="${canChecklist?`toggleGRField('${d.id}','${key}',${!done})`:''}" style="${canChecklist?'':'pointer-events:none;opacity:.6'}">
-              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-            </div>
-            <span class="gr-check-label">${label}</span>
-            ${whoWhen?`<span style="font-size:9px;color:var(--text-faint);display:block;width:100%;text-align:center;margin-top:1px">${whoWhen}</span>`:''}
-          </div>`;
-        }).join('');
+    // Which services this deal needs is decided once at intake (the "which
+    // services" checkboxes on the add/edit form) - the card just shows that
+    // as a plain glanceable list, no per-step checkboxes or timestamps.
+    // Completion is a single manual toggle (servicesComplete) below.
+    const servicesText = GR_CHECKLIST.filter(([key]) => d['req_'+key]).map(([,label]) => label).join(', ');
+    const servicesCompleteWhoWhen = (d.servicesComplete && d.servicesCompleteBy)
+      ? `${d.servicesCompleteBy}${d.servicesCompleteAt ? ' · '+new Date(d.servicesCompleteAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : ''}`
+      : '';
 
     // Gas / Charge - a gas vehicle needing fuel is a quick done/not-done
     // (with a $ amount); an EV needing a charge takes a while, so it gets
@@ -6090,8 +6257,8 @@ function renderGRCard(d, perms, isDupe) {
       gasBanner = `<div class="gr-gas-banner ${d.gasFilled?'no-gas-needed':''}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${d.gasFilled?'':'background:#fef2f2'}">
           <span style="font-size:20px">⛽</span>
           <div style="flex:1">
-            <div style="font-weight:700;color:${d.gasFilled?'':'#991b1b'}">${d.gasFilled?'Gas Filled':'Needs Gas'}${!d.gasFilled?gasAmountBadge:''}</div>
-            <div style="font-size:11px;font-weight:400;opacity:.7">${d.gasFilled?`Tank topped up and ready${doneWhoWhen}`:'Before delivery'}</div>
+            <div style="font-weight:700;color:${d.gasFilled?'':'#991b1b'}">${d.gasFilled?`Gas Filled - $${Number(d.gasAmount||0).toFixed(2)}`:'Needs Gas'}${!d.gasFilled?gasAmountBadge:''}</div>
+            <div style="font-size:11px;font-weight:400;opacity:.7">${d.gasFilled?(d.gasFilledBy?`${d.gasFilledBy}${d.gasFilledAt?' · '+new Date(d.gasFilledAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}):''}`:''):'Before delivery'}</div>
           </div>
           ${canGas?`<div class="gr-tap" style="width:auto;height:32px;padding:0 14px;border-radius:20px;${d.gasFilled?'background:#f1f5f9;border-color:#e2e8f0':''}" onclick="toggleGRField('${d.id}','gasFilled',${!d.gasFilled})">
             <span style="font-size:12px;font-weight:700;color:${d.gasFilled?'#94a3b8':'#991b1b'}">${d.gasFilled?'✓ Done':'Mark done'}</span>
@@ -6127,21 +6294,50 @@ function renderGRCard(d, perms, isDupe) {
     const dealTrades = Array.isArray(d.trades) ? d.trades.filter(t=>t.stock) : [d.trade1, d.trade2].filter(t=>t?.stock);
     const financingLabel = ({CASH:'Cash',COMMERCIAL_LEASE:'Commercial Lease',FINANCE:'Finance',FORD_RCL:'Ford RCL'})[d.financing];
 
+    // Where this stock # actually is on the Vehicle Locator map, if it's
+    // been placed - only worth showing while there's still work to do here
+    // (once ready, nobody needs to go find the car for this deal anymore).
+    const grLoc = !isComplete ? cmFindStockLocation(d.stock) : null;
+    const grLocBadge = grLoc
+      ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;${grLoc.isOffsite?'background:#e1f5ee;color:#085041':'background:#eff6ff;color:#1d4ed8'}">📍 ${esc(grLoc.lotLabel)}${grLoc.isOffsite?' (off-site)':''}</span>`
+      : '';
+
     return `<div class="gr-card${isComplete?' is-complete':' '+typeClass}" id="gr-${d.id}" style="${d.needsAcknowledgment?'border-left:4px solid #7c3aed;background:#faf5ff':isDupe(d)?'border-left:4px solid #dc2626':''}">
       <div class="gr-card-header">
         <div class="gr-card-top">
           <span class="gr-card-stock">${stockCopy(d.stock)}</span>
           <span class="gr-type-pill ${typePillClass}">${esc(d.type||'-')}</span>
-          ${completeBadge}${holdBadge}${updatedBadge}${dupeBadge}
+          ${holdBadge}${updatedBadge}${dupeBadge}${grLocBadge}
         </div>
         <div class="gr-card-vehicle">${esc(d.vehicle||'-')}${d.vin?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">${esc(d.vin)}</span>`:d.vin6?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">…${esc(d.vin6)}</span>`:''}</div>
         ${d.customer?`<div class="gr-card-customer">${esc(d.customer)}${d.salesperson?' · '+esc(d.salesperson):''}</div>`:''}
         ${(d.phone||d.email)?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">${d.phone?'📞 '+esc(d.phone):''}${d.phone&&d.email?' · ':''}${d.email?'✉️ '+esc(d.email):''}</div>`:''}
         ${financingLabel?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">💳 ${financingLabel}</div>`:''}
-        ${d.pdfUrl?`<div style="margin-top:4px"><a href="${esc(d.pdfUrl)}" target="_blank" rel="noopener" style="font-size:11px;font-weight:600;color:var(--ford);text-decoration:none">📄 ${esc(d.pdfFileName||'Get Ready sheet')}</a></div>`:''}
+        ${d.pdfUrl&&isSafeHttpsUrl(d.pdfUrl)?`<div style="margin-top:4px"><a href="${esc(d.pdfUrl)}" target="_blank" rel="noopener" style="font-size:11px;font-weight:600;color:var(--ford);text-decoration:none">📄 ${esc(d.pdfFileName||'Get Ready sheet')}</a></div>`:''}
         ${d.needsAcknowledgment?`<div style="font-size:11px;color:#7c3aed;font-weight:700;margin-top:4px">🔶 Updated by ${esc(d.updatedFieldsBy||'someone')} - delivery, gas, or trade-in info changed</div>`:''}
       </div>
       ${gasBanner}
+      <div class="gr-gas-banner ${d.servicesComplete?'no-gas-needed':''}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${d.servicesComplete?'':'background:#fef2f2'}">
+        <span style="font-size:20px">🔧</span>
+        <div style="flex:1">
+          <div style="font-weight:700;color:${d.servicesComplete?'':'#991b1b'}">${d.servicesComplete?'Services Complete':'Services Pending'}</div>
+          <div style="font-size:11px;font-weight:400;opacity:.7">${servicesText ? esc(servicesText) : 'No services selected'}</div>
+          ${d['req_pdi'] && pdiAtIncomingNote?pdiAtIncomingNote:''}
+        </div>
+        ${canChecklist?`<div class="gr-tap" style="width:auto;height:32px;padding:0 14px;border-radius:20px;${d.servicesComplete?'background:#f1f5f9;border-color:#e2e8f0':''}" onclick="toggleGRField('${d.id}','servicesComplete',${!d.servicesComplete})" title="${servicesCompleteWhoWhen?`Done by ${servicesCompleteWhoWhen}`:''}">
+          <span style="font-size:12px;font-weight:700;color:${d.servicesComplete?'#94a3b8':'#991b1b'}">${d.servicesComplete?'✓ Complete':'Mark complete'}</span>
+        </div>`:`<span style="font-size:12px;font-weight:700;color:${d.servicesComplete?'#94a3b8':'#991b1b'}">${d.servicesComplete?'✓ Complete':'Pending'}</span>`}
+      </div>
+      <div class="gr-gas-banner ${d.soldRowParked?'no-gas-needed':''}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${d.soldRowParked?'':'background:#eff6ff;border-bottom-color:#93c5fd;color:#1d4ed8'}">
+        <span style="font-size:20px">🅿️</span>
+        <div style="flex:1">
+          <div style="font-weight:700;${d.soldRowParked?'':'color:#1d4ed8'}">Parked in Sold Row</div>
+          <div style="font-size:11px;font-weight:400;opacity:.7">${d.soldRowParked && d.soldRowParkedBy ? `${esc(d.soldRowParkedBy)}${d.soldRowParkedAt?' · '+new Date(d.soldRowParkedAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}):''}` : 'Inventory Control'}</div>
+        </div>
+        ${canIC?`<div class="gr-tap" style="width:auto;height:32px;padding:0 14px;border-radius:20px;${d.soldRowParked?'background:#f1f5f9;border-color:#e2e8f0':''}" onclick="toggleGRField('${d.id}','soldRowParked',${!d.soldRowParked})">
+          <span style="font-size:12px;font-weight:700;color:${d.soldRowParked?'#94a3b8':'#1d4ed8'}">${d.soldRowParked?'✓ Done':'Mark done'}</span>
+        </div>`:`<span style="font-size:12px;font-weight:700;color:${d.soldRowParked?'#94a3b8':'#1d4ed8'}">${d.soldRowParked?'✓ Done':'Pending'}</span>`}
+      </div>
       ${d.deliveryDate?`<div class="gr-delivery">📅 Delivery: <strong>${fmtGRDate(d.deliveryDate,d.deliveryTime)}</strong></div>`:''}
       <div style="padding:6px 16px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text-muted)">🪪 ${d.plateType==='TRANSFER'?'License Plate Transfer':'New License Plates'}${d.licensingNotes?` - ${esc(d.licensingNotes)}`:''}</div>
       ${dealTrades.length ? `<div style="padding:8px 16px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px">
@@ -6153,12 +6349,9 @@ function renderGRCard(d, perms, isDupe) {
             <span style="font-size:9px;font-weight:700;color:#7c3aed;text-transform:uppercase">${({RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'})[t.category]||'Retail'}</span>
             ${t.kms?`<span style="font-size:11px;color:var(--text-faint);margin-left:auto">${Number(t.kms).toLocaleString()} km</span>`:''}
           </div>
-          <div style="font-size:11px;color:var(--text-muted)">${[t.year,t.make,t.model,t.colour].filter(Boolean).join(' · ')}${t.vin?` · ${esc(t.vin)}`:''}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${esc([t.year,t.make,t.model,t.colour].filter(Boolean).join(' · '))}${t.vin?` · ${esc(t.vin)}`:''}</div>
         </div>`).join('')}
       </div>` : ''}
-      <div class="gr-checklist">
-        ${renderChecklist}
-      </div>
       ${(d.customFields||[]).filter(f=>f.label).length ? `
       <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px">
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:2px">Other</div>
@@ -6167,10 +6360,10 @@ function renderGRCard(d, perms, isDupe) {
             <div class="gr-tap ${f.done?'on':''}" onclick="${canFull?`grToggleCustom('${d.id}',${i},${!f.done})`:''}">
               <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
-            <span style="font-size:13px;color:var(--text);${f.done?'text-decoration:line-through;opacity:.5':''}">${f.label}</span>
+            <span style="font-size:13px;color:var(--text);${f.done?'text-decoration:line-through;opacity:.5':''}">${esc(f.label)}</span>
           </div>`).join('')}
       </div>` : ''}
-      ${d.instructions?`<div style="padding:8px 16px;font-size:12px;color:#92400e;background:#fffbeb;border-bottom:1px solid var(--border)">⚠ ${d.instructions}</div>`:''}
+      ${d.instructions?`<div style="padding:8px 16px;font-size:12px;color:#92400e;background:#fffbeb;border-bottom:1px solid var(--border)">⚠ ${esc(d.instructions)}</div>`:''}
       <div class="gr-notes">
         <textarea placeholder="Add notes…" ${canFull?'':'readonly'} onchange="grNotes('${d.id}',this.value)" onblur="grNotes('${d.id}',this.value)">${esc(d.notes||'')}</textarea>
       </div>
@@ -6191,10 +6384,10 @@ function renderGRCard(d, perms, isDupe) {
 // Active (not-yet-ready) deals only - ready-for-delivery deals have their
 // own list/search/filter below (renderGRCompleted), same split as Incoming.
 function renderGetReady() {
-  const rows = getGRFiltered().filter(d => !grIsComplete(d));
+  const rows = getGRFiltered().filter(d => !grIsReadyForDelivery(d));
   const grPerms = { full: perm('getReadyEdit'), gas: perm('grGasConfirm'), checklist: perm('grChecklistApprove') };
   const scopeFilter = ['sales','fandi'].includes(currentUser?.role) ? ' · your deals only' : '';
-  const allActive = grScopedDeals().filter(d => !grIsComplete(d));
+  const allActive = grScopedDeals().filter(d => !grIsReadyForDelivery(d));
   document.getElementById('gr-row-count').textContent = rows.length+' of '+allActive.length+' active deal'+(allActive.length!==1?'s':'')+scopeFilter;
 
   // Flag stock #s that appear in more than one Get Ready deal, active or ready
@@ -6215,7 +6408,7 @@ window.renderGetReady = renderGetReady;
 
 function renderGRCompleted() {
   const canFull = perm('getReadyEdit');
-  const allCompletedCount = grScopedDeals().filter(grIsComplete).length;
+  const allCompletedCount = grScopedDeals().filter(grIsReadyForDelivery).length;
   const toolbar = document.getElementById('gr-completed-toolbar');
   const divider = document.getElementById('gr-completed-divider');
   const body = document.getElementById('gr-completed-body');
@@ -6249,6 +6442,10 @@ function renderGRCompleted() {
       <div class="tlr-vehicle" title="${esc(d.vehicle||'')}">${esc(d.vehicle||'-')}</div>
       <div class="tlr-vehicle" title="${esc(d.customer||'')}">${esc(d.customer||'-')}</div>
       <span class="gr-type-pill ${typePillClassOf(d.type)}">${esc(d.type||'-')}</span>
+      <div class="tlr-vehicle" title="Deal #">${esc(d.dealNum||'-')}</div>
+      <div class="tlr-vehicle" title="Salesperson: ${esc(d.salesperson||'')}">${esc(d.salesperson||'-')}</div>
+      <div class="tlr-vehicle" title="F&amp;I Manager: ${esc(d.fniManager||'')}">${esc(d.fniManager||'-')}</div>
+      <div class="tlr-vehicle" title="Desk Manager: ${esc(d.deskManager||'')}">${esc(d.deskManager||'-')}</div>
       <div class="tlr-completed">${d.deliveryDate?fmtGRDate(d.deliveryDate,d.deliveryTime):''}</div>
       <div class="tlr-completed" title="${esc(readyLine)}">${esc(readyLine)}</div>
       ${canFull?`<div class="tlr-actions">
@@ -6258,7 +6455,7 @@ function renderGRCompleted() {
     </div>`;
   }
 
-  body.innerHTML = `<div class="tracker-list-head gr-row"><span>Stock</span><span>Vehicle</span><span>Customer</span><span>Type</span><span>Delivery</span><span>Ready</span><span></span></div>`
+  body.innerHTML = `<div class="tracker-list-head gr-row"><span>Stock</span><span>Vehicle</span><span>Customer</span><span>Type</span><span>Deal #</span><span>Salesperson</span><span>F&amp;I</span><span>Desk Mgr</span><span>Delivery</span><span>Ready</span><span></span></div>`
     + rows.map(makeRow).join('');
 }
 window.renderGRCompleted = renderGRCompleted;
@@ -6376,10 +6573,8 @@ window.openGRModal = function(id) {
   setGRPlateType(d.plateType || 'NEW');
   setGRFuelStatus(id ? grEffectiveFuelStatus(d) : 'gas');
   document.getElementById('gr-gas-amount').value = d.gasAmount || '';
-  // Required-steps checkboxes reflect which steps are REQUIRED for this deal
-  // (req_key), never actual completion - actual progress only ever changes
-  // via the card's own tap-to-check boxes, so new deals always start with
-  // every step showing as not-yet-done regardless of what's selected here.
+  // Which services this deal needs - selected once at intake, shown as a
+  // plain list on the card (not tracked per-step from here on).
   GR_CHECKLIST.forEach(([key]) => { document.getElementById('gr-c-'+key).checked = d['req_'+key] || false; });
   // Trade-ins - supports the old trade1/trade2 shape for existing deals, and
   // the new flexible array for everything going forward. Defaults to 2 empty
@@ -6496,14 +6691,6 @@ function pdfTimeToInput(s) {
   return `${String(h).padStart(2,'0')}:${m[2]}`;
 }
 
-// Maps the Get Ready sheet's raw checkbox field names to this app's
-// checklist keys - confirmed stable across multiple real deal PDFs (same
-// template, same field positions each time), so this can be hardcoded.
-const GR_PDF_CHECKLIST_MAP = {
-  'Check Box23':'pdi', 'Check Box24':'leather', 'Check Box25':'lof', 'Check Box26':'fabric',
-  'Check Box27':'detail', 'Check Box28':'module', 'Check Box29':'paint', 'Check Box30':'safety',
-};
-
 // Only ever called for a brand-new (not-yet-saved) deal, so it's safe to
 // fill every field outright - there's nothing hand-entered yet to clobber.
 function applyGRPdfFields(form) {
@@ -6524,15 +6711,6 @@ function applyGRPdfFields(form) {
   if (pdfFieldChecked(form,'Cash_ck')) document.getElementById('gr-financing').value = 'CASH';
   else if (pdfFieldChecked(form,'Finance_ck')) document.getElementById('gr-financing').value = 'FINANCE';
   else if (pdfFieldChecked(form,'leaseck')) document.getElementById('gr-financing').value = 'FORD_RCL';
-
-  // A checked box on the sheet means this step is required for this vehicle
-  // (never actual completion - see the note on the checklist UI below).
-  Object.entries(GR_PDF_CHECKLIST_MAP).forEach(([boxName, key]) => {
-    if (pdfFieldChecked(form, boxName)) {
-      const cb = document.getElementById('gr-c-'+key);
-      if (cb) cb.checked = true;
-    }
-  });
 
   // The gas amount box sits at the bottom-right of the checklist grid (its
   // own checkboxes there carry no printed label and showed no consistent
@@ -6631,16 +6809,14 @@ window.saveGR = async function() {
     ts: editingGRId ? (getReadyDeals[editingGRId]?.ts || Date.now()) : Date.now(),
     customFields: grCustomFields.filter(f => f.label.trim()),
   };
-  // These checkboxes only ever select which steps are REQUIRED for this deal
-  // - actual completion (deal[key]) is never touched here, whether adding or
-  // editing. Progress only ever happens via the card's own tap-to-check boxes,
-  // so a step marked required always starts (and stays, through edits) as not
-  // yet done until someone actually checks it off on the card.
+  // "Which services" checkboxes just tag what this deal needs - completion
+  // is tracked separately via the single Mark Complete toggle on the card,
+  // never touched here whether adding or editing.
   GR_CHECKLIST.forEach(([key]) => {
-    const required = document.getElementById('gr-c-'+key).checked;
-    deal['req_'+key] = required;
-    deal[key] = editingGRId ? (getReadyDeals[editingGRId]?.[key] || false) : false;
+    deal['req_'+key] = document.getElementById('gr-c-'+key).checked;
   });
+  if (editingGRId) deal.servicesComplete = getReadyDeals[editingGRId]?.servicesComplete || false;
+  else deal.servicesComplete = false;
   if (editingGRId) deal.gasFilled = getReadyDeals[editingGRId]?.gasFilled || false;
   else deal.gasFilled = false;
   if (editingGRId) deal.chargeInProgress = getReadyDeals[editingGRId]?.chargeInProgress || false;
@@ -6714,7 +6890,7 @@ async function logCompoundChange(lot, action, detail) {
   } catch(e) { /* logging failures shouldn't block the actual map edit */ }
 }
 
-const CM_LOT_LABELS = { bayview700:'700 Bayview', bayview323:'323 Bayview', mapleview55:'55 Mapleview' };
+const CM_LOT_LABELS = { bayview700:'700 Bayview', bayview323new:'323 Bayview', mapleview55:'55 Mapleview' };
 
 function filteredCompoundHistory() {
   const all = Object.values(compoundHistoryData);
@@ -6864,51 +7040,50 @@ window.saveEmailSettings = async function() {
     grAddress: document.getElementById('email-gr-address').value.trim(),
     incAddress: document.getElementById('email-inc-address').value.trim(),
     digestTime: document.getElementById('email-digest-time').value.trim() || '18:00',
-    publicKey: document.getElementById('email-public-key').value.trim(),
-    serviceId: document.getElementById('email-service-id').value.trim(),
-    grTemplateId: document.getElementById('email-gr-template').value.trim(),
-    incTemplateId: document.getElementById('email-inc-template').value.trim(),
+    dropAddresses: document.getElementById('email-drop-addresses').value.trim(),
+    dropIntervalMin: Math.min(120, Math.max(1, Number(document.getElementById('email-drop-interval').value) || 15)),
   };
   try {
     await update(ref(db,'settings'), { email: settings });
-    if (settings.publicKey && typeof emailjs !== 'undefined') {
-      emailjs.init({ publicKey: settings.publicKey });
-      emailjsReady = true;
-    }
     showEmailToast('✓ Email settings saved.', 'success');
   } catch(e) { showEmailToast('Error saving - check connection.', 'error'); }
 };
 
 // Shared send helper - every email notification in the app goes through this.
-// Callers must include to_email in params, since Get Ready and Incoming now
-// go to two different addresses. Returns true/false so callers can react.
+// Callers must include `to` in params, since Get Ready and Incoming now go
+// to two different addresses. Returns true/false so callers can react.
+// Actual sending happens server-side (see functions/index.js) via Resend -
+// the browser never sees the send key, it just calls the Cloud Function.
 let lastEmailError = '';
 
-async function sendNotificationEmail(templateId, params) {
+async function sendNotificationEmail(emailType, params) {
   lastEmailError = '';
-  if (typeof emailjs === 'undefined') { lastEmailError = 'EmailJS SDK not loaded (check your internet connection and reload).'; console.error(lastEmailError); return false; }
-  if (!emailSettings.publicKey || !emailSettings.serviceId || !templateId) {
-    lastEmailError = 'Not configured - missing Public Key, Service ID, or Template ID.';
-    console.warn(lastEmailError);
-    return false;
-  }
-  if (!emailjsReady) { emailjs.init({ publicKey: emailSettings.publicKey }); emailjsReady = true; }
   try {
-    await emailjs.send(emailSettings.serviceId, templateId, params);
+    await callSendNotificationEmail({ emailType, ...params });
     return true;
   } catch(e) {
-    // EmailJS errors normally carry a status code and a text description -
-    // e.g. 400 "The recipients address is empty", 401/403 for a bad key or
-    // blocked origin, 404 for a template/service ID that doesn't exist.
-    lastEmailError = e?.text ? `${e.status ? e.status+': ' : ''}${esc(e.text)}` : (e?.message || String(e));
+    // Firebase callable errors carry a human-readable .message (either the
+    // HttpsError text thrown server-side - e.g. a bad Resend response - or a
+    // client-side failure like being offline).
+    lastEmailError = e?.message || String(e);
     console.error('Email send failed:', e);
     return false;
   }
 }
 
-// Builds the full set of template variables from a deal - shared by both the
+// Subject line for both the "new deal" and "deal updated" emails - customer
+// name, stock #, and delivery date all at a glance in the inbox, without
+// having to open the email.
+function grEmailSubject(prefix, d) {
+  const bits = [d.stock||'no stock #', d.customer||'', d.deliveryDate?('Delivery '+fmtGRDate(d.deliveryDate)):''].filter(Boolean);
+  return `${prefix} - ${bits.join(' - ')}`;
+}
+
+// Builds the full set of template fields from a deal - shared by both the
 // "new deal" and "deal updated" emails so they stay in sync with each other.
-function buildGREmailParams(d, subject, message) {
+// If the deal has an uploaded Get Ready sheet, its URL/filename are passed
+// along too so the Cloud Function can attach the PDF to the email.
+function buildGREmailParams(d, subject, intro) {
   const financingLabel = {CASH:'Cash',COMMERCIAL_LEASE:'Commercial Lease',FINANCE:'Finance',FORD_RCL:'Ford RCL'}[d.financing] || d.financing || '';
   const plateLabel = d.plateType === 'TRANSFER' ? 'License Plate Transfer' : 'New License Plates';
   const fuelStatus = grEffectiveFuelStatus(d);
@@ -6920,10 +7095,11 @@ function buildGREmailParams(d, subject, message) {
   const tradesText = trades.length
     ? trades.map((t,i) => `Trade ${i+1}: ${t.stock} - ${[t.year,t.make,t.model].filter(Boolean).join(' ')}${t.colour?' - '+t.colour:''}${t.vin?' - VIN '+t.vin:''}${t.kms?' - '+t.kms+' km':''} (${catLabel[t.category]||'Retail'})`).join('\n')
     : 'None';
-  const requiredSteps = GR_CHECKLIST.filter(([key]) => d['req_'+key]).map(([,label]) => label).join(', ') || 'None selected';
+  const steps = GR_CHECKLIST.filter(([key]) => d['req_'+key]).map(([,label]) => label).join(', ') || 'None selected';
   return {
-    to_email: emailSettings.grAddress,
+    to: emailSettings.grAddress,
     subject,
+    intro,
     stock: d.stock||'',
     dealNum: d.dealNum||'',
     vehicle: d.vehicle||'',
@@ -6939,10 +7115,10 @@ function buildGREmailParams(d, subject, message) {
     gasStatus: gasLabel,
     instructions: d.instructions||'(none)',
     notes: d.notes||'(none)',
-    requiredSteps,
+    steps,
     trades: tradesText,
-    pdfLink: d.pdfUrl || '',
-    message,
+    pdfUrl: d.pdfUrl || undefined,
+    pdfFileName: d.pdfFileName || undefined,
   };
 }
 
@@ -6970,29 +7146,29 @@ function hasSignificantGRChange(oldDeal, newDeal) {
 }
 
 async function sendGetReadyUpdateEmail(id, d) {
-  if (!emailSettings.grTemplateId || !emailSettings.grAddress) return; // not configured - silently skip
+  if (!emailSettings.grAddress) return; // not configured - silently skip
   try {
-    await sendNotificationEmail(emailSettings.grTemplateId, buildGREmailParams(
+    await sendNotificationEmail('getReady', buildGREmailParams(
       d,
-      `UPDATED: Get Ready Deal - ${d.stock||'no stock #'}`,
+      grEmailSubject('UPDATED: Get Ready Deal', d),
       `This Get Ready deal was just updated by ${currentUser?.name||'someone'}.`,
     ));
   } catch(e) { console.error('Get Ready update email failed:', e); }
 }
 
 window.sendTestEmail = async function() {
-  // Uses whichever template/address is filled in - Get Ready first, falling back to Incoming.
-  const templateId = document.getElementById('email-gr-template').value.trim() || document.getElementById('email-inc-template').value.trim();
+  // Uses whichever address is filled in - Get Ready first, falling back to Incoming.
   const toAddr = document.getElementById('email-gr-address').value.trim() || document.getElementById('email-inc-address').value.trim();
-  if (!document.getElementById('email-public-key').value.trim() || !document.getElementById('email-service-id').value.trim() || !templateId || !toAddr) {
-    showEmailToast('Fill in an email address, Public Key, Service ID, and at least one Template ID first.', 'error');
+  if (!toAddr) {
+    showEmailToast('Fill in an email address first.', 'error');
     return;
   }
   // Save first so the test uses whatever's currently in the fields, not stale saved values.
   await window.saveEmailSettings();
-  const ok = await sendNotificationEmail(templateId, {
-    to_email: toAddr,
+  const ok = await sendNotificationEmail('getReady', {
+    to: toAddr,
     subject: 'Test notification - Vehicle Manager',
+    intro: 'If you got this, your email notifications are working correctly.',
     stock: 'TEST123',
     dealNum: 'D-00000',
     vehicle: 'This is a test email',
@@ -7008,10 +7184,8 @@ window.sendTestEmail = async function() {
     gasStatus: 'Needs Gas - $25.00',
     instructions: '(none)',
     notes: '(none)',
-    requiredSteps: 'PDI, Detail',
+    steps: 'PDI, LOF, Detail, Paint, Safety, Leather, Fabric, Module',
     trades: 'Trade 1: A1000A - 2018 Honda Civic - Blue - 85000 km (Wholesale)',
-    count: 3,
-    message: 'If you got this, your email notifications are working correctly.',
   });
   showEmailToast(ok ? '✓ Test email sent - check your inbox.' : `Failed to send: ${lastEmailError || 'unknown error - check console'}`, ok ? 'success' : 'error');
 };
@@ -7021,8 +7195,17 @@ window.sendTestEmail = async function() {
 // today's digest, this composes and sends one summarizing every Incoming
 // Unit added that day. The transaction flag means only one open session
 // actually sends it even if several people have the app open at the time.
+// Shared by the daily digest and drop-batch emails below - one line per unit.
+function formatUnitDigestLine(u) {
+  const specLine = [u.year, u.type, u.trim, u.colour].filter(Boolean).join(' ');
+  const condLabel = u.condition === 'used'
+    ? `Used - ${({TRADEIN:'Trade-In',AUCTION:'Auction'})[u.category]||u.category||''}${u.subcategory?' / '+({RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'})[u.subcategory]:''}`
+    : `New - ${({RETAIL:'Retail',FLEET:'Fleet'})[u.category]||u.category||''}`;
+  return `${u.stock||u.vin||'-'} - ${u.vehicle || specLine || 'no description'} - ${condLabel}${u.kms?' - '+u.kms+' km':''}`;
+}
+
 async function checkAndSendDailyDigest() {
-  if (!emailSettings.incTemplateId || !emailSettings.incAddress) return; // not configured
+  if (!emailSettings.incAddress) return; // not configured
   const now = new Date();
   const todayStr = now.toISOString().slice(0,10);
   const [digestH, digestM] = (emailSettings.digestTime || '18:00').split(':').map(Number);
@@ -7036,21 +7219,91 @@ async function checkAndSendDailyDigest() {
     const todaysUnits = Object.values(units||{}).filter(u => u.arrivedDate === todayStr);
     if (!todaysUnits.length) return; // nothing arrived today - nothing to send, and the flag above still prevents re-checking all day
 
-    const lines = todaysUnits.map(u => {
-      const specLine = [u.year, u.type, u.trim, u.colour].filter(Boolean).join(' ');
-      const condLabel = u.condition === 'used'
-        ? `Used - ${({TRADEIN:'Trade-In',AUCTION:'Auction'})[u.category]||u.category||''}${u.subcategory?' / '+({RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'})[u.subcategory]:''}`
-        : `New - ${({RETAIL:'Retail',FLEET:'Fleet'})[u.category]||u.category||''}`;
-      return `${u.stock||u.vin||'-'} - ${u.vehicle || specLine || 'no description'} - ${condLabel}${u.kms?' - '+u.kms+' km':''}`;
-    }).join('\n');
+    const lines = todaysUnits.map(formatUnitDigestLine).join('\n');
 
-    await sendNotificationEmail(emailSettings.incTemplateId, {
-      to_email: emailSettings.incAddress,
+    await sendNotificationEmail('incomingDigest', {
+      to: emailSettings.incAddress,
       subject: `Incoming Vehicles - Daily Summary (${todaysUnits.length} unit${todaysUnits.length!==1?'s':''})`,
       count: todaysUnits.length,
-      message: lines,
+      lines,
     });
   } catch(e) { console.error('Daily digest failed:', e); }
+}
+
+// Runs on the same 60s poll as the daily digest (see setInterval below).
+// Each new unit is stamped dropEmailed:false at creation (saveUnit above);
+// once the most recently added still-unsent unit has sat quiet for the
+// configured interval (emailSettings.dropIntervalMin, editable in Settings -
+// default 15) with nothing newer arriving, whatever's still unsent is
+// considered one finished "drop" and goes out as a single email - a
+// truckload entered over several minutes is one email, not one per vehicle.
+async function checkAndSendDropBatch() {
+  const dropEmails = (emailSettings.dropAddresses||'').split(',').map(a=>a.trim()).filter(Boolean);
+  if (!dropEmails.length) return; // not configured
+
+  const quietMs = (emailSettings.dropIntervalMin || 15) * 60 * 1000;
+  const pending = Object.entries(units||{}).filter(([,u]) => u.dropEmailed === false);
+  if (!pending.length) return;
+  const latestTs = Math.max(...pending.map(([,u]) => u.ts||0));
+  if (Date.now() - latestTs < quietMs) return; // still might be mid-drop - wait for it to go quiet
+
+  const dateStr = new Date().toISOString().slice(0,10);
+  const LOCK_STALE_MS = 2 * 60 * 1000; // only guards against two open tabs sending at once - see note below
+  let locked = false;
+  try {
+    // A short-lived lock, not a permanent claim - just enough to stop two
+    // open tabs sending the same batch at once. Deliberately NOT a
+    // watermark that advances before the send is known to have worked: an
+    // earlier version advanced it up front, so a failed send (bad Resend
+    // domain, network blip) left the batch permanently un-retryable even
+    // though its units were never marked sent. The lock clears itself
+    // (below, on both success and failure) so a real failure gets retried
+    // on the very next 60s pass instead of waiting out the stale window.
+    const lockResult = await runTransaction(ref(db, 'dropBatch/'+dateStr+'/lock'), curr => {
+      if (curr && Date.now() - curr < LOCK_STALE_MS) return; // someone else is actively sending this
+      return Date.now();
+    });
+    if (!lockResult.committed) return;
+    locked = true;
+
+    const batch = pending.filter(([,u]) => (u.ts||0) <= latestTs);
+    // Same fields/shape as the "Today's Drops" print report - the Cloud
+    // Function renders them into the same navy-header table look, so the
+    // email is visually the same document as that printout.
+    const batchUnits = batch.map(([,u]) => ({
+      arrived: u.arrived, stock: u.stock, vin: u.vin, vehicle: u.vehicle, kms: u.kms,
+      status: u.status, workReq: u.workReq, accessories: u.accessories, pdi: u.pdi, notes: u.notes,
+    }));
+    // Next sequential batch number for today - a plain read is safe here
+    // (not a transaction) since the lock above already makes this section
+    // exclusive for the day.
+    const countSnap = await get(ref(db,'dropBatch/'+dateStr+'/count'));
+    const batchNum = (countSnap.val()||0) + 1;
+    const now = new Date();
+    const dy = now.getDate();
+    const suffix = dy===1||dy===21||dy===31?'st':dy===2||dy===22?'nd':dy===3||dy===23?'rd':'th';
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const subject = `Incoming Vehicle Batch #${batchNum}; ${months[now.getMonth()]} ${dy}${suffix}, ${now.getFullYear()}`;
+
+    const ok = await sendNotificationEmail('dropBatch', {
+      to: dropEmails,
+      subject,
+      units: batchUnits,
+    });
+    if (ok) {
+      const patch = {};
+      patch['dropBatch/'+dateStr+'/count'] = batchNum;
+      patch['dropBatch/'+dateStr+'/lock'] = null;
+      batch.forEach(([id]) => { patch['tracker/'+id+'/dropEmailed'] = true; });
+      await update(ref(db), patch);
+      locked = false;
+    }
+  } catch(e) { console.error('Drop batch email failed:', e); }
+  finally {
+    // Send failed (or threw) - release the lock now rather than making the
+    // next attempt wait out LOCK_STALE_MS for no reason.
+    if (locked) update(ref(db,'dropBatch/'+dateStr), { lock: null }).catch(()=>{});
+  }
 }
 
 window.clearAllTrackerUnits = async function() {
@@ -7079,6 +7332,23 @@ window.clearAllTrackerUnits = async function() {
 // ── Sound ─────────────────────────────────────────────
 let audioCtx=null;
 window.toggleSound=function(val){soundEnabled=val;localStorage.setItem('lq-sound',val?'true':'false');};
+
+// Settings panel's category sections (General/Staff & Permissions/Tools/
+// Notifications/Danger Zone) collapse independently - state remembered per
+// browser (not synced) so each person's Settings tab stays how they left it.
+window.toggleSettingsSection = function(headerEl) {
+  const section = headerEl.closest('.settings-section');
+  if (!section) return;
+  const collapsed = section.classList.toggle('collapsed');
+  try { localStorage.setItem('lq-settings-collapsed-'+section.dataset.section, collapsed ? '1' : '0'); } catch(e) {}
+};
+function initSettingsSections() {
+  document.querySelectorAll('#panel-settings .settings-section').forEach(section => {
+    let collapsed = false;
+    try { collapsed = localStorage.getItem('lq-settings-collapsed-'+section.dataset.section) === '1'; } catch(e) {}
+    section.classList.toggle('collapsed', collapsed);
+  });
+}
 function getAudioCtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
 function playTone(freq,startTime,duration,gainVal,type='sine'){
   const ctx=getAudioCtx(),osc=ctx.createOscillator(),gain=ctx.createGain();
@@ -7121,7 +7391,7 @@ window.switchTab=function(name,btn){
   document.getElementById('main-wrap').style.padding=isTV?'0':'24px';
   document.getElementById('main-wrap').style.maxWidth=isTV?'none':'1100px';
   if(!isTV){const c=document.getElementById('tv-controls');if(c)c.style.display='none';}
-  if(name==='settings'){const sc=document.getElementById('s-sound');if(sc)sc.checked=soundEnabled;renderPermissionsEditor();}
+  if(name==='settings'){const sc=document.getElementById('s-sound');if(sc)sc.checked=soundEnabled;renderPermissionsEditor();initSettingsSections();}
   if(name==='history') { renderHistory(); renderCompoundHistory(); }
   if(name==='tracker'){renderTracker();renderTrackerSummary();}
   if(name==='tv'){ renderTVRides(); renderTVAppointments(); setTimeout(()=>tvShuttleMap?.invalidateSize(), 50); }
@@ -7206,6 +7476,9 @@ setInterval(() => { if (currentUser) checkAndSendDailyDigest(); }, 60000);
 // passed earlier today before anyone had the app open.
 setTimeout(() => { if (currentUser) checkAndSendDailyDigest(); }, 5000);
 
+setInterval(() => { if (currentUser) checkAndSendDropBatch(); }, 60000);
+setTimeout(() => { if (currentUser) checkAndSendDropBatch(); }, 5000);
+
 // ── Today's Drops PDF print ───────────────────────────
 window.printTodaysDrops = function() {
   const now = new Date();
@@ -7243,7 +7516,7 @@ window.printTodaysDrops = function() {
           u.status==='SOLD'?'#15803d':u.status==='TURNOVER'?'#92400e':'#1d4ed8'
         }">${u.status||'-'}</span>
       </td>
-      <td style="font-family:monospace;font-size:10px;color:#64748b">${u.workReq||'-'}</td>
+      <td style="font-family:monospace;font-size:10px;color:#64748b">${esc(u.workReq||'-')}</td>
       <td style="text-align:center">${ck(u.accessories)}</td>
       <td style="text-align:center">${ck(u.pdi)}</td>
       <td style="max-width:160px;font-size:10px;color:#475569">${esc(u.notes||'')}</td>
@@ -7372,7 +7645,7 @@ function renderHomeGrid() {
       icon: `<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>`,
       title: 'Get Ready',
       desc: 'Track deal prep - PDI, detail, delivery dates and trades.',
-      badge: () => Object.values(getReadyDeals).filter(d=>!grIsComplete(d)).length
+      badge: () => Object.values(getReadyDeals).filter(d=>!grIsReadyForDelivery(d)).length
     });
   }
 
@@ -7588,8 +7861,7 @@ window.deleteAnnouncement = async function(id) {
 // ── Compound Map ──────────────────────────────────────
 const CM_LOTS = {
   bayview700:  { label: '700 Bayview' },
-  bayview323:  { label: '323 Bayview' },
-  bayview323new: { label: '323 Bayview (NEW)' },
+  bayview323new: { label: '323 Bayview' },
 };
 
 // Real layout from CSV - 13 parking rows × 52 cols
@@ -7685,6 +7957,85 @@ function cmIsFlagged(veh) {
   return !!(veh && (veh.flagged || veh.status === 'flag' || (veh.note && String(veh.note).trim())));
 }
 
+// Finds where a stock # currently sits on the Vehicle Locator map, if
+// anywhere - used elsewhere in the app (Incoming, Get Ready) so staff don't
+// have to separately open the map and search for a car just to know where
+// to go photograph/prep it. bayview323new is the off-site lot; bayview700
+// is the main dealership property.
+function cmFindStockLocation(stock) {
+  if (!stock) return null;
+  const target = String(stock).toUpperCase().trim();
+  if (!target) return null;
+  for (const lotId of Object.keys(CM_LOTS)) {
+    const lotVehs = cmVehicles[lotId] || {};
+    for (const veh of Object.values(lotVehs)) {
+      if (!veh || !veh.stock || veh.status === 'blocked' || veh.status === 'void') continue;
+      if (veh.stock.toUpperCase().trim() === target) {
+        return { lotId, lotLabel: CM_LOTS[lotId].label, isOffsite: lotId === 'bayview323new' };
+      }
+    }
+  }
+  return null;
+}
+
+// Plain-text version of a spot's note(s), for the note icon's hover tooltip -
+// same content and order as the note bubbles in the quick-actions modal
+// (legacy single note first, then the threaded notes newest-first), just
+// joined into one string so it's readable at a glance without opening
+// anything. Native title tooltips render \n as line breaks.
+function cmNoteTooltipText(veh) {
+  const parts = [];
+  if (veh && veh.note) parts.push(String(veh.note).trim());
+  if (veh && Array.isArray(veh.notes)) {
+    veh.notes.slice().reverse().forEach(n => { if (n && n.text) parts.push(n.text); });
+  }
+  return parts.join('\n');
+}
+
+// Custom hover tooltip for a spot's note - fast (no native title delay) and
+// triggers over the whole tile, not just the small note icon. Delegated on
+// the scroll containers (stable across re-renders) rather than attached per
+// spot, so it keeps working without re-wiring every time the map repaints.
+let cmNoteTooltipEl = null;
+function cmShowNoteTooltip(spotEl) {
+  const text = spotEl.dataset.note;
+  if (!text) return;
+  if (!cmNoteTooltipEl) {
+    cmNoteTooltipEl = document.createElement('div');
+    cmNoteTooltipEl.id = 'cm-note-tooltip';
+    document.body.appendChild(cmNoteTooltipEl);
+  }
+  const el = cmNoteTooltipEl;
+  el.textContent = text;
+  el.classList.add('show');
+  const spotRect = spotEl.getBoundingClientRect();
+  const elRect = el.getBoundingClientRect();
+  let top = spotRect.top - elRect.height - 8;
+  if (top < 4) top = spotRect.bottom + 8; // not enough room above - flip below
+  let left = spotRect.left + spotRect.width / 2 - elRect.width / 2;
+  left = Math.max(4, Math.min(left, window.innerWidth - elRect.width - 4));
+  el.style.top = `${top}px`;
+  el.style.left = `${left}px`;
+}
+function cmHideNoteTooltip() {
+  if (cmNoteTooltipEl) cmNoteTooltipEl.classList.remove('show');
+}
+function cmWireNoteHover(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el || el.dataset.noteHoverWired) return;
+  el.dataset.noteHoverWired = '1';
+  el.addEventListener('mouseover', e => {
+    const spot = e.target.closest('.cm-spot[data-note]');
+    if (spot) cmShowNoteTooltip(spot);
+  });
+  el.addEventListener('mouseout', e => {
+    const spot = e.target.closest('.cm-spot[data-note]');
+    if (spot && !spot.contains(e.relatedTarget)) cmHideNoteTooltip();
+  });
+}
+cmWireNoteHover('cm-map-wrap');
+cmWireNoteHover('fl-canvas-outer');
+
 // Grid spots are always "Spot R#-C#"; freeform spots (323 Bayview NEW) have
 // no row/col - use whatever label the spot was given in the layout builder.
 function cmSpotTitle(key, veh) {
@@ -7726,7 +8077,13 @@ function cmRenderStats() {
   const el = document.getElementById('cm-stats');
   if (!el) return;
   const v = cmVehicles[cmCurrentLot] || {};
-  const total = cmCurrentLot === 'bayview700' ? CM_BAYVIEW700_SEED.reduce((a,r)=>a+r.length,0) : 200;
+  // The grid lot's capacity is its fixed row×col cell count. The freeform
+  // lot has no such fixed size - every spot (occupied or empty) is its own
+  // placed entry, so its capacity is just how many of those aren't purely
+  // decorative (a building/fence has no parking capacity of its own).
+  const total = cmCurrentLot === 'bayview700'
+    ? CM_BAYVIEW700_SEED.reduce((a,r)=>a+r.length,0)
+    : Object.values(v).filter(x=>x.kind!=='object' && x.kind!=='fence').length;
   const occupied = Object.values(v).filter(x=>x.stock && !['blocked','void','special','reserved'].includes(x.status)).length;
   const reserved = Object.values(v).filter(x=>x.status==='reserved').length;
   const special  = Object.values(v).filter(x=>x.status==='special').length;
@@ -7771,7 +8128,7 @@ function cmBuildOverlayMaps() {
   // Build stock# → get ready lookup
   const grMap = {};
   Object.values(getReadyDeals||{}).forEach(d => {
-    if (!d.stock || grIsComplete(d)) return;
+    if (!d.stock || grIsReadyForDelivery(d)) return;
     grMap[d.stock.toUpperCase().trim()] = {
       label: d.deliveryDate ? `📋 ${new Date(d.deliveryDate+'T12:00').toLocaleDateString('en-CA',{month:'short',day:'numeric'})}` : '📋 Get Ready',
     };
@@ -7812,7 +8169,7 @@ function cmRenderMap() {
   const numCols = cmGridSize[cmCurrentLot]?.cols || (cmCurrentLot === 'bayview700' ? 52 : 30);
   const numRows = cmGridSize[cmCurrentLot]?.rows || (cmCurrentLot === 'bayview700' ? 13 : 10);
 
-  const { apptMap, grMap, tdMap, stockSpotCounts } = cmBuildOverlayMaps();
+  const { grMap, tdMap, stockSpotCounts } = cmBuildOverlayMaps();
   const ageMap = cmHeatmapMode ? cmBuildAgeMap() : null;
 
   mapEl.className = `cm-grid${cmEditMode?' cm-edit-active':''}`;
@@ -7842,7 +8199,6 @@ function cmRenderMap() {
     for (let ci=0; ci<numCols; ci++) {
       const key = `R${ri}-C${ci}`;
       const veh = v[key];
-      const appt = veh ? apptMap[(veh.stock||'').toUpperCase().trim()] : null;
       const gr   = veh ? grMap[(veh.stock||'').toUpperCase().trim()] : null;
       const onTd = veh ? tdMap[(veh.stock||'').toUpperCase().trim()] : null;
       const isDupe = veh && veh.stock && veh.status!=='blocked' && veh.status!=='void' && (stockSpotCounts[veh.stock.toUpperCase().trim()]||0) > 1;
@@ -7861,12 +8217,12 @@ function cmRenderMap() {
           ${sel?'<div style="font-size:10px;color:#f59e0b;font-weight:800">✓</div>':'<div style="font-size:14px;color:#cbd5e1;margin-top:2px">+</div>'}
         </div>`;
       } else {
-        const stock = (veh.stock||'').substring(0,10);
-        const typeLine = [veh.year, veh.type, veh.trim, veh.colour].filter(Boolean).join(' ').substring(0,18);
+        const stock = esc((veh.stock||'').substring(0,10));
+        const typeLine = esc([veh.year, veh.type, veh.trim, veh.colour].filter(Boolean).join(' ').substring(0,18));
         const isBlocked = veh.status === 'blocked';
         const isVoid = veh.status === 'void';
         const isFlagged = !isBlocked && !isVoid && cmIsFlagged(veh);
-        const cls = isDupe && !isBlocked && !isVoid ? 'cm-duplicate' : onTd && !isBlocked && !isVoid ? 'ontestdrive' : appt && !isBlocked && !isVoid ? 'appointed' : gr && !isBlocked && !isVoid ? 'getready' : cmTypeClass(veh.status);
+        const cls = isDupe && !isBlocked && !isVoid ? 'cm-duplicate' : onTd && !isBlocked && !isVoid ? 'ontestdrive' : gr && !isBlocked && !isVoid ? 'getready' : cmTypeClass(veh.status);
 
         if (isVoid) {
           // Void - completely inert in normal mode, selectable/deletable in edit mode only
@@ -7883,8 +8239,8 @@ function cmRenderMap() {
             ${cmEditMode?`onclick="cmSelectSpot(event,'${key}',${ri},${ci})" onpointerdown="cmGroupPointerDown(event,'${key}')" oncontextmenu="return false"`:''}>
             ${cmEditMode ? `<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
             <div class="cm-spot-num" style="${cmEditMode?'':'opacity:.5'}">${cmEditMode?ci+1:''}</div>
-            <div class="cm-spot-stock">${(veh.blockLabel||'').split(' ').slice(0,1).join(' ')}</div>
-            <div class="cm-spot-desc" style="font-size:7px">${(veh.blockLabel||'').split(' ').slice(1).join(' ')}</div>
+            <div class="cm-spot-stock">${esc((veh.blockLabel||'').split(' ').slice(0,1).join(' '))}</div>
+            <div class="cm-spot-desc" style="font-size:7px">${esc((veh.blockLabel||'').split(' ').slice(1).join(' '))}</div>
             ${cmEditMode&&cmSelected.has(key)?'<div style="font-size:10px;color:#f59e0b;font-weight:800;position:absolute;bottom:2px;right:3px">✓</div>':''}
           </div>`;
         } else {
@@ -7897,21 +8253,21 @@ function cmRenderMap() {
           const lockInfo = activeLockFor('compound', `${cmCurrentLot}_${key}`);
           const lockCls = lockInfo ? ' cm-locked-by-other' : '';
           const extraStyle = `${canDrag?'touch-action:none;':''}${heatStyleVar}`;
-          html += `<div class="cm-spot ${cls}${isFlagged?' cm-flagged':''}${selCls}${heatCls}${lockCls}" data-cm-key="${key}"
+          const noteText = (!cmEditMode && (veh.note || (Array.isArray(veh.notes) && veh.notes.length))) ? cmNoteTooltipText(veh) : '';
+          html += `<div class="cm-spot ${cls}${isFlagged?' cm-flagged':''}${selCls}${heatCls}${lockCls}" data-cm-key="${key}"${noteText?` data-note="${esc(noteText)}"`:''}
             onclick="${cmEditMode?`cmSelectSpot(event,'${key}',${ri},${ci})`:`cmOpenQuickActions('${key}',${ri},${ci})`}"
             ${canDrag?`onpointerdown="cmSpotPointerDown(event,'${key}')" oncontextmenu="return false"`:''}
             ${cmEditMode?`onpointerdown="cmGroupPointerDown(event,'${key}')" oncontextmenu="return false"`:''}
             ${extraStyle?`style="${extraStyle}"`:''}>
             ${cmEditMode ? `<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
-            ${(veh.note || (Array.isArray(veh.notes) && veh.notes.length)) && !cmEditMode ? `<div class="cm-spot-note"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
-            ${!cmEditMode && (isFlagged || veh.needsGas || veh.needsWash || veh.atDealership) ? `<div class="cm-spot-flags">${isFlagged?'<span class="cm-spot-flag" title="Flagged" style="background:#fecaca;color:#7f1d1d">🚩</span>':''}${veh.needsGas?'<span class="cm-spot-flag" title="Needs gas">⛽</span>':''}${veh.needsWash?'<span class="cm-spot-flag" title="Needs wash">🧼</span>':''}${veh.atDealership?'<span class="cm-spot-flag" title="At dealership - needs to return to 323 Bayview" style="background:#fecaca">🏢</span>':''}</div>` : ''}
+            ${noteText ? `<div class="cm-spot-note"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
+            ${!cmEditMode && (isFlagged || veh.needsGas || veh.needsWash || veh.atDealership) ? `<div class="cm-spot-flags">${isFlagged?'<span class="cm-spot-flag" style="background:#fecaca;color:#7f1d1d">🚩</span>':''}${veh.needsGas?'<span class="cm-spot-flag" title="Needs gas">⛽</span>':''}${veh.needsWash?'<span class="cm-spot-flag" title="Needs wash">🧼</span>':''}${veh.atDealership?'<span class="cm-spot-flag" title="At dealership - needs to return to 323 Bayview" style="background:#fecaca">🏢</span>':''}</div>` : ''}
             <div class="cm-spot-num">${ci+1}</div>
             <div class="cm-spot-stock">${stock}</div>
             <div class="cm-spot-desc">${lockInfo ? `🔒 ${lockInfo.lockedBy}` : heatOn ? (ageDays!=null ? `${ageDays}d on lot` : 'no arrival date') : typeLine}</div>
             ${isDupe && !cmEditMode ? `<div class="cm-spot-dupe">⚠ DUPLICATE</div>` : ''}
             ${!heatOn && onTd && !isDupe && !cmEditMode ? `<div class="cm-spot-td">🚗 Out - Test Drive</div>` : ''}
-            ${!heatOn && appt && !onTd && !isDupe && !cmEditMode ? `<div class="cm-spot-appt">${appt.label}</div>` : ''}
-            ${!heatOn && gr && !appt && !onTd && !isDupe && !cmEditMode ? `<div class="cm-spot-gr">${gr.label}</div>` : ''}
+            ${!heatOn && gr && !onTd && !isDupe && !cmEditMode ? `<div class="cm-spot-gr">${gr.label}</div>` : ''}
             ${cmEditMode&&cmSelected.has(key)?'<div style="font-size:10px;color:#f59e0b;font-weight:800;position:absolute;bottom:2px;right:3px">✓</div>':''}
           </div>`;
         }
@@ -7930,6 +8286,7 @@ window.cmSwitchLot = function(id) {
   cmEditMode = false;
   cmSelected.clear();
   cmSearchQuery = '';
+  cmHighlightQuery = '';
   flSelected = null;
   document.getElementById('cm-edit-bar').style.display = 'none';
   document.getElementById('fl-edit-bar').style.display = 'none';
@@ -7944,7 +8301,6 @@ window.cmSwitchLot = function(id) {
   const isFreeform = id === 'bayview323new';
   document.getElementById('cm-grid-zoom').style.display = isFreeform ? 'none' : '';
   document.getElementById('cm-fl-zoom').style.display = isFreeform ? 'flex' : 'none';
-  document.getElementById('cm-stats').style.display = isFreeform ? 'none' : '';
   document.getElementById('cm-qr-btn').style.display = isFreeform ? 'none' : '';
   document.getElementById('cm-edit-btn').style.display = cmCanEditLayout() ? '' : 'none';
   document.getElementById('cm-map-wrap').style.display = isFreeform ? 'none' : '';
@@ -8214,11 +8570,17 @@ window.cmOpenFullEditFromQuick = function() {
   cmSpotClick(key, ri, ci);
 };
 
-// Live spec lookup as a stock # is typed on the Vehicle Locator - if that
-// stock # was already specced elsewhere (e.g. entered at Incoming first),
-// autofill year/trim/type/colour here too. Only fills blank fields - never
-// overwrites something someone's already typed, and only applies when adding
-// a brand-new vehicle to an empty spot, not when editing an existing one.
+// Spec lookup once a stock # is done being typed on the Vehicle Locator (on
+// blur, not on every keystroke) - if that stock # was already specced
+// elsewhere (e.g. entered at Incoming first), autofill year/trim/type/colour
+// here too. Only fills blank fields - never overwrites something someone's
+// already typed, and only applies when adding a brand-new vehicle to an
+// empty spot, not when editing an existing one.
+// On blur rather than oninput because trade-ins routinely share a prefix
+// with the stock # they're replacing (B0681 purchased, trade-in becomes
+// B0681AX) - firing on every keystroke would match B0681's specs the
+// instant that prefix is typed, before the rest of the trade-in's own
+// stock # is even entered.
 window.cmLookupSpecsForSpot = function() {
   const existing = (cmVehicles[cmCurrentLot]||{})[cmActiveKey];
   if (existing && existing.stock) return; // editing an existing vehicle - don't overwrite its specs
@@ -8275,9 +8637,9 @@ window.cmSpotClick = function(key, ri, ci) {
   const hasContent = v && (v.stock || v.status === 'blocked' || v.status === 'void');
   if (hasContent) {
     const isBlocked = v.status === 'blocked';
-    const typeColour = [v.year, v.type, v.trim, v.colour].filter(Boolean).join(' · ');
+    const typeColour = esc([v.year, v.type, v.trim, v.colour].filter(Boolean).join(' · '));
     document.getElementById('cm-spot-current').innerHTML = isBlocked
-      ? `<div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px"><span style="font-size:18px">${(v.blockLabel||'').split(' ')[0]||'🚧'}</span><span style="font-size:13px;font-weight:600;color:#64748b">${v.blockLabel||'Blocked area'}</span></div>`
+      ? `<div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px"><span style="font-size:18px">${esc((v.blockLabel||'').split(' ')[0]||'🚧')}</span><span style="font-size:13px;font-weight:600;color:#64748b">${esc(v.blockLabel||'Blocked area')}</span></div>`
       : `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
             <span style="font-size:17px;font-weight:800;color:var(--ford)">${esc(v.stock||'-')}</span>
@@ -8429,6 +8791,11 @@ window.cmCloseSpot = function() {
 };
 
 let cmSearchQuery = '';
+// What actually gets highlighted - stays pointed at the last real search
+// even after cmSearchQuery is cleared out, so clearing the box doesn't yank
+// the highlight off the vehicle you were just looking at. Only moves when a
+// new (non-empty) search is typed, or the lot is switched.
+let cmHighlightQuery = '';
 let cmElsewhereLot = null; // set when the search only matched a *different* compound
 
 function cmMatchingKeys(lotId, query) {
@@ -8444,19 +8811,31 @@ function cmMatchingKeys(lotId, query) {
 
 function cmApplySearchHighlight() {
   document.querySelectorAll('.cm-spot').forEach(el => el.classList.remove('cm-hi','cm-dim'));
-  cmElsewhereLot = null;
   const elsewhereEl = document.getElementById('cm-search-elsewhere');
-  if (!cmSearchQuery) { if (elsewhereEl) elsewhereEl.style.display = 'none'; return; }
-  const matched = new Set(cmMatchingKeys(cmCurrentLot, cmSearchQuery));
-  document.querySelectorAll('.cm-spot').forEach(el => {
-    const key = el.dataset.cmKey;
-    if (!key) return;
-    el.classList.add(matched.has(key) ? 'cm-hi' : 'cm-dim');
-  });
-  // Not on this compound's board - check the other two before giving up,
-  // so a car parked at a different lot still turns up instead of just
-  // coming back empty.
-  if (matched.size === 0 && elsewhereEl) {
+  if (cmHighlightQuery) {
+    const matched = new Set(cmMatchingKeys(cmCurrentLot, cmHighlightQuery));
+    document.querySelectorAll('.cm-spot').forEach(el => {
+      const key = el.dataset.cmKey;
+      if (!key) return;
+      if (matched.has(key)) el.classList.add('cm-hi');
+      // Dim everything else only while a search is actively being typed
+      // (cmSearchQuery) - not once it's been cleared back out, so clearing
+      // just relaxes the focus back to normal instead of also losing the
+      // vehicle you found.
+      else if (cmSearchQuery) el.classList.add('cm-dim');
+    });
+  }
+  // The "Located elsewhere" pill only makes sense while the search box
+  // actually has text in it - once it's cleared, hide it even though the
+  // highlight itself sticks around.
+  cmElsewhereLot = null;
+  if (!elsewhereEl) return;
+  if (!cmSearchQuery) { elsewhereEl.style.display = 'none'; return; }
+  const matchedHere = cmMatchingKeys(cmCurrentLot, cmSearchQuery);
+  if (matchedHere.length === 0) {
+    // Not on this compound's board - check the other lot before giving up,
+    // so a car parked elsewhere still turns up instead of just coming back
+    // empty.
     const otherLot = Object.keys(CM_LOTS).find(id => id !== cmCurrentLot && cmMatchingKeys(id, cmSearchQuery).length > 0);
     if (otherLot) {
       cmElsewhereLot = otherLot;
@@ -8473,6 +8852,7 @@ window.cmGoToElsewhereMatch = function() {
   const query = cmSearchQuery;
   window.cmSwitchLot(cmElsewhereLot);
   cmSearchQuery = query;
+  cmHighlightQuery = query;
   document.getElementById('cm-search').value = query;
   cmRenderMap(); // re-applies the highlight for the new lot, since cmSwitchLot cleared it
   cmScrollToFirstMatch();
@@ -8482,17 +8862,26 @@ window.cmGoToElsewhereMatch = function() {
 // style. Only called when the user actually types a new search - not from
 // the map's automatic once-a-second re-render, or it'd keep yanking the
 // viewport back even after someone manually scrolled away to look around.
+// Also never called when the search box is cleared out (see cmSearch) - a
+// clear just leaves the map exactly where it is.
 function cmScrollToFirstMatch() {
   const el = document.querySelector('.cm-spot.cm-hi');
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
 }
 
 window.cmSearch = function(q) {
-  // Persisted so the highlight survives the map's automatic re-renders
-  // (it repaints every second to keep appointment/get-ready timers live).
   cmSearchQuery = q.trim().toLowerCase();
-  cmApplySearchHighlight();
-  if (cmSearchQuery) cmScrollToFirstMatch();
+  if (cmSearchQuery) {
+    // Persisted so the highlight survives the map's automatic re-renders
+    // (it repaints every second to keep appointment/get-ready timers live).
+    cmHighlightQuery = cmSearchQuery;
+    cmApplySearchHighlight();
+    cmScrollToFirstMatch();
+  } else {
+    // Cleared - keep whatever was last found highlighted and leave the
+    // viewport alone, instead of losing the vehicle and jumping the map.
+    cmApplySearchHighlight();
+  }
 };
 
 window.cmOpenQR = function() {
@@ -8703,6 +9092,10 @@ let cmHoldEl = null;
 let cmHoldStartX = 0, cmHoldStartY = 0;
 let cmLastX = 0, cmLastY = 0;
 let cmGestureMode = null; // 'holding' | 'scrolling' | 'armed'
+// True while any vehicle-position drag (grid single-spot, grid group, or
+// freeform) is actively in progress - see reloadForUpdateIfSafe, which
+// checks this so a mid-drag auto-update reload can't abort an unsaved move.
+let cmDragBusy = false;
 
 window.cmSpotPointerDown = function(e, key) {
   if (!perm('compoundEdit') || cmEditMode) return;
@@ -8762,6 +9155,7 @@ function cmArmDrag(key) {
   cmDragKey = key;
   cmDragData = veh;
   cmDragEl = cmHoldEl;
+  cmDragBusy = true;
   cmDragEl.style.opacity = '0.4';
   cmDragEl.style.zIndex = '5';
   cmDragEl.classList.add('cm-armed');
@@ -8793,19 +9187,24 @@ async function cmPointerUp(e) {
   const srcData = cmDragData;
   cmDragKey = null; cmDragData = null; cmDragEl = null; cmDragOverEl = null; cmGestureMode = null;
 
-  if (!destKey || destKey === srcKey || !srcData) return;
-  if (!perm('compoundEdit')) return;
+  try {
+    if (!destKey || destKey === srcKey || !srcData) return;
+    if (!perm('compoundEdit')) return;
 
-  const destVeh = (cmVehicles[cmCurrentLot]||{})[destKey];
-  // Single atomic update - both keys written in one call to prevent double-render duplication
-  const updates = {};
-  updates[`compound_v2/${cmCurrentLot}/${destKey}`] = srcData;
-  updates[`compound_v2/${cmCurrentLot}/${srcKey}`] = destVeh || null;
-  await update(ref(db), updates);
-  const desc = destVeh?.stock
-    ? `Swapped ${srcData.stock} (${srcKey}) with ${destVeh.stock} (${destKey})`
-    : `Moved ${srcData.stock} from ${srcKey} to ${destKey}`;
-  logCompoundChange(cmCurrentLot, 'drag', desc);
+    const destVeh = (cmVehicles[cmCurrentLot]||{})[destKey];
+    // Single atomic update - both keys written in one call to prevent double-render duplication
+    const updates = {};
+    updates[`compound_v2/${cmCurrentLot}/${destKey}`] = srcData;
+    updates[`compound_v2/${cmCurrentLot}/${srcKey}`] = destVeh || null;
+    await update(ref(db), updates);
+    const desc = destVeh?.stock
+      ? `Swapped ${srcData.stock} (${srcKey}) with ${destVeh.stock} (${destKey})`
+      : `Moved ${srcData.stock} from ${srcKey} to ${destKey}`;
+    logCompoundChange(cmCurrentLot, 'drag', desc);
+  } finally {
+    cmDragBusy = false;
+    reloadForUpdateIfSafe();
+  }
 }
 
 // ── Group drag (edit mode) - drag any already-selected spot to move every
@@ -8835,6 +9234,7 @@ function cmGroupPointerMove(e) {
     const dx = e.clientX - cmGroupDragStartX, dy = e.clientY - cmGroupDragStartY;
     if (Math.sqrt(dx*dx + dy*dy) < CM_MOVE_CANCEL_PX) return;
     cmGroupDragMoved = true;
+    cmDragBusy = true;
     document.querySelectorAll('.cm-spot.cm-selected').forEach(el => el.classList.add('cm-armed'));
   }
   const el = document.elementFromPoint(e.clientX, e.clientY);
@@ -8849,6 +9249,8 @@ function cmGroupPointerCancel() {
   document.querySelectorAll('.cm-spot.cm-armed').forEach(el => el.classList.remove('cm-armed'));
   if (cmGroupDragOverEl) cmGroupDragOverEl.classList.remove('cm-drag-over');
   cmGroupDragKey = null; cmGroupDragOverEl = null; cmGroupDragMoved = false;
+  cmDragBusy = false;
+  reloadForUpdateIfSafe();
 }
 
 async function cmGroupPointerUp() {
@@ -8861,12 +9263,13 @@ async function cmGroupPointerUp() {
   const destKey = cmGroupDragOverEl ? cmGroupDragOverEl.dataset.cmKey : null;
   const moved = cmGroupDragMoved;
   cmGroupDragKey = null; cmGroupDragOverEl = null; cmGroupDragMoved = false;
-  if (!moved || !destKey || destKey === anchorKey) return; // a plain tap - let the click toggle selection as usual
+  try {
+    if (!moved || !destKey || destKey === anchorKey) return; // a plain tap - let the click toggle selection as usual
 
-  // The click event this same gesture is about to fire on the (now stale)
-  // anchor element must not also toggle its selection - see cmSelectSpot.
-  cmGroupSuppressClick = true;
-  setTimeout(() => { cmGroupSuppressClick = false; }, 0);
+    // The click event this same gesture is about to fire on the (now stale)
+    // anchor element must not also toggle its selection - see cmSelectSpot.
+    cmGroupSuppressClick = true;
+    setTimeout(() => { cmGroupSuppressClick = false; }, 0);
 
   const [, arStr, acStr] = anchorKey.match(/R(\d+)-C(\d+)/);
   const [, drStr, dcStr] = destKey.match(/R(\d+)-C(\d+)/);
@@ -8899,6 +9302,10 @@ async function cmGroupPointerUp() {
   cmSelected = new Set(destKeys.map(d => d.key));
   cmUpdateSelectionUI();
   cmRenderMap();
+  } finally {
+    cmDragBusy = false;
+    reloadForUpdateIfSafe();
+  }
 }
 
 // Fix cmStartListeners - always store data and render regardless of active tab
@@ -8908,7 +9315,6 @@ function cmStartListeners() {
     const meta = snap.val() || {};
     cmGridSize = {
       bayview700:  { rows: meta.bayview700?.rows  || 13, cols: meta.bayview700?.cols  || 52 },
-      bayview323:  { rows: meta.bayview323?.rows  || 10, cols: meta.bayview323?.cols  || 30 },
     };
     // The freeform lot's real-world size in feet - editable (see
     // flUpdatePropertySize) since the property itself can grow, unlike the
@@ -8936,15 +9342,15 @@ function cmStartListeners() {
       cmVehicles['bayview700'] = snap.val();
       if (cmCurrentLot === 'bayview700') cmRender();
       if (document.getElementById('panel-tv')?.classList.contains('active')) renderTVCompoundMap();
+      syncIcMovedFromMap();
+      cmRefreshLocationDependentPanels();
     }
-  });
-  onValue(ref(db, 'compound_v2/bayview323'), snap => {
-    cmVehicles['bayview323'] = snap.val() || {};
-    if (cmCurrentLot === 'bayview323') cmRender();
   });
   onValue(ref(db, 'compound_v2/bayview323new'), snap => {
     cmVehicles['bayview323new'] = snap.val() || {};
     if (cmCurrentLot === 'bayview323new') flRender();
+    syncIcMovedFromMap();
+    cmRefreshLocationDependentPanels();
   });
 }
 
@@ -9076,10 +9482,10 @@ function flRender() {
   if (countEl) countEl.textContent = `${ids.length} item${ids.length!==1?'s':''}`;
   if (flSelected && !v[flSelected]) flSelected = null;
 
-  const { apptMap, grMap, tdMap, stockSpotCounts } = cmBuildOverlayMaps();
+  const { grMap, tdMap, stockSpotCounts } = cmBuildOverlayMaps();
   const ageMap = cmHeatmapMode ? cmBuildAgeMap() : null;
 
-  canvas.innerHTML = ids.map(id => flSpotHtml(id, v[id], { apptMap, grMap, tdMap, stockSpotCounts, ageMap })).join('');
+  canvas.innerHTML = ids.map(id => flSpotHtml(id, v[id], { grMap, tdMap, stockSpotCounts, ageMap })).join('');
   cmApplySearchHighlight();
   flPopulateSidePanel();
 }
@@ -9102,7 +9508,14 @@ function flDesignatedType(label) {
 }
 
 function flSpotHtml(id, veh, maps) {
-  const posStyle = `position:absolute;left:${flFtToPx(veh.x)}px;top:${flFtToPx(veh.y)}px;width:${flFtToPx(veh.w)}px;height:${flFtToPx(veh.h)}px;transform:rotate(${veh.rot||0}deg);`;
+  const rot = veh.rot || 0;
+  // --spot-rot drives both this rotation and the counter-rotation that keeps
+  // the stock number upright (see .cm-spot-stock) and the search highlight's
+  // lift effect (see .cm-spot.cm-hi) in sync with it, from one place. Rotated
+  // spots also need overflow:visible - the counter-rotated stock label no
+  // longer shares the box's own (rotated) footprint, so the box's default
+  // overflow:hidden would otherwise clip it.
+  const posStyle = `position:absolute;left:${flFtToPx(veh.x)}px;top:${flFtToPx(veh.y)}px;width:${flFtToPx(veh.w)}px;height:${flFtToPx(veh.h)}px;--spot-rot:${rot}deg;transform:rotate(var(--spot-rot));${rot ? 'overflow:visible;' : ''}`;
 
   if (veh.kind === 'object' || veh.kind === 'fence') {
     // A building, fence, or other fixture - purely a visual landmark to
@@ -9113,7 +9526,7 @@ function flSpotHtml(id, veh, maps) {
     return `<div class="cm-spot ${kindCls}${selCls}" data-cm-key="${id}"
       style="${posStyle}${cmEditMode?'cursor:pointer;touch-action:none':'cursor:default'}" ${cmEditMode?'oncontextmenu="return false"':''}>
       ${cmEditMode ? `<div class="cm-del-spot" style="display:flex" onclick="event.stopPropagation();flDeleteSpot('${id}')">✕</div>` : ''}
-      <div class="cm-spot-stock">${esc(veh.label||'')}</div>
+      <div class="cm-spot-info"><div class="cm-spot-stock">${esc(veh.label||'')}</div></div>
     </div>`;
   }
 
@@ -9125,7 +9538,7 @@ function flSpotHtml(id, veh, maps) {
     return `<div class="cm-spot ${cmTypeClass(veh.status)}${selCls}" data-cm-key="${id}"
       style="${posStyle}cursor:pointer;touch-action:none" oncontextmenu="return false">
       <div class="cm-del-spot" style="display:flex" onclick="event.stopPropagation();flDeleteSpot('${id}')">✕</div>
-      <div class="cm-spot-stock">${esc(label)}</div>
+      <div class="cm-spot-info"><div class="cm-spot-stock">${esc(label)}</div></div>
     </div>`;
   }
 
@@ -9133,13 +9546,13 @@ function flSpotHtml(id, veh, maps) {
   const isVoid = veh.status === 'void';
   if (!veh.stock && !isBlocked && !isVoid) {
     // An empty physical spot - click to assign a car, same as an empty grid
-    // cell. If its own label designates a zone (e.g. "Wholesale 3"), show
-    // that zone's colour even with nothing parked there yet, so the
-    // designation is visible at a glance before anyone's parked wrong.
-    const zoneType = flDesignatedType(veh.label);
-    const emptyCls = zoneType ? zoneType : 'empty';
-    return `<div class="cm-spot ${emptyCls}" data-cm-key="${id}" style="${posStyle}" onclick="cmSpotClick('${id}',0,0)">
-      <div class="cm-spot-stock" style="opacity:.6;font-weight:600">${esc(veh.label||'')}</div>
+    // cell. Always styled as available (green/thin), same as any other
+    // empty spot, even if its own label designates a zone (e.g. "Wholesale
+    // 3") - whether a car is actually parked here takes priority over what
+    // zone it's in, so an empty spot never reads as occupied. The zone
+    // label itself still shows as text either way.
+    return `<div class="cm-spot empty" data-cm-key="${id}" style="${posStyle}" onclick="cmSpotClick('${id}',0,0)">
+      <div class="cm-spot-info"><div class="cm-spot-stock" style="opacity:.6;font-weight:600">${esc(veh.label||'')}</div></div>
     </div>`;
   }
   if (isVoid) {
@@ -9147,14 +9560,16 @@ function flSpotHtml(id, veh, maps) {
   }
   if (isBlocked) {
     return `<div class="cm-spot blocked" data-cm-key="${id}" style="${posStyle}">
-      <div class="cm-spot-stock">${esc((veh.blockLabel||'').split(' ').slice(0,1).join(' '))}</div>
-      <div class="cm-spot-desc" style="font-size:7px">${esc((veh.blockLabel||'').split(' ').slice(1).join(' '))}</div>
+      <div class="cm-spot-info">
+        <div class="cm-spot-stock">${esc((veh.blockLabel||'').split(' ').slice(0,1).join(' '))}</div>
+        <div class="cm-spot-desc" style="font-size:7px">${esc((veh.blockLabel||'').split(' ').slice(1).join(' '))}</div>
+      </div>
     </div>`;
   }
 
-  const { apptMap, grMap, tdMap, stockSpotCounts, ageMap } = maps;
+  const { grMap, tdMap, stockSpotCounts, ageMap } = maps;
   const stockUpper = (veh.stock||'').toUpperCase().trim();
-  const appt = apptMap[stockUpper], gr = grMap[stockUpper], onTd = tdMap[stockUpper];
+  const gr = grMap[stockUpper], onTd = tdMap[stockUpper];
   const isDupe = (stockSpotCounts[stockUpper]||0) > 1;
   const isFlagged = cmIsFlagged(veh);
   // "Incorrect parking" - the spot's own label designates a zone (e.g.
@@ -9164,8 +9579,12 @@ function flSpotHtml(id, veh, maps) {
   // an actual duplicate (a real data error, ranked worse than a car just
   // being in the wrong row).
   const zoneType = flDesignatedType(veh.label);
-  const isMismatch = zoneType && zoneType !== cmTypeClass(veh.status);
-  const cls = isDupe ? 'cm-duplicate' : isMismatch ? 'cm-mismatch' : onTd ? 'ontestdrive' : appt ? 'appointed' : gr ? 'getready' : cmTypeClass(veh.status);
+  const actualType = cmTypeClass(veh.status);
+  // Lease returns routinely get parked in the wholesale zone (that's where
+  // most of them end up disposed of anyway) - a real, allowed combination,
+  // not a parking error, so it's exempted from the mismatch flag.
+  const isMismatch = zoneType && zoneType !== actualType && !(zoneType === 'wholesale' && actualType === 'leasereturn');
+  const cls = isDupe ? 'cm-duplicate' : isMismatch ? 'cm-mismatch' : onTd ? 'ontestdrive' : gr ? 'getready' : actualType;
   const ageDays = ageMap ? ageMap[stockUpper] : null;
   const heatOn = cmHeatmapMode && !isDupe && !isMismatch;
   const heatCls = heatOn ? ' cm-heatmap-active' : '';
@@ -9176,16 +9595,18 @@ function flSpotHtml(id, veh, maps) {
   const typeLine = [veh.year, veh.type, veh.trim, veh.colour].filter(Boolean).join(' ').substring(0,18);
   const CM_TYPE_LABELS = { new:'New', used:'Used', wholesale:'Wholesale', fleet:'Fleet', leasereturn:'Lease Return' };
 
-  return `<div class="cm-spot ${cls}${isFlagged?' cm-flagged':''}${heatCls}${lockCls}" data-cm-key="${id}"
-    style="${posStyle}${heatStyleVar}" onclick="cmOpenQuickActions('${id}',0,0)" ${isMismatch?`title="⚠ Wrong spot - this is a ${CM_TYPE_LABELS[zoneType]||zoneType} spot but ${esc(veh.stock)} is ${CM_TYPE_LABELS[cmTypeClass(veh.status)]||cmTypeClass(veh.status)}"`:''}>
-    ${(veh.note || (Array.isArray(veh.notes) && veh.notes.length)) ? `<div class="cm-spot-note"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
-    ${(isFlagged || veh.needsGas || veh.needsWash || veh.atDealership) ? `<div class="cm-spot-flags">${isFlagged?'<span class="cm-spot-flag" title="Flagged" style="background:#fecaca;color:#7f1d1d">🚩</span>':''}${veh.needsGas?'<span class="cm-spot-flag" title="Needs gas">⛽</span>':''}${veh.needsWash?'<span class="cm-spot-flag" title="Needs wash">🧼</span>':''}${veh.atDealership?'<span class="cm-spot-flag" title="At dealership - needs to return to 323 Bayview" style="background:#fecaca">🏢</span>':''}</div>` : ''}
-    <div class="cm-spot-stock">${esc(stock)}</div>
-    <div class="cm-spot-desc">${lockInfo ? `🔒 ${esc(lockInfo.lockedBy)}` : heatOn ? (ageDays!=null ? `${ageDays}d on lot` : 'no arrival date') : isMismatch ? `Should be ${esc(veh.label)}` : esc(typeLine)}</div>
-    ${isDupe ? '<div class="cm-spot-dupe">⚠ DUPLICATE</div>' : isMismatch ? '<div class="cm-spot-dupe">⚠ WRONG SPOT</div>' : ''}
-    ${!heatOn && onTd && !isDupe && !isMismatch ? '<div class="cm-spot-td">🚗 Out - Test Drive</div>' : ''}
-    ${!heatOn && appt && !onTd && !isDupe && !isMismatch ? `<div class="cm-spot-appt">${appt.label}</div>` : ''}
-    ${!heatOn && gr && !appt && !onTd && !isDupe && !isMismatch ? `<div class="cm-spot-gr">${gr.label}</div>` : ''}
+  const noteText = (veh.note || (Array.isArray(veh.notes) && veh.notes.length)) ? cmNoteTooltipText(veh) : '';
+  return `<div class="cm-spot ${cls}${isFlagged?' cm-flagged':''}${heatCls}${lockCls}" data-cm-key="${id}"${noteText?` data-note="${esc(noteText)}"`:''}
+    style="${posStyle}${heatStyleVar}" onclick="cmOpenQuickActions('${id}',0,0)" ${isMismatch?`title="⚠ Wrong spot - this is a ${CM_TYPE_LABELS[zoneType]||zoneType} spot but ${esc(veh.stock)} is ${CM_TYPE_LABELS[actualType]||actualType}"`:''}>
+    ${noteText ? `<div class="cm-spot-note"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
+    ${(isFlagged || veh.needsGas || veh.needsWash || veh.atDealership) ? `<div class="cm-spot-flags">${isFlagged?'<span class="cm-spot-flag" style="background:#fecaca;color:#7f1d1d">🚩</span>':''}${veh.needsGas?'<span class="cm-spot-flag" title="Needs gas">⛽</span>':''}${veh.needsWash?'<span class="cm-spot-flag" title="Needs wash">🧼</span>':''}${veh.atDealership?'<span class="cm-spot-flag" title="At dealership - needs to return to 323 Bayview" style="background:#fecaca">🏢</span>':''}</div>` : ''}
+    <div class="cm-spot-info">
+      <div class="cm-spot-stock">${esc(stock)}</div>
+      <div class="cm-spot-desc">${lockInfo ? `🔒 ${esc(lockInfo.lockedBy)}` : heatOn ? (ageDays!=null ? `${ageDays}d on lot` : 'no arrival date') : isMismatch ? `Should be ${esc(veh.label)}` : esc(typeLine)}</div>
+      ${isDupe ? '<div class="cm-spot-dupe">⚠ DUPLICATE</div>' : isMismatch ? '<div class="cm-spot-dupe">⚠ WRONG SPOT</div>' : ''}
+      ${!heatOn && onTd && !isDupe && !isMismatch ? '<div class="cm-spot-td">🚗 Out - Test Drive</div>' : ''}
+      ${!heatOn && gr && !onTd && !isDupe && !isMismatch ? `<div class="cm-spot-gr">${gr.label}</div>` : ''}
+    </div>
   </div>`;
 }
 
@@ -9201,7 +9622,9 @@ function flPatchSpotElement(id) {
   if (!el || !s) return;
   el.style.left = flFtToPx(s.x)+'px'; el.style.top = flFtToPx(s.y)+'px';
   el.style.width = flFtToPx(s.w)+'px'; el.style.height = flFtToPx(s.h)+'px';
-  el.style.transform = `rotate(${s.rot||0}deg)`;
+  el.style.setProperty('--spot-rot', `${s.rot||0}deg`);
+  el.style.transform = `rotate(var(--spot-rot))`;
+  el.style.overflow = (s.rot||0) ? 'visible' : '';
   const stockEl = el.querySelector('.cm-spot-stock');
   if (stockEl) stockEl.textContent = s.stock || s.label || '';
 }
@@ -9369,6 +9792,7 @@ window.flDeleteSelected = function() {
     const startSpot = (cmVehicles[FL_LOT]||{})[id];
     if (!startSpot) return;
     e.preventDefault();
+    cmDragBusy = true;
     const startX = e.clientX, startY = e.clientY;
     let moved = false;
     spotEl.setPointerCapture(e.pointerId);
@@ -9386,13 +9810,22 @@ window.flDeleteSelected = function() {
     };
     const onUp = async () => {
       spotEl.removeEventListener('pointermove', onMove);
-      if (moved) {
-        await update(ref(db, `compound_v2/${FL_LOT}/${id}`), { x: cmVehicles[FL_LOT][id].x, y: cmVehicles[FL_LOT][id].y });
-        flPopulateSidePanel();
+      try {
+        if (moved) {
+          await update(ref(db, `compound_v2/${FL_LOT}/${id}`), { x: cmVehicles[FL_LOT][id].x, y: cmVehicles[FL_LOT][id].y });
+          flPopulateSidePanel();
+        }
+      } finally {
+        cmDragBusy = false;
+        reloadForUpdateIfSafe();
       }
     };
     spotEl.addEventListener('pointermove', onMove);
     spotEl.addEventListener('pointerup', onUp, { once: true });
+    // Also needed on cancel (e.g. a touch gesture interrupted mid-drag) -
+    // without it, cmDragBusy would stay stuck true forever since onUp would
+    // never otherwise run, permanently blocking the auto-update reload.
+    spotEl.addEventListener('pointercancel', onUp, { once: true });
   });
 })();
 
@@ -9553,7 +9986,7 @@ function auditRenderHistory() {
       return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <div>
           <div style="font-size:14px;font-weight:700">${lots}</div>
-          <div style="font-size:12px;color:var(--text-muted)">${dt} · by ${a.completedBy}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${dt} · by ${esc(a.completedBy)}</div>
         </div>
         <div style="display:flex;gap:14px;margin-left:auto">
           <div style="text-align:center"><div style="font-size:18px;font-weight:800;color:#15803d">${confirmed}</div><div style="font-size:10px;color:var(--text-faint);text-transform:uppercase">Confirmed</div></div>
@@ -9570,7 +10003,7 @@ window.auditOpenStart = function() {
 };
 
 window.auditStart = async function() {
-  const lots = ['bayview700','bayview323'].filter(id => document.getElementById(`audit-lot-${id}`)?.checked);
+  const lots = ['bayview700'].filter(id => document.getElementById(`audit-lot-${id}`)?.checked);
   if (!lots.length) { alert('Select at least one lot.'); return; }
 
   const requirements = {
@@ -9616,7 +10049,7 @@ window.auditOpenConfirm = function(key, spotKey, lotId) {
   document.getElementById('audit-confirm-vehicle').innerHTML = `
     <div style="display:flex;align-items:center;gap:10px">
       <div style="font-size:20px;font-weight:800;color:var(--ford)">${esc(veh?.stock||'-')}</div>
-      <div style="font-size:13px;color:var(--text-muted)">${[veh?.year,veh?.type,veh?.trim,veh?.colour].filter(Boolean).join(' ')}</div>
+      <div style="font-size:13px;color:var(--text-muted)">${esc([veh?.year,veh?.type,veh?.trim,veh?.colour].filter(Boolean).join(' '))}</div>
     </div>
     ${result?.status ? `<div style="margin-top:8px;font-size:12px;color:${result.status==='confirmed'?'#15803d':'#dc2626'};font-weight:600">${result.status==='confirmed'?'✓ Already confirmed':'⚠ Flagged as issue'}${result.note?` · ${esc(result.note)}`:''}</div>` : ''}`;
 
@@ -9676,17 +10109,22 @@ window.auditCancel = async function() {
 // close at all - both end up running whatever JS was in memory at the last
 // page load. A stale sign-in flow (or any other now-fixed bug) then sits
 // there broken until someone happens to hard-refresh. Instead, periodically
-// fetch this same page bypassing every cache layer and compare the
-// "app-build" marker baked into it against what's actually running here; a
-// mismatch means a newer version has shipped, so reload to pick it up.
+// check a tiny standalone version file (a few bytes) bypassing every cache
+// layer, and compare it against the build baked into this page; a mismatch
+// means a newer version has shipped, so reload to pick it up.
+//
+// This used to re-fetch the *entire page* every 3 minutes from every open
+// tab (and every always-on TV kiosk) just to peek at one meta tag - almost
+// all of that download was thrown away unread. app-build.txt is the actual
+// full page's cost avoided on every check that finds nothing new, which is
+// the vast majority of them.
 const APP_BUILD = document.querySelector('meta[name="app-build"]')?.content || '';
 let appUpdatePending = false;
 async function checkForAppUpdate() {
   try {
-    const res = await fetch(location.pathname + '?_v=' + Date.now(), { cache: 'no-store' });
-    const text = await res.text();
-    const m = /<meta name="app-build" content="([^"]+)"/.exec(text);
-    if (m && m[1] && m[1] !== APP_BUILD) {
+    const res = await fetch('/app-build.txt?_v=' + Date.now(), { cache: 'no-store' });
+    const build = (await res.text()).trim();
+    if (build && build !== APP_BUILD) {
       appUpdatePending = true;
       reloadForUpdateIfSafe();
     }
@@ -9713,6 +10151,13 @@ function reloadForUpdateIfSafe() {
   // staff only get reloaded once no modal is open, so an in-progress edit is
   // never yanked out from under them.
   if (!isDisplay && modalOpen) return;
+  // Same idea for an in-progress vehicle drag on the Vehicle Locator map
+  // (grid or freeform) - it isn't a modal, but the MutationObserver below
+  // re-runs this check on every style-attribute change, and a drag updates
+  // the spot's position style on every pointermove. Without this, the very
+  // next pixel of movement after a deploy ships would yank the page out from
+  // under whoever's mid-drag, aborting the move before it's saved.
+  if (cmDragBusy) return;
   const url = new URL(location.href);
   url.searchParams.set('_v', Date.now());
   location.href = url.toString();
