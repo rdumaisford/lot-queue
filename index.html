@@ -2087,10 +2087,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <div class="modal-form-row" style="margin-bottom:10px"><label>Get Ready notification email</label><input id="email-gr-address" type="email" placeholder="getready@yourdealership.com" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
           <div class="modal-form-row" style="margin-bottom:10px"><label>Incoming daily digest email</label><input id="email-inc-address" type="email" placeholder="incoming@yourdealership.com" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
           <div class="modal-form-row" style="margin-bottom:10px"><label>Digest send time</label><input id="email-digest-time" type="time" value="18:00" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/></div>
-          <div class="modal-form-row" style="margin-bottom:14px">
+          <div class="modal-form-row" style="margin-bottom:10px">
             <label>Drop batch emails <span style="font-weight:400;color:var(--text-faint)">(comma-separated)</span></label>
             <input id="email-drop-addresses" type="text" placeholder="salesmanagers@yourdealership.com, manager@yourdealership.com" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/>
-            <div style="font-size:11px;color:var(--text-faint);margin-top:4px">One email per truckload of new arrivals ("Incoming Vehicle Batch #N") instead of one per vehicle - sent once the tracker's gone quiet for a few minutes after the last one added.</div>
+            <div style="font-size:11px;color:var(--text-faint);margin-top:4px">One email per truckload of new arrivals ("Incoming Vehicle Batch #N") instead of one per vehicle.</div>
+          </div>
+          <div class="modal-form-row" style="margin-bottom:14px">
+            <label>Drop batch send interval <span style="font-weight:400;color:var(--text-faint)">(minutes of no new arrivals)</span></label>
+            <input id="email-drop-interval" type="number" min="1" max="120" value="15" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/>
+            <div style="font-size:11px;color:var(--text-faint);margin-top:4px">How long the tracker has to go quiet after the last new unit before that batch is considered done and gets emailed.</div>
           </div>
           <div style="display:flex;gap:8px">
             <button onclick="saveEmailSettings()" style="flex:1;padding:11px;border:none;border-radius:var(--radius-sm);background:var(--ford);color:#fff;font-size:14px;font-weight:700;cursor:pointer">Save</button>
@@ -3231,11 +3236,13 @@ function startApp() {
 
     emailSettings = s.email || {};
     const eGrAddr=document.getElementById('email-gr-address'), eIncAddr=document.getElementById('email-inc-address'),
-          eDigestTime=document.getElementById('email-digest-time'), eDropAddr=document.getElementById('email-drop-addresses');
+          eDigestTime=document.getElementById('email-digest-time'), eDropAddr=document.getElementById('email-drop-addresses'),
+          eDropInterval=document.getElementById('email-drop-interval');
     if (eGrAddr && !eGrAddr.matches(':focus')) eGrAddr.value = emailSettings.grAddress || '';
     if (eIncAddr && !eIncAddr.matches(':focus')) eIncAddr.value = emailSettings.incAddress || '';
     if (eDigestTime && !eDigestTime.matches(':focus')) eDigestTime.value = emailSettings.digestTime || '18:00';
     if (eDropAddr && !eDropAddr.matches(':focus')) eDropAddr.value = emailSettings.dropAddresses || '';
+    if (eDropInterval && !eDropInterval.matches(':focus')) eDropInterval.value = emailSettings.dropIntervalMin || 15;
 
     // System-wide alert - banner persists for everyone until management
     // clears it; the popup fires once per browser per distinct alert
@@ -7058,6 +7065,7 @@ window.saveEmailSettings = async function() {
     incAddress: document.getElementById('email-inc-address').value.trim(),
     digestTime: document.getElementById('email-digest-time').value.trim() || '18:00',
     dropAddresses: document.getElementById('email-drop-addresses').value.trim(),
+    dropIntervalMin: Math.min(120, Math.max(1, Number(document.getElementById('email-drop-interval').value) || 15)),
   };
   try {
     await update(ref(db,'settings'), { email: settings });
@@ -7246,39 +7254,41 @@ async function checkAndSendDailyDigest() {
   } catch(e) { console.error('Daily digest failed:', e); }
 }
 
-// How long the tracker has to go quiet (no new units) before a batch is
-// considered "done" and gets emailed - long enough that a truckload entered
-// over several minutes lands in one email, short enough management sees it
-// same-day, close to real time.
-const DROP_BATCH_QUIET_MS = 15 * 60 * 1000;
-
 // Runs on the same 60s poll as the daily digest (see setInterval below).
 // Each new unit is stamped dropEmailed:false at creation (saveUnit above);
-// once the most recently added still-unsent unit has sat quiet for
-// DROP_BATCH_QUIET_MS with nothing newer arriving, whatever's still unsent
-// is considered one finished "drop" and goes out as a single email - a
-// truckload entered over 10 minutes is one email, not one per vehicle.
+// once the most recently added still-unsent unit has sat quiet for the
+// configured interval (emailSettings.dropIntervalMin, editable in Settings -
+// default 15) with nothing newer arriving, whatever's still unsent is
+// considered one finished "drop" and goes out as a single email - a
+// truckload entered over several minutes is one email, not one per vehicle.
 async function checkAndSendDropBatch() {
   const dropEmails = (emailSettings.dropAddresses||'').split(',').map(a=>a.trim()).filter(Boolean);
   if (!dropEmails.length) return; // not configured
 
+  const quietMs = (emailSettings.dropIntervalMin || 15) * 60 * 1000;
   const pending = Object.entries(units||{}).filter(([,u]) => u.dropEmailed === false);
   if (!pending.length) return;
   const latestTs = Math.max(...pending.map(([,u]) => u.ts||0));
-  if (Date.now() - latestTs < DROP_BATCH_QUIET_MS) return; // still might be mid-drop - wait for it to go quiet
+  if (Date.now() - latestTs < quietMs) return; // still might be mid-drop - wait for it to go quiet
 
   const dateStr = new Date().toISOString().slice(0,10);
+  const LOCK_STALE_MS = 2 * 60 * 1000; // only guards against two open tabs sending at once - see note below
+  let locked = false;
   try {
-    // Atomically claims this batch (so only one open session actually sends
-    // it) and hands out the next sequential batch number for today, in one
-    // transaction - same idea as dailyDigestSent's claim, but also counting.
-    const result = await runTransaction(ref(db, 'dropBatch/'+dateStr), curr => {
-      const claimedThrough = curr?.claimedThrough || 0;
-      if (claimedThrough >= latestTs) return; // abort - already claimed through this point
-      return { claimedThrough: latestTs, count: (curr?.count||0) + 1 };
+    // A short-lived lock, not a permanent claim - just enough to stop two
+    // open tabs sending the same batch at once. Deliberately NOT a
+    // watermark that advances before the send is known to have worked: an
+    // earlier version advanced it up front, so a failed send (bad Resend
+    // domain, network blip) left the batch permanently un-retryable even
+    // though its units were never marked sent. The lock clears itself
+    // (below, on both success and failure) so a real failure gets retried
+    // on the very next 60s pass instead of waiting out the stale window.
+    const lockResult = await runTransaction(ref(db, 'dropBatch/'+dateStr+'/lock'), curr => {
+      if (curr && Date.now() - curr < LOCK_STALE_MS) return; // someone else is actively sending this
+      return Date.now();
     });
-    if (!result.committed) return;
-    const batchNum = result.snapshot.val().count;
+    if (!lockResult.committed) return;
+    locked = true;
 
     const batch = pending.filter(([,u]) => (u.ts||0) <= latestTs);
     // Same fields/shape as the "Today's Drops" print report - the Cloud
@@ -7288,6 +7298,11 @@ async function checkAndSendDropBatch() {
       arrived: u.arrived, stock: u.stock, vin: u.vin, vehicle: u.vehicle, kms: u.kms,
       status: u.status, workReq: u.workReq, accessories: u.accessories, pdi: u.pdi, notes: u.notes,
     }));
+    // Next sequential batch number for today - a plain read is safe here
+    // (not a transaction) since the lock above already makes this section
+    // exclusive for the day.
+    const countSnap = await get(ref(db,'dropBatch/'+dateStr+'/count'));
+    const batchNum = (countSnap.val()||0) + 1;
     const now = new Date();
     const dy = now.getDate();
     const suffix = dy===1||dy===21||dy===31?'st':dy===2||dy===22?'nd':dy===3||dy===23?'rd':'th';
@@ -7301,10 +7316,18 @@ async function checkAndSendDropBatch() {
     });
     if (ok) {
       const patch = {};
-      batch.forEach(([id]) => { patch[id+'/dropEmailed'] = true; });
-      await update(ref(db,'tracker'), patch);
+      patch['dropBatch/'+dateStr+'/count'] = batchNum;
+      patch['dropBatch/'+dateStr+'/lock'] = null;
+      batch.forEach(([id]) => { patch['tracker/'+id+'/dropEmailed'] = true; });
+      await update(ref(db), patch);
+      locked = false;
     }
   } catch(e) { console.error('Drop batch email failed:', e); }
+  finally {
+    // Send failed (or threw) - release the lock now rather than making the
+    // next attempt wait out LOCK_STALE_MS for no reason.
+    if (locked) update(ref(db,'dropBatch/'+dateStr), { lock: null }).catch(()=>{});
+  }
 }
 
 window.clearAllTrackerUnits = async function() {
