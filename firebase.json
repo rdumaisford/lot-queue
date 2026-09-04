@@ -7,7 +7,9 @@
       "**/node_modules/**",
       "README.md",
       "CNAME",
-      "deploy.sh"
+      "deploy.sh",
+      "functions/**",
+      "firebase/**"
     ]
   },
   "database": {
