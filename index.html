@@ -2512,6 +2512,16 @@ function esc(val) {
   return String(val ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// esc() alone doesn't stop a javascript:/data: URL from running when used
+// as an href - it only escapes HTML metacharacters, not the URL scheme.
+// pdfUrl is normally always a real Firebase Storage download URL (set via
+// getDownloadURL() after an actual upload), but nothing in the database
+// rules constrains its contents against direct DB access, so this is
+// checked explicitly before ever rendering it as a clickable link.
+function isSafeHttpsUrl(val) {
+  try { return new URL(val).protocol === 'https:'; } catch(e) { return false; }
+}
+
 // ── State ─────────────────────────────────────────────
 let entries = {}, historyData = {}, units = {}, getReadyDeals = {}, hitchhikers = {}, testDrives = {}, compoundHistoryData = {};
 let announcements = {}, annSelectedId = null, annVisibleCount = 8, editingAnnId = null;
@@ -3881,7 +3891,7 @@ window.ridesCheckStockLocation = function() {
   });
   resultEl.style.display = 'block';
   if (!foundLot) {
-    resultEl.innerHTML = `<span style="color:#991b1b">⚠ Can't find "${stock}" anywhere on the Vehicle Locator map - double check the stock # and that it's actually placed on the map.</span>`;
+    resultEl.innerHTML = `<span style="color:#991b1b">⚠ Can't find "${esc(stock)}" anywhere on the Vehicle Locator map - double check the stock # and that it's actually placed on the map.</span>`;
     ridesRenderDirectionPickers();
     return;
   }
@@ -4183,7 +4193,7 @@ function renderRidesQueueAppointments() {
       <div style="flex:1">
         <div class="entry-stock">📅 ${esc(a.stock)} → ${esc(a.department)}</div>
         ${timeLabel?`<div style="font-size:12px;font-weight:700;color:#c2410c;margin-bottom:3px">${timeLabel}</div>`:''}
-        <div class="entry-meta" style="margin-bottom:5px">Requested by ${esc(a.requestedBy)}${a.currentLocation?' · 📍 '+a.currentLocation:''}</div>
+        <div class="entry-meta" style="margin-bottom:5px">Requested by ${esc(a.requestedBy)}${a.currentLocation?' · 📍 '+esc(a.currentLocation):''}</div>
         <div style="font-size:13px;font-weight:700;color:#1d4ed8">${stageLabel}</div>
         ${a.notes?`<div class="entry-notes">${esc(a.notes)}</div>`:''}
       </div>
@@ -4225,7 +4235,7 @@ function renderRidesQueuePickups() {
         <div class="entry-meta" style="margin-bottom:5px">${r.pickup} → ${r.dropoff} · Requested by ${esc(r.requestedBy)}</div>
         <div style="font-size:13px;font-weight:700;color:#1d4ed8">${stageLabel}</div>
         ${r.notes?`<div class="entry-notes">${esc(r.notes)}</div>`:''}
-        ${r.status==='pending' && r.droppedBy ? `<div style="font-size:12px;color:#991b1b;margin-top:2px">⚠️ Dropped by ${r.droppedBy}: "${r.dropReason}"</div>` : ''}
+        ${r.status==='pending' && r.droppedBy ? `<div style="font-size:12px;color:#991b1b;margin-top:2px">⚠️ Dropped by ${esc(r.droppedBy)}: "${esc(r.dropReason)}"</div>` : ''}
       </div>
       <div class="entry-actions">${action}<div class="entry-time">${timeAgo(r.ts)}</div></div>
     </div>`;
@@ -4255,7 +4265,7 @@ function renderMyActiveRide() {
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">${mine.pickup} → ${mine.dropoff}</div>
       ${mine.notes?`<div class="entry-notes" style="margin-bottom:14px">${esc(mine.notes)}</div>`:''}
       <div style="display:flex;margin-bottom:14px">${stepperHTML}</div>
-      ${mine.status === 'pending' && mine.droppedBy ? `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:10px 12px;margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:#991b1b;margin-bottom:2px">⚠️ ${mine.droppedBy} had to drop this ride</div><div style="font-size:12px;color:#7f1d1d">"${mine.dropReason}" - waiting for another driver to pick it up</div></div>` : ''}
+      ${mine.status === 'pending' && mine.droppedBy ? `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:10px 12px;margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:#991b1b;margin-bottom:2px">⚠️ ${esc(mine.droppedBy)} had to drop this ride</div><div style="font-size:12px;color:#7f1d1d">"${esc(mine.dropReason)}" - waiting for another driver to pick it up</div></div>` : ''}
       ${mine.claimedBy ? `<div style="font-size:13px;color:#1d4ed8;font-weight:700;margin-bottom:4px">🚐 Driver: ${esc(mine.claimedBy)}</div>` : ''}
       ${mine.etaMins && (Date.now()-mine.etaTs) < 5*60*1000 ? `<div style="font-size:13px;color:#15803d;font-weight:700;margin-bottom:10px">🕐 ~${mine.etaMins} min away</div>` : ''}
       ${mine.status === 'pending' ? `<button onclick="cancelRide('${mine.id}')" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:#991b1b;font-size:13px;cursor:pointer">Cancel Request</button>` : ''}
@@ -4374,7 +4384,7 @@ function renderDriverQueue() {
   };
 
   const otherCard = r => `<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:11px 14px;margin-bottom:8px;opacity:.7">
-      <div style="font-size:14px;font-weight:700">${r.type==='vehicle'?'🚗 '+r.stock:'🙋 Hitchhiker'} · ${r.pickup} → ${r.dropoff}</div>
+      <div style="font-size:14px;font-weight:700">${r.type==='vehicle'?'🚗 '+esc(r.stock):'🙋 Hitchhiker'} · ${esc(r.pickup)} → ${esc(r.dropoff)}</div>
       <div style="font-size:12px;color:rgba(255,255,255,.6)">🚐 ${esc(r.claimedBy)}</div>
     </div>`;
 
@@ -4939,7 +4949,7 @@ function renderTVCompoundMap() {
         else if (st === 'used')       bg = '#64748b';      // slate
         else                          bg = '#3b82f6';      // blue - new (and legacy fallback)
       }
-      html += `<div style="width:${cellSize}px;height:${cellSize}px;flex-shrink:0;background:${bg};border-radius:1px" title="${veh?veh.stock:''}"></div>`;
+      html += `<div style="width:${cellSize}px;height:${cellSize}px;flex-shrink:0;background:${bg};border-radius:1px" title="${veh?esc(veh.stock):''}"></div>`;
     }
     html += `</div>`;
   }
@@ -5457,7 +5467,7 @@ function renderTracker() {
           ${condBadge}${dupeBadge}
         </div>
         <div class="tracker-card-vin">${vinWithCopy(u.vin)}</div>
-        <div class="tracker-card-vehicle">${u.vehicle||[u.year,u.type,u.trim,u.colour].filter(Boolean).join(' · ')||''}</div>
+        <div class="tracker-card-vehicle">${esc(u.vehicle||[u.year,u.type,u.trim,u.colour].filter(Boolean).join(' · ')||'')}</div>
         ${stickerBtn||locBadge?`<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">${stickerBtn}${locBadge}</div>`:''}
       </div>
       <div class="tracker-card-checks">
@@ -5481,7 +5491,7 @@ function renderTracker() {
         </select>`:tStatusPill(u.status)}
         ${u.arrived?`<span style="font-size:12px;color:var(--text-faint)">${u.arrived}</span>`:''}
         ${u.kms?`<span style="font-size:12px;color:var(--text-faint)">${u.kms} km</span>`:''}
-        ${u.workReq?`<span style="font-size:12px;font-family:monospace;color:var(--text-faint)" title="Keypad Code">🔑 ${u.workReq}</span>`:''}
+        ${u.workReq?`<span style="font-size:12px;font-family:monospace;color:var(--text-faint)" title="Keypad Code">🔑 ${esc(u.workReq)}</span>`:''}
       </div>
       ${u.ts?`<div style="font-size:11px;color:var(--text-faint);padding:0 16px 8px">Added ${timeAgo(u.ts)} by ${esc(u.createdBy||u.updatedBy||'Unknown')}</div>`:''}
       <div class="tracker-card-notes">
@@ -6340,7 +6350,7 @@ function renderGRCard(d, perms, isDupe) {
         ${d.customer?`<div class="gr-card-customer">${esc(d.customer)}${d.salesperson?' · '+esc(d.salesperson):''}</div>`:''}
         ${(d.phone||d.email)?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">${d.phone?'📞 '+esc(d.phone):''}${d.phone&&d.email?' · ':''}${d.email?'✉️ '+esc(d.email):''}</div>`:''}
         ${financingLabel?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">💳 ${financingLabel}</div>`:''}
-        ${d.pdfUrl?`<div style="margin-top:4px"><a href="${esc(d.pdfUrl)}" target="_blank" rel="noopener" style="font-size:11px;font-weight:600;color:var(--ford);text-decoration:none">📄 ${esc(d.pdfFileName||'Get Ready sheet')}</a></div>`:''}
+        ${d.pdfUrl&&isSafeHttpsUrl(d.pdfUrl)?`<div style="margin-top:4px"><a href="${esc(d.pdfUrl)}" target="_blank" rel="noopener" style="font-size:11px;font-weight:600;color:var(--ford);text-decoration:none">📄 ${esc(d.pdfFileName||'Get Ready sheet')}</a></div>`:''}
         ${d.needsAcknowledgment?`<div style="font-size:11px;color:#7c3aed;font-weight:700;margin-top:4px">🔶 Updated by ${esc(d.updatedFieldsBy||'someone')} - delivery, gas, or trade-in info changed</div>`:''}
       </div>
       ${gasBanner}
@@ -6376,7 +6386,7 @@ function renderGRCard(d, perms, isDupe) {
             <span style="font-size:9px;font-weight:700;color:#7c3aed;text-transform:uppercase">${({RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'})[t.category]||'Retail'}</span>
             ${t.kms?`<span style="font-size:11px;color:var(--text-faint);margin-left:auto">${Number(t.kms).toLocaleString()} km</span>`:''}
           </div>
-          <div style="font-size:11px;color:var(--text-muted)">${[t.year,t.make,t.model,t.colour].filter(Boolean).join(' · ')}${t.vin?` · ${esc(t.vin)}`:''}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${esc([t.year,t.make,t.model,t.colour].filter(Boolean).join(' · '))}${t.vin?` · ${esc(t.vin)}`:''}</div>
         </div>`).join('')}
       </div>` : ''}
       ${(d.customFields||[]).filter(f=>f.label).length ? `
@@ -6387,10 +6397,10 @@ function renderGRCard(d, perms, isDupe) {
             <div class="gr-tap ${f.done?'on':''}" onclick="${canFull?`grToggleCustom('${d.id}',${i},${!f.done})`:''}">
               <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
-            <span style="font-size:13px;color:var(--text);${f.done?'text-decoration:line-through;opacity:.5':''}">${f.label}</span>
+            <span style="font-size:13px;color:var(--text);${f.done?'text-decoration:line-through;opacity:.5':''}">${esc(f.label)}</span>
           </div>`).join('')}
       </div>` : ''}
-      ${d.instructions?`<div style="padding:8px 16px;font-size:12px;color:#92400e;background:#fffbeb;border-bottom:1px solid var(--border)">⚠ ${d.instructions}</div>`:''}
+      ${d.instructions?`<div style="padding:8px 16px;font-size:12px;color:#92400e;background:#fffbeb;border-bottom:1px solid var(--border)">⚠ ${esc(d.instructions)}</div>`:''}
       <div class="gr-notes">
         <textarea placeholder="Add notes…" ${canFull?'':'readonly'} onchange="grNotes('${d.id}',this.value)" onblur="grNotes('${d.id}',this.value)">${esc(d.notes||'')}</textarea>
       </div>
@@ -7543,7 +7553,7 @@ window.printTodaysDrops = function() {
           u.status==='SOLD'?'#15803d':u.status==='TURNOVER'?'#92400e':'#1d4ed8'
         }">${u.status||'-'}</span>
       </td>
-      <td style="font-family:monospace;font-size:10px;color:#64748b">${u.workReq||'-'}</td>
+      <td style="font-family:monospace;font-size:10px;color:#64748b">${esc(u.workReq||'-')}</td>
       <td style="text-align:center">${ck(u.accessories)}</td>
       <td style="text-align:center">${ck(u.pdi)}</td>
       <td style="max-width:160px;font-size:10px;color:#475569">${esc(u.notes||'')}</td>
@@ -8244,8 +8254,8 @@ function cmRenderMap() {
           ${sel?'<div style="font-size:10px;color:#f59e0b;font-weight:800">✓</div>':'<div style="font-size:14px;color:#cbd5e1;margin-top:2px">+</div>'}
         </div>`;
       } else {
-        const stock = (veh.stock||'').substring(0,10);
-        const typeLine = [veh.year, veh.type, veh.trim, veh.colour].filter(Boolean).join(' ').substring(0,18);
+        const stock = esc((veh.stock||'').substring(0,10));
+        const typeLine = esc([veh.year, veh.type, veh.trim, veh.colour].filter(Boolean).join(' ').substring(0,18));
         const isBlocked = veh.status === 'blocked';
         const isVoid = veh.status === 'void';
         const isFlagged = !isBlocked && !isVoid && cmIsFlagged(veh);
@@ -8266,8 +8276,8 @@ function cmRenderMap() {
             ${cmEditMode?`onclick="cmSelectSpot(event,'${key}',${ri},${ci})" onpointerdown="cmGroupPointerDown(event,'${key}')" oncontextmenu="return false"`:''}>
             ${cmEditMode ? `<div class="cm-del-spot" onclick="event.stopPropagation();cmClearKey('${key}')">✕</div>` : ''}
             <div class="cm-spot-num" style="${cmEditMode?'':'opacity:.5'}">${cmEditMode?ci+1:''}</div>
-            <div class="cm-spot-stock">${(veh.blockLabel||'').split(' ').slice(0,1).join(' ')}</div>
-            <div class="cm-spot-desc" style="font-size:7px">${(veh.blockLabel||'').split(' ').slice(1).join(' ')}</div>
+            <div class="cm-spot-stock">${esc((veh.blockLabel||'').split(' ').slice(0,1).join(' '))}</div>
+            <div class="cm-spot-desc" style="font-size:7px">${esc((veh.blockLabel||'').split(' ').slice(1).join(' '))}</div>
             ${cmEditMode&&cmSelected.has(key)?'<div style="font-size:10px;color:#f59e0b;font-weight:800;position:absolute;bottom:2px;right:3px">✓</div>':''}
           </div>`;
         } else {
@@ -8664,9 +8674,9 @@ window.cmSpotClick = function(key, ri, ci) {
   const hasContent = v && (v.stock || v.status === 'blocked' || v.status === 'void');
   if (hasContent) {
     const isBlocked = v.status === 'blocked';
-    const typeColour = [v.year, v.type, v.trim, v.colour].filter(Boolean).join(' · ');
+    const typeColour = esc([v.year, v.type, v.trim, v.colour].filter(Boolean).join(' · '));
     document.getElementById('cm-spot-current').innerHTML = isBlocked
-      ? `<div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px"><span style="font-size:18px">${(v.blockLabel||'').split(' ')[0]||'🚧'}</span><span style="font-size:13px;font-weight:600;color:#64748b">${v.blockLabel||'Blocked area'}</span></div>`
+      ? `<div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px"><span style="font-size:18px">${esc((v.blockLabel||'').split(' ')[0]||'🚧')}</span><span style="font-size:13px;font-weight:600;color:#64748b">${esc(v.blockLabel||'Blocked area')}</span></div>`
       : `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
             <span style="font-size:17px;font-weight:800;color:var(--ford)">${esc(v.stock||'-')}</span>
@@ -10013,7 +10023,7 @@ function auditRenderHistory() {
       return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <div>
           <div style="font-size:14px;font-weight:700">${lots}</div>
-          <div style="font-size:12px;color:var(--text-muted)">${dt} · by ${a.completedBy}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${dt} · by ${esc(a.completedBy)}</div>
         </div>
         <div style="display:flex;gap:14px;margin-left:auto">
           <div style="text-align:center"><div style="font-size:18px;font-weight:800;color:#15803d">${confirmed}</div><div style="font-size:10px;color:var(--text-faint);text-transform:uppercase">Confirmed</div></div>
@@ -10076,7 +10086,7 @@ window.auditOpenConfirm = function(key, spotKey, lotId) {
   document.getElementById('audit-confirm-vehicle').innerHTML = `
     <div style="display:flex;align-items:center;gap:10px">
       <div style="font-size:20px;font-weight:800;color:var(--ford)">${esc(veh?.stock||'-')}</div>
-      <div style="font-size:13px;color:var(--text-muted)">${[veh?.year,veh?.type,veh?.trim,veh?.colour].filter(Boolean).join(' ')}</div>
+      <div style="font-size:13px;color:var(--text-muted)">${esc([veh?.year,veh?.type,veh?.trim,veh?.colour].filter(Boolean).join(' '))}</div>
     </div>
     ${result?.status ? `<div style="margin-top:8px;font-size:12px;color:${result.status==='confirmed'?'#15803d':'#dc2626'};font-weight:600">${result.status==='confirmed'?'✓ Already confirmed':'⚠ Flagged as issue'}${result.note?` · ${esc(result.note)}`:''}</div>` : ''}`;
 
