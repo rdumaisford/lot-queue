@@ -1,6 +1,10 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { defineSecret, defineString } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
+const { initializeApp } = require('firebase-admin/app');
+const { getDatabase } = require('firebase-admin/database');
+
+initializeApp();
 
 const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
 // Must be an address on a domain you've verified in Resend, e.g.
@@ -127,7 +131,21 @@ function renderDropBatchTable(subject, units) {
   </body></html>`;
 }
 
+// pdfUrl is stored on the deal and normally only ever set by the app itself
+// (Firebase Storage's own getDownloadURL() after a real PDF upload) - but
+// the database rules don't specifically constrain that field's contents, so
+// nothing stops it being set to an arbitrary URL through direct DB access.
+// Restricting the fetch to Firebase Storage's own host closes off using this
+// function as a blind SSRF proxy for internal-network requests.
+function isTrustedPdfUrl(pdfUrl) {
+  try {
+    const u = new URL(pdfUrl);
+    return u.protocol === 'https:' && u.hostname === 'firebasestorage.googleapis.com';
+  } catch (e) { return false; }
+}
+
 async function buildPdfAttachment(pdfUrl, pdfFileName) {
+  if (!isTrustedPdfUrl(pdfUrl)) { logger.warn('Rejected untrusted pdfUrl', pdfUrl); return null; }
   try {
     const res = await fetch(pdfUrl);
     if (!res.ok) { logger.warn('PDF fetch failed', res.status, pdfUrl); return null; }
@@ -142,11 +160,27 @@ async function buildPdfAttachment(pdfUrl, pdfFileName) {
 
 // Single shared entry point for every email the app sends - see
 // sendNotificationEmail() in index.html for the client-side caller.
-// Callers already gate who can trigger this (signed-in staff/kiosk sessions
-// only), matching the trust model the old EmailJS public key had.
+//
+// This holds the only credential (RESEND_API_KEY) that can send mail as the
+// dealership's verified domain, so callers are checked against the same
+// "real, approved staff account" bar the database rules use - not just "is
+// signed in". Anonymous sign-in is self-service with no approval step (it's
+// how the TV/kiosk displays authenticate), so `request.auth` alone being
+// truthy would let anyone who merely loaded the page as a kiosk trigger
+// arbitrary sends - an open relay off a verified sending domain. The Admin
+// SDK reads straight from the Realtime Database, bypassing its rules
+// (Cloud Functions run with full admin access), so this is the actual
+// source of truth, not something a client could spoof.
 exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-central1' }, async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'Sign in required.');
+  }
+  if (request.auth.token.firebase.sign_in_provider === 'anonymous') {
+    throw new HttpsError('permission-denied', 'Not available for kiosk/display sessions.');
+  }
+  const statusSnap = await getDatabase().ref('users/' + request.auth.uid + '/status').once('value');
+  if (statusSnap.val() !== 'approved') {
+    throw new HttpsError('permission-denied', 'Account not approved.');
   }
 
   const { emailType, to, subject, pdfUrl, pdfFileName, ...data } = request.data || {};
