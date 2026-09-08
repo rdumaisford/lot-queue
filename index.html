@@ -2777,7 +2777,7 @@ F24118, 2026, Bronco Sport, Big Bend, 302A, D4, M, 99A, 448, 53Q; FX4, OneDrive/
     </div>
 
     <!-- Trade-ins -->
-    <div class="gr-full-only" style="margin-top:10px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+    <div class="gr-not-wholesale-only" style="margin-top:10px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
       <div style="padding:8px 14px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px">
         <span style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Trade-ins</span>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;text-transform:none;letter-spacing:0">
@@ -6713,7 +6713,6 @@ function renderGRCard(d, perms, isDupe) {
         </div>`:`<span style="font-size:12px;font-weight:700;color:${d.soldRowParked?'#94a3b8':'#1d4ed8'}">${d.soldRowParked?'✓ Done':'Pending'}</span>`}
       </div>
       ${d.deliveryDate?`<div class="gr-delivery">📅 ${isSimpleType?'Pickup':'Delivery'}: <strong>${fmtGRDate(d.deliveryDate,d.deliveryTime)}</strong></div>`:''}
-      ${!isSimpleType?`<div style="padding:6px 16px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text-muted)">🪪 ${d.plateType==='TRANSFER'?'License Plate Transfer':'New License Plates'}${d.licensingNotes?` - ${esc(d.licensingNotes)}`:''}</div>`:''}
       ${dealTrades.length ? `<div style="padding:8px 16px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px">
         <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Trade-ins</div>
         ${dealTrades.map((t,i) => `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px">
@@ -6895,13 +6894,17 @@ function grRenderTradeSlots() {
 // Wholesale/Dealer Trade deals only ever need a stock # + pickup date/time
 // (plus their own one identifying field - which auction/which dealership) -
 // hides every field that's only meaningful for a retail/as-is deal (customer,
-// trade-ins, services, gas, financing, licensing, etc.) rather than making
-// staff scroll past a form full of fields that don't apply.
+// services, gas, financing, licensing, etc.) rather than making staff scroll
+// past a form full of fields that don't apply. Trade-ins are the one
+// exception shared with Dealer Trade - a dealer trade sometimes comes with
+// its own trade-in vehicle, so that section stays for Retail and Dealer
+// Trade alike and is only hidden for Wholesale.
 window.grApplyTypeVisibility = function(type) {
   const isWholesale = type === 'WHOLESALE';
   const isDealerTrade = type === 'DEALER TRADE';
   const simple = isWholesale || isDealerTrade;
   document.querySelectorAll('#gr-modal .gr-full-only').forEach(el => { el.style.display = simple ? 'none' : ''; });
+  document.querySelectorAll('#gr-modal .gr-not-wholesale-only').forEach(el => { el.style.display = isWholesale ? 'none' : ''; });
   document.querySelectorAll('#gr-modal .gr-auction-only').forEach(el => { el.style.display = isWholesale ? '' : 'none'; });
   document.querySelectorAll('#gr-modal .gr-dealertrade-only').forEach(el => { el.style.display = isDealerTrade ? '' : 'none'; });
   document.getElementById('gr-delivery-date-label').textContent = simple ? 'Pickup date' : 'Delivery date';
@@ -7148,13 +7151,18 @@ window.saveGR = async function() {
   // whatever stale/default value they last had - blank them out here so a
   // hidden field's leftover value never gets saved onto a deal that's not
   // supposed to carry it. Stock #, Deal #, Type and delivery date/time stay -
-  // those apply to every deal regardless of type.
+  // those apply to every deal regardless of type. Trade-ins are kept for
+  // Dealer Trade (sometimes comes with its own trade-in) and only cleared
+  // for Wholesale.
   if (grIsSimpleType(deal)) {
     deal.vehicle = ''; deal.customer = ''; deal.salesperson = ''; deal.deskManager = ''; deal.fniManager = '';
     deal.fuelStatus = 'none'; deal.gasAmount = '';
-    deal.trades = [];
-    if (deal.type !== 'WHOLESALE') deal.auctionCompany = '';
-    if (deal.type !== 'DEALER TRADE') deal.purchasingDealer = '';
+    if (deal.type === 'WHOLESALE') {
+      deal.trades = [];
+      deal.purchasingDealer = '';
+    } else {
+      deal.auctionCompany = '';
+    }
   } else {
     deal.auctionCompany = ''; deal.purchasingDealer = '';
   }
@@ -7428,7 +7436,6 @@ function grEmailSubject(prefix, d) {
 // along too so the Cloud Function can attach the PDF to the email.
 function buildGREmailParams(d, subject, intro) {
   const financingLabel = {CASH:'Cash',COMMERCIAL_LEASE:'Commercial Lease',FINANCE:'Finance',FORD_RCL:'Ford RCL'}[d.financing] || d.financing || '';
-  const plateLabel = d.plateType === 'TRANSFER' ? 'License Plate Transfer' : 'New License Plates';
   const fuelStatus = grEffectiveFuelStatus(d);
   const gasLabel = fuelStatus==='gas' ? `Needs Gas${d.gasAmount ? ' - $'+Number(d.gasAmount).toFixed(2) : ''}`
     : fuelStatus==='charge' ? 'Needs Charging'
@@ -7438,7 +7445,12 @@ function buildGREmailParams(d, subject, intro) {
   const tradesText = trades.length
     ? trades.map((t,i) => `Trade ${i+1}: ${t.stock} - ${[t.year,t.make,t.model].filter(Boolean).join(' ')}${t.colour?' - '+t.colour:''}${t.vin?' - VIN '+t.vin:''}${t.kms?' - '+t.kms+' km':''} (${catLabel[t.category]||'Retail'})`).join('\n')
     : 'None';
-  const steps = GR_CHECKLIST.filter(([key]) => d['req_'+key]).map(([,label]) => label).join(', ') || 'None selected';
+  // Both fall back to '' (not a filler string like 'None selected') so the
+  // Cloud Function's row-builder correctly drops them when there's nothing
+  // to show - services/plates/licensing/instructions haven't been collected
+  // at intake since the Get Ready form was trimmed down, so a deal saved
+  // since then will always have these blank.
+  const steps = GR_CHECKLIST.filter(([key]) => d['req_'+key]).map(([,label]) => label).join(', ');
   return {
     to: emailSettings.grAddress,
     subject,
@@ -7455,11 +7467,8 @@ function buildGREmailParams(d, subject, intro) {
     financing: financingLabel,
     deliveryDate: d.deliveryDate||'',
     deliveryTime: d.deliveryTime||'',
-    plateType: plateLabel,
-    licensingNotes: d.licensingNotes||'(none)',
     gasStatus: gasLabel,
-    instructions: d.instructions||'(none)',
-    notes: d.notes||'(none)',
+    notes: d.notes||'',
     steps,
     trades: tradesText,
     pdfUrl: d.pdfUrl || undefined,
@@ -7524,12 +7533,8 @@ window.sendTestEmail = async function() {
     financing: 'Finance',
     deliveryDate: '2026-01-01',
     deliveryTime: '14:00',
-    plateType: 'New License Plates',
-    licensingNotes: '(none)',
     gasStatus: 'Needs Gas - $25.00',
-    instructions: '(none)',
-    notes: '(none)',
-    steps: 'PDI, LOF, Detail, Paint, Safety, Leather, Fabric, Module',
+    notes: 'This is a test note.',
     trades: 'Trade 1: A1000A - 2018 Honda Civic - Blue - 85000 km (Wholesale)',
   });
   showEmailToast(ok ? '✓ Test email sent - check your inbox.' : `Failed to send: ${lastEmailError || 'unknown error - check console'}`, ok ? 'success' : 'error');
@@ -8958,12 +8963,15 @@ window.cmLookupSpecsForSpot = function() {
       (incomingUnit.condition === 'new' || incomingUnit.condition === 'used')) {
     statusEl.value = incomingUnit.condition;
   }
-  // Carry the note straight over from Incoming too, so whatever was jotted
-  // down when the unit arrived doesn't have to be retyped by hand on the
-  // map - only fills an empty box, never overwrites a note already here.
+  // Carry notes straight over from Incoming and/or the active Get Ready
+  // deal for this stock too, so nothing jotted down elsewhere has to be
+  // retyped by hand on the map - only fills an empty box (never overwrites
+  // a note already here), and combines both sources when both have one.
   const noteEl = document.getElementById('cm-f-note');
-  if (incomingUnit && noteEl && !noteEl.value && incomingUnit.notes) {
-    noteEl.value = incomingUnit.notes;
+  if (noteEl && !noteEl.value) {
+    const grDeal = Object.values(getReadyDeals||{}).find(d => (d.stock||'').toUpperCase().trim() === stock && !grIsReadyForDelivery(d));
+    const carriedNotes = [incomingUnit?.notes, grDeal?.notes].filter(Boolean);
+    if (carriedNotes.length) noteEl.value = carriedNotes.join(' · ');
   }
 };
 

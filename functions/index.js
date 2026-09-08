@@ -63,14 +63,14 @@ function renderTemplate(emailType, data) {
         ['Stock #', data.stock], ['Deal #', data.dealNum], ['Type', data.type],
         ['Purchasing Dealership', data.purchasingDealer],
         ['Pickup Date', data.deliveryDate], ['Pickup Time', data.deliveryTime],
+        ['Trade-In', data.trades],
       ]);
     } else {
       rows = fieldRows([
         ['Stock #', data.stock], ['Deal #', data.dealNum], ['Vehicle', data.vehicle], ['VIN', data.vin],
         ['Customer', data.customer], ['Salesperson', data.salesperson], ['Type', data.type],
         ['Financing', data.financing], ['Delivery Date', data.deliveryDate], ['Delivery Time', data.deliveryTime],
-        ['Plates', data.plateType], ['Licensing Notes', data.licensingNotes], ['Gas/Charge', data.gasStatus],
-        ['Instructions', data.instructions], ['Notes', data.notes], ['Services', data.steps],
+        ['Gas/Charge', data.gasStatus], ['Notes', data.notes], ['Services', data.steps],
         ['Trades', data.trades],
       ]);
     }
