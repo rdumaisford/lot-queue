@@ -6582,6 +6582,13 @@ function renderGRCard(d, perms, isDupe) {
     // Get Ready's own PDI (recon's PDI can mean something more thorough
     // than the arrival check).
     const incomingUnit = findIncomingUnitByStock(d.stock);
+    // Auto-pull the vehicle's specs from the same shared registry Incoming
+    // and the Vehicle Locator already keep in sync (entered once, wherever,
+    // autofills everywhere else) - no need to retype year/trim/colour by
+    // hand here too. Falls back to whatever was typed into the deal's own
+    // free-text Vehicle field if this stock # has no spec on file yet.
+    const grSpec = vehicleSpecs[(d.stock||'').toUpperCase().trim()];
+    const grSpecLine = grSpec ? [grSpec.year, grSpec.type, grSpec.trim, grSpec.colour].filter(Boolean).join(' · ') : '';
     const pdiIncomingWhoWhen = [
       incomingUnit?.pdiBy,
       incomingUnit?.pdiAt ? new Date(incomingUnit.pdiAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : '',
@@ -6683,7 +6690,8 @@ function renderGRCard(d, perms, isDupe) {
           <span class="gr-type-pill ${typePillClass}">${esc(d.type||'-')}</span>
           ${holdBadge}${updatedBadge}${dupeBadge}${grLocBadge}
         </div>
-        ${!isSimpleType?`<div class="gr-card-vehicle">${esc(d.vehicle||'-')}${d.vin?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">${esc(d.vin)}</span>`:d.vin6?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">…${esc(d.vin6)}</span>`:''}</div>`:''}
+        ${!isSimpleType?`<div class="gr-card-vehicle">${esc(grSpecLine || d.vehicle || '-')}${d.vin?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">${esc(d.vin)}</span>`:d.vin6?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">…${esc(d.vin6)}</span>`:''}</div>`
+          :(grSpecLine?`<div class="gr-card-vehicle">${esc(grSpecLine)}</div>`:'')}
         ${d.customer?`<div class="gr-card-customer">${d.type==='WHOLESALE'?'🏛 ':d.type==='DEALER TRADE'?'🏢 ':''}${esc(d.customer)}${d.salesperson?' · '+esc(d.salesperson):''}</div>`:''}
         ${(d.phone||d.email)?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">${d.phone?'📞 '+esc(d.phone):''}${d.phone&&d.email?' · ':''}${d.email?'✉️ '+esc(d.email):''}</div>`:''}
         ${financingLabel?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">💳 ${financingLabel}</div>`:''}
@@ -8332,14 +8340,21 @@ function cmFindStockLocation(stock) {
 
 // Plain-text version of a spot's note(s), for the note icon's hover tooltip -
 // same content and order as the note bubbles in the quick-actions modal
-// (legacy single note first, then the threaded notes newest-first), just
-// joined into one string so it's readable at a glance without opening
-// anything. Native title tooltips render \n as line breaks.
+// (legacy single note first, then the threaded notes newest-first), plus the
+// active Get Ready deal's own notes for this stock #, if any - a combined,
+// always-live view rather than a one-time copy, so editing notes in either
+// place shows up here with no extra syncing step. Native title tooltips
+// render \n as line breaks.
 function cmNoteTooltipText(veh) {
   const parts = [];
   if (veh && veh.note) parts.push(String(veh.note).trim());
   if (veh && Array.isArray(veh.notes)) {
     veh.notes.slice().reverse().forEach(n => { if (n && n.text) parts.push(n.text); });
+  }
+  if (veh && veh.stock) {
+    const stock = veh.stock.toUpperCase().trim();
+    const grDeal = Object.values(getReadyDeals||{}).find(d => (d.stock||'').toUpperCase().trim() === stock && !grIsReadyForDelivery(d) && d.notes);
+    if (grDeal) parts.push(`Get Ready: ${grDeal.notes.trim()}`);
   }
   return parts.join('\n');
 }
@@ -8605,7 +8620,7 @@ function cmRenderMap() {
           const lockInfo = activeLockFor('compound', `${cmCurrentLot}_${key}`);
           const lockCls = lockInfo ? ' cm-locked-by-other' : '';
           const extraStyle = `${canDrag?'touch-action:none;':''}${heatStyleVar}`;
-          const noteText = (!cmEditMode && (veh.note || (Array.isArray(veh.notes) && veh.notes.length))) ? cmNoteTooltipText(veh) : '';
+          const noteText = cmEditMode ? '' : cmNoteTooltipText(veh);
           html += `<div class="cm-spot ${cls}${isFlagged?' cm-flagged':''}${selCls}${heatCls}${lockCls}" data-cm-key="${key}"${noteText?` data-note="${esc(noteText)}"`:''}
             onclick="${cmEditMode?`cmSelectSpot(event,'${key}',${ri},${ci})`:`cmOpenQuickActions('${key}',${ri},${ci})`}"
             ${canDrag?`onpointerdown="cmSpotPointerDown(event,'${key}')" oncontextmenu="return false"`:''}
@@ -9957,7 +9972,7 @@ function flSpotHtml(id, veh, maps) {
   const typeLine = [veh.year, veh.type, veh.trim, veh.colour].filter(Boolean).join(' ').substring(0,18);
   const CM_TYPE_LABELS = { new:'New', used:'Used', wholesale:'Wholesale', fleet:'Fleet', leasereturn:'Lease Return' };
 
-  const noteText = (veh.note || (Array.isArray(veh.notes) && veh.notes.length)) ? cmNoteTooltipText(veh) : '';
+  const noteText = cmNoteTooltipText(veh);
   return `<div class="cm-spot ${cls}${isFlagged?' cm-flagged':''}${heatCls}${lockCls}" data-cm-key="${id}"${noteText?` data-note="${esc(noteText)}"`:''}
     style="${posStyle}${heatStyleVar}" onclick="cmOpenQuickActions('${id}',0,0)" ${isMismatch?`title="⚠ Wrong spot - this is a ${CM_TYPE_LABELS[zoneType]||zoneType} spot but ${esc(veh.stock)} is ${CM_TYPE_LABELS[actualType]||actualType}"`:''}>
     ${noteText ? `<div class="cm-spot-note"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>` : ''}
