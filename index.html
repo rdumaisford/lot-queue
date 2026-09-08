@@ -1953,23 +1953,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       }
       #panel-unitspecs .usl-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
       #panel-unitspecs .usl-display{font-weight:600;}
-      #panel-unitspecs .usl-top{
-        background:var(--usl-steel);
-        color:#fff; padding:16px 28px; display:flex; align-items:center; justify-content:space-between; gap:16px;
-      }
-      #panel-unitspecs .usl-brandwrap{display:flex;align-items:center;gap:12px;}
-      #panel-unitspecs .usl-oval-badge{
-        flex:none;width:28px;height:28px;border:none;border-radius:6px;
-        display:flex;align-items:center;justify-content:center;font-weight:700;
-        font-size:10px;letter-spacing:.02em;color:#fff;background:rgba(255,255,255,.15);
-      }
-      #panel-unitspecs .usl-top h1{font-weight:600;font-size:16px;margin:0;letter-spacing:-.01em;}
-      #panel-unitspecs .usl-tag{
-        font-size:12px;color:rgba(255,255,255,.75);letter-spacing:0;
-        border:none;padding:0;border-radius:0;
-      }
-      #panel-unitspecs .usl-stat{font-size:12px;color:rgba(255,255,255,.65);}
-      #panel-unitspecs .usl-stat b{color:#fff;font-size:14px;}
       #panel-unitspecs .usl-toolbar{display:flex;gap:10px;padding:16px 28px;background:var(--usl-paper);border-bottom:1px solid var(--usl-line);flex-wrap:wrap;align-items:center;}
       #panel-unitspecs .usl-searchbox{flex:1;min-width:220px;display:flex;align-items:center;background:var(--usl-card);border:1px solid var(--usl-line);border-radius:var(--usl-radius);padding:0 12px;}
       #panel-unitspecs .usl-searchbox input{border:none;background:transparent;padding:9px 6px;font-size:14px;width:100%;outline:none;font-family:var(--font);}
@@ -2059,15 +2042,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         #panel-unitspecs .usl-grid2, #panel-unitspecs .usl-grid3{grid-template-columns:1fr;}
       }
     </style>
-
-    <header class="usl-top">
-      <div class="usl-brandwrap">
-        <div class="usl-oval-badge">USL</div>
-        <h1>Unit Spec Locker</h1>
-        <span class="usl-tag">New Vehicle Merchandising</span>
-      </div>
-      <div class="usl-stat">Units on file&nbsp; <b id="unitCount">0</b></div>
-    </header>
 
     <div class="usl-toolbar">
       <div class="usl-searchbox">
@@ -10792,7 +10766,6 @@ function uslApplyFilters(){
 function uslRenderResults(){
   uslRefreshFilterControls();
   const list = uslApplyFilters().sort((a,b)=> (b.updatedAt||0)-(a.updatedAt||0));
-  document.getElementById('unitCount').textContent = uslUnits.length;
   document.getElementById('resultCount').textContent = list.length;
   const grid = document.getElementById('resultsGrid');
   if(!list.length){
