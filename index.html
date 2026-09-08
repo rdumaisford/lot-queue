@@ -8956,6 +8956,13 @@ window.cmLookupSpecsForSpot = function() {
       (incomingUnit.condition === 'new' || incomingUnit.condition === 'used')) {
     statusEl.value = incomingUnit.condition;
   }
+  // Carry the note straight over from Incoming too, so whatever was jotted
+  // down when the unit arrived doesn't have to be retyped by hand on the
+  // map - only fills an empty box, never overwrites a note already here.
+  const noteEl = document.getElementById('cm-f-note');
+  if (incomingUnit && noteEl && !noteEl.value && incomingUnit.notes) {
+    noteEl.value = incomingUnit.notes;
+  }
 };
 
 window.cmSpotClick = function(key, ri, ci) {
