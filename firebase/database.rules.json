@@ -84,6 +84,16 @@
       }
     },
 
+    "unitSpecUnits": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('status').val() === 'approved' && (root.child('users').child(auth.uid).child('role').val() === 'management' || root.child('users').child(auth.uid).child('role').val() === 'merchandiser')",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('status').val() === 'approved' && (root.child('users').child(auth.uid).child('role').val() === 'management' || root.child('users').child(auth.uid).child('role').val() === 'merchandiser')"
+    },
+
+    "unitSpecReference": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('status').val() === 'approved' && (root.child('users').child(auth.uid).child('role').val() === 'management' || root.child('users').child(auth.uid).child('role').val() === 'merchandiser')",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('status').val() === 'approved' && (root.child('users').child(auth.uid).child('role').val() === 'management' || root.child('users').child(auth.uid).child('role').val() === 'merchandiser')"
+    },
+
     "settings": {
       ".read": "auth != null && root.child('users').child(auth.uid).child('status').val() === 'approved'",
       ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'management'"

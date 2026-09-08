@@ -1205,6 +1205,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="17" width="18" height="4" rx="1"/></svg>
       Vehicle Locator
     </button>
+    <button class="tab" id="tab-unitspecs" onclick="switchTab('unitspecs',this)" style="display:none">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="M9 15l2-2 2 2 3-3 3 3"/></svg>
+      Spec Locker
+    </button>
     <button class="tab" id="tab-tracker" onclick="switchTab('tracker',this)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
       Incoming <span class="tab-count" id="tc-tracker">0</span>
@@ -1927,6 +1931,386 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <div id="tv-hint" style="position:absolute;bottom:14px;right:18px;font-size:10px;opacity:.15;color:white;user-select:none">Hold to show controls</div>
       </div>
     </div>
+
+    <!-- UNIT SPEC LOCKER (Merchandising) -->
+    <div id="panel-unitspecs" class="panel" style="padding:0">
+    <style>
+      /* Scoped to #panel-unitspecs only - deliberately namespaced (usl- prefix
+         and its own --usl-* custom properties) so none of it leaks onto the
+         rest of the app, which already uses plain names like .chip/.field/.modal
+         and its own --radius custom property for completely different styling. */
+      #panel-unitspecs{
+        --usl-ink:#0E1626; --usl-steel:#00234E; --usl-steel-2:#003DA5; --usl-paper:#EEF1F4;
+        --usl-card:#FFFFFF; --usl-line:#C7CED6; --usl-line-soft:#DCE2E8; --usl-amber:#D9A441;
+        --usl-amber-dark:#B8862A; --usl-brand:#003DA5; --usl-brand-dark:#00287A; --usl-teal:#1F7A4D;
+        --usl-teal-soft:#DDE8F5; --usl-red:#B4442E; --usl-muted:#5B6570; --usl-radius:3px;
+        font-family:'Inter',sans-serif; background:var(--usl-paper); color:var(--usl-ink);
+      }
+      #panel-unitspecs .usl-mono{font-family:'IBM Plex Mono',monospace;}
+      #panel-unitspecs .usl-display{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.03em;}
+      #panel-unitspecs .usl-top{
+        background:
+          repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 2px, transparent 2px 14px),
+          linear-gradient(180deg, var(--usl-steel-2) 0%, var(--usl-steel) 70%);
+        color:#EDEFEA; padding:18px 28px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+        border-bottom:3px solid var(--usl-amber); box-shadow:inset 0 -8px 14px -10px rgba(0,0,0,.5);
+      }
+      #panel-unitspecs .usl-brandwrap{display:flex;align-items:center;gap:14px;}
+      #panel-unitspecs .usl-oval-badge{
+        flex:none;width:46px;height:30px;border:2.5px solid #EDEFEA;border-radius:50%;
+        display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-weight:700;
+        font-size:10px;letter-spacing:.02em;color:#EDEFEA;background:rgba(255,255,255,.04);
+      }
+      #panel-unitspecs .usl-top h1{font-family:'Oswald',sans-serif;font-weight:600;font-size:22px;letter-spacing:.06em;text-transform:uppercase;margin:0;}
+      #panel-unitspecs .usl-tag{
+        font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--usl-amber);letter-spacing:.08em;
+        border:1px solid rgba(242,166,27,.5);padding:2px 8px;border-radius:20px;
+      }
+      #panel-unitspecs .usl-stat{font-family:'IBM Plex Mono',monospace;font-size:12px;color:#B9C0C9;}
+      #panel-unitspecs .usl-stat b{color:#fff;font-size:14px;}
+      #panel-unitspecs .usl-toolbar{display:flex;gap:10px;padding:16px 28px;background:var(--usl-paper);border-bottom:1px solid var(--usl-line);flex-wrap:wrap;align-items:center;}
+      #panel-unitspecs .usl-searchbox{flex:1;min-width:220px;display:flex;align-items:center;background:var(--usl-card);border:1px solid var(--usl-line);border-radius:var(--usl-radius);padding:0 12px;}
+      #panel-unitspecs .usl-searchbox input{border:none;background:transparent;padding:10px 6px;font-size:14px;width:100%;outline:none;font-family:'Inter',sans-serif;}
+      #panel-unitspecs .usl-searchbox svg{flex:none;color:var(--usl-muted);}
+      #panel-unitspecs button{
+        font-family:'Inter',sans-serif; font-weight:600; font-size:13px; border-radius:var(--usl-radius);
+        border:1px solid transparent; padding:10px 16px; cursor:pointer; transition:transform .06s ease, box-shadow .15s ease;
+      }
+      #panel-unitspecs button:active{transform:translateY(1px);}
+      #panel-unitspecs .usl-btn-amber{background:var(--usl-brand);color:#fff;}
+      #panel-unitspecs .usl-btn-amber:hover{background:var(--usl-brand-dark);}
+      #panel-unitspecs .usl-btn-teal{background:var(--usl-teal);color:#fff;}
+      #panel-unitspecs .usl-btn-teal:hover{background:#26635f;}
+      #panel-unitspecs .usl-btn-ghost{background:transparent;color:var(--usl-ink);border-color:var(--usl-line);}
+      #panel-unitspecs .usl-btn-ghost:hover{border-color:var(--usl-ink);}
+      #panel-unitspecs .usl-btn-danger{background:transparent;color:var(--usl-red);border-color:rgba(180,68,46,.4);}
+      #panel-unitspecs .usl-btn-danger:hover{background:rgba(180,68,46,.08);}
+      #panel-unitspecs .usl-btn-sm{padding:6px 10px;font-size:12px;}
+      #panel-unitspecs .usl-layout{display:flex;align-items:flex-start;min-height:calc(100vh - 260px);}
+      #panel-unitspecs .usl-filters{width:270px;flex:none;background:#EFF0EA;border-right:1px solid var(--usl-line);padding:20px 18px 40px;position:sticky;top:0;}
+      #panel-unitspecs .usl-filters h2{
+        font-family:'Oswald',sans-serif;font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--usl-muted);
+        margin:0 0 12px;display:flex;align-items:center;justify-content:space-between;
+      }
+      #panel-unitspecs .usl-field{margin-bottom:14px;}
+      #panel-unitspecs .usl-field label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--usl-muted);margin-bottom:5px;}
+      #panel-unitspecs select, #panel-unitspecs input[type=text], #panel-unitspecs input[type=number], #panel-unitspecs textarea{
+        width:100%; padding:8px 9px; border:1px solid var(--usl-line); border-radius:var(--usl-radius);
+        background:var(--usl-card); font-size:13px; font-family:'Inter',sans-serif; color:var(--usl-ink);
+      }
+      #panel-unitspecs select:focus, #panel-unitspecs input:focus, #panel-unitspecs textarea:focus{outline:2px solid var(--usl-teal);outline-offset:1px;}
+      #panel-unitspecs .usl-chiprow{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+      #panel-unitspecs .usl-chip{
+        font-size:11.5px;font-family:'IBM Plex Mono',monospace;background:var(--usl-card);border:1px solid var(--usl-line);
+        padding:4px 8px;border-radius:20px;cursor:pointer;color:var(--usl-ink);user-select:none;
+      }
+      #panel-unitspecs .usl-chip.usl-on{background:var(--usl-teal);color:#fff;border-color:var(--usl-teal);}
+      #panel-unitspecs .usl-chip.usl-removable{padding-right:6px;display:flex;align-items:center;gap:5px;}
+      #panel-unitspecs .usl-chip.usl-removable span.usl-x{opacity:.7;font-weight:700;}
+      #panel-unitspecs .usl-results{flex:1;padding:24px 28px 60px;}
+      #panel-unitspecs .usl-results-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+      #panel-unitspecs .usl-results-head h2{font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:.05em;text-transform:uppercase;color:var(--usl-steel);margin:0;}
+      #panel-unitspecs .usl-results-head .usl-count{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--usl-muted);}
+      #panel-unitspecs .usl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
+      #panel-unitspecs .usl-empty{border:1px dashed var(--usl-line);border-radius:var(--usl-radius);padding:40px 24px;text-align:center;color:var(--usl-muted);font-size:14px;}
+      #panel-unitspecs .usl-empty b{display:block;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;color:var(--usl-steel);font-size:15px;margin-bottom:6px;}
+      #panel-unitspecs .usl-sticker{background:var(--usl-card);border:1px solid var(--usl-line);border-radius:var(--usl-radius);overflow:hidden;position:relative;box-shadow:0 1px 0 rgba(0,0,0,.03);}
+      #panel-unitspecs .usl-sticker .usl-sticker-head{background:var(--usl-steel);color:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;}
+      #panel-unitspecs .usl-sticker .usl-stock{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:13px;color:var(--usl-amber);}
+      #panel-unitspecs .usl-sticker .usl-year{font-family:'IBM Plex Mono',monospace;font-size:12px;color:#B9C0C9;}
+      #panel-unitspecs .usl-sticker .usl-sticker-body{padding:14px;}
+      #panel-unitspecs .usl-sticker h3{font-family:'Oswald',sans-serif;font-size:19px;letter-spacing:.02em;margin:0 0 2px;text-transform:uppercase;color:var(--usl-ink);}
+      #panel-unitspecs .usl-sticker .usl-trim{font-size:12.5px;color:var(--usl-muted);margin-bottom:10px;font-weight:600;}
+      #panel-unitspecs .usl-specrow{display:flex;gap:10px;margin-bottom:8px;font-size:12.5px;}
+      #panel-unitspecs .usl-specrow .usl-k{width:66px;flex:none;color:var(--usl-muted);text-transform:uppercase;font-size:10.5px;letter-spacing:.06em;padding-top:2px;}
+      #panel-unitspecs .usl-specrow .usl-v{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+      #panel-unitspecs .usl-swatchline{display:flex;align-items:center;gap:6px;}
+      #panel-unitspecs .usl-swatch{width:13px;height:13px;border-radius:50%;border:1px solid rgba(0,0,0,.25);flex:none;}
+      #panel-unitspecs .usl-opts-wrap{margin-top:8px;}
+      #panel-unitspecs .usl-opts-wrap .usl-chip{font-size:10.5px;padding:3px 7px;background:var(--usl-teal-soft);border-color:transparent;color:#1F4D4B;cursor:default;}
+      #panel-unitspecs .usl-loc-row{margin-top:12px;padding-top:10px;border-top:1px dashed var(--usl-line-soft);display:flex;align-items:center;gap:8px;font-size:12px;}
+      #panel-unitspecs .usl-loc-row a, #panel-unitspecs .usl-loc-text{color:var(--usl-teal);text-decoration:none;font-weight:600;word-break:break-all;}
+      #panel-unitspecs .usl-loc-row a:hover{text-decoration:underline;}
+      #panel-unitspecs .usl-card-actions{display:flex;gap:8px;margin-top:12px;}
+      #panel-unitspecs .usl-notes-preview{font-size:12px;color:var(--usl-muted);margin-top:8px;font-style:italic;}
+      #panel-unitspecs .usl-overlay{position:fixed;inset:0;background:rgba(20,24,30,.55);display:none;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto;z-index:500;}
+      #panel-unitspecs .usl-overlay.usl-open{display:flex;}
+      #panel-unitspecs .usl-modal{background:var(--usl-card);width:100%;max-width:640px;border-radius:4px;border:1px solid var(--usl-line);box-shadow:0 20px 50px rgba(0,0,0,.3);}
+      #panel-unitspecs .usl-modal-head{background:var(--usl-steel);color:#fff;padding:16px 22px;display:flex;justify-content:space-between;align-items:center;border-radius:4px 4px 0 0;}
+      #panel-unitspecs .usl-modal-head h3{margin:0;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:16px;}
+      #panel-unitspecs .usl-modal-head button{background:transparent;color:#B9C0C9;border:none;font-size:20px;line-height:1;padding:2px 6px;}
+      #panel-unitspecs .usl-modal-head button:hover{color:#fff;}
+      #panel-unitspecs .usl-modal-body{padding:20px 22px;max-height:70vh;overflow-y:auto;}
+      #panel-unitspecs .usl-modal-foot{padding:14px 22px;border-top:1px solid var(--usl-line);display:flex;justify-content:flex-end;gap:10px;}
+      #panel-unitspecs .usl-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+      #panel-unitspecs .usl-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+      #panel-unitspecs .usl-hint{font-size:11px;color:var(--usl-muted);margin-top:4px;}
+      #panel-unitspecs .usl-badge{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:20px;letter-spacing:.03em;}
+      #panel-unitspecs .usl-badge.usl-exact{background:var(--usl-teal);color:#fff;}
+      #panel-unitspecs .usl-badge.usl-close{background:#EFE0BF;color:#7A5300;}
+      #panel-unitspecs .usl-diff{font-size:11.5px;margin-top:6px;color:var(--usl-red);}
+      #panel-unitspecs .usl-diff.usl-ok{color:var(--usl-teal);}
+      #panel-unitspecs .usl-app-foot{padding:16px 28px;text-align:center;font-size:11px;color:var(--usl-muted);font-family:'IBM Plex Mono',monospace;border-top:1px solid var(--usl-line);}
+      @media (max-width:800px){
+        #panel-unitspecs .usl-layout{flex-direction:column;}
+        #panel-unitspecs .usl-filters{width:100%;position:static;border-right:none;border-bottom:1px solid var(--usl-line);}
+        #panel-unitspecs .usl-grid2, #panel-unitspecs .usl-grid3{grid-template-columns:1fr;}
+      }
+    </style>
+
+    <header class="usl-top">
+      <div class="usl-brandwrap">
+        <div class="usl-oval-badge">USL</div>
+        <h1>Unit Spec Locker</h1>
+        <span class="usl-tag">New Vehicle Merchandising</span>
+      </div>
+      <div class="usl-stat">UNITS ON FILE&nbsp; <b id="unitCount">0</b></div>
+    </header>
+
+    <div class="usl-toolbar">
+      <div class="usl-searchbox">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="searchInput" type="text" placeholder="Search stock #, model, trim, notes...">
+      </div>
+      <button class="usl-btn-amber" id="btnAdd">+ Photo a Unit</button>
+      <button class="usl-btn-teal" id="btnMatch">Find a Match</button>
+      <button class="usl-btn-ghost" id="btnBulk">Paste a List</button>
+      <button class="usl-btn-ghost" id="btnRef">Model Reference</button>
+      <button class="usl-btn-ghost usl-btn-sm" id="btnExport">Export backup</button>
+      <button class="usl-btn-ghost usl-btn-sm" id="btnImportTrigger">Import backup</button>
+      <button class="usl-btn-ghost usl-btn-sm" id="btnSimplify" title="Strip descriptions off existing options, keep just the codes">Simplify options to codes</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none;">
+    </div>
+
+    <div class="usl-layout">
+      <aside class="usl-filters">
+        <h2>Filter <span id="btnClearFilters" style="cursor:pointer;color:var(--usl-teal);text-transform:none;letter-spacing:0;font-weight:600;">Clear</span></h2>
+        <div class="usl-field">
+          <label>Model</label>
+          <select id="fModel"><option value="">All models</option></select>
+        </div>
+        <div class="usl-field">
+          <label>Trim</label>
+          <select id="fTrim"><option value="">All trims</option></select>
+        </div>
+        <div class="usl-field">
+          <label>Package code</label>
+          <select id="fPackage"><option value="">All packages</option></select>
+        </div>
+        <div class="usl-field">
+          <label>Exterior color</label>
+          <select id="fExt"><option value="">All exterior</option></select>
+        </div>
+        <div class="usl-field">
+          <label>Interior color</label>
+          <select id="fInt"><option value="">All interior</option></select>
+        </div>
+        <div class="usl-field">
+          <label>Options include</label>
+          <div class="usl-chiprow" id="fOptions"></div>
+        </div>
+      </aside>
+
+      <main class="usl-results">
+        <div class="usl-results-head">
+          <h2>Photographed Units</h2>
+          <span class="usl-count"><span id="resultCount">0</span> shown</span>
+        </div>
+        <div class="usl-grid" id="resultsGrid"></div>
+      </main>
+    </div>
+
+    <footer class="usl-app-foot">SHARED CATALOG · VISIBLE TO MANAGEMENT &amp; MERCHANDISING · EXPORT A BACKUP PERIODICALLY</footer>
+
+    <!-- Add/Edit Modal -->
+    <div class="usl-overlay" id="unitOverlay">
+      <div class="usl-modal">
+        <div class="usl-modal-head">
+          <h3 id="unitModalTitle">Photo a Unit</h3>
+          <button id="unitModalClose">&times;</button>
+        </div>
+        <div class="usl-modal-body">
+          <div class="usl-grid3">
+            <div class="usl-field"><label>Stock number *</label><input type="text" id="uStock" placeholder="e.g. F24118"></div>
+            <div class="usl-field"><label>Model year</label><input type="text" id="uYear" placeholder="2026"></div>
+            <div class="usl-field"><label>Model *</label><input type="text" id="uModel" list="dlModel" placeholder="Bronco Sport"><datalist id="dlModel"></datalist></div>
+          </div>
+          <div class="usl-grid2">
+            <div class="usl-field"><label>Trim</label><input type="text" id="uTrim" list="dlTrim" placeholder="Big Bend"><datalist id="dlTrim"></datalist></div>
+            <div class="usl-field"><label>Package code</label><input type="text" id="uPackage" list="dlPackage" placeholder="302A"><datalist id="dlPackage"></datalist></div>
+          </div>
+          <div class="usl-grid2">
+            <div class="usl-field"><label>Exterior color code</label><input type="text" id="uExtCode" list="dlExtCode" placeholder="D4"><datalist id="dlExtCode"></datalist></div>
+            <div class="usl-field"><label>Exterior color name</label><input type="text" id="uExtName" list="dlExtName" placeholder="Iconic Silver"><datalist id="dlExtName"></datalist></div>
+          </div>
+          <div class="usl-grid2">
+            <div class="usl-field"><label>Interior color code</label><input type="text" id="uIntCode" list="dlIntCode" placeholder="M"><datalist id="dlIntCode"></datalist></div>
+            <div class="usl-field"><label>Interior color name</label><input type="text" id="uIntName" list="dlIntName" placeholder="Med. Dark Slate"><datalist id="dlIntName"></datalist></div>
+          </div>
+          <div class="usl-grid2">
+            <div class="usl-field"><label>Engine code</label><input type="text" id="uEngineCode" list="dlEngineCode" placeholder="993"><datalist id="dlEngineCode"></datalist></div>
+            <div class="usl-field"><label>Engine</label><input type="text" id="uEngineName" list="dlEngineName" placeholder="2.5L Hybrid"><datalist id="dlEngineName"></datalist></div>
+          </div>
+          <div class="usl-grid2">
+            <div class="usl-field"><label>Transmission code</label><input type="text" id="uTransCode" list="dlTransCode" placeholder="44E"><datalist id="dlTransCode"></datalist></div>
+            <div class="usl-field"><label>Transmission</label><input type="text" id="uTransName" list="dlTransName" placeholder="Power-Split Electric CVT"><datalist id="dlTransName"></datalist></div>
+          </div>
+          <div class="usl-field">
+            <label>Options / packages</label>
+            <input type="text" id="uOptionInput" placeholder="Type an option and press Enter (e.g. FX4 Package)">
+            <div class="usl-hint">Existing tags — click to add:</div>
+            <div class="usl-chiprow" id="uOptionSuggest"></div>
+            <div class="usl-chiprow" id="uOptionSelected" style="margin-top:8px;"></div>
+          </div>
+          <div class="usl-field"><label>Photo location (OneDrive path or link)</label><input type="text" id="uLocation" placeholder="OneDrive/New Units/Bronco Sport/F24118 or a shared link"></div>
+          <div class="usl-field"><label>Notes</label><textarea id="uNotes" rows="2" placeholder="Anything else worth remembering about this unit"></textarea></div>
+        </div>
+        <div class="usl-modal-foot">
+          <button class="usl-btn-danger" id="uDeleteBtn" style="display:none;margin-right:auto;">Delete unit</button>
+          <button class="usl-btn-ghost" id="uCancelBtn">Cancel</button>
+          <button class="usl-btn-amber" id="uSaveBtn">Save unit</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Find Match Modal -->
+    <div class="usl-overlay" id="matchOverlay">
+      <div class="usl-modal" style="max-width:760px;">
+        <div class="usl-modal-head">
+          <h3>Find a Match</h3>
+          <button id="matchModalClose">&times;</button>
+        </div>
+        <div class="usl-modal-body">
+          <p style="font-size:12.5px;color:var(--usl-muted);margin-top:0;">Enter the build you need a photo for. Leave anything blank you don't want to filter on — matches are ranked, not all-or-nothing.</p>
+          <div class="usl-grid3">
+            <div class="usl-field"><label>Model year</label><input type="text" id="mYear"></div>
+            <div class="usl-field"><label>Model</label><input type="text" id="mModel" list="dlModel"></div>
+            <div class="usl-field"><label>Trim</label><input type="text" id="mTrim" list="dlTrim"></div>
+          </div>
+          <div class="usl-grid3">
+            <div class="usl-field"><label>Package code</label><input type="text" id="mPackage" list="dlPackage"></div>
+            <div class="usl-field"><label>Ext. color code</label><input type="text" id="mExtCode" list="dlExtCode"></div>
+            <div class="usl-field"><label>Int. color code</label><input type="text" id="mIntCode" list="dlIntCode"></div>
+          </div>
+          <div class="usl-grid2">
+            <div class="usl-field"><label>Engine code</label><input type="text" id="mEngineCode" list="dlEngineCode"></div>
+            <div class="usl-field"><label>Transmission code</label><input type="text" id="mTransCode" list="dlTransCode"></div>
+          </div>
+          <div class="usl-field">
+            <label>Options to match</label>
+            <input type="text" id="mOptionInput" placeholder="Type an option and press Enter">
+            <div class="usl-chiprow" id="mOptionSuggest"></div>
+            <div class="usl-chiprow" id="mOptionSelected" style="margin-top:8px;"></div>
+          </div>
+          <div class="usl-field" style="margin-top:6px;"><button class="usl-btn-teal" id="mRunBtn">Search catalog</button></div>
+          <div id="matchResults" style="margin-top:16px;"></div>
+        </div>
+        <div class="usl-modal-foot"><button class="usl-btn-ghost" id="mCloseBtn">Close</button></div>
+      </div>
+    </div>
+
+    <!-- Bulk Paste Import Modal -->
+    <div class="usl-overlay" id="bulkOverlay">
+      <div class="usl-modal" style="max-width:820px;">
+        <div class="usl-modal-head">
+          <h3>Paste a List of Units</h3>
+          <button id="bulkModalClose">&times;</button>
+        </div>
+        <div class="usl-modal-body">
+          <p style="font-size:12.5px;color:var(--usl-muted);margin-top:0;">
+            Paste straight from Excel, a DMS export, or a spreadsheet — first row must be column headers.
+            Tab, comma, or pipe separated all work. Put multiple options in one cell separated by <span class="usl-mono">;</span>.
+            You can leave the *Name columns blank if you've taught the codes to Model Reference for this Year/Model/Trim —
+            full names get filled in automatically from what's on file there.
+          </p>
+          <div class="usl-field">
+            <label>Recommended header row</label>
+            <div class="usl-mono" style="font-size:11.5px;background:var(--usl-paper);border:1px solid var(--usl-line);padding:8px 10px;border-radius:var(--usl-radius);overflow-x:auto;white-space:nowrap;">
+Stock, Year, Model, Trim, Package, ExtColorCode, IntColorCode, EngineCode, TransCode, Options, Location, Notes
+            </div>
+            <div class="usl-hint">Column names are matched loosely (e.g. "Exterior Color" or "Ext Color" both work), and columns can be in any order or left out. ExtColorName / IntColorName / EngineName / TransName columns are also supported if you'd rather type names directly.</div>
+          </div>
+          <div class="usl-field">
+            <label>Paste here</label>
+            <textarea id="bulkText" rows="10" placeholder="Stock, Year, Model, Trim, Package, ExtColorCode, IntColorCode, EngineCode, TransCode, Options, Location, Notes
+F24118, 2026, Bronco Sport, Big Bend, 302A, D4, M, 99A, 448, 53Q; FX4, OneDrive/New Units/Bronco Sport/F24118, "></textarea>
+          </div>
+          <div id="bulkSummary" style="font-size:12.5px;"></div>
+        </div>
+        <div class="usl-modal-foot">
+          <button class="usl-btn-ghost" id="bulkCancelBtn">Cancel</button>
+          <button class="usl-btn-amber" id="bulkParseBtn">Add these units</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Model Reference Modal -->
+    <div class="usl-overlay" id="refOverlay">
+      <div class="usl-modal" style="max-width:760px;">
+        <div class="usl-modal-head">
+          <h3>Model Reference Codes</h3>
+          <button id="refModalClose">&times;</button>
+        </div>
+        <div class="usl-modal-body">
+          <p style="font-size:12.5px;color:var(--usl-muted);margin-top:0;">
+            Save known color, package, and option codes for a model — before you've even photographed one yet.
+            These show up as autocomplete suggestions everywhere else in the app.
+          </p>
+          <div class="usl-grid2">
+            <div class="usl-field"><label>Model *</label><input type="text" id="rModel" list="dlModel" placeholder="Bronco Sport"></div>
+            <div class="usl-field"><label>Trim (optional)</label><input type="text" id="rTrim" list="dlTrim" placeholder="Badlands — leave blank for all trims"></div>
+          </div>
+          <div class="usl-field" style="background:var(--usl-paper);border:1px solid var(--usl-line);border-radius:var(--usl-radius);padding:12px;">
+            <label>Paste a whole order guide / build sheet section</label>
+            <div class="usl-hint" style="margin-bottom:6px;">Paste category blocks straight from Ford's order guide (e.g. "SEAT TYPE", "OPTION PACKAGE", "ADDITIONAL EQUIPMENT" each followed by code/description lines) — categories are detected automatically and routed into the right bucket below. Engine, transmission, and ship-thru codes are kept but not shown (they don't affect photos); packages and equipment codes get sorted into Packages / Options / Interior automatically.</div>
+            <textarea id="rGuidePaste" rows="6" placeholder="SEAT TYPE&#10;6W&#10;BLACK ONYX, ACTIVEX TRIMMED FRONT BUCKET SEATS&#10;OPTION PACKAGE&#10;402A&#10;EQUIPMENT GROUP 402A STANDARD&#10;..."></textarea>
+            <button class="usl-btn-teal usl-btn-sm" id="rGuideAdd" style="margin-top:6px;">Sort into locker</button>
+            <div id="rGuideSummary" style="margin-top:8px;font-size:12px;"></div>
+          </div>
+          <div class="usl-field">
+            <label>Exterior colors</label>
+            <div class="usl-chiprow" id="rExtChips"></div>
+            <textarea id="rExtPaste" rows="3" placeholder="One code then name per line, or CODE, Name per row&#10;G1&#10;Shadow Black&#10;A3&#10;Space White Metallic"></textarea>
+            <button class="usl-btn-ghost usl-btn-sm" id="rExtAdd" style="margin-top:6px;">Add exterior colors</button>
+          </div>
+          <div class="usl-field">
+            <label>Interior colors</label>
+            <div class="usl-chiprow" id="rIntChips"></div>
+            <textarea id="rIntPaste" rows="3" placeholder="One code then name per line, or CODE, Name per row"></textarea>
+            <button class="usl-btn-ghost usl-btn-sm" id="rIntAdd" style="margin-top:6px;">Add interior colors</button>
+          </div>
+          <div class="usl-field">
+            <label>Package codes</label>
+            <div class="usl-chiprow" id="rPkgChips"></div>
+            <textarea id="rPkgPaste" rows="2" placeholder="One per line, e.g. 302A"></textarea>
+            <button class="usl-btn-ghost usl-btn-sm" id="rPkgAdd" style="margin-top:6px;">Add packages</button>
+          </div>
+          <div class="usl-field">
+            <label>Options / add-on packages</label>
+            <div class="usl-chiprow" id="rOptChips"></div>
+            <textarea id="rOptPaste" rows="2" placeholder="One per line, e.g. FX4 Package"></textarea>
+            <button class="usl-btn-ghost usl-btn-sm" id="rOptAdd" style="margin-top:6px;">Add options</button>
+          </div>
+          <div class="usl-field">
+            <label>Engines</label>
+            <div class="usl-chiprow" id="rEngineChips"></div>
+            <textarea id="rEnginePaste" rows="2" placeholder="One code then name per line&#10;993&#10;2.5L Hybrid"></textarea>
+            <button class="usl-btn-ghost usl-btn-sm" id="rEngineAdd" style="margin-top:6px;">Add engines</button>
+          </div>
+          <div class="usl-field">
+            <label>Transmissions</label>
+            <div class="usl-chiprow" id="rTransChips"></div>
+            <textarea id="rTransPaste" rows="2" placeholder="One code then name per line&#10;44E&#10;Power-Split Electric CVT"></textarea>
+            <button class="usl-btn-ghost usl-btn-sm" id="rTransAdd" style="margin-top:6px;">Add transmissions</button>
+          </div>
+        </div>
+        <div class="usl-modal-foot" style="flex-direction:column;align-items:stretch;gap:6px;">
+          <div id="rOtherNote" class="usl-hint"></div>
+          <div style="display:flex;justify-content:flex-end;"><button class="usl-btn-ghost" id="refCloseBtn">Done</button></div>
+        </div>
+      </div>
+    </div>
+    </div>
     <!-- HISTORY -->
     <div id="panel-history" class="panel">
       <div class="history-filters">
@@ -2522,6 +2906,9 @@ let announcements = {}, annSelectedId = null, annVisibleCount = 8, editingAnnId 
 let emailSettings = {}; // {grAddress, incAddress, digestTime}
 let currentAlertState = null;
 let vehicleSpecs = {}; // stock# -> {year,trim,type,colour,status} - shared between Incoming and Compound so specs entered once autofill everywhere else
+let uslUnits = []; // Unit Spec Locker: array of {id, stockNumber, year, model, trim, packageCode, extColorCode, extColorName, intColorCode, intColorName, engineCode, engineName, transCode, transName, options[], location, notes, updatedAt}
+let uslReference = {}; // Unit Spec Locker: keyed by sanitized "Model" or "Model::Trim" -> {extColors[],intColors[],packages[],options[],engines[],transmissions[],other{}}
+let uslEditingId = null, uslUOptionsDraft = [], uslMOptionsDraft = [];
 let vehicleRequests = {}, vehicleReturns = {}; // one unified pickup/return flow across all lots
 let driverLocations = {}; // live mirror of /driverLocation - who's currently sharing, and where
 let geoWatchId = null;    // navigator.geolocation.watchPosition() handle, while sharing is on
@@ -2547,16 +2934,16 @@ const ROLE_LABELS = {lot:'Inventory Control',reception:'Reception',service:'Serv
 
 // Default permission matrix - used until Firebase settings/permissions loads (or if a role/perm is missing there)
 const DEFAULT_PERMISSIONS = {
-  lot:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:false, grGasConfirm:true,  grChecklistApprove:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false  },
-  reception:    { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  service:      { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  sales:        { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  fandi:        { tabHome:true,  tabQueue:true,  tabTracker:false, tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:true,  grGasConfirm:true,  grChecklistApprove:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  detail:       { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  pdi:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:true,  trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  merchandiser: { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:true,  tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:true,  trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:true,  cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false },
-  management:   { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  grGasConfirm:true,  grChecklistApprove:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false  },
-  shuttle:      { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false },
+  lot:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:false, grGasConfirm:true,  grChecklistApprove:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
+  reception:    { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
+  service:      { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
+  sales:        { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
+  fandi:        { tabHome:true,  tabQueue:true,  tabTracker:false, tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:true,  grGasConfirm:true,  grChecklistApprove:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
+  detail:       { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
+  pdi:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:true,  trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
+  merchandiser: { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:true,  tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:true,  trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:true,  cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:true  },
+  management:   { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  grGasConfirm:true,  grChecklistApprove:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:true  },
+  shuttle:      { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
 };
 
 let PERMISSIONS = JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS)); // live copy, overwritten by Firebase
@@ -2570,7 +2957,7 @@ function perm(key) {
 
 function applyPermissions() {
   if (!currentUser) return;
-  const tabMap = { tabHome:'tab-home', tabQueue:'tab-rides', tabTracker:'tab-tracker', tabGetReady:'tab-getready', tabTestDrive:'tab-testdrive', tabShuttle:'tab-shuttle', tabCompound:'tab-compound', tabAudit:'tab-audit', tabHistory:'tab-history', tabSettings:'tab-settings' };
+  const tabMap = { tabHome:'tab-home', tabQueue:'tab-rides', tabTracker:'tab-tracker', tabGetReady:'tab-getready', tabTestDrive:'tab-testdrive', tabShuttle:'tab-shuttle', tabCompound:'tab-compound', tabAudit:'tab-audit', tabHistory:'tab-history', tabSettings:'tab-settings', tabUnitSpecs:'tab-unitspecs' };
   for (const key in tabMap) {
     const el = document.getElementById(tabMap[key]);
     if (el) el.style.display = perm(key) ? '' : 'none';
@@ -2610,7 +2997,7 @@ function applyPermissions() {
 const PERM_GROUPS = [
   { label:'Tabs', keys: [
     ['tabHome','Home'], ['tabQueue','Rides'], ['tabTracker','Incoming'], ['tabGetReady','Get Ready'], ['tabTestDrive','Test Drives'],
-    ['tabCompound','Vehicle Locator'], ['tabTV','TV Display'], ['tabShuttle','Shuttle Dashboard'], ['tabHistory','History'], ['tabSettings','Settings'],
+    ['tabCompound','Vehicle Locator'], ['tabTV','TV Display'], ['tabShuttle','Shuttle Dashboard'], ['tabHistory','History'], ['tabSettings','Settings'], ['tabUnitSpecs','Unit Spec Locker'],
   ]},
   { label:'Shuttle Dashboard', keys: [
     ['shuttleAdmin','Claim / progress / complete rides from the dashboard'],
@@ -3271,6 +3658,16 @@ function startApp() {
   onValue(ref(db,'vehicleSpecs'), snap=>{
     vehicleSpecs = snap.val()||{};
     renderTVGetReady(); // Get Ready's TV descriptor is looked up from here, not stored on the deal itself
+  });
+
+  onValue(ref(db,'unitSpecUnits'), snap=>{
+    const val = snap.val()||{};
+    uslUnits = Object.keys(val).map(k=>({...val[k], id:k}));
+    if (document.getElementById('panel-unitspecs')?.classList.contains('active')) uslRenderResults();
+  });
+  onValue(ref(db,'unitSpecReference'), snap=>{
+    uslReference = snap.val()||{};
+    if (document.getElementById('panel-unitspecs')?.classList.contains('active')) { uslRenderResults(); uslRenderRefChips(); }
   });
 
   // Fires once per new Get Ready deal, from whichever open session sees it
@@ -7396,6 +7793,7 @@ window.switchTab=function(name,btn){
   if(name==='tracker'){renderTracker();renderTrackerSummary();}
   if(name==='tv'){ renderTVRides(); renderTVAppointments(); setTimeout(()=>tvShuttleMap?.invalidateSize(), 50); }
   if(name==='rides'){ ridesRenderDirectionPickers(); ridesSetViewMode(ridesMode); renderRidesTab(); }
+  if(name==='unitspecs'){ uslRenderResults(); }
 };
 window.exitTV=function(){
   const target='queue';
@@ -10172,6 +10570,1113 @@ window.addEventListener('online', checkForAppUpdate);
 // around waiting for the next 3-minute tick once someone's done editing.
 new MutationObserver(reloadForUpdateIfSafe).observe(document.body, {
   attributes: true, attributeFilter: ['style'], subtree: true,
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// Unit Spec Locker (Merchandising) — shared catalog of photographed new-
+// vehicle builds (stock #, model/trim/package, colors, engine/trans,
+// options, photo location) so merchandisers/management on any device can
+// search for an exact spec match before re-shooting a build that's
+// already on file. Ported from a standalone offline tool (which stored
+// everything in this-browser-only localStorage) onto this app's shared
+// Firebase database (unitSpecUnits / unitSpecReference) so it's a real
+// team-wide resource instead of living on one computer. All identifiers
+// below are usl-prefixed and its CSS/classes are scoped under
+// #panel-unitspecs so none of it collides with the rest of the app.
+// ══════════════════════════════════════════════════════════════════════
+function uslSanitizeKey(k){
+  return (k||'').replace(/[.#$[\]]/g, '_');
+}
+function uslRefKeyFor(model, trim){
+  model = (model||'').trim();
+  trim = (trim||'').trim();
+  const raw = trim ? model + '::' + trim : model;
+  return uslSanitizeKey(raw);
+}
+function uslGenId(){
+  return 'u_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+}
+
+// ---------- Firebase persistence ----------
+async function uslPersistUnit(record){
+  try{ await set(ref(db,'unitSpecUnits/'+record.id), record); }
+  catch(e){ alert('Could not save this unit — you may not have permission, or you\'re offline.'); }
+}
+async function uslDeleteUnitRemote(id){
+  try{ await remove(ref(db,'unitSpecUnits/'+id)); }
+  catch(e){ alert('Could not delete this unit — you may not have permission, or you\'re offline.'); }
+}
+async function uslPersistRefEntry(key, entry){
+  try{ await set(ref(db,'unitSpecReference/'+key), entry); }
+  catch(e){ alert('Could not save reference codes — you may not have permission, or you\'re offline.'); }
+}
+
+// ---------- Helpers (esc() is the app's shared helper, defined earlier) ----------
+function uslDistinct(field){
+  const set2 = new Set();
+  uslUnits.forEach(u => { if(u[field]) set2.add(u[field]); });
+  return Array.from(set2).sort((a,b)=>a.localeCompare(b));
+}
+function uslMergeUnique(...arrs){
+  const set2 = new Set();
+  arrs.forEach(a => a.forEach(v => { if(v) set2.add(v); }));
+  return Array.from(set2).sort((a,b)=>a.localeCompare(b));
+}
+function uslRefFlatten(){
+  const extCodes=new Set(), extNames=new Set(), intCodes=new Set(), intNames=new Set(), packages=new Set(), options=new Set();
+  const engineCodes=new Set(), engineNames=new Set(), transCodes=new Set(), transNames=new Set();
+  Object.values(uslReference).forEach(entry => {
+    (entry.extColors||[]).forEach(c=>{ if(c.code) extCodes.add(c.code); if(c.name) extNames.add(c.name); });
+    (entry.intColors||[]).forEach(c=>{ if(c.code) intCodes.add(c.code); if(c.name) intNames.add(c.name); });
+    (entry.packages||[]).forEach(p=>packages.add(p));
+    (entry.options||[]).forEach(o=>options.add(o));
+    (entry.engines||[]).forEach(c=>{ if(c.code) engineCodes.add(c.code); if(c.name) engineNames.add(c.name); });
+    (entry.transmissions||[]).forEach(c=>{ if(c.code) transCodes.add(c.code); if(c.name) transNames.add(c.name); });
+  });
+  return {extCodes:[...extCodes], extNames:[...extNames], intCodes:[...intCodes], intNames:[...intNames], packages:[...packages], options:[...options],
+    engineCodes:[...engineCodes], engineNames:[...engineNames], transCodes:[...transCodes], transNames:[...transNames]};
+}
+function uslRefModelsTrims(){
+  const models=new Set(), trims=new Set();
+  Object.keys(uslReference).forEach(k => {
+    const [m,t] = k.split('::');
+    if(m) models.add(m);
+    if(t) trims.add(t);
+  });
+  return {models:[...models], trims:[...trims]};
+}
+function uslAllOptionTags(){
+  const counts = {};
+  uslUnits.forEach(u => (u.options||[]).forEach(o => counts[o] = (counts[o]||0)+1));
+  uslRefFlatten().options.forEach(o => { if(!(o in counts)) counts[o] = 0; });
+  return Object.keys(counts).sort((a,b)=> counts[b]-counts[a] || a.localeCompare(b));
+}
+function uslGuessSwatch(colorName){
+  if(!colorName) return '#999';
+  const n = colorName.toLowerCase();
+  const map = [
+    [/black/, '#1a1a1a'],[/white|oxford/, '#f2f2f0'],[/silver|iconic/, '#b9bcbe'],
+    [/gray|grey/, '#7d8286'],[/red|race|rapid/, '#a3211f'],[/blue|atlas|velocity/, '#2b4d8c'],
+    [/green|eruption/, '#33513a'],[/orange|cyber|code/, '#d1591f'],[/yellow|antimatter/, '#e0b024'],
+    [/brown|stone|carbonized/, '#5a4636'],[/tan|slate/, '#8a7f6d'],[/gold/, '#a9822a']
+  ];
+  for(const [re,hex] of map) if(re.test(n)) return hex;
+  return '#999';
+}
+
+// ---------- Render filters ----------
+function uslFillSelect(sel, values, current){
+  const keep = current || sel.value;
+  sel.innerHTML = '<option value="">' + sel.dataset.allLabel + '</option>' +
+    values.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  sel.value = keep && values.includes(keep) ? keep : '';
+}
+function uslFillDatalist(id, values){
+  document.getElementById(id).innerHTML = values.map(v=>`<option value="${esc(v)}">`).join('');
+}
+function uslRefreshFilterControls(){
+  document.getElementById('fModel').dataset.allLabel = 'All models';
+  document.getElementById('fTrim').dataset.allLabel = 'All trims';
+  document.getElementById('fPackage').dataset.allLabel = 'All packages';
+  document.getElementById('fExt').dataset.allLabel = 'All exterior';
+  document.getElementById('fInt').dataset.allLabel = 'All interior';
+
+  const ref = uslRefFlatten();
+  const refMT = uslRefModelsTrims();
+
+  uslFillSelect(document.getElementById('fModel'), uslMergeUnique(uslDistinct('model'), refMT.models));
+  uslFillSelect(document.getElementById('fTrim'), uslMergeUnique(uslDistinct('trim'), refMT.trims));
+  uslFillSelect(document.getElementById('fPackage'), uslMergeUnique(uslDistinct('packageCode'), ref.packages));
+  uslFillSelect(document.getElementById('fExt'), uslDistinct('extColorName').length || ref.extNames.length ? uslMergeUnique(uslDistinct('extColorName'), ref.extNames) : uslMergeUnique(uslDistinct('extColorCode'), ref.extCodes));
+  uslFillSelect(document.getElementById('fInt'), uslDistinct('intColorName').length || ref.intNames.length ? uslMergeUnique(uslDistinct('intColorName'), ref.intNames) : uslMergeUnique(uslDistinct('intColorCode'), ref.intCodes));
+
+  const wrap = document.getElementById('fOptions');
+  const selected = Array.from(wrap.querySelectorAll('.usl-chip.usl-on')).map(c=>c.dataset.val);
+  wrap.innerHTML = '';
+  uslAllOptionTags().forEach(opt => {
+    const chip = document.createElement('div');
+    chip.className = 'usl-chip' + (selected.includes(opt) ? ' usl-on' : '');
+    chip.textContent = opt;
+    chip.dataset.val = opt;
+    chip.onclick = () => { chip.classList.toggle('usl-on'); uslRenderResults(); };
+    wrap.appendChild(chip);
+  });
+
+  uslFillDatalist('dlModel', uslMergeUnique(uslDistinct('model'), refMT.models));
+  uslFillDatalist('dlTrim', uslMergeUnique(uslDistinct('trim'), refMT.trims));
+  uslFillDatalist('dlPackage', uslMergeUnique(uslDistinct('packageCode'), ref.packages));
+  uslFillDatalist('dlExtCode', uslMergeUnique(uslDistinct('extColorCode'), ref.extCodes));
+  uslFillDatalist('dlExtName', uslMergeUnique(uslDistinct('extColorName'), ref.extNames));
+  uslFillDatalist('dlIntCode', uslMergeUnique(uslDistinct('intColorCode'), ref.intCodes));
+  uslFillDatalist('dlIntName', uslMergeUnique(uslDistinct('intColorName'), ref.intNames));
+  uslFillDatalist('dlEngineCode', uslMergeUnique(uslDistinct('engineCode'), ref.engineCodes));
+  uslFillDatalist('dlEngineName', uslMergeUnique(uslDistinct('engineName'), ref.engineNames));
+  uslFillDatalist('dlTransCode', uslMergeUnique(uslDistinct('transCode'), ref.transCodes));
+  uslFillDatalist('dlTransName', uslMergeUnique(uslDistinct('transName'), ref.transNames));
+}
+
+// ---------- Filtering / results ----------
+function uslOptionCode(optionStr){
+  const m = (optionStr||'').trim().match(/^(-?[A-Za-z0-9-]{1,6})\s+/);
+  return m ? m[1].toLowerCase() : '';
+}
+function uslCurrentFilters(){
+  return {
+    text: document.getElementById('searchInput').value.trim().toLowerCase(),
+    model: document.getElementById('fModel').value,
+    trim: document.getElementById('fTrim').value,
+    pkg: document.getElementById('fPackage').value,
+    ext: document.getElementById('fExt').value,
+    intc: document.getElementById('fInt').value,
+    options: Array.from(document.querySelectorAll('#fOptions .usl-chip.usl-on')).map(c=>c.dataset.val)
+  };
+}
+function uslApplyFilters(){
+  const f = uslCurrentFilters();
+  return uslUnits.filter(u => {
+    if(f.model && u.model !== f.model) return false;
+    if(f.trim && u.trim !== f.trim) return false;
+    if(f.pkg && u.packageCode !== f.pkg) return false;
+    if(f.ext && u.extColorName !== f.ext && u.extColorCode !== f.ext) return false;
+    if(f.intc && u.intColorName !== f.intc && u.intColorCode !== f.intc) return false;
+    if(f.options.length && !f.options.every(o => (u.options||[]).includes(o))) return false;
+    if(f.text){
+      const codeHit = (u.options||[]).some(o => uslOptionCode(o) === f.text || uslOptionCode(o).startsWith(f.text));
+      if(codeHit) return true;
+      const hay = [u.stockNumber,u.model,u.trim,u.packageCode,u.extColorName,u.extColorCode,u.intColorName,u.intColorCode,u.engineCode,u.engineName,u.transCode,u.transName,u.notes,(u.options||[]).join(' ')].join(' ').toLowerCase();
+      if(!hay.includes(f.text)) return false;
+    }
+    return true;
+  });
+}
+function uslRenderResults(){
+  uslRefreshFilterControls();
+  const list = uslApplyFilters().sort((a,b)=> (b.updatedAt||0)-(a.updatedAt||0));
+  document.getElementById('unitCount').textContent = uslUnits.length;
+  document.getElementById('resultCount').textContent = list.length;
+  const grid = document.getElementById('resultsGrid');
+  if(!list.length){
+    grid.innerHTML = `<div class="usl-empty" style="grid-column:1/-1;"><b>No units match yet</b>${uslUnits.length? 'Try clearing a filter.' : 'Click “Photo a Unit” to log your first build sheet.'}</div>`;
+    return;
+  }
+  grid.innerHTML = list.map(u => uslStickerHTML(u)).join('');
+  list.forEach(u => {
+    const editBtn = document.getElementById('edit-'+u.id);
+    if(editBtn) editBtn.onclick = () => uslOpenUnitModal(u);
+    const copyBtn = document.getElementById('copy-'+u.id);
+    if(copyBtn) copyBtn.onclick = () => {
+      navigator.clipboard.writeText(u.location||'').then(()=>{
+        copyBtn.textContent = 'Copied';
+        setTimeout(()=>copyBtn.textContent='Copy',1200);
+      });
+    };
+  });
+}
+function uslStickerHTML(u){
+  const isLink = /^https?:\/\//i.test(u.location||'');
+  return `
+  <div class="usl-sticker">
+    <div class="usl-sticker-head">
+      <span class="usl-stock">#${esc(u.stockNumber)}</span>
+      <span class="usl-year">${esc(u.year||'')}</span>
+    </div>
+    <div class="usl-sticker-body">
+      <h3>${esc(u.model)||'—'}</h3>
+      <div class="usl-trim">${esc(u.trim||'Trim not set')}${u.packageCode ? ' · Pkg ' + esc(u.packageCode) : ''}</div>
+
+      <div class="usl-specrow"><div class="usl-k">Ext</div><div class="usl-v usl-swatchline"><span class="usl-swatch" style="background:${uslGuessSwatch(u.extColorName)}"></span>${esc(u.extColorName||'—')} ${u.extColorCode? '('+esc(u.extColorCode)+')':''}</div></div>
+      <div class="usl-specrow"><div class="usl-k">Int</div><div class="usl-v usl-swatchline"><span class="usl-swatch" style="background:${uslGuessSwatch(u.intColorName)}"></span>${esc(u.intColorName||'—')} ${u.intColorCode? '('+esc(u.intColorCode)+')':''}</div></div>
+      ${(u.engineCode||u.engineName) ? `<div class="usl-specrow"><div class="usl-k">Eng</div><div class="usl-v">${esc(u.engineName||'—')} ${u.engineCode? '('+esc(u.engineCode)+')':''}</div></div>` : ''}
+      ${(u.transCode||u.transName) ? `<div class="usl-specrow"><div class="usl-k">Trans</div><div class="usl-v">${esc(u.transName||'—')} ${u.transCode? '('+esc(u.transCode)+')':''}</div></div>` : ''}
+
+      ${(u.options&&u.options.length) ? `<div class="usl-opts-wrap usl-chiprow">${u.options.map(o=>`<span class="usl-chip">${esc(o)}</span>`).join('')}</div>` : ''}
+      ${u.notes ? `<div class="usl-notes-preview">"${esc(u.notes)}"</div>` : ''}
+
+      <div class="usl-loc-row">
+        📁 ${u.location ? (isLink ? `<a href="${esc(u.location)}" target="_blank" rel="noopener">${esc(u.location)}</a>` : `<span class="usl-loc-text">${esc(u.location)}</span>`) : '<span style="color:var(--usl-muted)">No location on file</span>'}
+        ${u.location ? `<button class="usl-btn-ghost usl-btn-sm" id="copy-${u.id}" style="margin-left:auto;">Copy</button>` : ''}
+      </div>
+      <div class="usl-card-actions">
+        <button class="usl-btn-ghost usl-btn-sm" id="edit-${u.id}">Edit / view full spec</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ---------- Add/Edit modal ----------
+function uslOptionChipRow(container, draftArr, onRemove){
+  container.innerHTML = draftArr.map((o,i)=>`<div class="usl-chip usl-removable">${esc(o)} <span class="usl-x" data-i="${i}">✕</span></div>`).join('');
+  container.querySelectorAll('.usl-x').forEach(x => x.onclick = () => { draftArr.splice(+x.dataset.i,1); onRemove(); });
+}
+function uslSuggestionRow(container, exclude){
+  const tags = uslAllOptionTags().filter(t => !exclude.includes(t));
+  container.innerHTML = tags.map(t=>`<div class="usl-chip" data-t="${esc(t)}">${esc(t)}</div>`).join('');
+}
+
+function uslOpenUnitModal(existing){
+  uslEditingId = existing ? existing.id : null;
+  document.getElementById('unitModalTitle').textContent = existing ? 'Edit Unit' : 'Photo a Unit';
+  document.getElementById('uDeleteBtn').style.display = existing ? 'inline-block' : 'none';
+  document.getElementById('uStock').value = existing? existing.stockNumber : '';
+  document.getElementById('uYear').value = existing? (existing.year||'') : '';
+  document.getElementById('uModel').value = existing? (existing.model||'') : '';
+  document.getElementById('uTrim').value = existing? (existing.trim||'') : '';
+  document.getElementById('uPackage').value = existing? (existing.packageCode||'') : '';
+  document.getElementById('uExtCode').value = existing? (existing.extColorCode||'') : '';
+  document.getElementById('uExtName').value = existing? (existing.extColorName||'') : '';
+  document.getElementById('uIntCode').value = existing? (existing.intColorCode||'') : '';
+  document.getElementById('uIntName').value = existing? (existing.intColorName||'') : '';
+  document.getElementById('uEngineCode').value = existing? (existing.engineCode||'') : '';
+  document.getElementById('uEngineName').value = existing? (existing.engineName||'') : '';
+  document.getElementById('uTransCode').value = existing? (existing.transCode||'') : '';
+  document.getElementById('uTransName').value = existing? (existing.transName||'') : '';
+  document.getElementById('uLocation').value = existing? (existing.location||'') : '';
+  document.getElementById('uNotes').value = existing? (existing.notes||'') : '';
+  uslUOptionsDraft = existing ? [...(existing.options||[])] : [];
+  uslRefreshUOptionUI();
+  document.getElementById('unitOverlay').classList.add('usl-open');
+  document.getElementById('uStock').focus();
+}
+function uslRefreshUOptionUI(){
+  uslOptionChipRow(document.getElementById('uOptionSelected'), uslUOptionsDraft, uslRefreshUOptionUI);
+  uslSuggestionRow(document.getElementById('uOptionSuggest'), uslUOptionsDraft);
+  document.querySelectorAll('#uOptionSuggest .usl-chip').forEach(c => c.onclick = () => {
+    uslUOptionsDraft.push(c.dataset.t); uslRefreshUOptionUI();
+  });
+}
+function uslCloseUnitModal(){ document.getElementById('unitOverlay').classList.remove('usl-open'); }
+
+document.getElementById('uOptionInput').addEventListener('keydown', e => {
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    const v = e.target.value.trim();
+    if(v && !uslUOptionsDraft.includes(v)){ uslUOptionsDraft.push(v); uslRefreshUOptionUI(); }
+    e.target.value = '';
+  }
+});
+
+document.getElementById('btnAdd').onclick = () => uslOpenUnitModal(null);
+document.getElementById('uCancelBtn').onclick = uslCloseUnitModal;
+document.getElementById('unitModalClose').onclick = uslCloseUnitModal;
+
+function uslResolveNamesFromReference(rec){
+  const keys = [uslRefKeyFor(rec.model, rec.trim), uslRefKeyFor(rec.model, '')];
+  for(const key of keys){
+    const entry = uslReference[key];
+    if(!entry) continue;
+    if(rec.extColorCode && !rec.extColorName){
+      const hit = (entry.extColors||[]).find(c => (c.code||'').toLowerCase() === rec.extColorCode.toLowerCase());
+      if(hit) rec.extColorName = hit.name;
+    }
+    if(rec.intColorCode && !rec.intColorName){
+      const hit = (entry.intColors||[]).find(c => (c.code||'').toLowerCase() === rec.intColorCode.toLowerCase());
+      if(hit) rec.intColorName = hit.name;
+    }
+    if(rec.engineCode && !rec.engineName){
+      const hit = (entry.engines||[]).find(c => (c.code||'').toLowerCase() === rec.engineCode.toLowerCase());
+      if(hit) rec.engineName = hit.name;
+    }
+    if(rec.transCode && !rec.transName){
+      const hit = (entry.transmissions||[]).find(c => (c.code||'').toLowerCase() === rec.transCode.toLowerCase());
+      if(hit) rec.transName = hit.name;
+    }
+  }
+  return rec;
+}
+
+document.getElementById('uSaveBtn').onclick = async () => {
+  const stock = document.getElementById('uStock').value.trim();
+  const model = document.getElementById('uModel').value.trim();
+  if(!stock || !model){ alert('Stock number and model are required.'); return; }
+
+  let targetId = uslEditingId;
+  if(!targetId){
+    const dupe = uslUnits.find(u => (u.stockNumber||'').toLowerCase() === stock.toLowerCase());
+    if(dupe){
+      if(!confirm(`Stock #${stock} already exists in the locker. Overwrite it with these details?`)) return;
+      targetId = dupe.id;
+    }
+  }
+
+  const record = {
+    id: targetId || uslGenId(),
+    stockNumber: stock,
+    year: document.getElementById('uYear').value.trim(),
+    model: model,
+    trim: document.getElementById('uTrim').value.trim(),
+    packageCode: document.getElementById('uPackage').value.trim().toUpperCase(),
+    extColorCode: document.getElementById('uExtCode').value.trim().toUpperCase(),
+    extColorName: document.getElementById('uExtName').value.trim(),
+    intColorCode: document.getElementById('uIntCode').value.trim().toUpperCase(),
+    intColorName: document.getElementById('uIntName').value.trim(),
+    engineCode: document.getElementById('uEngineCode').value.trim().toUpperCase(),
+    engineName: document.getElementById('uEngineName').value.trim(),
+    transCode: document.getElementById('uTransCode').value.trim().toUpperCase(),
+    transName: document.getElementById('uTransName').value.trim(),
+    options: [...uslUOptionsDraft],
+    location: document.getElementById('uLocation').value.trim(),
+    notes: document.getElementById('uNotes').value.trim(),
+    updatedAt: Date.now()
+  };
+  uslResolveNamesFromReference(record);
+  await uslPersistUnit(record);
+  uslCloseUnitModal();
+  uslRenderResults();
+};
+
+document.getElementById('uDeleteBtn').onclick = async () => {
+  if(!uslEditingId) return;
+  if(!confirm('Delete this unit from the locker? This cannot be undone.')) return;
+  await uslDeleteUnitRemote(uslEditingId);
+  uslCloseUnitModal();
+  uslRenderResults();
+};
+
+// ---------- Filters bar events ----------
+['fModel','fTrim','fPackage','fExt','fInt'].forEach(id => document.getElementById(id).addEventListener('change', uslRenderResults));
+document.getElementById('searchInput').addEventListener('input', uslRenderResults);
+document.getElementById('btnClearFilters').onclick = () => {
+  ['fModel','fTrim','fPackage','fExt','fInt'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('searchInput').value = '';
+  document.querySelectorAll('#fOptions .usl-chip.usl-on').forEach(c=>c.classList.remove('usl-on'));
+  uslRenderResults();
+};
+
+// ---------- Find Match modal ----------
+function uslOpenMatchModal(){
+  ['mYear','mModel','mTrim','mPackage','mExtCode','mIntCode','mEngineCode','mTransCode'].forEach(id => document.getElementById(id).value = '');
+  uslMOptionsDraft = [];
+  uslRefreshMOptionUI();
+  document.getElementById('matchResults').innerHTML = '';
+  document.getElementById('matchOverlay').classList.add('usl-open');
+}
+function uslCloseMatchModal(){ document.getElementById('matchOverlay').classList.remove('usl-open'); }
+function uslRefreshMOptionUI(){
+  uslOptionChipRow(document.getElementById('mOptionSelected'), uslMOptionsDraft, uslRefreshMOptionUI);
+  uslSuggestionRow(document.getElementById('mOptionSuggest'), uslMOptionsDraft);
+  document.querySelectorAll('#mOptionSuggest .usl-chip').forEach(c => c.onclick = () => {
+    uslMOptionsDraft.push(c.dataset.t); uslRefreshMOptionUI();
+  });
+}
+document.getElementById('mOptionInput').addEventListener('keydown', e => {
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    const v = e.target.value.trim();
+    if(v && !uslMOptionsDraft.includes(v)){ uslMOptionsDraft.push(v); uslRefreshMOptionUI(); }
+    e.target.value = '';
+  }
+});
+document.getElementById('btnMatch').onclick = uslOpenMatchModal;
+document.getElementById('matchModalClose').onclick = uslCloseMatchModal;
+document.getElementById('mCloseBtn').onclick = uslCloseMatchModal;
+
+function uslOptionMatches(targetStr, unitOptionStr){
+  const t = (targetStr||'').trim().toLowerCase();
+  const u = (unitOptionStr||'').toLowerCase();
+  if(!t || !u) return false;
+  if(u === t) return true;
+  const code = uslOptionCode(unitOptionStr);
+  if(code && code === t) return true;
+  return u.includes(t);
+}
+function uslStartsWithWholeWord(candidate, target){
+  const c = (candidate||'').toLowerCase();
+  const t = (target||'').toLowerCase();
+  if(c === t) return true;
+  const escaped = t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp('^' + escaped + '(\\s|$)').test(c);
+}
+function uslComputeMatches(target){
+  const candidates = uslUnits.filter(u => !target.model || (u.model||'').toLowerCase() === target.model.toLowerCase());
+  const scored = candidates.map(u => {
+    let achieved = 0, possible = 0;
+    const diffs = [];
+    const check = (label, tVal, uVal, wordAware) => {
+      if(!tVal) return;
+      possible++;
+      const hit = wordAware ? uslStartsWithWholeWord(uVal, tVal) : (uVal||'').toLowerCase() === tVal.toLowerCase();
+      if(hit) achieved++;
+      else diffs.push(`${label}: wants ${tVal}, this unit has ${uVal||'—'}`);
+    };
+    check('Year', target.year, u.year);
+    check('Trim', target.trim, u.trim, true);
+    check('Package', target.packageCode, u.packageCode);
+    check('Ext color', target.extColorCode, u.extColorCode);
+    check('Int color', target.intColorCode, u.intColorCode);
+    check('Engine', target.engineCode, u.engineCode);
+    check('Transmission', target.transCode, u.transCode);
+
+    const matchedUnitOptions = new Set();
+    if(target.options.length){
+      target.options.forEach(o => {
+        possible++;
+        const hit = (u.options||[]).find(uo => uslOptionMatches(o, uo));
+        if(hit){ achieved++; matchedUnitOptions.add(hit); }
+        else diffs.push(`Missing option: ${o}`);
+      });
+    }
+    const extraOptions = (u.options||[]).filter(uo => !matchedUnitOptions.has(uo)).length;
+    const pct = possible ? Math.round((achieved/possible)*100) : 100;
+    const exact = possible > 0 && achieved === possible && extraOptions === 0;
+    return {unit:u, pct, exact, diffs, extraOptions, possible};
+  });
+  scored.sort((a,b)=> b.pct - a.pct || (b.unit.updatedAt||0) - (a.unit.updatedAt||0));
+  return scored.slice(0,20);
+}
+
+document.getElementById('mRunBtn').onclick = () => {
+  const target = {
+    year: document.getElementById('mYear').value.trim(),
+    model: document.getElementById('mModel').value.trim(),
+    trim: document.getElementById('mTrim').value.trim(),
+    packageCode: document.getElementById('mPackage').value.trim(),
+    extColorCode: document.getElementById('mExtCode').value.trim(),
+    intColorCode: document.getElementById('mIntCode').value.trim(),
+    engineCode: document.getElementById('mEngineCode').value.trim(),
+    transCode: document.getElementById('mTransCode').value.trim(),
+    options: [...uslMOptionsDraft]
+  };
+  const results = uslComputeMatches(target);
+  const box = document.getElementById('matchResults');
+  if(!uslUnits.length){
+    box.innerHTML = '<div class="usl-empty">Your locker is empty — photo some units first.</div>';
+    return;
+  }
+  if(!results.length){
+    box.innerHTML = '<div class="usl-empty">No units matched that model. Try widening your search.</div>';
+    return;
+  }
+  box.innerHTML = results.map(r => `
+    <div class="usl-sticker" style="margin-bottom:12px;">
+      <div class="usl-sticker-head">
+        <span class="usl-stock">#${esc(r.unit.stockNumber)}</span>
+        <span class="usl-badge ${r.exact ? 'usl-exact' : 'usl-close'}">${r.exact ? 'EXACT MATCH' : r.pct + '% match'}</span>
+      </div>
+      <div class="usl-sticker-body">
+        <h3>${esc(r.unit.model)}</h3>
+        <div class="usl-trim">${esc(r.unit.trim||'')} ${r.unit.packageCode? '· Pkg '+esc(r.unit.packageCode):''} ${r.unit.year? '· '+esc(r.unit.year):''}</div>
+        <div class="usl-specrow"><div class="usl-k">Ext</div><div class="usl-v">${esc(r.unit.extColorName||r.unit.extColorCode||'—')}</div></div>
+        <div class="usl-specrow"><div class="usl-k">Int</div><div class="usl-v">${esc(r.unit.intColorName||r.unit.intColorCode||'—')}</div></div>
+        ${(r.unit.engineCode||r.unit.engineName) ? `<div class="usl-specrow"><div class="usl-k">Eng</div><div class="usl-v">${esc(r.unit.engineName||r.unit.engineCode||'—')}</div></div>` : ''}
+        ${(r.unit.transCode||r.unit.transName) ? `<div class="usl-specrow"><div class="usl-k">Trans</div><div class="usl-v">${esc(r.unit.transName||r.unit.transCode||'—')}</div></div>` : ''}
+        ${(r.unit.options&&r.unit.options.length) ? `<div class="usl-opts-wrap usl-chiprow">${r.unit.options.map(o=>`<span class="usl-chip">${esc(o)}</span>`).join('')}</div>` : ''}
+        ${r.diffs.length ? `<div class="usl-diff">${r.diffs.map(esc).join(' · ')}</div>` : `<div class="usl-diff usl-ok">All specified specs line up.</div>`}
+        ${r.extraOptions ? `<div class="usl-diff">This unit has ${r.extraOptions} extra option${r.extraOptions>1?'s':''} not in your target.</div>` : ''}
+        <div class="usl-loc-row">
+          📁 ${r.unit.location ? (/^https?:\/\//i.test(r.unit.location) ? `<a href="${esc(r.unit.location)}" target="_blank" rel="noopener">${esc(r.unit.location)}</a>` : `<span class="usl-loc-text">${esc(r.unit.location)}</span>`) : '<span style="color:var(--usl-muted)">No location on file</span>'}
+        </div>
+      </div>
+    </div>
+  `).join('');
+};
+
+// ---------- Bulk paste import ----------
+const USL_FIELD_ALIASES = {
+  stockNumber: ['stock','stocknumber','stockno','stock#','unitnumber','unit#'],
+  year: ['year','modelyear','my'],
+  model: ['model','vehicle','unitmodel'],
+  trim: ['trim','trimlevel','series'],
+  packageCode: ['package','packagecode','pkg','pkgcode','equipmentgroup','optiongroup','ordercode'],
+  extColorCode: ['extcolorcode','exteriorcolorcode','extcode','paintcode','exteriorcode'],
+  extColorName: ['extcolorname','exteriorcolor','extcolor','exteriorcolorname','color','paintname','paint'],
+  intColorCode: ['intcolorcode','interiorcolorcode','intcode','interiorcode','trimcode'],
+  intColorName: ['intcolorname','interiorcolor','intcolor','interiorcolorname'],
+  engineCode: ['enginecode','engine'],
+  engineName: ['enginename','enginedescription'],
+  transCode: ['transcode','transmissioncode','trans'],
+  transName: ['transname','transmissionname','transmission','transmissiondescription'],
+  options: ['options','packages','optionpackages','addons','equipment'],
+  location: ['location','onedrive','path','link','photolocation','folder','photos'],
+  notes: ['notes','note','comments','comment']
+};
+function uslNormalizeHeader(h){
+  return (h||'').toString().trim().toLowerCase().replace(/[^a-z0-9]/g,'');
+}
+function uslMatchHeaderToField(h){
+  const norm = uslNormalizeHeader(h);
+  for(const field in USL_FIELD_ALIASES){
+    if(USL_FIELD_ALIASES[field].includes(norm)) return field;
+  }
+  return null;
+}
+function uslDetectDelimiter(line){
+  if(line.includes('\t')) return '\t';
+  if(line.includes('|')) return '|';
+  return ',';
+}
+function uslSplitLine(line, delim){
+  const result = [];
+  let cur = '';
+  let inQuotes = false;
+  for(let i=0;i<line.length;i++){
+    const ch = line[i];
+    if(ch === '"'){
+      if(inQuotes && line[i+1] === '"'){ cur += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if(ch === delim && !inQuotes){
+      result.push(cur.trim());
+      cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  result.push(cur.trim());
+  return result;
+}
+function uslParseBulkText(text){
+  const lines = text.split('\n').map(l=>l.replace(/\r$/,'')).filter(l => l.trim().length);
+  if(!lines.length) return {records:[], unmapped:[], skipped:[]};
+  const delim = uslDetectDelimiter(lines[0]);
+  const headerCells = uslSplitLine(lines[0], delim);
+  const fieldMap = headerCells.map(uslMatchHeaderToField);
+  const unmapped = headerCells.filter((h,i) => !fieldMap[i]);
+
+  const records = [];
+  const skipped = [];
+  for(let i=1;i<lines.length;i++){
+    const cells = uslSplitLine(lines[i], delim);
+    const rec = {};
+    fieldMap.forEach((field,idx) => {
+      if(!field) return;
+      let val = (cells[idx]||'').trim();
+      if(field === 'options'){
+        rec.options = val ? val.split(/[;,]/).map(o=>o.trim()).filter(Boolean) : [];
+      } else if(field === 'packageCode' || field === 'extColorCode' || field === 'intColorCode' || field === 'engineCode' || field === 'transCode'){
+        rec[field] = val.toUpperCase();
+      } else {
+        rec[field] = val;
+      }
+    });
+    if(!rec.stockNumber || !rec.model){
+      skipped.push({line:i+1, raw:lines[i]});
+      continue;
+    }
+    rec.id = uslGenId();
+    rec.updatedAt = Date.now();
+    uslResolveNamesFromReference(rec);
+    records.push(rec);
+  }
+  return {records, unmapped, skipped};
+}
+
+function uslOpenBulkModal(){
+  document.getElementById('bulkText').value = '';
+  document.getElementById('bulkSummary').innerHTML = '';
+  document.getElementById('bulkOverlay').classList.add('usl-open');
+}
+function uslCloseBulkModal(){ document.getElementById('bulkOverlay').classList.remove('usl-open'); }
+document.getElementById('btnBulk').onclick = uslOpenBulkModal;
+document.getElementById('bulkModalClose').onclick = uslCloseBulkModal;
+document.getElementById('bulkCancelBtn').onclick = uslCloseBulkModal;
+document.getElementById('bulkOverlay').addEventListener('click', e => { if(e.target.id === 'bulkOverlay') uslCloseBulkModal(); });
+
+document.getElementById('bulkParseBtn').onclick = async () => {
+  const text = document.getElementById('bulkText').value;
+  if(!text.trim()){ alert('Paste some rows first.'); return; }
+  const {records, unmapped, skipped} = uslParseBulkText(text);
+  if(!records.length){
+    document.getElementById('bulkSummary').innerHTML = `<div class="usl-diff">No usable rows found. Make sure the first row has headers and each row has a Stock number and Model.</div>`;
+    return;
+  }
+  let added = 0, updated = 0;
+  const updates = {};
+  records.forEach(rec => {
+    const idx = uslUnits.findIndex(u => (u.stockNumber||'').toLowerCase() === rec.stockNumber.toLowerCase());
+    if(idx > -1){ rec = {...uslUnits[idx], ...rec, id: uslUnits[idx].id}; updated++; }
+    else { added++; }
+    updates['unitSpecUnits/'+rec.id] = rec;
+  });
+  try{ await update(ref(db), updates); }
+  catch(e){ alert('Could not save — you may not have permission, or you\'re offline.'); return; }
+  uslRenderResults();
+  document.getElementById('bulkSummary').innerHTML = `
+    <div class="usl-diff usl-ok">Added ${added}, updated ${updated} unit${(added+updated)!==1?'s':''}.</div>
+    ${unmapped.length ? `<div class="usl-diff">Columns not recognized (ignored): ${unmapped.map(esc).join(', ')}</div>` : ''}
+    ${skipped.length ? `<div class="usl-diff">Skipped ${skipped.length} row(s) missing Stock or Model: lines ${skipped.map(s=>s.line).join(', ')}</div>` : ''}
+  `;
+};
+
+// ---------- Simplify options to codes ----------
+function uslSimplifyOptionsList(arr){
+  return (arr||[]).map(o => {
+    const code = uslOptionCode(o);
+    return code ? code.toUpperCase() : o;
+  });
+}
+document.getElementById('btnSimplify').onclick = async () => {
+  const ok = confirm('This rewrites every saved option (on units and in Model Reference) down to just its leading code, dropping the description text. Anything without a recognizable code (like "Bedliner" or "Wheel Locks") is left alone. Continue?');
+  if(!ok) return;
+  const updates = {};
+  uslUnits.forEach(u => { updates['unitSpecUnits/'+u.id+'/options'] = uslSimplifyOptionsList(u.options); });
+  Object.keys(uslReference).forEach(key => { updates['unitSpecReference/'+key+'/options'] = uslSimplifyOptionsList(uslReference[key].options); });
+  try{ await update(ref(db), updates); }
+  catch(e){ alert('Could not save — you may not have permission, or you\'re offline.'); return; }
+  alert('Done — options are now stored as codes only wherever a code was found.');
+};
+
+// ---------- Backup / restore ----------
+function uslMergeRefEntry(target, incoming){
+  target.extColors = target.extColors || [];
+  target.intColors = target.intColors || [];
+  target.packages = target.packages || [];
+  target.options = target.options || [];
+  target.engines = target.engines || [];
+  target.transmissions = target.transmissions || [];
+  target.other = target.other || {};
+  (incoming.extColors||[]).forEach(c => {
+    const ex = target.extColors.find(x => x.code.toLowerCase() === c.code.toLowerCase());
+    if(ex) ex.name = c.name; else target.extColors.push(c);
+  });
+  (incoming.intColors||[]).forEach(c => {
+    const ex = target.intColors.find(x => x.code.toLowerCase() === c.code.toLowerCase());
+    if(ex) ex.name = c.name; else target.intColors.push(c);
+  });
+  (incoming.engines||[]).forEach(c => {
+    const ex = target.engines.find(x => x.code.toLowerCase() === c.code.toLowerCase());
+    if(ex) ex.name = c.name; else target.engines.push(c);
+  });
+  (incoming.transmissions||[]).forEach(c => {
+    const ex = target.transmissions.find(x => x.code.toLowerCase() === c.code.toLowerCase());
+    if(ex) ex.name = c.name; else target.transmissions.push(c);
+  });
+  (incoming.packages||[]).forEach(p => {
+    if(!target.packages.find(x => x.toLowerCase() === p.toLowerCase())) target.packages.push(p);
+  });
+  (incoming.options||[]).forEach(o => {
+    if(!target.options.find(x => x.toLowerCase() === o.toLowerCase())) target.options.push(o);
+  });
+  Object.keys(incoming.other||{}).forEach(cat => {
+    if(!target.other[cat]) target.other[cat] = [];
+    (incoming.other[cat]||[]).forEach(it => {
+      if(!target.other[cat].find(x => x.code.toLowerCase() === it.code.toLowerCase())) target.other[cat].push(it);
+    });
+  });
+}
+document.getElementById('btnExport').onclick = () => {
+  const payload = {type:'unit-spec-locker-backup', units: uslUnits, referenceData: uslReference};
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `unit-spec-locker-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+};
+document.getElementById('btnImportTrigger').onclick = () => document.getElementById('importFile').click();
+document.getElementById('importFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    const text = await file.text();
+    const incoming = JSON.parse(text);
+    const incomingUnits = Array.isArray(incoming) ? incoming : (incoming.units || []);
+    const incomingRefRaw = Array.isArray(incoming) ? {} : (incoming.referenceData || {});
+    const incomingRef = {};
+    Object.keys(incomingRefRaw).forEach(k => { incomingRef[uslSanitizeKey(k)] = incomingRefRaw[k]; });
+
+    const mode = confirm('Click OK to MERGE this into your current locker (matching stock numbers and codes are combined/overwritten), or Cancel to REPLACE your locker entirely with this file.');
+    const updates = {};
+    if(mode){
+      const byStock = {};
+      uslUnits.forEach(u => byStock[(u.stockNumber||'').toLowerCase()] = u);
+      incomingUnits.forEach(u => {
+        const key = (u.stockNumber||'').toLowerCase();
+        const existing = byStock[key];
+        byStock[key] = { ...u, id: existing ? existing.id : (u.id || uslGenId()) };
+      });
+      Object.values(byStock).forEach(u => { updates['unitSpecUnits/'+u.id] = u; });
+
+      Object.keys(incomingRef).forEach(key => {
+        const target = uslReference[key] ? JSON.parse(JSON.stringify(uslReference[key])) : {extColors:[],intColors:[],packages:[],options:[],engines:[],transmissions:[],other:{}};
+        uslMergeRefEntry(target, incomingRef[key]);
+        updates['unitSpecReference/'+key] = target;
+      });
+    } else {
+      // Replace mode: clear existing nodes, then write the incoming set.
+      uslUnits.forEach(u => { updates['unitSpecUnits/'+u.id] = null; });
+      Object.keys(uslReference).forEach(key => { updates['unitSpecReference/'+key] = null; });
+      incomingUnits.forEach(u => {
+        const id = u.id || uslGenId();
+        updates['unitSpecUnits/'+id] = {...u, id};
+      });
+      Object.keys(incomingRef).forEach(key => { updates['unitSpecReference/'+key] = incomingRef[key]; });
+    }
+    await update(ref(db), updates);
+    alert('Import complete.');
+  }catch(err){
+    alert('That file did not look like a valid backup.');
+  }
+  e.target.value = '';
+});
+
+// close overlays on background click
+document.getElementById('unitOverlay').addEventListener('click', e => { if(e.target.id === 'unitOverlay') uslCloseUnitModal(); });
+document.getElementById('matchOverlay').addEventListener('click', e => { if(e.target.id === 'matchOverlay') uslCloseMatchModal(); });
+
+// ---------- Model Reference modal ----------
+function uslTitleCase(s){
+  return (s||'').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+function uslFixRunTogetherSuffix(raw){
+  const keywords = ['Generic Color','Metallic','Tri-Coat','Tricoat','Premium','Clearcoat','Pearlescent'];
+  let out = raw;
+  keywords.forEach(k => {
+    const escaped = k.replace(/[- ]/g, '[- ]?');
+    const re = new RegExp('([a-z])(' + escaped + ')$', 'i');
+    out = out.replace(re, '$1 $2');
+  });
+  return out;
+}
+function uslParseColorPairs(text){
+  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
+  if(!lines.length) return [];
+  const looksLikeCodeLine = l => /^[A-Za-z0-9]{1,4}$/.test(l);
+  const pairsMode = lines.length % 2 === 0 && lines.every((l,i) => i % 2 !== 0 || looksLikeCodeLine(l));
+  const out = [];
+  if(pairsMode){
+    for(let i=0;i<lines.length;i+=2){
+      const code = lines[i].toUpperCase();
+      const name = uslTitleCase(uslFixRunTogetherSuffix(lines[i+1]));
+      out.push({code, name});
+    }
+  } else {
+    lines.forEach(line => {
+      const delim = line.includes('\t') ? '\t' : (line.includes(',') ? ',' : (line.includes('|') ? '|' : null));
+      if(!delim) return;
+      const parts = line.split(delim).map(p=>p.trim());
+      const code = (parts[0]||'').toUpperCase();
+      const name = uslTitleCase(uslFixRunTogetherSuffix(parts.slice(1).join(' ')));
+      if(code) out.push({code, name});
+    });
+  }
+  return out.filter(p => p.code);
+}
+function uslParseLines(text){
+  return text.split('\n').map(l=>l.trim()).filter(Boolean);
+}
+function uslLooksLikeOrderCode(line){
+  return /^-?[A-Za-z0-9-]{1,9}$/.test(line) && /[0-9]/.test(line);
+}
+function uslParseOrderGuide(text){
+  const lines = uslParseLines(text);
+  const categories = {};
+  let current = 'Uncategorized';
+  let i = 0;
+  while(i < lines.length){
+    const line = lines[i];
+    if(uslLooksLikeOrderCode(line) && i+1 < lines.length){
+      const code = line.toUpperCase();
+      const name = uslTitleCase(uslFixRunTogetherSuffix(lines[i+1]));
+      if(!categories[current]) categories[current] = [];
+      categories[current].push({code, name});
+      i += 2;
+    } else {
+      current = line;
+      i += 1;
+    }
+  }
+  return categories;
+}
+const USL_OPTION_NOISE_PATTERNS = [
+  /gas fill/i,
+  /license plate bracket/i,
+  /connectivity.*(trial|1\s*-?\s*yr|one[- ]time)/i,
+  /siriusxm.*(trial|3[- ]year|1[- ]year)/i,
+  /floor liner/i,
+  /floor mat/i,
+  /carpet floor mat/i
+];
+function uslIsNoiseOption(name){
+  return USL_OPTION_NOISE_PATTERNS.some(re => re.test(name||''));
+}
+const USL_ORDER_GUIDE_MAP = {
+  'seat type': 'intColors',
+  'interior color': 'intColors',
+  'interior colors': 'intColors',
+  'exterior color': 'extColors',
+  'exterior colors': 'extColors',
+  'primary paint': 'extColors',
+  'option package': 'packages',
+  'equipment group': 'packages',
+  'wheels': 'options',
+  'additional equipment': 'options',
+  'vehicle option': 'options',
+  'vehicle options': 'options',
+  'engine': 'engines',
+  'transmission': 'transmissions'
+};
+function uslGetRefEntry(key){
+  if(!uslReference[key]) uslReference[key] = {extColors:[], intColors:[], packages:[], options:[], engines:[], transmissions:[], other:{}};
+  if(!uslReference[key].other) uslReference[key].other = {};
+  if(!uslReference[key].engines) uslReference[key].engines = [];
+  if(!uslReference[key].transmissions) uslReference[key].transmissions = [];
+  return uslReference[key];
+}
+function uslChipListWithRemove(containerId, labels, onRemove){
+  const el = document.getElementById(containerId);
+  el.innerHTML = labels.length
+    ? labels.map((l,i)=>`<div class="usl-chip usl-removable">${esc(l)} <span class="usl-x" data-i="${i}">✕</span></div>`).join('')
+    : '<span class="usl-hint">None saved yet</span>';
+  el.querySelectorAll('.usl-x').forEach(x => x.onclick = () => onRemove(+x.dataset.i));
+}
+function uslRenderRefChips(){
+  const key = uslRefKeyFor(document.getElementById('rModel').value, document.getElementById('rTrim').value);
+  const entry = uslReference[key] || {extColors:[], intColors:[], packages:[], options:[], engines:[], transmissions:[]};
+  uslChipListWithRemove('rExtChips', entry.extColors.map(c=>`${c.code} — ${c.name}`), async i => {
+    if(!uslReference[key]) return;
+    uslReference[key].extColors.splice(i,1); await uslPersistRefEntry(key, uslReference[key]); uslRenderRefChips(); uslRenderResults();
+  });
+  uslChipListWithRemove('rIntChips', entry.intColors.map(c=>`${c.code} — ${c.name}`), async i => {
+    if(!uslReference[key]) return;
+    uslReference[key].intColors.splice(i,1); await uslPersistRefEntry(key, uslReference[key]); uslRenderRefChips(); uslRenderResults();
+  });
+  uslChipListWithRemove('rPkgChips', entry.packages, async i => {
+    if(!uslReference[key]) return;
+    uslReference[key].packages.splice(i,1); await uslPersistRefEntry(key, uslReference[key]); uslRenderRefChips(); uslRenderResults();
+  });
+  uslChipListWithRemove('rOptChips', entry.options, async i => {
+    if(!uslReference[key]) return;
+    uslReference[key].options.splice(i,1); await uslPersistRefEntry(key, uslReference[key]); uslRenderRefChips(); uslRenderResults();
+  });
+  uslChipListWithRemove('rEngineChips', (entry.engines||[]).map(c=>`${c.code} — ${c.name}`), async i => {
+    if(!uslReference[key]) return;
+    uslReference[key].engines.splice(i,1); await uslPersistRefEntry(key, uslReference[key]); uslRenderRefChips(); uslRenderResults();
+  });
+  uslChipListWithRemove('rTransChips', (entry.transmissions||[]).map(c=>`${c.code} — ${c.name}`), async i => {
+    if(!uslReference[key]) return;
+    uslReference[key].transmissions.splice(i,1); await uslPersistRefEntry(key, uslReference[key]); uslRenderRefChips(); uslRenderResults();
+  });
+  const otherCats = Object.keys(entry.other||{});
+  const noteEl = document.getElementById('rOtherNote');
+  if(noteEl){
+    noteEl.textContent = otherCats.length
+      ? `Also on file for this build (not shown, not visual): ${otherCats.map(c => c + ' (' + entry.other[c].length + ')').join(', ')}`
+      : '';
+  }
+}
+function uslOpenRefModal(){
+  document.getElementById('rModel').value = '';
+  document.getElementById('rTrim').value = '';
+  ['rExtPaste','rIntPaste','rPkgPaste','rOptPaste'].forEach(id => document.getElementById(id).value = '');
+  uslRenderRefChips();
+  document.getElementById('refOverlay').classList.add('usl-open');
+}
+function uslCloseRefModal(){ document.getElementById('refOverlay').classList.remove('usl-open'); }
+document.getElementById('btnRef').onclick = uslOpenRefModal;
+document.getElementById('refModalClose').onclick = uslCloseRefModal;
+document.getElementById('refCloseBtn').onclick = uslCloseRefModal;
+document.getElementById('refOverlay').addEventListener('click', e => { if(e.target.id === 'refOverlay') uslCloseRefModal(); });
+document.getElementById('rModel').addEventListener('input', uslRenderRefChips);
+document.getElementById('rTrim').addEventListener('input', uslRenderRefChips);
+
+function uslRequireRefKey(){
+  const key = uslRefKeyFor(document.getElementById('rModel').value, document.getElementById('rTrim').value);
+  if(!key){ alert('Enter a model first.'); return null; }
+  return key;
+}
+document.getElementById('rExtAdd').onclick = async () => {
+  const key = uslRequireRefKey(); if(!key) return;
+  const entry = uslGetRefEntry(key);
+  uslParseColorPairs(document.getElementById('rExtPaste').value).forEach(p => {
+    const existing = entry.extColors.find(c => c.code.toLowerCase() === p.code.toLowerCase());
+    if(existing) existing.name = p.name; else entry.extColors.push(p);
+  });
+  document.getElementById('rExtPaste').value = '';
+  await uslPersistRefEntry(key, entry); uslRenderRefChips(); uslRenderResults();
+};
+document.getElementById('rIntAdd').onclick = async () => {
+  const key = uslRequireRefKey(); if(!key) return;
+  const entry = uslGetRefEntry(key);
+  uslParseColorPairs(document.getElementById('rIntPaste').value).forEach(p => {
+    const existing = entry.intColors.find(c => c.code.toLowerCase() === p.code.toLowerCase());
+    if(existing) existing.name = p.name; else entry.intColors.push(p);
+  });
+  document.getElementById('rIntPaste').value = '';
+  await uslPersistRefEntry(key, entry); uslRenderRefChips(); uslRenderResults();
+};
+document.getElementById('rEngineAdd').onclick = async () => {
+  const key = uslRequireRefKey(); if(!key) return;
+  const entry = uslGetRefEntry(key);
+  uslParseColorPairs(document.getElementById('rEnginePaste').value).forEach(p => {
+    const existing = entry.engines.find(c => c.code.toLowerCase() === p.code.toLowerCase());
+    if(existing) existing.name = p.name; else entry.engines.push(p);
+  });
+  document.getElementById('rEnginePaste').value = '';
+  await uslPersistRefEntry(key, entry); uslRenderRefChips(); uslRenderResults();
+};
+document.getElementById('rTransAdd').onclick = async () => {
+  const key = uslRequireRefKey(); if(!key) return;
+  const entry = uslGetRefEntry(key);
+  uslParseColorPairs(document.getElementById('rTransPaste').value).forEach(p => {
+    const existing = entry.transmissions.find(c => c.code.toLowerCase() === p.code.toLowerCase());
+    if(existing) existing.name = p.name; else entry.transmissions.push(p);
+  });
+  document.getElementById('rTransPaste').value = '';
+  await uslPersistRefEntry(key, entry); uslRenderRefChips(); uslRenderResults();
+};
+document.getElementById('rPkgAdd').onclick = async () => {
+  const key = uslRequireRefKey(); if(!key) return;
+  const entry = uslGetRefEntry(key);
+  uslParseLines(document.getElementById('rPkgPaste').value).forEach(v => {
+    const up = v.toUpperCase();
+    if(!entry.packages.find(p => p.toLowerCase() === up.toLowerCase())) entry.packages.push(up);
+  });
+  document.getElementById('rPkgPaste').value = '';
+  await uslPersistRefEntry(key, entry); uslRenderRefChips(); uslRenderResults();
+};
+document.getElementById('rOptAdd').onclick = async () => {
+  const key = uslRequireRefKey(); if(!key) return;
+  const entry = uslGetRefEntry(key);
+  uslParseLines(document.getElementById('rOptPaste').value).forEach(v => {
+    if(!entry.options.find(o => o.toLowerCase() === v.toLowerCase())) entry.options.push(v);
+  });
+  document.getElementById('rOptPaste').value = '';
+  await uslPersistRefEntry(key, entry); uslRenderRefChips(); uslRenderResults();
+};
+
+document.getElementById('rGuideAdd').onclick = async () => {
+  const key = uslRequireRefKey(); if(!key) return;
+  const raw = document.getElementById('rGuidePaste').value;
+  if(!raw.trim()){ alert('Paste an order guide section first.'); return; }
+  const entry = uslGetRefEntry(key);
+  const categories = uslParseOrderGuide(raw);
+  const routed = {};
+  const keptOther = [];
+  let filteredCount = 0;
+
+  Object.keys(categories).forEach(catName => {
+    const norm = catName.toLowerCase().trim();
+    const bucket = USL_ORDER_GUIDE_MAP[norm];
+    const items = categories[catName];
+    if(bucket === 'intColors' || bucket === 'extColors' || bucket === 'engines' || bucket === 'transmissions'){
+      items.forEach(it => {
+        const existing = entry[bucket].find(c => c.code.toLowerCase() === it.code.toLowerCase());
+        if(existing) existing.name = it.name; else entry[bucket].push(it);
+      });
+      routed[bucket] = (routed[bucket]||0) + items.length;
+    } else if(bucket === 'packages'){
+      items.forEach(it => {
+        if(!entry.packages.find(p => p.toLowerCase() === it.code.toLowerCase())) entry.packages.push(it.code);
+      });
+      routed.packages = (routed.packages||0) + items.length;
+    } else if(bucket === 'options'){
+      let keptCount = 0;
+      items.forEach(it => {
+        if(uslIsNoiseOption(it.name)){
+          if(!entry.other['Administrative / Non-Visual']) entry.other['Administrative / Non-Visual'] = [];
+          entry.other['Administrative / Non-Visual'].push(it);
+          filteredCount++;
+          return;
+        }
+        const code = it.code.toUpperCase();
+        if(!entry.options.find(o => o.toLowerCase() === code.toLowerCase())) entry.options.push(code);
+        if(!entry.other['Option Descriptions']) entry.other['Option Descriptions'] = [];
+        if(!entry.other['Option Descriptions'].find(x => x.code.toLowerCase() === code.toLowerCase())){
+          entry.other['Option Descriptions'].push({code, name: it.name});
+        }
+        keptCount++;
+      });
+      routed.options = (routed.options||0) + keptCount;
+    } else if(items.length) {
+      entry.other[catName] = items;
+      keptOther.push(`${catName} (${items.length})`);
+    }
+  });
+
+  document.getElementById('rGuidePaste').value = '';
+  await uslPersistRefEntry(key, entry); uslRenderRefChips(); uslRenderResults();
+  const parts = [];
+  if(routed.intColors) parts.push(`${routed.intColors} → interior colors`);
+  if(routed.extColors) parts.push(`${routed.extColors} → exterior colors`);
+  if(routed.packages) parts.push(`${routed.packages} → packages`);
+  if(routed.options) parts.push(`${routed.options} → options`);
+  if(routed.engines) parts.push(`${routed.engines} → engines`);
+  if(routed.transmissions) parts.push(`${routed.transmissions} → transmissions`);
+  document.getElementById('rGuideSummary').innerHTML = `
+    ${parts.length ? `<div class="usl-diff usl-ok">Sorted: ${parts.join(', ')}.</div>` : `<div class="usl-diff">Nothing recognized to sort.</div>`}
+    ${filteredCount ? `<div class="usl-diff">Filtered out ${filteredCount} administrative item${filteredCount>1?'s':''} (gas fill, plate bracket, floor mats, connectivity/SiriusXM trials, etc.) — kept for the record but not shown as options.</div>` : ''}
+    ${keptOther.length ? `<div class="usl-diff">Kept but not shown (not visual — e.g. engine/transmission/ship-thru): ${keptOther.map(esc).join(', ')}.</div>` : ''}
+  `;
+};
+
+// ---------- External import bridge (for a Chrome extension, if one gets built) ----------
+// A content script on this tab could call:
+//   window.postMessage({type:'USL_IMPORT_UNIT', record:{...}}, '*')
+// record uses the same field names as everywhere else here: stockNumber,
+// year, model, trim, packageCode, extColorCode, extColorName, intColorCode,
+// intColorName, options (array or ;/,-separated string), location, notes
+async function uslUpsertExternalUnit(rec){
+  if(!rec || !(rec.stockNumber||'').trim() || !(rec.model||'').trim()){
+    return {ok:false, reason:'missing stock number or model'};
+  }
+  const stockNumber = (rec.stockNumber||'').trim();
+  const existing = uslUnits.find(u => (u.stockNumber||'').toLowerCase() === stockNumber.toLowerCase());
+  const clean = {
+    id: existing ? existing.id : uslGenId(),
+    stockNumber,
+    year: (rec.year||'').trim(),
+    model: (rec.model||'').trim(),
+    trim: (rec.trim||'').trim(),
+    packageCode: (rec.packageCode||'').trim().toUpperCase(),
+    extColorCode: (rec.extColorCode||'').trim().toUpperCase(),
+    extColorName: (rec.extColorName||'').trim(),
+    intColorCode: (rec.intColorCode||'').trim().toUpperCase(),
+    intColorName: (rec.intColorName||'').trim(),
+    engineCode: (rec.engineCode||'').trim().toUpperCase(),
+    engineName: (rec.engineName||'').trim(),
+    transCode: (rec.transCode||'').trim().toUpperCase(),
+    transName: (rec.transName||'').trim(),
+    options: Array.isArray(rec.options) ? rec.options
+      : (rec.options ? String(rec.options).split(/[;,]/).map(s=>s.trim()).filter(Boolean) : []),
+    location: (rec.location||'').trim(),
+    notes: (rec.notes||'').trim(),
+    updatedAt: Date.now()
+  };
+  uslResolveNamesFromReference(clean);
+  await uslPersistUnit(clean);
+  return {ok:true, stockNumber: clean.stockNumber, isNew: !existing};
+}
+function uslShowToast(msg, isError){
+  let el = document.getElementById('uslToast');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'uslToast';
+    el.style.cssText = 'position:fixed;bottom:20px;right:20px;max-width:340px;background:var(--usl-steel,#00234E);color:#fff;padding:12px 16px;border-radius:4px;font-family:Inter,sans-serif;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.35);z-index:500;border-left:4px solid #1F7A4D;';
+    document.body.appendChild(el);
+  }
+  el.style.borderLeftColor = isError ? '#B4442E' : '#1F7A4D';
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>{ el.style.transition = 'opacity .4s'; el.style.opacity = '0'; }, 4000);
+}
+window.addEventListener('message', async (event) => {
+  const data = event.data;
+  if(data && data.type === 'USL_IMPORT_UNIT'){
+    if(!perm('tabUnitSpecs')){ return; }
+    const result = await uslUpsertExternalUnit(data.record);
+    if(result.ok){
+      uslShowToast(`${result.isNew ? 'Added' : 'Updated'} unit #${result.stockNumber} from extension.`);
+    } else {
+      uslShowToast(`Import failed: ${result.reason}.`, true);
+    }
+    if(event.source && event.source.postMessage){
+      event.source.postMessage({type:'USL_IMPORT_ACK', ok:result.ok, stockNumber:result.stockNumber, reason:result.reason}, '*');
+    }
+    return;
+  }
+  if(data && data.type === 'USL_IMPORT_UNITS' && Array.isArray(data.records)){
+    if(!perm('tabUnitSpecs')){ return; }
+    let added = 0, updated = 0, failed = 0;
+    const failReasons = [];
+    for(let i=0;i<data.records.length;i++){
+      const result = await uslUpsertExternalUnit(data.records[i]);
+      if(result.ok){ result.isNew ? added++ : updated++; }
+      else { failed++; failReasons.push(`row ${i+1}: ${result.reason}`); }
+    }
+    uslShowToast(`Batch import: added ${added}, updated ${updated}${failed ? `, skipped ${failed}` : ''} from extension.`, failed > 0 && added === 0 && updated === 0);
+    if(event.source && event.source.postMessage){
+      event.source.postMessage({type:'USL_IMPORT_ACK', ok:true, added, updated, failed, failReasons}, '*');
+    }
+  }
 });
 
 loadIdentity();
