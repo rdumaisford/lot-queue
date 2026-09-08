@@ -5831,6 +5831,15 @@ function renderTracker() {
   // the overall screen look mixed up date-wise. Each card already carries
   // its own New/Used badge, so the grouping wasn't needed to tell them apart.
   body.innerHTML = rows.map(makeCard).join('');
+  // iOS Safari (especially as an installed Home Screen app) sometimes
+  // leaves freshly-injected content unpainted when it's set in the very
+  // same tick the panel goes from display:none to visible - which is
+  // exactly what happens tapping into this tab (switchTab adds .active,
+  // then immediately calls this function). The screen just stays blank
+  // until something else forces a layout, like typing in the search box
+  // or tapping a filter chip - reading offsetHeight forces that layout
+  // right here instead of waiting on an unrelated user action for it.
+  void body.offsetHeight;
   updateBulkBar();
   renderTrackerCompleted();
 }
@@ -5944,6 +5953,7 @@ function renderTrackerCompleted() {
 
   body.innerHTML = `<div class="trows-head"><span></span><span>Stock</span><span>VIN</span><span>Vehicle</span><span>Checklist</span><span>Status</span><span>Info</span><span>Notes</span><span>Actions</span></div>`
     + rows.map(makeRow).join('');
+  void body.offsetHeight; // see the matching comment in renderTracker() above
 }
 window.renderTrackerCompleted = renderTrackerCompleted; // see window.renderTracker above - same reason
 
