@@ -2731,13 +2731,9 @@ F24118, 2026, Bronco Sport, Big Bend, 302A, D4, M, 99A, 448, 53Q; FX4, OneDrive/
     </div>
     <div class="modal-grid">
       <div class="modal-form-row"><label>Stock #</label><input id="gr-stock" type="text" placeholder="e.g. A1402"/></div>
-      <div class="modal-form-row gr-full-only"><label>Deal #</label><input id="gr-deal" type="text" placeholder="e.g. 6463159"/></div>
+      <div class="modal-form-row"><label>Deal #</label><input id="gr-deal" type="text" placeholder="e.g. 6463159"/></div>
       <div class="modal-form-row modal-full gr-full-only"><label>Vehicle</label><input id="gr-vehicle" type="text" placeholder="e.g. 2025 Bronco Sport"/></div>
-      <div class="modal-form-row modal-full gr-full-only"><label>VIN (last 6, or full if handy)</label><input id="gr-vin" type="text" placeholder="e.g. E45978" style="font-family:monospace;letter-spacing:.05em" maxlength="17"/></div>
       <div class="modal-form-row gr-full-only"><label>Customer name</label><input id="gr-customer" type="text" placeholder="e.g. Brad Bodanis"/></div>
-      <div class="modal-form-row gr-full-only"><label>Customer phone</label><input id="gr-phone" type="tel" placeholder="e.g. 705-555-0123"/></div>
-      <div class="modal-form-row gr-full-only"><label>Customer email</label><input id="gr-email" type="email" placeholder="e.g. name@email.com"/></div>
-      <div class="modal-form-row gr-full-only"><label>DMS deal #</label><input id="gr-dms-id" type="text" placeholder="e.g. 212669"/></div>
       <div class="modal-form-row gr-full-only"><label>Salesperson</label><input id="gr-salesperson" type="text" placeholder="e.g. Michael Prince"/></div>
       <div class="modal-form-row gr-full-only"><label>Desk Manager</label><input id="gr-desk-manager" type="text" placeholder="e.g. Jesse Di Domizio"/></div>
       <div class="modal-form-row gr-full-only"><label>F&amp;I Manager</label><input id="gr-fni" type="text" placeholder="e.g. Pat Nguyen"/></div>
@@ -2749,28 +2745,8 @@ F24118, 2026, Bronco Sport, Big Bend, 302A, D4, M, 99A, 448, 53Q; FX4, OneDrive/
           <option value="DEALER TRADE">Dealer Trade</option>
         </select>
       </div>
-      <div class="modal-form-row gr-full-only"><label>Financing</label>
-        <select id="gr-financing">
-          <option value="CASH">Cash</option>
-          <option value="COMMERCIAL_LEASE">Commercial Lease</option>
-          <option value="FINANCE">Finance</option>
-          <option value="FORD_RCL">Ford RCL</option>
-        </select>
-      </div>
       <div class="modal-form-row"><label>Delivery date</label><input id="gr-delivery-date" type="date"/></div>
       <div class="modal-form-row"><label>Delivery time</label><input id="gr-delivery-time" type="time"/></div>
-
-      <div class="modal-form-row modal-full gr-full-only">
-        <label>License Plates</label>
-        <div style="display:flex;gap:8px;margin-top:4px">
-          <button type="button" id="gr-plate-new-btn" onclick="setGRPlateType('NEW')" class="toggle-btn active" style="flex:1;padding:9px;border-radius:8px;font-size:13px">New License Plates</button>
-          <button type="button" id="gr-plate-transfer-btn" onclick="setGRPlateType('TRANSFER')" class="toggle-btn" style="flex:1;padding:9px;border-radius:8px;font-size:13px">License Plate Transfer</button>
-        </div>
-      </div>
-      <div class="modal-form-row modal-full gr-full-only"><label>Licensing notes</label><textarea id="gr-licensing-notes" placeholder="Plate #, transfer from stock #, insurance info, etc…" style="min-height:50px"></textarea></div>
-
-      <div class="modal-form-row modal-full gr-full-only"><label>Special instructions</label><textarea id="gr-instructions" placeholder="Accessories to remove, supplier, amount, PO/RO#…"></textarea></div>
-      <div class="modal-form-row modal-full"><label>Notes</label><textarea id="gr-notes-field" placeholder="Any additional notes for the Get Ready team…"></textarea></div>
     </div>
 
     <!-- Trade-ins -->
@@ -2798,24 +2774,6 @@ F24118, 2026, Bronco Sport, Big Bend, 302A, D4, M, 99A, 448, 53Q; FX4, OneDrive/
       </div>
     </div>
 
-    <div class="gr-full-only" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin:14px 0 6px">Services this deal is getting</div>
-    <div class="gr-full-only" style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
-      <div class="checkbox-row" style="border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-pdi"/><label for="gr-c-pdi">PDI</label></div>
-      <div class="checkbox-row" style="border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-lof"/><label for="gr-c-lof">LOF</label></div>
-      <div class="checkbox-row" style="border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-detail"/><label for="gr-c-detail">Detail</label></div>
-      <div class="checkbox-row" style="border-right:1px solid var(--border)"><input type="checkbox" id="gr-c-paint"/><label for="gr-c-paint">Paint</label></div>
-      <div class="checkbox-row" style="border-right:1px solid var(--border)"><input type="checkbox" id="gr-c-safety"/><label for="gr-c-safety">Safety</label></div>
-      <div class="checkbox-row" style="border-right:1px solid var(--border)"><input type="checkbox" id="gr-c-leather"/><label for="gr-c-leather">Leather</label></div>
-      <div class="checkbox-row"><input type="checkbox" id="gr-c-fabric"/><label for="gr-c-fabric">Fabric</label></div>
-      <div class="checkbox-row" style="border-right:1px solid var(--border);border-top:1px solid var(--border)"><input type="checkbox" id="gr-c-module"/><label for="gr-c-module">Module</label></div>
-    </div>
-
-    <!-- Custom / Other fields -->
-    <div class="gr-full-only" style="margin-top:10px">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:6px">Other / Custom</div>
-      <div id="gr-custom-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
-      <button type="button" onclick="grAddCustomField()" style="padding:7px 14px;font-size:13px;font-weight:600;border:1px dashed var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text-muted);cursor:pointer;width:100%">+ Add custom item</button>
-    </div>
     <div class="modal-actions">
       <button class="btn-modal-cancel" onclick="closeGRModal()">Cancel</button>
       <button class="btn-modal-primary" id="gr-save-btn" onclick="saveGR()">Add Get Ready deal</button>
@@ -6847,8 +6805,6 @@ function renderGRCompleted() {
 }
 window.renderGRCompleted = renderGRCompleted;
 
-// Custom GR fields
-let grCustomFields = []; // [{ label, done }]
 let grTrades = []; // [{ stock, vin, year, make, model, colour, kms, category }] - 2 by default, expandable
 
 window.grAddTradeSlot = function(t) {
@@ -6907,33 +6863,6 @@ function grRenderTradeSlots() {
     </div>`).join('');
 }
 
-window.grAddCustomField = function(label='', done=false) {
-  grCustomFields.push({ label, done });
-  grRenderCustomFields();
-};
-
-window.grSetCustomField = function(i, field, value) {
-  if (grCustomFields[i]) grCustomFields[i][field] = value;
-};
-
-window.grRemoveCustomField = function(i) {
-  grCustomFields.splice(i, 1);
-  grRenderCustomFields();
-};
-
-function grRenderCustomFields() {
-  const el = document.getElementById('gr-custom-list');
-  if (!el) return;
-  el.innerHTML = grCustomFields.map((f, i) => `
-    <div style="display:flex;align-items:center;gap:8px">
-      <input type="checkbox" id="gr-custom-done-${i}" ${f.done?'checked':''} onchange="grSetCustomField(${i},'done',this.checked)" style="width:16px;height:16px;accent-color:var(--ford);cursor:pointer;flex-shrink:0"/>
-      <input type="text" value="${f.label.replace(/"/g,'&quot;')}" placeholder="e.g. Tint removed, Winter tires off…"
-        oninput="grSetCustomField(${i},'label',this.value)"
-        style="flex:1;padding:7px 10px;font-size:13px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none"/>
-      <button onclick="grRemoveCustomField(${i})" style="padding:4px 8px;font-size:12px;border:1px solid #fca5a5;border-radius:var(--radius-sm);background:#fef2f2;color:#dc2626;cursor:pointer;flex-shrink:0">✕</button>
-    </div>`).join('');
-}
-
 // Wholesale/Dealer Trade deals only ever need a stock # + pickup date/time -
 // hides every field that's only meaningful for a retail/as-is deal (customer,
 // trade-ins, services, gas, financing, licensing, etc.) rather than making
@@ -6951,28 +6880,16 @@ window.openGRModal = function(id) {
   document.getElementById('gr-stock').value = d.stock || '';
   document.getElementById('gr-deal').value = d.dealNum || '';
   document.getElementById('gr-vehicle').value = d.vehicle || '';
-  document.getElementById('gr-vin').value = d.vin || d.vin6 || '';
   document.getElementById('gr-customer').value = d.customer || '';
-  document.getElementById('gr-phone').value = d.phone || '';
-  document.getElementById('gr-email').value = d.email || '';
-  document.getElementById('gr-dms-id').value = d.dmsId || '';
   document.getElementById('gr-salesperson').value = d.salesperson || '';
   document.getElementById('gr-desk-manager').value = d.deskManager || '';
   document.getElementById('gr-fni').value = d.fniManager || '';
   document.getElementById('gr-type').value = d.type || 'RETAIL';
   grApplyTypeVisibility(document.getElementById('gr-type').value);
-  document.getElementById('gr-financing').value = d.financing || 'CASH';
   document.getElementById('gr-delivery-date').value = d.deliveryDate || '';
   document.getElementById('gr-delivery-time').value = d.deliveryTime || '';
-  document.getElementById('gr-instructions').value = d.instructions || '';
-  document.getElementById('gr-notes-field').value = d.notes || '';
-  document.getElementById('gr-licensing-notes').value = d.licensingNotes || '';
-  setGRPlateType(d.plateType || 'NEW');
   setGRFuelStatus(id ? grEffectiveFuelStatus(d) : 'gas');
   document.getElementById('gr-gas-amount').value = d.gasAmount || '';
-  // Which services this deal needs - selected once at intake, shown as a
-  // plain list on the card (not tracked per-step from here on).
-  GR_CHECKLIST.forEach(([key]) => { document.getElementById('gr-c-'+key).checked = d['req_'+key] || false; });
   // Trade-ins - supports the old trade1/trade2 shape for existing deals, and
   // the new flexible array for everything going forward. Defaults to 2 empty
   // slots for a brand-new deal.
@@ -6987,9 +6904,6 @@ window.openGRModal = function(id) {
     ];
   }
   grRenderTradeSlots();
-  // Custom fields
-  grCustomFields = Array.isArray(d.customFields) ? d.customFields.map(f=>({...f})) : [];
-  grRenderCustomFields();
   // Get Ready sheet PDF - start clean each time the modal opens; if this deal
   // already has one attached, it shows as a "view" link until replaced.
   grPendingPdfFile = null;
@@ -7005,14 +6919,7 @@ window.openGRModal = function(id) {
   }
 };
 
-let grPlateType = 'NEW';
 let grFuelStatus = 'gas'; // 'gas' | 'charge' | 'none'
-
-window.setGRPlateType = function(type) {
-  grPlateType = type;
-  document.getElementById('gr-plate-new-btn').classList.toggle('active', type==='NEW');
-  document.getElementById('gr-plate-transfer-btn').classList.toggle('active', type==='TRANSFER');
-};
 
 // A deal saved before this 3-way selector existed only has the old
 // needsGas boolean - this is how every read site derives the same
@@ -7095,19 +7002,11 @@ function applyGRPdfFields(form) {
   fillGRIfEmpty('gr-deal', pdfFieldText(form,'DealID'));
   fillGRIfEmpty('gr-vehicle', pdfFieldText(form,'Model'));
   fillGRIfEmpty('gr-customer', pdfFieldText(form,'FullName'));
-  fillGRIfEmpty('gr-phone', pdfFieldText(form,'ContactPhone'));
-  fillGRIfEmpty('gr-email', pdfFieldText(form,'Email'));
-  fillGRIfEmpty('gr-dms-id', pdfFieldText(form,'custDMSID'));
   fillGRIfEmpty('gr-salesperson', pdfFieldText(form,'SALESPERSONSNAME'));
   fillGRIfEmpty('gr-desk-manager', pdfFieldText(form,'SalesManagerName'));
   fillGRIfEmpty('gr-fni', pdfFieldText(form,'FIManagerName'));
-  fillGRIfEmpty('gr-vin', pdfFieldText(form,'LastSixtVin').toUpperCase());
   fillGRIfEmpty('gr-delivery-date', pdfDateToInput(pdfFieldText(form,'DeliveryDate')));
   fillGRIfEmpty('gr-delivery-time', pdfTimeToInput(pdfFieldText(form,'Deliverytime_time')));
-
-  if (pdfFieldChecked(form,'Cash_ck')) document.getElementById('gr-financing').value = 'CASH';
-  else if (pdfFieldChecked(form,'Finance_ck')) document.getElementById('gr-financing').value = 'FINANCE';
-  else if (pdfFieldChecked(form,'leaseck')) document.getElementById('gr-financing').value = 'FORD_RCL';
 
   // The gas amount box sits at the bottom-right of the checklist grid (its
   // own checkboxes there carry no printed label and showed no consistent
@@ -7119,20 +7018,6 @@ function applyGRPdfFields(form) {
     setGRFuelStatus('gas');
     fillGRIfEmpty('gr-gas-amount', gasAmountMatch[1].replace(/,/g,''));
   }
-
-  // Each accessory line becomes its own checkbox in the Custom checklist,
-  // rather than one wall of text someone has to read to know what's left -
-  // guarded against duplicates in case a sheet gets attached more than once.
-  for (let i = 1; i <= 7; i++) {
-    const item = pdfFieldText(form, 'AccessoriesRow'+i);
-    if (!item) continue;
-    const supplier = pdfFieldText(form, 'SupplierRow'+i);
-    const amount = pdfFieldText(form, 'AmountRow'+i);
-    const po = pdfFieldText(form, 'PO  RORow'+i);
-    const label = [item, supplier, amount, po].filter(Boolean).join(' — ');
-    if (!grCustomFields.some(f => f.label === label)) window.grAddCustomField(label, false);
-  }
-  fillGRIfEmpty('gr-notes-field', pdfFieldText(form, 'Remarks_'));
 
   // Trade-ins - the sheet's own field names use index 2/3 for trade 1/2.
   [['stocknum2','tr2','colo2','odemeterkm2','tradetype2'], ['stocknum3','tr3','colo3','odemeterkm3','tradetype3']]
@@ -7174,22 +7059,13 @@ window.saveGR = async function() {
     stock: document.getElementById('gr-stock').value.trim().toUpperCase(),
     dealNum: document.getElementById('gr-deal').value.trim(),
     vehicle: document.getElementById('gr-vehicle').value.trim(),
-    vin: document.getElementById('gr-vin').value.trim().toUpperCase(),
     customer: document.getElementById('gr-customer').value.trim(),
-    phone: document.getElementById('gr-phone').value.trim(),
-    email: document.getElementById('gr-email').value.trim(),
-    dmsId: document.getElementById('gr-dms-id').value.trim(),
     salesperson: document.getElementById('gr-salesperson').value.trim(),
     deskManager: document.getElementById('gr-desk-manager').value.trim(),
     fniManager: document.getElementById('gr-fni').value.trim(),
     type: document.getElementById('gr-type').value,
-    financing: document.getElementById('gr-financing').value,
     deliveryDate: document.getElementById('gr-delivery-date').value,
     deliveryTime: document.getElementById('gr-delivery-time').value,
-    instructions: document.getElementById('gr-instructions').value.trim(),
-    notes: document.getElementById('gr-notes-field').value.trim(),
-    plateType: grPlateType,
-    licensingNotes: document.getElementById('gr-licensing-notes').value.trim(),
     fuelStatus: grFuelStatus,
     gasAmount: grFuelStatus==='gas' ? document.getElementById('gr-gas-amount').value.trim() : '',
     trades: grTrades.map(t => ({
@@ -7204,27 +7080,17 @@ window.saveGR = async function() {
     })),
     updatedBy: currentUser.name,
     ts: editingGRId ? (getReadyDeals[editingGRId]?.ts || Date.now()) : Date.now(),
-    customFields: grCustomFields.filter(f => f.label.trim()),
   };
-  // "Which services" checkboxes just tag what this deal needs - completion
-  // is tracked separately via the single Mark Complete toggle on the card,
-  // never touched here whether adding or editing.
-  GR_CHECKLIST.forEach(([key]) => {
-    deal['req_'+key] = document.getElementById('gr-c-'+key).checked;
-  });
   // Wholesale/Dealer Trade: the fields above are hidden in the modal (see
   // grApplyTypeVisibility) but their inputs still exist in the DOM with
   // whatever stale/default value they last had - blank them out here so a
-  // hidden field's leftover value (e.g. Financing defaulting to "Cash")
-  // never gets saved onto a deal that's not supposed to carry it.
+  // hidden field's leftover value never gets saved onto a deal that's not
+  // supposed to carry it. Stock #, Deal #, Type and delivery date/time stay -
+  // those apply to every deal regardless of type.
   if (grIsSimpleType(deal)) {
-    deal.dealNum = ''; deal.vehicle = ''; deal.vin = ''; deal.customer = ''; deal.phone = ''; deal.email = '';
-    deal.dmsId = ''; deal.salesperson = ''; deal.deskManager = ''; deal.fniManager = '';
-    deal.financing = ''; deal.instructions = ''; deal.plateType = 'NEW'; deal.licensingNotes = '';
+    deal.vehicle = ''; deal.customer = ''; deal.salesperson = ''; deal.deskManager = ''; deal.fniManager = '';
     deal.fuelStatus = 'none'; deal.gasAmount = '';
     deal.trades = [];
-    deal.customFields = [];
-    GR_CHECKLIST.forEach(([key]) => { deal['req_'+key] = false; });
   }
   if (editingGRId) deal.servicesComplete = getReadyDeals[editingGRId]?.servicesComplete || false;
   else deal.servicesComplete = false;
