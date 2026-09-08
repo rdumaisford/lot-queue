@@ -1206,10 +1206,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="17" width="18" height="4" rx="1"/></svg>
       Vehicle Locator
     </button>
-    <button class="tab" id="tab-unitspecs" onclick="switchTab('unitspecs',this)" style="display:none">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="M9 15l2-2 2 2 3-3 3 3"/></svg>
-      Spec Locker
-    </button>
     <button class="tab" id="tab-tracker" onclick="switchTab('tracker',this)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
       Incoming <span class="tab-count" id="tc-tracker">0</span>
@@ -1225,6 +1221,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     <button class="tab" id="tab-audit" onclick="switchTab('audit',this)" style="display:none">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
       Audit <span class="tab-count" id="tc-audit" style="background:#f59e0b;color:#fff"></span>
+    </button>
+    <button class="tab" id="tab-unitspecs" onclick="switchTab('unitspecs',this)" style="display:none">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="M9 15l2-2 2 2 3-3 3 3"/></svg>
+      Spec Locker
     </button>
     <button class="tab" id="tab-history" onclick="switchTab('history',this)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>
@@ -1938,122 +1938,121 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     <!-- UNIT SPEC LOCKER (Merchandising) -->
     <div id="panel-unitspecs" class="panel" style="padding:0">
     <style>
-      /* Scoped to #panel-unitspecs only - deliberately namespaced (usl- prefix
-         and its own --usl-* custom properties) so none of it leaks onto the
-         rest of the app, which already uses plain names like .chip/.field/.modal
-         and its own --radius custom property for completely different styling. */
+      /* Scoped to #panel-unitspecs only - namespaced (usl- prefix) so none of
+         it leaks onto the rest of the app. All values below are the app's own
+         design tokens (var(--ford), var(--surface), var(--border), etc.) and
+         the same card/button/modal/chip shapes used everywhere else, so this
+         panel reads as a native part of Vehicle Manager rather than a
+         separately-branded tool that happens to be embedded in it. */
       #panel-unitspecs{
-        --usl-ink:#0E1626; --usl-steel:#00234E; --usl-steel-2:#003DA5; --usl-paper:#EEF1F4;
-        --usl-card:#FFFFFF; --usl-line:#C7CED6; --usl-line-soft:#DCE2E8; --usl-amber:#D9A441;
-        --usl-amber-dark:#B8862A; --usl-brand:#003DA5; --usl-brand-dark:#00287A; --usl-teal:#1F7A4D;
-        --usl-teal-soft:#DDE8F5; --usl-red:#B4442E; --usl-muted:#5B6570; --usl-radius:3px;
-        font-family:'Inter',sans-serif; background:var(--usl-paper); color:var(--usl-ink);
+        --usl-ink:var(--text); --usl-steel:var(--ford); --usl-steel-2:var(--ford); --usl-paper:var(--bg);
+        --usl-card:var(--surface); --usl-line:var(--border); --usl-line-soft:var(--border); --usl-amber:var(--ford);
+        --usl-amber-dark:var(--ford); --usl-brand:var(--ford); --usl-brand-dark:var(--ford); --usl-teal:var(--ford);
+        --usl-teal-soft:var(--bg); --usl-red:#dc2626; --usl-muted:var(--text-muted); --usl-radius:var(--radius-sm);
+        font-family:var(--font); background:var(--usl-paper); color:var(--usl-ink);
       }
-      #panel-unitspecs .usl-mono{font-family:'IBM Plex Mono',monospace;}
-      #panel-unitspecs .usl-display{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.03em;}
+      #panel-unitspecs .usl-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+      #panel-unitspecs .usl-display{font-weight:600;}
       #panel-unitspecs .usl-top{
-        background:
-          repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 2px, transparent 2px 14px),
-          linear-gradient(180deg, var(--usl-steel-2) 0%, var(--usl-steel) 70%);
-        color:#EDEFEA; padding:18px 28px; display:flex; align-items:center; justify-content:space-between; gap:16px;
-        border-bottom:3px solid var(--usl-amber); box-shadow:inset 0 -8px 14px -10px rgba(0,0,0,.5);
+        background:var(--usl-steel);
+        color:#fff; padding:16px 28px; display:flex; align-items:center; justify-content:space-between; gap:16px;
       }
-      #panel-unitspecs .usl-brandwrap{display:flex;align-items:center;gap:14px;}
+      #panel-unitspecs .usl-brandwrap{display:flex;align-items:center;gap:12px;}
       #panel-unitspecs .usl-oval-badge{
-        flex:none;width:46px;height:30px;border:2.5px solid #EDEFEA;border-radius:50%;
-        display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-weight:700;
-        font-size:10px;letter-spacing:.02em;color:#EDEFEA;background:rgba(255,255,255,.04);
+        flex:none;width:28px;height:28px;border:none;border-radius:6px;
+        display:flex;align-items:center;justify-content:center;font-weight:700;
+        font-size:10px;letter-spacing:.02em;color:#fff;background:rgba(255,255,255,.15);
       }
-      #panel-unitspecs .usl-top h1{font-family:'Oswald',sans-serif;font-weight:600;font-size:22px;letter-spacing:.06em;text-transform:uppercase;margin:0;}
+      #panel-unitspecs .usl-top h1{font-weight:600;font-size:16px;margin:0;letter-spacing:-.01em;}
       #panel-unitspecs .usl-tag{
-        font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--usl-amber);letter-spacing:.08em;
-        border:1px solid rgba(242,166,27,.5);padding:2px 8px;border-radius:20px;
+        font-size:12px;color:rgba(255,255,255,.75);letter-spacing:0;
+        border:none;padding:0;border-radius:0;
       }
-      #panel-unitspecs .usl-stat{font-family:'IBM Plex Mono',monospace;font-size:12px;color:#B9C0C9;}
+      #panel-unitspecs .usl-stat{font-size:12px;color:rgba(255,255,255,.65);}
       #panel-unitspecs .usl-stat b{color:#fff;font-size:14px;}
       #panel-unitspecs .usl-toolbar{display:flex;gap:10px;padding:16px 28px;background:var(--usl-paper);border-bottom:1px solid var(--usl-line);flex-wrap:wrap;align-items:center;}
       #panel-unitspecs .usl-searchbox{flex:1;min-width:220px;display:flex;align-items:center;background:var(--usl-card);border:1px solid var(--usl-line);border-radius:var(--usl-radius);padding:0 12px;}
-      #panel-unitspecs .usl-searchbox input{border:none;background:transparent;padding:10px 6px;font-size:14px;width:100%;outline:none;font-family:'Inter',sans-serif;}
+      #panel-unitspecs .usl-searchbox input{border:none;background:transparent;padding:9px 6px;font-size:14px;width:100%;outline:none;font-family:var(--font);}
       #panel-unitspecs .usl-searchbox svg{flex:none;color:var(--usl-muted);}
       #panel-unitspecs button{
-        font-family:'Inter',sans-serif; font-weight:600; font-size:13px; border-radius:var(--usl-radius);
-        border:1px solid transparent; padding:10px 16px; cursor:pointer; transition:transform .06s ease, box-shadow .15s ease;
+        font-family:var(--font); font-weight:600; font-size:13px; border-radius:var(--usl-radius);
+        border:1px solid transparent; padding:9px 16px; cursor:pointer; transition:opacity .15s ease, background .15s ease;
       }
-      #panel-unitspecs button:active{transform:translateY(1px);}
       #panel-unitspecs .usl-btn-amber{background:var(--usl-brand);color:#fff;}
-      #panel-unitspecs .usl-btn-amber:hover{background:var(--usl-brand-dark);}
+      #panel-unitspecs .usl-btn-amber:hover{opacity:.85;}
       #panel-unitspecs .usl-btn-teal{background:var(--usl-teal);color:#fff;}
-      #panel-unitspecs .usl-btn-teal:hover{background:#26635f;}
-      #panel-unitspecs .usl-btn-ghost{background:transparent;color:var(--usl-ink);border-color:var(--usl-line);}
-      #panel-unitspecs .usl-btn-ghost:hover{border-color:var(--usl-ink);}
-      #panel-unitspecs .usl-btn-danger{background:transparent;color:var(--usl-red);border-color:rgba(180,68,46,.4);}
-      #panel-unitspecs .usl-btn-danger:hover{background:rgba(180,68,46,.08);}
+      #panel-unitspecs .usl-btn-teal:hover{opacity:.85;}
+      #panel-unitspecs .usl-btn-ghost{background:var(--bg);color:var(--usl-muted);border-color:var(--usl-line);}
+      #panel-unitspecs .usl-btn-ghost:hover{background:var(--usl-card);color:var(--usl-ink);}
+      #panel-unitspecs .usl-btn-danger{background:#fef2f2;color:var(--usl-red);border-color:#fca5a5;}
+      #panel-unitspecs .usl-btn-danger:hover{background:#fee2e2;}
       #panel-unitspecs .usl-btn-sm{padding:6px 10px;font-size:12px;}
       #panel-unitspecs .usl-layout{display:flex;align-items:flex-start;min-height:calc(100vh - 260px);}
-      #panel-unitspecs .usl-filters{width:270px;flex:none;background:#EFF0EA;border-right:1px solid var(--usl-line);padding:20px 18px 40px;position:sticky;top:0;}
+      #panel-unitspecs .usl-filters{width:270px;flex:none;background:var(--usl-paper);border-right:1px solid var(--usl-line);padding:20px 18px 40px;position:sticky;top:0;}
       #panel-unitspecs .usl-filters h2{
-        font-family:'Oswald',sans-serif;font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--usl-muted);
+        font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--usl-muted);font-weight:600;
         margin:0 0 12px;display:flex;align-items:center;justify-content:space-between;
       }
       #panel-unitspecs .usl-field{margin-bottom:14px;}
-      #panel-unitspecs .usl-field label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--usl-muted);margin-bottom:5px;}
+      #panel-unitspecs .usl-field label{display:block;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;color:var(--usl-muted);margin-bottom:5px;}
       #panel-unitspecs select, #panel-unitspecs input[type=text], #panel-unitspecs input[type=number], #panel-unitspecs textarea{
         width:100%; padding:8px 9px; border:1px solid var(--usl-line); border-radius:var(--usl-radius);
-        background:var(--usl-card); font-size:13px; font-family:'Inter',sans-serif; color:var(--usl-ink);
+        background:var(--bg); font-size:13px; font-family:var(--font); color:var(--usl-ink);
       }
-      #panel-unitspecs select:focus, #panel-unitspecs input:focus, #panel-unitspecs textarea:focus{outline:2px solid var(--usl-teal);outline-offset:1px;}
+      #panel-unitspecs select:focus, #panel-unitspecs input:focus, #panel-unitspecs textarea:focus{outline:none;border-color:var(--usl-brand);background:var(--usl-card);}
       #panel-unitspecs .usl-chiprow{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
       #panel-unitspecs .usl-chip{
-        font-size:11.5px;font-family:'IBM Plex Mono',monospace;background:var(--usl-card);border:1px solid var(--usl-line);
-        padding:4px 8px;border-radius:20px;cursor:pointer;color:var(--usl-ink);user-select:none;
+        font-size:12px;font-family:var(--font);font-weight:500;background:var(--usl-card);border:1px solid var(--usl-line);
+        padding:5px 10px;border-radius:20px;cursor:pointer;color:var(--usl-muted);user-select:none;transition:all .15s;
       }
       #panel-unitspecs .usl-chip.usl-on{background:var(--usl-teal);color:#fff;border-color:var(--usl-teal);}
       #panel-unitspecs .usl-chip.usl-removable{padding-right:6px;display:flex;align-items:center;gap:5px;}
       #panel-unitspecs .usl-chip.usl-removable span.usl-x{opacity:.7;font-weight:700;}
       #panel-unitspecs .usl-results{flex:1;padding:24px 28px 60px;}
       #panel-unitspecs .usl-results-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
-      #panel-unitspecs .usl-results-head h2{font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:.05em;text-transform:uppercase;color:var(--usl-steel);margin:0;}
-      #panel-unitspecs .usl-results-head .usl-count{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--usl-muted);}
-      #panel-unitspecs .usl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
-      #panel-unitspecs .usl-empty{border:1px dashed var(--usl-line);border-radius:var(--usl-radius);padding:40px 24px;text-align:center;color:var(--usl-muted);font-size:14px;}
-      #panel-unitspecs .usl-empty b{display:block;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;color:var(--usl-steel);font-size:15px;margin-bottom:6px;}
-      #panel-unitspecs .usl-sticker{background:var(--usl-card);border:1px solid var(--usl-line);border-radius:var(--usl-radius);overflow:hidden;position:relative;box-shadow:0 1px 0 rgba(0,0,0,.03);}
-      #panel-unitspecs .usl-sticker .usl-sticker-head{background:var(--usl-steel);color:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;}
-      #panel-unitspecs .usl-sticker .usl-stock{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:13px;color:var(--usl-amber);}
-      #panel-unitspecs .usl-sticker .usl-year{font-family:'IBM Plex Mono',monospace;font-size:12px;color:#B9C0C9;}
-      #panel-unitspecs .usl-sticker .usl-sticker-body{padding:14px;}
-      #panel-unitspecs .usl-sticker h3{font-family:'Oswald',sans-serif;font-size:19px;letter-spacing:.02em;margin:0 0 2px;text-transform:uppercase;color:var(--usl-ink);}
-      #panel-unitspecs .usl-sticker .usl-trim{font-size:12.5px;color:var(--usl-muted);margin-bottom:10px;font-weight:600;}
+      #panel-unitspecs .usl-results-head h2{font-size:16px;font-weight:600;color:var(--usl-ink);margin:0;letter-spacing:-.01em;}
+      #panel-unitspecs .usl-results-head .usl-count{font-size:13px;color:var(--usl-muted);}
+      #panel-unitspecs .usl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;}
+      #panel-unitspecs .usl-empty{border:1px solid var(--usl-line);border-radius:var(--radius);background:var(--usl-card);padding:40px 24px;text-align:center;color:var(--usl-muted);font-size:14px;}
+      #panel-unitspecs .usl-empty b{display:block;color:var(--usl-ink);font-size:15px;font-weight:600;margin-bottom:6px;}
+      #panel-unitspecs .usl-sticker{background:var(--usl-card);border:1px solid var(--usl-line);border-radius:12px;overflow:hidden;position:relative;transition:box-shadow .15s;}
+      #panel-unitspecs .usl-sticker:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);}
+      #panel-unitspecs .usl-sticker .usl-sticker-head{padding:14px 16px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--usl-line);}
+      #panel-unitspecs .usl-sticker .usl-stock{font-weight:700;font-size:17px;color:var(--usl-steel);}
+      #panel-unitspecs .usl-sticker .usl-year{font-size:12px;color:var(--usl-muted);}
+      #panel-unitspecs .usl-sticker .usl-sticker-body{padding:12px 16px 14px;}
+      #panel-unitspecs .usl-sticker h3{font-size:15px;font-weight:600;margin:0 0 2px;color:var(--usl-ink);}
+      #panel-unitspecs .usl-sticker .usl-trim{font-size:13px;color:var(--usl-muted);margin-bottom:10px;font-weight:500;}
       #panel-unitspecs .usl-specrow{display:flex;gap:10px;margin-bottom:8px;font-size:12.5px;}
-      #panel-unitspecs .usl-specrow .usl-k{width:66px;flex:none;color:var(--usl-muted);text-transform:uppercase;font-size:10.5px;letter-spacing:.06em;padding-top:2px;}
-      #panel-unitspecs .usl-specrow .usl-v{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+      #panel-unitspecs .usl-specrow .usl-k{width:66px;flex:none;color:var(--usl-muted);text-transform:uppercase;font-size:10.5px;letter-spacing:.05em;padding-top:2px;}
+      #panel-unitspecs .usl-specrow .usl-v{font-size:12.5px;color:var(--usl-ink);}
       #panel-unitspecs .usl-swatchline{display:flex;align-items:center;gap:6px;}
-      #panel-unitspecs .usl-swatch{width:13px;height:13px;border-radius:50%;border:1px solid rgba(0,0,0,.25);flex:none;}
+      #panel-unitspecs .usl-swatch{width:13px;height:13px;border-radius:50%;border:1px solid rgba(0,0,0,.2);flex:none;}
       #panel-unitspecs .usl-opts-wrap{margin-top:8px;}
-      #panel-unitspecs .usl-opts-wrap .usl-chip{font-size:10.5px;padding:3px 7px;background:var(--usl-teal-soft);border-color:transparent;color:#1F4D4B;cursor:default;}
-      #panel-unitspecs .usl-loc-row{margin-top:12px;padding-top:10px;border-top:1px dashed var(--usl-line-soft);display:flex;align-items:center;gap:8px;font-size:12px;}
-      #panel-unitspecs .usl-loc-row a, #panel-unitspecs .usl-loc-text{color:var(--usl-teal);text-decoration:none;font-weight:600;word-break:break-all;}
+      #panel-unitspecs .usl-opts-wrap .usl-chip{font-size:11px;padding:3px 8px;background:var(--usl-teal-soft);border-color:var(--usl-line);color:var(--usl-muted);cursor:default;}
+      #panel-unitspecs .usl-loc-row{margin-top:12px;padding-top:10px;border-top:1px solid var(--usl-line-soft);display:flex;align-items:center;gap:8px;font-size:12px;}
+      #panel-unitspecs .usl-loc-row a, #panel-unitspecs .usl-loc-text{color:var(--usl-brand);text-decoration:none;font-weight:500;word-break:break-all;}
       #panel-unitspecs .usl-loc-row a:hover{text-decoration:underline;}
       #panel-unitspecs .usl-card-actions{display:flex;gap:8px;margin-top:12px;}
       #panel-unitspecs .usl-notes-preview{font-size:12px;color:var(--usl-muted);margin-top:8px;font-style:italic;}
-      #panel-unitspecs .usl-overlay{position:fixed;inset:0;background:rgba(20,24,30,.55);display:none;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto;z-index:500;}
+      #panel-unitspecs .usl-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:24px;overflow-y:auto;z-index:500;}
       #panel-unitspecs .usl-overlay.usl-open{display:flex;}
-      #panel-unitspecs .usl-modal{background:var(--usl-card);width:100%;max-width:640px;border-radius:4px;border:1px solid var(--usl-line);box-shadow:0 20px 50px rgba(0,0,0,.3);}
-      #panel-unitspecs .usl-modal-head{background:var(--usl-steel);color:#fff;padding:16px 22px;display:flex;justify-content:space-between;align-items:center;border-radius:4px 4px 0 0;}
-      #panel-unitspecs .usl-modal-head h3{margin:0;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:16px;}
-      #panel-unitspecs .usl-modal-head button{background:transparent;color:#B9C0C9;border:none;font-size:20px;line-height:1;padding:2px 6px;}
-      #panel-unitspecs .usl-modal-head button:hover{color:#fff;}
-      #panel-unitspecs .usl-modal-body{padding:20px 22px;max-height:70vh;overflow-y:auto;}
-      #panel-unitspecs .usl-modal-foot{padding:14px 22px;border-top:1px solid var(--usl-line);display:flex;justify-content:flex-end;gap:10px;}
+      #panel-unitspecs .usl-modal{background:var(--usl-card);width:100%;max-width:640px;border-radius:var(--radius);box-shadow:0 20px 60px rgba(0,0,0,.2);max-height:90vh;display:flex;flex-direction:column;}
+      #panel-unitspecs .usl-modal-head{padding:20px 22px 0;display:flex;justify-content:space-between;align-items:center;flex:none;}
+      #panel-unitspecs .usl-modal-head h3{margin:0;font-size:17px;font-weight:600;color:var(--usl-ink);}
+      #panel-unitspecs .usl-modal-head button{background:none;color:var(--usl-muted);border:none;font-size:22px;line-height:1;padding:0 4px;}
+      #panel-unitspecs .usl-modal-head button:hover{color:var(--usl-ink);}
+      #panel-unitspecs .usl-modal-body{padding:16px 22px;overflow-y:auto;}
+      #panel-unitspecs .usl-modal-foot{padding:16px 22px;border-top:1px solid var(--usl-line);display:flex;justify-content:flex-end;gap:8px;flex:none;}
       #panel-unitspecs .usl-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
       #panel-unitspecs .usl-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
       #panel-unitspecs .usl-hint{font-size:11px;color:var(--usl-muted);margin-top:4px;}
-      #panel-unitspecs .usl-badge{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:20px;letter-spacing:.03em;}
-      #panel-unitspecs .usl-badge.usl-exact{background:var(--usl-teal);color:#fff;}
-      #panel-unitspecs .usl-badge.usl-close{background:#EFE0BF;color:#7A5300;}
+      #panel-unitspecs .usl-badge{font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:20px;letter-spacing:.03em;}
+      #panel-unitspecs .usl-badge.usl-exact{background:#dcfce7;color:#15803d;}
+      #panel-unitspecs .usl-badge.usl-close{background:#fef3c7;color:#92400e;}
       #panel-unitspecs .usl-diff{font-size:11.5px;margin-top:6px;color:var(--usl-red);}
-      #panel-unitspecs .usl-diff.usl-ok{color:var(--usl-teal);}
-      #panel-unitspecs .usl-app-foot{padding:16px 28px;text-align:center;font-size:11px;color:var(--usl-muted);font-family:'IBM Plex Mono',monospace;border-top:1px solid var(--usl-line);}
+      #panel-unitspecs .usl-diff.usl-ok{color:#15803d;}
+      #panel-unitspecs .usl-app-foot{padding:14px 28px;text-align:center;font-size:11px;color:var(--usl-muted);border-top:1px solid var(--usl-line);}
       @media (max-width:800px){
         #panel-unitspecs .usl-layout{flex-direction:column;}
         #panel-unitspecs .usl-filters{width:100%;position:static;border-right:none;border-bottom:1px solid var(--usl-line);}
@@ -2067,7 +2066,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <h1>Unit Spec Locker</h1>
         <span class="usl-tag">New Vehicle Merchandising</span>
       </div>
-      <div class="usl-stat">UNITS ON FILE&nbsp; <b id="unitCount">0</b></div>
+      <div class="usl-stat">Units on file&nbsp; <b id="unitCount">0</b></div>
     </header>
 
     <div class="usl-toolbar">
@@ -2123,7 +2122,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       </main>
     </div>
 
-    <footer class="usl-app-foot">SHARED CATALOG · VISIBLE TO MANAGEMENT &amp; MERCHANDISING · EXPORT A BACKUP PERIODICALLY</footer>
+    <footer class="usl-app-foot">Shared catalog · visible to management &amp; merchandising · export a backup periodically</footer>
 
     <!-- Add/Edit Modal -->
     <div class="usl-overlay" id="unitOverlay">
