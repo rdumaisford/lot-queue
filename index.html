@@ -1755,7 +1755,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <button class="filter-chip" onclick="setGRFilter('DEALER TRADE',this)">Dealer Trade</button>
         <button class="filter-chip" onclick="setGRFilter('GAS',this)">Needs Gas/Charge</button>
         <span id="gr-row-count" style="font-size:13px;color:var(--text-muted);white-space:nowrap"></span>
-        <button class="btn-add-unit" id="btn-add-getready" onclick="openGRModal()" style="display:none;margin-left:auto">
+        <button class="btn-add-unit" id="btn-add-getready" onclick="openGRTypePicker()" style="display:none;margin-left:auto">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
           Add Get Ready
         </button>
@@ -2718,6 +2718,31 @@ F24118, 2026, Bronco Sport, Big Bend, 302A, D4, M, 99A, 448, 53Q; FX4, OneDrive/
   </div>
 </div>
 
+<!-- Get Ready: choose a deal type before showing the form, since each type
+     asks for a different, much smaller set of fields. -->
+<div id="gr-type-picker" class="modal-backdrop" style="display:none" onclick="if(event.target===this)closeGRTypePicker()">
+  <div class="modal-card" style="max-width:380px">
+    <div class="modal-title-row"><span>Add Get Ready deal</span><button class="modal-close" onclick="closeGRTypePicker()">×</button></div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button type="button" onclick="chooseGRType('RETAIL')" style="padding:16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);cursor:pointer;text-align:left">
+        <div style="font-size:15px;font-weight:700;color:var(--text)">Retail</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Full deal - customer, trade-in, gas, PDF sheet</div>
+      </button>
+      <button type="button" onclick="chooseGRType('WHOLESALE')" style="padding:16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);cursor:pointer;text-align:left">
+        <div style="font-size:15px;font-weight:700;color:var(--text)">Wholesale</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Stock #, auction company, pickup date/time</div>
+      </button>
+      <button type="button" onclick="chooseGRType('DEALER TRADE')" style="padding:16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);cursor:pointer;text-align:left">
+        <div style="font-size:15px;font-weight:700;color:var(--text)">Dealer Trade</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Stock #, purchasing dealership, pickup date/time</div>
+      </button>
+    </div>
+    <div class="modal-actions" style="border-top:none;padding-top:0;margin-top:16px">
+      <button class="btn-modal-cancel" onclick="closeGRTypePicker()" style="width:100%">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- Add/Edit Get Ready modal -->
 <div id="gr-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this)closeGRModal()">
   <div class="modal-card">
@@ -2737,7 +2762,7 @@ F24118, 2026, Bronco Sport, Big Bend, 302A, D4, M, 99A, 448, 53Q; FX4, OneDrive/
       <div class="modal-form-row gr-full-only"><label>Salesperson</label><input id="gr-salesperson" type="text" placeholder="e.g. Michael Prince"/></div>
       <div class="modal-form-row gr-full-only"><label>Desk Manager</label><input id="gr-desk-manager" type="text" placeholder="e.g. Jesse Di Domizio"/></div>
       <div class="modal-form-row gr-full-only"><label>F&amp;I Manager</label><input id="gr-fni" type="text" placeholder="e.g. Pat Nguyen"/></div>
-      <div class="modal-form-row"><label>Type</label>
+      <div class="modal-form-row" id="gr-type-row"><label>Type</label>
         <select id="gr-type" onchange="grApplyTypeVisibility(this.value)">
           <option value="AS-IS">As-Is</option>
           <option value="RETAIL">Retail</option>
@@ -2745,8 +2770,10 @@ F24118, 2026, Bronco Sport, Big Bend, 302A, D4, M, 99A, 448, 53Q; FX4, OneDrive/
           <option value="DEALER TRADE">Dealer Trade</option>
         </select>
       </div>
-      <div class="modal-form-row"><label>Delivery date</label><input id="gr-delivery-date" type="date"/></div>
-      <div class="modal-form-row"><label>Delivery time</label><input id="gr-delivery-time" type="time"/></div>
+      <div class="modal-form-row gr-auction-only"><label>Auction Company</label><input id="gr-auction-company" type="text" placeholder="e.g. ADESA Toronto"/></div>
+      <div class="modal-form-row gr-dealertrade-only"><label>Purchasing Dealership</label><input id="gr-purchasing-dealer" type="text" placeholder="e.g. Georgian Ford"/></div>
+      <div class="modal-form-row"><label id="gr-delivery-date-label">Delivery date</label><input id="gr-delivery-date" type="date"/></div>
+      <div class="modal-form-row"><label id="gr-delivery-time-label">Delivery time</label><input id="gr-delivery-time" type="time"/></div>
     </div>
 
     <!-- Trade-ins -->
@@ -6655,6 +6682,8 @@ function renderGRCard(d, perms, isDupe) {
           ${holdBadge}${updatedBadge}${dupeBadge}${grLocBadge}
         </div>
         ${!isSimpleType?`<div class="gr-card-vehicle">${esc(d.vehicle||'-')}${d.vin?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">${esc(d.vin)}</span>`:d.vin6?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">…${esc(d.vin6)}</span>`:''}</div>`:''}
+        ${d.type==='WHOLESALE' && d.auctionCompany?`<div class="gr-card-vehicle">🏛 ${esc(d.auctionCompany)}</div>`:''}
+        ${d.type==='DEALER TRADE' && d.purchasingDealer?`<div class="gr-card-vehicle">🏢 ${esc(d.purchasingDealer)}</div>`:''}
         ${d.customer?`<div class="gr-card-customer">${esc(d.customer)}${d.salesperson?' · '+esc(d.salesperson):''}</div>`:''}
         ${(d.phone||d.email)?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">${d.phone?'📞 '+esc(d.phone):''}${d.phone&&d.email?' · ':''}${d.email?'✉️ '+esc(d.email):''}</div>`:''}
         ${financingLabel?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">💳 ${financingLabel}</div>`:''}
@@ -6863,20 +6892,49 @@ function grRenderTradeSlots() {
     </div>`).join('');
 }
 
-// Wholesale/Dealer Trade deals only ever need a stock # + pickup date/time -
+// Wholesale/Dealer Trade deals only ever need a stock # + pickup date/time
+// (plus their own one identifying field - which auction/which dealership) -
 // hides every field that's only meaningful for a retail/as-is deal (customer,
 // trade-ins, services, gas, financing, licensing, etc.) rather than making
 // staff scroll past a form full of fields that don't apply.
 window.grApplyTypeVisibility = function(type) {
-  const simple = type === 'WHOLESALE' || type === 'DEALER TRADE';
+  const isWholesale = type === 'WHOLESALE';
+  const isDealerTrade = type === 'DEALER TRADE';
+  const simple = isWholesale || isDealerTrade;
   document.querySelectorAll('#gr-modal .gr-full-only').forEach(el => { el.style.display = simple ? 'none' : ''; });
+  document.querySelectorAll('#gr-modal .gr-auction-only').forEach(el => { el.style.display = isWholesale ? '' : 'none'; });
+  document.querySelectorAll('#gr-modal .gr-dealertrade-only').forEach(el => { el.style.display = isDealerTrade ? '' : 'none'; });
+  document.getElementById('gr-delivery-date-label').textContent = simple ? 'Pickup date' : 'Delivery date';
+  document.getElementById('gr-delivery-time-label').textContent = simple ? 'Pickup time' : 'Delivery time';
 };
 
-window.openGRModal = function(id) {
+// Add flow: pick a type first (Retail/Wholesale/Dealer Trade), since each one
+// asks for a different, much smaller set of fields - the modal opens already
+// scoped to the right fields instead of starting full and reflowing under you
+// as you change a Type dropdown. Editing an existing deal skips this and goes
+// straight to openGRModal(id), where Type stays a normal editable dropdown
+// (see the id vs !id branch below) in case a deal was miscategorized.
+window.openGRTypePicker = function() {
+  document.getElementById('gr-type-picker').style.display = 'flex';
+};
+window.closeGRTypePicker = function() {
+  document.getElementById('gr-type-picker').style.display = 'none';
+};
+window.chooseGRType = function(type) {
+  closeGRTypePicker();
+  openGRModal(null, type);
+};
+
+window.openGRModal = function(id, presetType) {
   editingGRId = id || null;
   const d = id ? getReadyDeals[id] : {};
-  document.getElementById('gr-modal-title').textContent = id ? 'Edit Get Ready deal' : 'Add Get Ready deal';
+  const typeLabel = {RETAIL:'Retail', WHOLESALE:'Wholesale', 'DEALER TRADE':'Dealer Trade', 'AS-IS':'As-Is'}[presetType] || '';
+  document.getElementById('gr-modal-title').textContent = id ? 'Edit Get Ready deal' : (typeLabel ? `Add ${typeLabel} Deal` : 'Add Get Ready deal');
   document.getElementById('gr-save-btn').textContent = id ? 'Save changes' : 'Add Get Ready deal';
+  // Type was already chosen via the picker for a new deal, so there's no need
+  // to ask again with a dropdown - it only reappears when editing an existing
+  // deal, in case it needs to be reclassified.
+  document.getElementById('gr-type-row').style.display = id ? '' : 'none';
   document.getElementById('gr-stock').value = d.stock || '';
   document.getElementById('gr-deal').value = d.dealNum || '';
   document.getElementById('gr-vehicle').value = d.vehicle || '';
@@ -6884,7 +6942,9 @@ window.openGRModal = function(id) {
   document.getElementById('gr-salesperson').value = d.salesperson || '';
   document.getElementById('gr-desk-manager').value = d.deskManager || '';
   document.getElementById('gr-fni').value = d.fniManager || '';
-  document.getElementById('gr-type').value = d.type || 'RETAIL';
+  document.getElementById('gr-auction-company').value = d.auctionCompany || '';
+  document.getElementById('gr-purchasing-dealer').value = d.purchasingDealer || '';
+  document.getElementById('gr-type').value = d.type || presetType || 'RETAIL';
   grApplyTypeVisibility(document.getElementById('gr-type').value);
   document.getElementById('gr-delivery-date').value = d.deliveryDate || '';
   document.getElementById('gr-delivery-time').value = d.deliveryTime || '';
@@ -7063,6 +7123,8 @@ window.saveGR = async function() {
     salesperson: document.getElementById('gr-salesperson').value.trim(),
     deskManager: document.getElementById('gr-desk-manager').value.trim(),
     fniManager: document.getElementById('gr-fni').value.trim(),
+    auctionCompany: document.getElementById('gr-auction-company').value.trim(),
+    purchasingDealer: document.getElementById('gr-purchasing-dealer').value.trim(),
     type: document.getElementById('gr-type').value,
     deliveryDate: document.getElementById('gr-delivery-date').value,
     deliveryTime: document.getElementById('gr-delivery-time').value,
@@ -7091,6 +7153,10 @@ window.saveGR = async function() {
     deal.vehicle = ''; deal.customer = ''; deal.salesperson = ''; deal.deskManager = ''; deal.fniManager = '';
     deal.fuelStatus = 'none'; deal.gasAmount = '';
     deal.trades = [];
+    if (deal.type !== 'WHOLESALE') deal.auctionCompany = '';
+    if (deal.type !== 'DEALER TRADE') deal.purchasingDealer = '';
+  } else {
+    deal.auctionCompany = ''; deal.purchasingDealer = '';
   }
   if (editingGRId) deal.servicesComplete = getReadyDeals[editingGRId]?.servicesComplete || false;
   else deal.servicesComplete = false;
