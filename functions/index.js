@@ -55,13 +55,13 @@ function renderTemplate(emailType, data) {
     if (data.type === 'WHOLESALE') {
       rows = fieldRows([
         ['Stock #', data.stock], ['Deal #', data.dealNum], ['Type', data.type],
-        ['Auction Company', data.auctionCompany],
+        ['Auction Company', data.customer], ['Entered By', data.salesperson],
         ['Pickup Date', data.deliveryDate], ['Pickup Time', data.deliveryTime],
       ]);
     } else if (data.type === 'DEALER TRADE') {
       rows = fieldRows([
         ['Stock #', data.stock], ['Deal #', data.dealNum], ['Type', data.type],
-        ['Purchasing Dealership', data.purchasingDealer],
+        ['Purchasing Dealership', data.customer], ['Entered By', data.salesperson],
         ['Pickup Date', data.deliveryDate], ['Pickup Time', data.deliveryTime],
         ['Trade-In', data.trades],
       ]);

@@ -2758,7 +2758,7 @@ F24118, 2026, Bronco Sport, Big Bend, 302A, D4, M, 99A, 448, 53Q; FX4, OneDrive/
       <div class="modal-form-row"><label>Stock #</label><input id="gr-stock" type="text" placeholder="e.g. A1402"/></div>
       <div class="modal-form-row"><label>Deal #</label><input id="gr-deal" type="text" placeholder="e.g. 6463159"/></div>
       <div class="modal-form-row modal-full gr-full-only"><label>Vehicle</label><input id="gr-vehicle" type="text" placeholder="e.g. 2025 Bronco Sport"/></div>
-      <div class="modal-form-row gr-full-only"><label>Customer name</label><input id="gr-customer" type="text" placeholder="e.g. Brad Bodanis"/></div>
+      <div class="modal-form-row"><label id="gr-customer-label">Customer name</label><input id="gr-customer" type="text" placeholder="e.g. Brad Bodanis"/></div>
       <div class="modal-form-row gr-full-only"><label>Salesperson</label><input id="gr-salesperson" type="text" placeholder="e.g. Michael Prince"/></div>
       <div class="modal-form-row gr-full-only"><label>Desk Manager</label><input id="gr-desk-manager" type="text" placeholder="e.g. Jesse Di Domizio"/></div>
       <div class="modal-form-row gr-full-only"><label>F&amp;I Manager</label><input id="gr-fni" type="text" placeholder="e.g. Pat Nguyen"/></div>
@@ -2770,8 +2770,6 @@ F24118, 2026, Bronco Sport, Big Bend, 302A, D4, M, 99A, 448, 53Q; FX4, OneDrive/
           <option value="DEALER TRADE">Dealer Trade</option>
         </select>
       </div>
-      <div class="modal-form-row gr-auction-only"><label>Auction Company</label><input id="gr-auction-company" type="text" placeholder="e.g. ADESA Toronto"/></div>
-      <div class="modal-form-row gr-dealertrade-only"><label>Purchasing Dealership</label><input id="gr-purchasing-dealer" type="text" placeholder="e.g. Georgian Ford"/></div>
       <div class="modal-form-row"><label id="gr-delivery-date-label">Delivery date</label><input id="gr-delivery-date" type="date"/></div>
       <div class="modal-form-row"><label id="gr-delivery-time-label">Delivery time</label><input id="gr-delivery-time" type="time"/></div>
     </div>
@@ -6686,9 +6684,7 @@ function renderGRCard(d, perms, isDupe) {
           ${holdBadge}${updatedBadge}${dupeBadge}${grLocBadge}
         </div>
         ${!isSimpleType?`<div class="gr-card-vehicle">${esc(d.vehicle||'-')}${d.vin?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">${esc(d.vin)}</span>`:d.vin6?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">…${esc(d.vin6)}</span>`:''}</div>`:''}
-        ${d.type==='WHOLESALE' && d.auctionCompany?`<div class="gr-card-vehicle">🏛 ${esc(d.auctionCompany)}</div>`:''}
-        ${d.type==='DEALER TRADE' && d.purchasingDealer?`<div class="gr-card-vehicle">🏢 ${esc(d.purchasingDealer)}</div>`:''}
-        ${d.customer?`<div class="gr-card-customer">${esc(d.customer)}${d.salesperson?' · '+esc(d.salesperson):''}</div>`:''}
+        ${d.customer?`<div class="gr-card-customer">${d.type==='WHOLESALE'?'🏛 ':d.type==='DEALER TRADE'?'🏢 ':''}${esc(d.customer)}${d.salesperson?' · '+esc(d.salesperson):''}</div>`:''}
         ${(d.phone||d.email)?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">${d.phone?'📞 '+esc(d.phone):''}${d.phone&&d.email?' · ':''}${d.email?'✉️ '+esc(d.email):''}</div>`:''}
         ${financingLabel?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">💳 ${financingLabel}</div>`:''}
         ${d.pdfUrl&&isSafeHttpsUrl(d.pdfUrl)?`<div style="margin-top:4px"><a href="${esc(d.pdfUrl)}" target="_blank" rel="noopener" style="font-size:11px;font-weight:600;color:var(--ford);text-decoration:none">📄 ${esc(d.pdfFileName||'Get Ready sheet')}</a></div>`:''}
@@ -6896,22 +6892,27 @@ function grRenderTradeSlots() {
     </div>`).join('');
 }
 
-// Wholesale/Dealer Trade deals only ever need a stock # + pickup date/time
-// (plus their own one identifying field - which auction/which dealership) -
-// hides every field that's only meaningful for a retail/as-is deal (customer,
+// Wholesale/Dealer Trade deals only ever need a stock # + pickup date/time -
+// hides every field that's only meaningful for a retail/as-is deal (vehicle,
 // services, gas, financing, licensing, etc.) rather than making staff scroll
 // past a form full of fields that don't apply. Trade-ins are the one
 // exception shared with Dealer Trade - a dealer trade sometimes comes with
 // its own trade-in vehicle, so that section stays for Retail and Dealer
-// Trade alike and is only hidden for Wholesale.
+// Trade alike and is only hidden for Wholesale. The "Customer" field is
+// repurposed rather than hidden - for these two types the other party on
+// the deal is the auction house or the purchasing dealership, not a person,
+// so it stays visible with a relabeled prompt instead of adding a separate
+// near-duplicate field.
 window.grApplyTypeVisibility = function(type) {
   const isWholesale = type === 'WHOLESALE';
   const isDealerTrade = type === 'DEALER TRADE';
   const simple = isWholesale || isDealerTrade;
   document.querySelectorAll('#gr-modal .gr-full-only').forEach(el => { el.style.display = simple ? 'none' : ''; });
   document.querySelectorAll('#gr-modal .gr-not-wholesale-only').forEach(el => { el.style.display = isWholesale ? 'none' : ''; });
-  document.querySelectorAll('#gr-modal .gr-auction-only').forEach(el => { el.style.display = isWholesale ? '' : 'none'; });
-  document.querySelectorAll('#gr-modal .gr-dealertrade-only').forEach(el => { el.style.display = isDealerTrade ? '' : 'none'; });
+  const customerLabel = document.getElementById('gr-customer-label');
+  const customerInput = document.getElementById('gr-customer');
+  customerLabel.textContent = isWholesale ? 'Auction Company' : isDealerTrade ? 'Purchasing Dealership' : 'Customer name';
+  customerInput.placeholder = isWholesale ? 'e.g. ADESA Toronto' : isDealerTrade ? 'e.g. Georgian Ford' : 'e.g. Brad Bodanis';
   document.getElementById('gr-delivery-date-label').textContent = simple ? 'Pickup date' : 'Delivery date';
   document.getElementById('gr-delivery-time-label').textContent = simple ? 'Pickup time' : 'Delivery time';
 };
@@ -6950,8 +6951,6 @@ window.openGRModal = function(id, presetType) {
   document.getElementById('gr-salesperson').value = d.salesperson || '';
   document.getElementById('gr-desk-manager').value = d.deskManager || '';
   document.getElementById('gr-fni').value = d.fniManager || '';
-  document.getElementById('gr-auction-company').value = d.auctionCompany || '';
-  document.getElementById('gr-purchasing-dealer').value = d.purchasingDealer || '';
   document.getElementById('gr-type').value = d.type || presetType || 'RETAIL';
   grApplyTypeVisibility(document.getElementById('gr-type').value);
   document.getElementById('gr-delivery-date').value = d.deliveryDate || '';
@@ -7131,8 +7130,6 @@ window.saveGR = async function() {
     salesperson: document.getElementById('gr-salesperson').value.trim(),
     deskManager: document.getElementById('gr-desk-manager').value.trim(),
     fniManager: document.getElementById('gr-fni').value.trim(),
-    auctionCompany: document.getElementById('gr-auction-company').value.trim(),
-    purchasingDealer: document.getElementById('gr-purchasing-dealer').value.trim(),
     type: document.getElementById('gr-type').value,
     deliveryDate: document.getElementById('gr-delivery-date').value,
     deliveryTime: document.getElementById('gr-delivery-time').value,
@@ -7155,21 +7152,22 @@ window.saveGR = async function() {
   // grApplyTypeVisibility) but their inputs still exist in the DOM with
   // whatever stale/default value they last had - blank them out here so a
   // hidden field's leftover value never gets saved onto a deal that's not
-  // supposed to carry it. Stock #, Deal #, Type and delivery date/time stay -
-  // those apply to every deal regardless of type. Trade-ins are kept for
-  // Dealer Trade (sometimes comes with its own trade-in) and only cleared
-  // for Wholesale.
+  // supposed to carry it. Stock #, Deal #, Type, Customer (repurposed as the
+  // auction company / purchasing dealership - see grApplyTypeVisibility) and
+  // delivery date/time stay - those apply to every deal regardless of type.
+  // Trade-ins are kept for Dealer Trade (sometimes comes with its own
+  // trade-in) and only cleared for Wholesale.
   if (grIsSimpleType(deal)) {
-    deal.vehicle = ''; deal.customer = ''; deal.salesperson = ''; deal.deskManager = ''; deal.fniManager = '';
+    deal.vehicle = ''; deal.deskManager = ''; deal.fniManager = '';
     deal.fuelStatus = 'none'; deal.gasAmount = '';
+    // Salesperson isn't asked for on these types - record who actually
+    // entered the deal instead. Only set on first creation, so editing the
+    // deal later doesn't silently swap the original entrant's name for
+    // whoever's making the edit.
+    deal.salesperson = editingGRId ? (getReadyDeals[editingGRId]?.salesperson || '') : currentUser.name;
     if (deal.type === 'WHOLESALE') {
       deal.trades = [];
-      deal.purchasingDealer = '';
-    } else {
-      deal.auctionCompany = '';
     }
-  } else {
-    deal.auctionCompany = ''; deal.purchasingDealer = '';
   }
   if (editingGRId) deal.servicesComplete = getReadyDeals[editingGRId]?.servicesComplete || false;
   else deal.servicesComplete = false;
@@ -7466,8 +7464,6 @@ function buildGREmailParams(d, subject, intro) {
     vin: d.vin||'',
     customer: d.customer||'',
     salesperson: d.salesperson||'',
-    auctionCompany: d.auctionCompany||'',
-    purchasingDealer: d.purchasingDealer||'',
     type: d.type||'',
     financing: financingLabel,
     deliveryDate: d.deliveryDate||'',
