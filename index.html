@@ -6351,14 +6351,18 @@ window.completeDealTradeIn = async function(id) {
       const stock = t.stock.trim().toUpperCase();
       const vin = (t.vin||'').trim().toUpperCase();
       const vehicleDesc = [t.year, t.make, t.model].filter(Boolean).join(' ') + (t.colour ? ' - '+t.colour : '');
+      // A dealer trade's trade-in is sometimes a brand-new vehicle rather
+      // than a customer's used trade-in - goes to Incoming as New/Retail
+      // instead of Used/Trade-In in that case, same as any other new unit.
+      const isNewTradeIn = t.category === 'NEW';
       const unit = {
         arrived: arrivedDisplay,
         arrivedDate: todayStr,
         stock, vin,
         vehicle: vehicleDesc,
-        condition: 'used',
-        category: 'TRADEIN',
-        subcategory: t.category || 'RETAIL',
+        condition: isNewTradeIn ? 'new' : 'used',
+        category: isNewTradeIn ? 'RETAIL' : 'TRADEIN',
+        subcategory: isNewTradeIn ? null : (t.category || 'RETAIL'),
         make: t.make||'',
         year: t.year||'', trim: '', type: t.make && t.model ? `${t.make} ${t.model}` : '', colour: t.colour||'',
         kms: t.kms||'',
@@ -6719,7 +6723,7 @@ function renderGRCard(d, perms, isDupe) {
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
             <span style="background:${i%2===0?'#dbeafe':'#ede9fe'};color:${i%2===0?'#1d4ed8':'#6d28d9'};font-weight:700;padding:1px 6px;border-radius:3px;font-size:9px;flex-shrink:0">T${i+1}</span>
             <span style="font-weight:700;color:var(--text);font-size:13px">${esc(t.stock)}</span>
-            <span style="font-size:9px;font-weight:700;color:#7c3aed;text-transform:uppercase">${({RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'})[t.category]||'Retail'}</span>
+            <span style="font-size:9px;font-weight:700;color:#7c3aed;text-transform:uppercase">${({NEW:'New',RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'})[t.category]||'Retail'}</span>
             ${t.kms?`<span style="font-size:11px;color:var(--text-faint);margin-left:auto">${Number(t.kms).toLocaleString()} km</span>`:''}
           </div>
           <div style="font-size:11px;color:var(--text-muted)">${esc([t.year,t.make,t.model,t.colour].filter(Boolean).join(' · '))}${t.vin?` · ${esc(t.vin)}`:''}</div>
@@ -6881,6 +6885,7 @@ function grRenderTradeSlots() {
         <div class="modal-form-row"><label>KMs</label><input value="${(t.kms||'').replace(/"/g,'&quot;')}" oninput="grSetTradeField(${i},'kms',this.value)" placeholder="263312"/></div>
         <div class="modal-form-row"><label>Category <span style="font-weight:400;color:var(--text-faint);text-transform:none;letter-spacing:0">for Incoming</span></label>
           <select onchange="grSetTradeField(${i},'category',this.value)">
+            <option value="NEW" ${t.category==='NEW'?'selected':''}>New</option>
             <option value="RETAIL" ${t.category==='RETAIL'?'selected':''}>Retail</option>
             <option value="ASIS" ${t.category==='ASIS'?'selected':''}>As-Is</option>
             <option value="WHOLESALE" ${t.category==='WHOLESALE'?'selected':''}>Wholesale</option>
@@ -7092,7 +7097,7 @@ function applyGRPdfFields(form) {
       const make = (parts[1]||'').trim();
       const model = parts.slice(2).join('/').trim();
       const typeRaw = pdfFieldText(form, typeKey).toUpperCase().replace(/[\s-]/g,'');
-      const category = ['RETAIL','WHOLESALE','ASIS','CPO'].includes(typeRaw) ? typeRaw : 'RETAIL';
+      const category = ['NEW','RETAIL','WHOLESALE','ASIS','CPO'].includes(typeRaw) ? typeRaw : 'RETAIL';
       grTrades[i] = { stock: stock.toUpperCase(), vin:'', year, make, model, colour: pdfFieldText(form, colourKey), kms: pdfFieldText(form, kmsKey), category };
     });
   grRenderTradeSlots();
@@ -7440,7 +7445,7 @@ function buildGREmailParams(d, subject, intro) {
   const gasLabel = fuelStatus==='gas' ? `Needs Gas${d.gasAmount ? ' - $'+Number(d.gasAmount).toFixed(2) : ''}`
     : fuelStatus==='charge' ? 'Needs Charging'
     : 'No Gas/Charge Needed';
-  const catLabel = {RETAIL:'Retail', ASIS:'As-Is', WHOLESALE:'Wholesale', CPO:'Certified Pre-Owned'};
+  const catLabel = {NEW:'New', RETAIL:'Retail', ASIS:'As-Is', WHOLESALE:'Wholesale', CPO:'Certified Pre-Owned'};
   const trades = Array.isArray(d.trades) ? d.trades.filter(t=>t && t.stock) : [d.trade1, d.trade2].filter(t=>t?.stock);
   const tradesText = trades.length
     ? trades.map((t,i) => `Trade ${i+1}: ${t.stock} - ${[t.year,t.make,t.model].filter(Boolean).join(' ')}${t.colour?' - '+t.colour:''}${t.vin?' - VIN '+t.vin:''}${t.kms?' - '+t.kms+' km':''} (${catLabel[t.category]||'Retail'})`).join('\n')
