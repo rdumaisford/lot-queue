@@ -5762,7 +5762,7 @@ function renderTracker() {
     const isNoPhoto = !photoRequired(u);
 
     const condBadge = u.condition === 'used'
-      ? `<span class="complete-badge" style="background:#7c3aed">${{TRADEIN:'Trade-In',AUCTION:'Auction'}[u.category]||'Used'}${u.subcategory?' · '+({RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'}[u.subcategory]||''):''}</span>`
+      ? `<span class="complete-badge" style="background:#7c3aed">${{TRADEIN:'Trade-In',AUCTION:'Auction Purchase'}[u.category]||'Used'}${u.subcategory?' · '+({RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'}[u.subcategory]||''):''}</span>`
       : `<span class="complete-badge" style="background:#2563eb">${{RETAIL:'Retail',FLEET:'Fleet'}[u.category]||'New'}</span>`;
 
     const isFord = u.condition === 'new' ? true : /ford/i.test(u.make||'');
@@ -5993,7 +5993,7 @@ window.setUnitCondition = function(cond, isInitialLoad) {
     }
   } else {
     catLabel.textContent = 'Category';
-    catSel.innerHTML = `<option value="TRADEIN">Trade-In</option><option value="AUCTION">Auction</option>`;
+    catSel.innerHTML = `<option value="TRADEIN">Trade-In</option><option value="AUCTION">Auction Purchase</option>`;
     subRow.style.display = 'block';
     document.getElementById('m-checkboxes-new').style.display = 'none';
     document.getElementById('m-checkboxes-used').style.display = 'grid';
@@ -7558,7 +7558,7 @@ window.sendTestEmail = async function() {
 function formatUnitDigestLine(u) {
   const specLine = [u.year, u.type, u.trim, u.colour].filter(Boolean).join(' ');
   const condLabel = u.condition === 'used'
-    ? `Used - ${({TRADEIN:'Trade-In',AUCTION:'Auction'})[u.category]||u.category||''}${u.subcategory?' / '+({RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'})[u.subcategory]:''}`
+    ? `Used - ${({TRADEIN:'Trade-In',AUCTION:'Auction Purchase'})[u.category]||u.category||''}${u.subcategory?' / '+({RETAIL:'Retail',ASIS:'As-Is',WHOLESALE:'Wholesale',CPO:'CPO'})[u.subcategory]:''}`
     : `New - ${({RETAIL:'Retail',FLEET:'Fleet'})[u.category]||u.category||''}`;
   return `${u.stock||u.vin||'-'} - ${u.vehicle || specLine || 'no description'} - ${condLabel}${u.kms?' - '+u.kms+' km':''}`;
 }
