@@ -44,14 +44,36 @@ function fieldRows(fields) {
 function renderTemplate(emailType, data) {
   if (emailType === 'getReady') {
     const intro = data.intro ? `<p style="margin:0 0 16px;font-size:14px">${esc(data.intro)}</p>` : '';
-    const rows = fieldRows([
-      ['Stock #', data.stock], ['Deal #', data.dealNum], ['Vehicle', data.vehicle], ['VIN', data.vin],
-      ['Customer', data.customer], ['Salesperson', data.salesperson], ['Type', data.type],
-      ['Financing', data.financing], ['Delivery Date', data.deliveryDate], ['Delivery Time', data.deliveryTime],
-      ['Plates', data.plateType], ['Licensing Notes', data.licensingNotes], ['Gas/Charge', data.gasStatus],
-      ['Instructions', data.instructions], ['Notes', data.notes], ['Services', data.steps],
-      ['Trades', data.trades],
-    ]);
+    // Wholesale and Dealer Trade only ever collect a handful of fields (see
+    // the app's own type-specific intake form) - each gets its own minimal
+    // row list rather than reusing the full Retail list, which would either
+    // show a wall of blank/placeholder rows or need every row individually
+    // guarded. fieldRows() already drops any row whose value is empty, so
+    // whichever of these was actually left blank (e.g. no Deal #) just
+    // doesn't appear.
+    let rows;
+    if (data.type === 'WHOLESALE') {
+      rows = fieldRows([
+        ['Stock #', data.stock], ['Deal #', data.dealNum], ['Type', data.type],
+        ['Auction Company', data.auctionCompany],
+        ['Pickup Date', data.deliveryDate], ['Pickup Time', data.deliveryTime],
+      ]);
+    } else if (data.type === 'DEALER TRADE') {
+      rows = fieldRows([
+        ['Stock #', data.stock], ['Deal #', data.dealNum], ['Type', data.type],
+        ['Purchasing Dealership', data.purchasingDealer],
+        ['Pickup Date', data.deliveryDate], ['Pickup Time', data.deliveryTime],
+      ]);
+    } else {
+      rows = fieldRows([
+        ['Stock #', data.stock], ['Deal #', data.dealNum], ['Vehicle', data.vehicle], ['VIN', data.vin],
+        ['Customer', data.customer], ['Salesperson', data.salesperson], ['Type', data.type],
+        ['Financing', data.financing], ['Delivery Date', data.deliveryDate], ['Delivery Time', data.deliveryTime],
+        ['Plates', data.plateType], ['Licensing Notes', data.licensingNotes], ['Gas/Charge', data.gasStatus],
+        ['Instructions', data.instructions], ['Notes', data.notes], ['Services', data.steps],
+        ['Trades', data.trades],
+      ]);
+    }
     return wrap(data.subject || 'Get Ready Deal', intro + rows);
   }
   if (emailType === 'incomingDigest') {
