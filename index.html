@@ -560,6 +560,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .gr-type-pill.as-is{background:#dbeafe;color:#1d4ed8}
 .gr-type-pill.retail{background:#ede9fe;color:#6d28d9}
 .gr-type-pill.wholesale{background:#fef3c7;color:#92400e}
+.gr-type-pill.dealertrade{background:#faf5ff;color:#7c3aed}
 .gr-card-vehicle{font-size:13px;color:var(--text-muted);margin-top:3px;font-weight:500}
 .gr-card-customer{font-size:12px;color:var(--text-faint);margin-top:2px}
 .gr-gas-banner{display:flex;align-items:center;gap:8px;padding:10px 16px;background:#fef2f2;border-bottom:2px solid #fecaca;font-size:13px;font-weight:600;color:#991b1b}
@@ -1751,6 +1752,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <button class="filter-chip" onclick="setGRFilter('AS-IS',this)">As-Is</button>
         <button class="filter-chip" onclick="setGRFilter('RETAIL',this)">Retail</button>
         <button class="filter-chip" onclick="setGRFilter('WHOLESALE',this)">Wholesale</button>
+        <button class="filter-chip" onclick="setGRFilter('DEALER TRADE',this)">Dealer Trade</button>
         <button class="filter-chip" onclick="setGRFilter('GAS',this)">Needs Gas/Charge</button>
         <span id="gr-row-count" style="font-size:13px;color:var(--text-muted);white-space:nowrap"></span>
         <button class="btn-add-unit" id="btn-add-getready" onclick="openGRModal()" style="display:none;margin-left:auto">
@@ -1780,6 +1782,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <button class="filter-chip" onclick="setGRCompletedFilter('AS-IS',this)">As-Is</button>
           <button class="filter-chip" onclick="setGRCompletedFilter('RETAIL',this)">Retail</button>
           <button class="filter-chip" onclick="setGRCompletedFilter('WHOLESALE',this)">Wholesale</button>
+          <button class="filter-chip" onclick="setGRCompletedFilter('DEALER TRADE',this)">Dealer Trade</button>
           <span id="grc-row-count" style="font-size:13px;color:var(--text-muted);white-space:nowrap"></span>
         </div>
         <div id="gr-completed-body" class="tracker-list"></div>
@@ -2747,7 +2750,7 @@ F24118, 2026, Bronco Sport, Big Bend, 302A, D4, M, 99A, 448, 53Q; FX4, OneDrive/
   <div class="modal-card">
     <div class="modal-title-row"><span id="gr-modal-title">Add Get Ready deal</span><button class="modal-close" onclick="closeGRModal()">×</button></div>
     <div id="gr-lock-banner" style="display:none;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;margin-bottom:12px"></div>
-    <div id="gr-pdf-row" style="margin-bottom:12px;padding:10px 14px;border:1px dashed var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <div id="gr-pdf-row" class="gr-full-only" style="margin-bottom:12px;padding:10px 14px;border:1px dashed var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <input type="file" id="gr-pdf-input" accept="application/pdf" style="display:none" onchange="handleGRPdfUpload(this.files[0])"/>
       <span id="gr-pdf-status" style="font-size:13px;color:var(--text-muted);flex:1">No Get Ready sheet attached</span>
       <button type="button" onclick="document.getElementById('gr-pdf-input').click()" style="padding:7px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer">📄 Attach / replace PDF</button>
@@ -2755,24 +2758,25 @@ F24118, 2026, Bronco Sport, Big Bend, 302A, D4, M, 99A, 448, 53Q; FX4, OneDrive/
     </div>
     <div class="modal-grid">
       <div class="modal-form-row"><label>Stock #</label><input id="gr-stock" type="text" placeholder="e.g. A1402"/></div>
-      <div class="modal-form-row"><label>Deal #</label><input id="gr-deal" type="text" placeholder="e.g. 6463159"/></div>
-      <div class="modal-form-row modal-full"><label>Vehicle</label><input id="gr-vehicle" type="text" placeholder="e.g. 2025 Bronco Sport"/></div>
-      <div class="modal-form-row modal-full"><label>VIN (last 6, or full if handy)</label><input id="gr-vin" type="text" placeholder="e.g. E45978" style="font-family:monospace;letter-spacing:.05em" maxlength="17"/></div>
-      <div class="modal-form-row"><label>Customer name</label><input id="gr-customer" type="text" placeholder="e.g. Brad Bodanis"/></div>
-      <div class="modal-form-row"><label>Customer phone</label><input id="gr-phone" type="tel" placeholder="e.g. 705-555-0123"/></div>
-      <div class="modal-form-row"><label>Customer email</label><input id="gr-email" type="email" placeholder="e.g. name@email.com"/></div>
-      <div class="modal-form-row"><label>DMS deal #</label><input id="gr-dms-id" type="text" placeholder="e.g. 212669"/></div>
-      <div class="modal-form-row"><label>Salesperson</label><input id="gr-salesperson" type="text" placeholder="e.g. Michael Prince"/></div>
-      <div class="modal-form-row"><label>Desk Manager</label><input id="gr-desk-manager" type="text" placeholder="e.g. Jesse Di Domizio"/></div>
-      <div class="modal-form-row"><label>F&amp;I Manager</label><input id="gr-fni" type="text" placeholder="e.g. Pat Nguyen"/></div>
+      <div class="modal-form-row gr-full-only"><label>Deal #</label><input id="gr-deal" type="text" placeholder="e.g. 6463159"/></div>
+      <div class="modal-form-row modal-full gr-full-only"><label>Vehicle</label><input id="gr-vehicle" type="text" placeholder="e.g. 2025 Bronco Sport"/></div>
+      <div class="modal-form-row modal-full gr-full-only"><label>VIN (last 6, or full if handy)</label><input id="gr-vin" type="text" placeholder="e.g. E45978" style="font-family:monospace;letter-spacing:.05em" maxlength="17"/></div>
+      <div class="modal-form-row gr-full-only"><label>Customer name</label><input id="gr-customer" type="text" placeholder="e.g. Brad Bodanis"/></div>
+      <div class="modal-form-row gr-full-only"><label>Customer phone</label><input id="gr-phone" type="tel" placeholder="e.g. 705-555-0123"/></div>
+      <div class="modal-form-row gr-full-only"><label>Customer email</label><input id="gr-email" type="email" placeholder="e.g. name@email.com"/></div>
+      <div class="modal-form-row gr-full-only"><label>DMS deal #</label><input id="gr-dms-id" type="text" placeholder="e.g. 212669"/></div>
+      <div class="modal-form-row gr-full-only"><label>Salesperson</label><input id="gr-salesperson" type="text" placeholder="e.g. Michael Prince"/></div>
+      <div class="modal-form-row gr-full-only"><label>Desk Manager</label><input id="gr-desk-manager" type="text" placeholder="e.g. Jesse Di Domizio"/></div>
+      <div class="modal-form-row gr-full-only"><label>F&amp;I Manager</label><input id="gr-fni" type="text" placeholder="e.g. Pat Nguyen"/></div>
       <div class="modal-form-row"><label>Type</label>
-        <select id="gr-type">
+        <select id="gr-type" onchange="grApplyTypeVisibility(this.value)">
           <option value="AS-IS">As-Is</option>
           <option value="RETAIL">Retail</option>
           <option value="WHOLESALE">Wholesale</option>
+          <option value="DEALER TRADE">Dealer Trade</option>
         </select>
       </div>
-      <div class="modal-form-row"><label>Financing</label>
+      <div class="modal-form-row gr-full-only"><label>Financing</label>
         <select id="gr-financing">
           <option value="CASH">Cash</option>
           <option value="COMMERCIAL_LEASE">Commercial Lease</option>
@@ -2783,21 +2787,21 @@ F24118, 2026, Bronco Sport, Big Bend, 302A, D4, M, 99A, 448, 53Q; FX4, OneDrive/
       <div class="modal-form-row"><label>Delivery date</label><input id="gr-delivery-date" type="date"/></div>
       <div class="modal-form-row"><label>Delivery time</label><input id="gr-delivery-time" type="time"/></div>
 
-      <div class="modal-form-row modal-full">
+      <div class="modal-form-row modal-full gr-full-only">
         <label>License Plates</label>
         <div style="display:flex;gap:8px;margin-top:4px">
           <button type="button" id="gr-plate-new-btn" onclick="setGRPlateType('NEW')" class="toggle-btn active" style="flex:1;padding:9px;border-radius:8px;font-size:13px">New License Plates</button>
           <button type="button" id="gr-plate-transfer-btn" onclick="setGRPlateType('TRANSFER')" class="toggle-btn" style="flex:1;padding:9px;border-radius:8px;font-size:13px">License Plate Transfer</button>
         </div>
       </div>
-      <div class="modal-form-row modal-full"><label>Licensing notes</label><textarea id="gr-licensing-notes" placeholder="Plate #, transfer from stock #, insurance info, etc…" style="min-height:50px"></textarea></div>
+      <div class="modal-form-row modal-full gr-full-only"><label>Licensing notes</label><textarea id="gr-licensing-notes" placeholder="Plate #, transfer from stock #, insurance info, etc…" style="min-height:50px"></textarea></div>
 
-      <div class="modal-form-row modal-full"><label>Special instructions</label><textarea id="gr-instructions" placeholder="Accessories to remove, supplier, amount, PO/RO#…"></textarea></div>
+      <div class="modal-form-row modal-full gr-full-only"><label>Special instructions</label><textarea id="gr-instructions" placeholder="Accessories to remove, supplier, amount, PO/RO#…"></textarea></div>
       <div class="modal-form-row modal-full"><label>Notes</label><textarea id="gr-notes-field" placeholder="Any additional notes for the Get Ready team…"></textarea></div>
     </div>
 
     <!-- Trade-ins -->
-    <div style="margin-top:10px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+    <div class="gr-full-only" style="margin-top:10px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
       <div style="padding:8px 14px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px">
         <span style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Trade-ins</span>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;text-transform:none;letter-spacing:0">
@@ -2809,7 +2813,7 @@ F24118, 2026, Bronco Sport, Big Bend, 302A, D4, M, 99A, 448, 53Q; FX4, OneDrive/
         <button type="button" onclick="grAddTradeSlot()" style="padding:7px 14px;font-size:13px;font-weight:600;border:1px dashed var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text-muted);cursor:pointer;width:100%">+ Add another trade-in</button>
       </div>
     </div>
-    <div class="modal-form-row modal-full" style="margin-top:10px">
+    <div class="modal-form-row modal-full gr-full-only" style="margin-top:10px">
       <label>Gas / Charge</label>
       <div style="display:flex;gap:8px;margin-top:4px;margin-bottom:8px">
         <button type="button" id="gr-fuel-gas-btn" onclick="setGRFuelStatus('gas')" class="toggle-btn active" style="flex:1;padding:9px;border-radius:8px;font-size:13px">⛽ Gas</button>
@@ -2821,8 +2825,8 @@ F24118, 2026, Bronco Sport, Big Bend, 302A, D4, M, 99A, 448, 53Q; FX4, OneDrive/
       </div>
     </div>
 
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin:14px 0 6px">Services this deal is getting</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+    <div class="gr-full-only" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin:14px 0 6px">Services this deal is getting</div>
+    <div class="gr-full-only" style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
       <div class="checkbox-row" style="border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-pdi"/><label for="gr-c-pdi">PDI</label></div>
       <div class="checkbox-row" style="border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-lof"/><label for="gr-c-lof">LOF</label></div>
       <div class="checkbox-row" style="border-bottom:1px solid var(--border)"><input type="checkbox" id="gr-c-detail"/><label for="gr-c-detail">Detail</label></div>
@@ -2834,7 +2838,7 @@ F24118, 2026, Bronco Sport, Big Bend, 302A, D4, M, 99A, 448, 53Q; FX4, OneDrive/
     </div>
 
     <!-- Custom / Other fields -->
-    <div style="margin-top:10px">
+    <div class="gr-full-only" style="margin-top:10px">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:6px">Other / Custom</div>
       <div id="gr-custom-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
       <button type="button" onclick="grAddCustomField()" style="padding:7px 14px;font-size:13px;font-weight:600;border:1px dashed var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text-muted);cursor:pointer;width:100%">+ Add custom item</button>
@@ -6197,7 +6201,14 @@ const GR_CHECKLIST = [
   ['safety','Safety'], ['leather','Leather'], ['fabric','Fabric'], ['module','Module'],
 ];
 
+// Wholesale/Dealer Trade deals skip the recon checklist entirely - they're
+// just a stock # + a pickup date/time, so there's nothing to mark done
+// besides the "Deal Completed" button itself (see grIsReadyForDelivery).
+function grIsSimpleType(d) {
+  return d.type === 'WHOLESALE' || d.type === 'DEALER TRADE';
+}
 function grIsComplete(d) {
+  if (grIsSimpleType(d)) return true;
   const customDone = (d.customFields||[]).filter(f=>f.label).every(f=>f.done);
   return !!d.servicesComplete && customDone && (grEffectiveFuelStatus(d)==='none' || d.gasFilled);
 }
@@ -6437,6 +6448,7 @@ function renderGetReadySummary() {
   const asIs = all.filter(d=>d.type==='AS-IS').length;
   const retail = all.filter(d=>d.type==='RETAIL').length;
   const wholesale = all.filter(d=>d.type==='WHOLESALE').length;
+  const dealerTrade = all.filter(d=>d.type==='DEALER TRADE').length;
   const needsGas = all.filter(d=>grEffectiveFuelStatus(d)!=='none' && !d.gasFilled).length;
   const done = all.filter(d=>grIsReadyForDelivery(d)).length;
   const el = document.getElementById('gr-summary');
@@ -6446,6 +6458,7 @@ function renderGetReadySummary() {
     <div class="t-stat"><div class="t-stat-num" style="color:#1d4ed8">${asIs}</div><div class="t-stat-label">As-Is</div></div>
     <div class="t-stat"><div class="t-stat-num" style="color:#6d28d9">${retail}</div><div class="t-stat-label">Retail</div></div>
     <div class="t-stat"><div class="t-stat-num" style="color:#92400e">${wholesale}</div><div class="t-stat-label">Wholesale</div></div>
+    <div class="t-stat"><div class="t-stat-num" style="color:#7c3aed">${dealerTrade}</div><div class="t-stat-label">Dealer Trade</div></div>
     <div class="t-stat"><div class="t-stat-num" style="color:${needsGas>0?'#dc2626':'#15803d'}">${needsGas}</div><div class="t-stat-label">Needs Gas/Charge</div></div>
     <div class="t-stat"><div class="t-stat-num" style="color:#15803d">${done}</div><div class="t-stat-label">All done ✓</div></div>`;
 }
@@ -6567,8 +6580,11 @@ function renderGRCalendar() {
     // Up to 3 dots shown directly, a "+N" text instead of more dots beyond that
     const dotsToShow = Math.min(deals.length, 3);
     const dots = Array.from({length: dotsToShow}).map((_, i) => {
-      const done = grIsReadyForDelivery(deals[i]);
-      return `<span style="width:6px;height:6px;border-radius:50%;background:${done?'#22c55e':'#f97316'};display:inline-block"></span>`;
+      // Wholesale/Dealer Trade are always purple, regardless of done state -
+      // a quick "there's a W/DT pickup this day" signal distinct from
+      // retail's green(done)/orange(pending) dots, at a glance on the grid.
+      const color = grIsSimpleType(deals[i]) ? '#8b5cf6' : (grIsReadyForDelivery(deals[i]) ? '#22c55e' : '#f97316');
+      return `<span style="width:6px;height:6px;border-radius:50%;background:${color};display:inline-block"></span>`;
     }).join('');
     html += `<div ${hasDeals?`onclick="grShowDayDeals('${dateStr}')"`:''} style="min-height:56px;border:1px solid var(--border);border-radius:8px;padding:6px;background:${isToday?'#eff6ff':'var(--surface)'};${isToday?'border-color:#93c5fd':''}${hasDeals?';cursor:pointer':''};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px">
       <div style="font-size:12px;font-weight:700;color:${isToday?'#1d4ed8':'var(--text-faint)'}">${day}</div>
@@ -6614,8 +6630,9 @@ function renderGRCard(d, perms, isDupe) {
       ? `<span style="font-size:8px;font-weight:700;color:#15803d;display:block;width:100%;text-align:center;margin-top:2px">📋 ${esc(pdiIncomingWhoWhen)}</span>`
       : '';
     const isComplete = grIsComplete(d);
-    const typeClass = {'AS-IS':'type-as-is','RETAIL':'type-retail','WHOLESALE':'type-wholesale'}[d.type]||'';
-    const typePillClass = {'AS-IS':'as-is','RETAIL':'retail','WHOLESALE':'wholesale'}[d.type]||'as-is';
+    const isSimpleType = grIsSimpleType(d);
+    const typeClass = {'AS-IS':'type-as-is','RETAIL':'type-retail','WHOLESALE':'type-wholesale','DEALER TRADE':'type-dealertrade'}[d.type]||'';
+    const typePillClass = {'AS-IS':'as-is','RETAIL':'retail','WHOLESALE':'wholesale','DEALER TRADE':'dealertrade'}[d.type]||'as-is';
     const dupeBadge = isDupe(d) ? `<span class="gr-complete-badge dupe-blink" style="background:#dc2626">⚠ Duplicate</span>` : '';
     const hasTrade = Array.isArray(d.trades) ? d.trades.some(t=>t?.stock) : !!(d.trade1?.stock || d.trade2?.stock);
     const holdBadge = d.dealStatus === 'on_hold' ? `<span class="gr-complete-badge" style="background:#94a3b8">⏸ On Hold</span>`
@@ -6706,15 +6723,15 @@ function renderGRCard(d, perms, isDupe) {
           <span class="gr-type-pill ${typePillClass}">${esc(d.type||'-')}</span>
           ${holdBadge}${updatedBadge}${dupeBadge}${grLocBadge}
         </div>
-        <div class="gr-card-vehicle">${esc(d.vehicle||'-')}${d.vin?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">${esc(d.vin)}</span>`:d.vin6?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">…${esc(d.vin6)}</span>`:''}</div>
+        ${!isSimpleType?`<div class="gr-card-vehicle">${esc(d.vehicle||'-')}${d.vin?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">${esc(d.vin)}</span>`:d.vin6?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">…${esc(d.vin6)}</span>`:''}</div>`:''}
         ${d.customer?`<div class="gr-card-customer">${esc(d.customer)}${d.salesperson?' · '+esc(d.salesperson):''}</div>`:''}
         ${(d.phone||d.email)?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">${d.phone?'📞 '+esc(d.phone):''}${d.phone&&d.email?' · ':''}${d.email?'✉️ '+esc(d.email):''}</div>`:''}
         ${financingLabel?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px">💳 ${financingLabel}</div>`:''}
         ${d.pdfUrl&&isSafeHttpsUrl(d.pdfUrl)?`<div style="margin-top:4px"><a href="${esc(d.pdfUrl)}" target="_blank" rel="noopener" style="font-size:11px;font-weight:600;color:var(--ford);text-decoration:none">📄 ${esc(d.pdfFileName||'Get Ready sheet')}</a></div>`:''}
         ${d.needsAcknowledgment?`<div style="font-size:11px;color:#7c3aed;font-weight:700;margin-top:4px">🔶 Updated by ${esc(d.updatedFieldsBy||'someone')} - delivery, gas, or trade-in info changed</div>`:''}
       </div>
-      ${gasBanner}
-      <div class="gr-gas-banner ${d.servicesComplete?'no-gas-needed':''}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${d.servicesComplete?'':'background:#fef2f2'}">
+      ${!isSimpleType?gasBanner:''}
+      ${!isSimpleType?`<div class="gr-gas-banner ${d.servicesComplete?'no-gas-needed':''}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${d.servicesComplete?'':'background:#fef2f2'}">
         <span style="font-size:20px">🔧</span>
         <div style="flex:1">
           <div style="font-weight:700;color:${d.servicesComplete?'':'#991b1b'}">${d.servicesComplete?'Services Complete':'Services Pending'}</div>
@@ -6724,7 +6741,7 @@ function renderGRCard(d, perms, isDupe) {
         ${canChecklist?`<div class="gr-tap" style="width:auto;height:32px;padding:0 14px;border-radius:20px;${d.servicesComplete?'background:#f1f5f9;border-color:#e2e8f0':''}" onclick="toggleGRField('${d.id}','servicesComplete',${!d.servicesComplete})" title="${servicesCompleteWhoWhen?`Done by ${servicesCompleteWhoWhen}`:''}">
           <span style="font-size:12px;font-weight:700;color:${d.servicesComplete?'#94a3b8':'#991b1b'}">${d.servicesComplete?'✓ Complete':'Mark complete'}</span>
         </div>`:`<span style="font-size:12px;font-weight:700;color:${d.servicesComplete?'#94a3b8':'#991b1b'}">${d.servicesComplete?'✓ Complete':'Pending'}</span>`}
-      </div>
+      </div>`:''}
       <div class="gr-gas-banner ${d.soldRowParked?'no-gas-needed':''}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${d.soldRowParked?'':'background:#eff6ff;border-bottom-color:#93c5fd;color:#1d4ed8'}">
         <span style="font-size:20px">🅿️</span>
         <div style="flex:1">
@@ -6735,8 +6752,8 @@ function renderGRCard(d, perms, isDupe) {
           <span style="font-size:12px;font-weight:700;color:${d.soldRowParked?'#94a3b8':'#1d4ed8'}">${d.soldRowParked?'✓ Done':'Mark done'}</span>
         </div>`:`<span style="font-size:12px;font-weight:700;color:${d.soldRowParked?'#94a3b8':'#1d4ed8'}">${d.soldRowParked?'✓ Done':'Pending'}</span>`}
       </div>
-      ${d.deliveryDate?`<div class="gr-delivery">📅 Delivery: <strong>${fmtGRDate(d.deliveryDate,d.deliveryTime)}</strong></div>`:''}
-      <div style="padding:6px 16px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text-muted)">🪪 ${d.plateType==='TRANSFER'?'License Plate Transfer':'New License Plates'}${d.licensingNotes?` - ${esc(d.licensingNotes)}`:''}</div>
+      ${d.deliveryDate?`<div class="gr-delivery">📅 ${isSimpleType?'Pickup':'Delivery'}: <strong>${fmtGRDate(d.deliveryDate,d.deliveryTime)}</strong></div>`:''}
+      ${!isSimpleType?`<div style="padding:6px 16px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text-muted)">🪪 ${d.plateType==='TRANSFER'?'License Plate Transfer':'New License Plates'}${d.licensingNotes?` - ${esc(d.licensingNotes)}`:''}</div>`:''}
       ${dealTrades.length ? `<div style="padding:8px 16px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px">
         <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Trade-ins</div>
         ${dealTrades.map((t,i) => `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px">
@@ -6823,7 +6840,7 @@ function renderGRCompleted() {
     body.innerHTML = `<div class="tracker-empty">No ready deals match your search.</div>`;
     return;
   }
-  const typePillClassOf = (type) => ({'AS-IS':'as-is','RETAIL':'retail','WHOLESALE':'wholesale'})[type]||'as-is';
+  const typePillClassOf = (type) => ({'AS-IS':'as-is','RETAIL':'retail','WHOLESALE':'wholesale','DEALER TRADE':'dealertrade'})[type]||'as-is';
 
   function makeRow(d) {
     const dealNote = d.dealCompleted ? '✓ Deal completed' : d.dealStatus === 'on_hold' ? '⏸ On hold' : d.dealStatus === 'declined' ? '❌ Declined' : '';
@@ -6944,6 +6961,15 @@ function grRenderCustomFields() {
     </div>`).join('');
 }
 
+// Wholesale/Dealer Trade deals only ever need a stock # + pickup date/time -
+// hides every field that's only meaningful for a retail/as-is deal (customer,
+// trade-ins, services, gas, financing, licensing, etc.) rather than making
+// staff scroll past a form full of fields that don't apply.
+window.grApplyTypeVisibility = function(type) {
+  const simple = type === 'WHOLESALE' || type === 'DEALER TRADE';
+  document.querySelectorAll('#gr-modal .gr-full-only').forEach(el => { el.style.display = simple ? 'none' : ''; });
+};
+
 window.openGRModal = function(id) {
   editingGRId = id || null;
   const d = id ? getReadyDeals[id] : {};
@@ -6961,6 +6987,7 @@ window.openGRModal = function(id) {
   document.getElementById('gr-desk-manager').value = d.deskManager || '';
   document.getElementById('gr-fni').value = d.fniManager || '';
   document.getElementById('gr-type').value = d.type || 'RETAIL';
+  grApplyTypeVisibility(document.getElementById('gr-type').value);
   document.getElementById('gr-financing').value = d.financing || 'CASH';
   document.getElementById('gr-delivery-date').value = d.deliveryDate || '';
   document.getElementById('gr-delivery-time').value = d.deliveryTime || '';
@@ -7212,6 +7239,20 @@ window.saveGR = async function() {
   GR_CHECKLIST.forEach(([key]) => {
     deal['req_'+key] = document.getElementById('gr-c-'+key).checked;
   });
+  // Wholesale/Dealer Trade: the fields above are hidden in the modal (see
+  // grApplyTypeVisibility) but their inputs still exist in the DOM with
+  // whatever stale/default value they last had - blank them out here so a
+  // hidden field's leftover value (e.g. Financing defaulting to "Cash")
+  // never gets saved onto a deal that's not supposed to carry it.
+  if (grIsSimpleType(deal)) {
+    deal.dealNum = ''; deal.vehicle = ''; deal.vin = ''; deal.customer = ''; deal.phone = ''; deal.email = '';
+    deal.dmsId = ''; deal.salesperson = ''; deal.deskManager = ''; deal.fniManager = '';
+    deal.financing = ''; deal.instructions = ''; deal.plateType = 'NEW'; deal.licensingNotes = '';
+    deal.fuelStatus = 'none'; deal.gasAmount = '';
+    deal.trades = [];
+    deal.customFields = [];
+    GR_CHECKLIST.forEach(([key]) => { deal['req_'+key] = false; });
+  }
   if (editingGRId) deal.servicesComplete = getReadyDeals[editingGRId]?.servicesComplete || false;
   else deal.servicesComplete = false;
   if (editingGRId) deal.gasFilled = getReadyDeals[editingGRId]?.gasFilled || false;
