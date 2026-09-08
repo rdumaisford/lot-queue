@@ -7766,7 +7766,15 @@ window.switchTab=function(name,btn){
   if(!isTV){const c=document.getElementById('tv-controls');if(c)c.style.display='none';}
   if(name==='settings'){const sc=document.getElementById('s-sound');if(sc)sc.checked=soundEnabled;renderPermissionsEditor();initSettingsSections();}
   if(name==='history') { renderHistory(); renderCompoundHistory(); }
-  if(name==='tracker'){renderTracker();renderTrackerSummary();}
+  // Deferred to the next paint frame rather than rendered in the same tick
+  // as the panel going from display:none to visible - on iOS Safari
+  // (especially installed to the Home Screen), content injected in that
+  // same tick can end up visible-but-not-tappable until some other gesture
+  // (scroll, an unrelated tap) forces WebKit to finish compositing it. That
+  // matches reports of Incoming's checkboxes not responding to the first
+  // tap or two right after opening the tab. requestAnimationFrame lets the
+  // panel's visibility change land in its own frame first.
+  if(name==='tracker'){requestAnimationFrame(()=>{renderTracker();renderTrackerSummary();});}
   if(name==='tv'){ renderTVRides(); renderTVAppointments(); setTimeout(()=>tvShuttleMap?.invalidateSize(), 50); }
   if(name==='rides'){ ridesRenderDirectionPickers(); ridesSetViewMode(ridesMode); renderRidesTab(); }
   if(name==='unitspecs'){ uslRenderResults(); }
