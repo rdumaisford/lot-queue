@@ -5830,7 +5830,22 @@ function renderTracker() {
   // into separate New/Used sections (each only sorted within itself) made
   // the overall screen look mixed up date-wise. Each card already carries
   // its own New/Used badge, so the grouping wasn't needed to tell them apart.
-  body.innerHTML = rows.map(makeCard).join('');
+  //
+  // Each card is built in its own try/catch - if one unit's data trips
+  // something up inside makeCard(), that exception used to abort the whole
+  // .map() and leave every other card unbuilt too (body.innerHTML never got
+  // assigned), even though the count above it - computed earlier, from the
+  // same rows - had already updated correctly. That combination (right
+  // count, zero cards) is exactly what's been reported, so this renders a
+  // visible error in place of just the broken unit instead of silently
+  // losing the whole screen, and logs which stock # and what error.
+  body.innerHTML = rows.map(u => {
+    try { return makeCard(u); }
+    catch(e) {
+      console.error('Tracker card render failed for', u.stock || u.id, e);
+      return `<div class="tracker-card" style="padding:16px;border:1px solid #fca5a5;background:#fef2f2;color:#991b1b;font-size:12px">⚠ Couldn't display ${esc(u.stock||u.id||'this unit')} - ${esc(String(e && e.message || e))}</div>`;
+    }
+  }).join('');
   // iOS Safari (especially as an installed Home Screen app) sometimes
   // leaves freshly-injected content unpainted when it's set in the very
   // same tick the panel goes from display:none to visible - which is
@@ -5952,7 +5967,13 @@ function renderTrackerCompleted() {
   }
 
   body.innerHTML = `<div class="trows-head"><span></span><span>Stock</span><span>VIN</span><span>Vehicle</span><span>Checklist</span><span>Status</span><span>Info</span><span>Notes</span><span>Actions</span></div>`
-    + rows.map(makeRow).join('');
+    + rows.map(u => {
+        try { return makeRow(u); }
+        catch(e) {
+          console.error('Completed unit row render failed for', u.stock || u.id, e);
+          return `<div class="trow" style="padding:10px 16px;border:1px solid #fca5a5;background:#fef2f2;color:#991b1b;font-size:12px">⚠ Couldn't display ${esc(u.stock||u.id||'this unit')} - ${esc(String(e && e.message || e))}</div>`;
+        }
+      }).join('');
   void body.offsetHeight; // see the matching comment in renderTracker() above
 }
 window.renderTrackerCompleted = renderTrackerCompleted; // see window.renderTracker above - same reason
