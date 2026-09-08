@@ -5821,7 +5821,7 @@ function renderTracker() {
       </div>
       ${canEdit?`<div class="tracker-card-actions">
         <button class="btn-tedit" onclick="openUnitModal('${u.id}')">✎ Edit</button>
-        <button class="btn-tdel" onclick="deleteUnit('${u.id}','${(u.stock||u.vin).replace(/"/g,'&quot;').replace(/'/g,"\\'")}')">✕</button>
+        <button class="btn-tdel" onclick="deleteUnit('${u.id}','${(u.stock||u.vin||'').replace(/"/g,'&quot;').replace(/'/g,"\\'")}')">✕</button>
       </div>`:''}
     </div>`;
   }
@@ -5961,7 +5961,7 @@ function renderTrackerCompleted() {
       <input class="trow-notes" placeholder="Add notes…" value="${esc(u.notes||'')}" onchange="inlineNotes('${u.id}',this.value)" onblur="inlineNotes('${u.id}',this.value)"/>
       ${canEdit?`<div class="trow-actions">
         <button class="btn-tedit" onclick="openUnitModal('${u.id}')">✎</button>
-        <button class="btn-tdel" onclick="deleteUnit('${u.id}','${(u.stock||u.vin).replace(/"/g,'&quot;').replace(/'/g,"\\'")}')">✕</button>
+        <button class="btn-tdel" onclick="deleteUnit('${u.id}','${(u.stock||u.vin||'').replace(/"/g,'&quot;').replace(/'/g,"\\'")}')">✕</button>
       </div>`:'<div></div>'}
     </div>`;
   }
