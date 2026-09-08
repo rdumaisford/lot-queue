@@ -2894,16 +2894,16 @@ const ROLE_LABELS = {lot:'Inventory Control',reception:'Reception',service:'Serv
 
 // Default permission matrix - used until Firebase settings/permissions loads (or if a role/perm is missing there)
 const DEFAULT_PERMISSIONS = {
-  lot:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:false, grGasConfirm:true,  grChecklistApprove:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
-  reception:    { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
-  service:      { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
-  sales:        { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
-  fandi:        { tabHome:true,  tabQueue:true,  tabTracker:false, tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:true,  grGasConfirm:true,  grChecklistApprove:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
-  detail:       { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
-  pdi:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:true,  trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
-  merchandiser: { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:true,  tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:true,  trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:true,  cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:true  },
-  management:   { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  grGasConfirm:true,  grChecklistApprove:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:true  },
-  shuttle:      { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
+  lot:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  cbIRecon:false, queueAdmin:true,  clearCompleted:true,  getReadyEdit:false, grGasConfirm:true,  grChecklistApprove:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
+  reception:    { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  cbIRecon:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
+  service:      { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, cbIRecon:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
+  sales:        { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, cbIRecon:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
+  fandi:        { tabHome:true,  tabQueue:true,  tabTracker:false, tabGetReady:true,  tabTV:false, tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, cbIRecon:false, queueAdmin:false, clearCompleted:false, getReadyEdit:true,  grGasConfirm:true,  grChecklistApprove:true,  hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
+  detail:       { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, cbIRecon:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
+  pdi:          { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:true,  trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:false, cbIC:false, cbIRecon:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
+  merchandiser: { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:true,  tabHistory:false, tabSettings:false, tabCompound:true,  compoundEdit:true,  trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:true,  cbPhoto:true,  cbIC:false, cbIRecon:true,  queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:false, tabShuttle:false, shuttleAdmin:false, tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:true  },
+  management:   { tabHome:true,  tabQueue:true,  tabTracker:true,  tabGetReady:true,  tabTV:false, tabHistory:true,  tabSettings:true,  tabCompound:true,  compoundEdit:true,  trackerAdd:true,  trackerEdit:true,  trackerDelete:true,  cbAcc:true,  cbPdi:true,  cbPhoto:true,  cbIC:true,  cbIRecon:true,  queueAdmin:true,  clearCompleted:true,  getReadyEdit:true,  grGasConfirm:true,  grChecklistApprove:true,  hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:true  },
+  shuttle:      { tabHome:false, tabQueue:false, tabTracker:false, tabGetReady:false, tabTV:false, tabHistory:false, tabSettings:false, tabCompound:false, compoundEdit:false, trackerAdd:false, trackerEdit:false, trackerDelete:false, cbAcc:false, cbPdi:false, cbPhoto:false, cbIC:false, cbIRecon:false, queueAdmin:false, clearCompleted:false, getReadyEdit:false, grGasConfirm:false, grChecklistApprove:false, hitchhikerAdmin:true, tabShuttle:true,  shuttleAdmin:true,  tabTestDrive:false, testDriveAdmin:false, tabUnitSpecs:false },
 };
 
 let PERMISSIONS = JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS)); // live copy, overwritten by Firebase
@@ -2969,7 +2969,7 @@ const PERM_GROUPS = [
     ['trackerAdd','Add units'], ['trackerEdit','Edit / change status'], ['trackerDelete','Delete units'],
   ]},
   { label:'Tracker Checkboxes', keys: [
-    ['cbAcc','Accessories'], ['cbPdi','PDI'], ['cbPhoto','Photo/Video'], ['cbIC','IC Moved'],
+    ['cbAcc','Accessories'], ['cbPdi','PDI'], ['cbPhoto','Photo/Video'], ['cbIC','IC Moved'], ['cbIRecon','Added to iRecon (used only)'],
   ]},
   { label:'Moves + Rides', keys: [
     ['queueAdmin','Start/Complete/Hold moves'], ['clearCompleted','Clear completed button'],
@@ -5447,8 +5447,8 @@ function photoRequired(u) {
 
 function isUnitComplete(u) {
   if (u.condition === 'used') {
-    // Used units track File Received + IC Moved only - no PDI/Photo requirement
-    return !!u.fileReceived && !!u.icMoved;
+    // Used units track File Received + IC Moved + Added to iRecon - no PDI/Photo requirement
+    return !!u.fileReceived && !!u.icMoved && !!u.irecon;
   }
   // Accessories is optional - PDI + IC Moved always required
   // Photo only required if not Turnover/Sold
@@ -5712,6 +5712,7 @@ function renderTracker() {
   const canPdi   = perm('cbPdi');
   const canPhoto = perm('cbPhoto');
   const canIC    = perm('cbIC');
+  const canIRecon = perm('cbIRecon');
   const allActive = Object.values(units).filter(u => !isUnitComplete(u));
   document.getElementById('t-row-count').textContent = rows.length+' of '+allActive.length+' active unit'+(allActive.length!==1?'s':'');
 
@@ -5794,6 +5795,7 @@ function renderTracker() {
         ${u.condition === 'used' ? `
           ${cbBtn('fileReceived','File Rec\'d',u.fileReceived,false,'',canEdit)}
           ${cbBtn('icMoved','IC Moved',u.icMoved,false,'cb-ic',canIC)}
+          ${cbBtn('irecon','iRecon',u.irecon,false,'',canIRecon)}
         ` : `
           ${cbBtn('accessories','Acc.',u.accessories,false,'',canAcc)}
           ${cbBtn('pdi','PDI',u.pdi,false,'cb-pdi',canPdi)}
@@ -5847,6 +5849,7 @@ function renderTrackerCompleted() {
   const canPdi   = perm('cbPdi');
   const canPhoto = perm('cbPhoto');
   const canIC    = perm('cbIC');
+  const canIRecon = perm('cbIRecon');
   const allCompletedCount = Object.values(units).filter(isUnitComplete).length;
   const toolbar = document.getElementById('tracker-completed-toolbar');
   const divider = document.getElementById('tracker-completed-divider');
@@ -5915,6 +5918,7 @@ function renderTrackerCompleted() {
         ${u.condition === 'used' ? `
           ${cbBtn('fileReceived',"File Rec'd",u.fileReceived,false,'',canEdit)}
           ${cbBtn('icMoved','IC Moved',u.icMoved,false,'cb-ic',canIC)}
+          ${cbBtn('irecon','iRecon',u.irecon,false,'',canIRecon)}
         ` : `
           ${cbBtn('accessories','Acc.',u.accessories,false,'',canAcc)}
           ${cbBtn('pdi','PDI',u.pdi,false,'cb-pdi',canPdi)}
