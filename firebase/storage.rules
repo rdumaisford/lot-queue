@@ -15,6 +15,20 @@ service firebase.storage {
       allow delete: if false;
     }
 
+    // Announcement PDFs - the Add/Edit Announcement modal only exposes the
+    // attach button to management, but Storage rules can't check that role
+    // (it lives in the Realtime Database, not an auth custom claim), so
+    // this is the same "real signed-in staff account" bar as getready-pdfs
+    // above, not a true management-only guarantee.
+    match /announcement-pdfs/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.token.firebase.sign_in_provider != 'anonymous'
+        && request.resource.size < 15 * 1024 * 1024
+        && request.resource.contentType == 'application/pdf';
+      allow delete: if false;
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }
