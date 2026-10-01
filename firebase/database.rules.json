@@ -80,6 +80,11 @@
           "$uid": {
             ".write": "auth != null && auth.uid === $uid && root.child('users').child(auth.uid).child('status').val() === 'approved'"
           }
+        },
+        "ackBy": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && root.child('users').child(auth.uid).child('status').val() === 'approved'"
+          }
         }
       }
     },
