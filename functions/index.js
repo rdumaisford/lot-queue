@@ -205,40 +205,76 @@ exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-
     throw new HttpsError('permission-denied', 'Account not approved.');
   }
 
-  const { emailType, to, subject, pdfUrl, pdfFileName, ...data } = request.data || {};
+  const { emailType, to, subject, pdfUrl, pdfFileName, dedupeKey, ...data } = request.data || {};
   if (!to || !subject || (Array.isArray(to) && !to.length)) throw new HttpsError('invalid-argument', 'Missing to/subject.');
 
   const html = renderTemplate(emailType, { ...data, subject });
   if (!html) throw new HttpsError('invalid-argument', `Unknown email type: ${emailType}`);
 
-  const attachments = [];
-  if (pdfUrl) {
-    const attachment = await buildPdfAttachment(pdfUrl, pdfFileName);
-    if (attachment) attachments.push(attachment);
+  // Idempotency: if the response to this call gets lost between here and
+  // the browser (network blip, not a real failure), the client can't tell
+  // the difference from a genuine failure and will retry - which, without
+  // this, looks like a brand-new send and goes out via Resend a second
+  // time. Claiming the send BEFORE calling Resend (not after) means a
+  // retry for the exact same logical event is recognized and skipped no
+  // matter what the client ever found out about the first attempt. Only
+  // callers that pass a dedupeKey opt into this - checkAndSendDropBatch
+  // does (dropBatch-{date}-{batchNum}, stable across a retry since the
+  // client only advances its own batch counter after a perceived success);
+  // other email types don't have as natural a one-per-logical-event key
+  // and are unaffected.
+  let dedupeClaimed = false;
+  if (dedupeKey) {
+    let wonClaim = false;
+    await getDatabase().ref('emailDedupe/' + dedupeKey).transaction(curr => {
+      if (curr) return undefined; // already claimed by an earlier attempt - abort, don't touch it
+      wonClaim = true;
+      return { sentAt: Date.now(), by: request.auth.uid };
+    });
+    if (!wonClaim) {
+      logger.info('Deduped - already sent', dedupeKey);
+      return { ok: true, deduped: true };
+    }
+    dedupeClaimed = true;
   }
 
-  const payload = {
-    from: FROM_EMAIL.value(),
-    to: Array.isArray(to) ? to : [to],
-    subject,
-    html,
-    ...(attachments.length ? { attachments } : {}),
-  };
+  try {
+    const attachments = [];
+    if (pdfUrl) {
+      const attachment = await buildPdfAttachment(pdfUrl, pdfFileName);
+      if (attachment) attachments.push(attachment);
+    }
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY.value()}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
+    const payload = {
+      from: FROM_EMAIL.value(),
+      to: Array.isArray(to) ? to : [to],
+      subject,
+      html,
+      ...(attachments.length ? { attachments } : {}),
+    };
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    logger.error('Resend send failed', res.status, text);
-    throw new HttpsError('internal', `Resend ${res.status}: ${text || 'send failed'}`);
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY.value()}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      logger.error('Resend send failed', res.status, text);
+      throw new HttpsError('internal', `Resend ${res.status}: ${text || 'send failed'}`);
+    }
+
+    return { ok: true };
+  } catch (e) {
+    // A genuine failure (not just a dropped response) shouldn't leave the
+    // dedupe key permanently blocking the next real retry.
+    if (dedupeClaimed) {
+      await getDatabase().ref('emailDedupe/' + dedupeKey).remove().catch(() => {});
+    }
+    throw e;
   }
-
-  return { ok: true };
 });
