@@ -322,7 +322,7 @@ exports.getSalesRoster = onCall({ region: 'us-central1' }, async (request) => {
 exports.notifySalesArrival = onCall({ secrets: [RESEND_API_KEY], region: 'us-central1' }, async (request) => {
   await requireApprovedCaller(request);
 
-  const { salesUid, stock, vehicleDesc } = request.data || {};
+  const { salesUid, stock, vehicleDesc, status } = request.data || {};
   if (!salesUid || !stock) throw new HttpsError('invalid-argument', 'Missing salesUid/stock.');
 
   const userSnap = await getDatabase().ref('users/' + salesUid).once('value');
@@ -334,7 +334,8 @@ exports.notifySalesArrival = onCall({ secrets: [RESEND_API_KEY], region: 'us-cen
     throw new HttpsError('failed-precondition', `${salesUser.name || 'This salesperson'} has no email on file.`);
   }
 
-  const subject = `Put a Sold Sign In It & Park in Sold Row - ${stock} Has Arrived!`;
+  const statusLabel = status === 'TURNOVER' ? 'Turnover' : 'Sold';
+  const subject = `${stock} - Your ${statusLabel} vehicle has arrived!`;
   const html = renderTemplate('salesArrival', { subject, stock, vehicleDesc });
 
   const res = await fetch('https://api.resend.com/emails', {
