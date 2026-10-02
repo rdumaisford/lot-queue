@@ -300,12 +300,15 @@ exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-
 // accounts, same "real, approved staff account" bar as every other call
 // here, read straight from the Realtime Database via the Admin SDK
 // (bypassing rules) rather than relying on the client having list access.
+// Management is included too - both because managers sometimes work deals
+// directly, and so a manager can pick themselves here to test the arrival
+// email end-to-end without needing a real sales account to do it.
 exports.getSalesRoster = onCall({ region: 'us-central1' }, async (request) => {
   await requireApprovedCaller(request);
   const snap = await getDatabase().ref('users').once('value');
   const users = snap.val() || {};
   const roster = Object.entries(users)
-    .filter(([, u]) => u.role === 'sales' && u.status === 'approved')
+    .filter(([, u]) => (u.role === 'sales' || u.role === 'management') && u.status === 'approved')
     .map(([uid, u]) => ({ uid, name: u.name || '(unnamed)' }))
     .sort((a, b) => a.name.localeCompare(b.name));
   return { roster };
@@ -324,7 +327,7 @@ exports.notifySalesArrival = onCall({ secrets: [RESEND_API_KEY], region: 'us-cen
 
   const userSnap = await getDatabase().ref('users/' + salesUid).once('value');
   const salesUser = userSnap.val();
-  if (!salesUser || salesUser.role !== 'sales' || salesUser.status !== 'approved') {
+  if (!salesUser || !['sales', 'management'].includes(salesUser.role) || salesUser.status !== 'approved') {
     throw new HttpsError('failed-precondition', 'That salesperson account could not be found.');
   }
   if (!salesUser.email) {
