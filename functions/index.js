@@ -4,6 +4,7 @@ const { defineSecret, defineString } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
 const { initializeApp } = require('firebase-admin/app');
 const { getDatabase } = require('firebase-admin/database');
+const { getAuth } = require('firebase-admin/auth');
 
 initializeApp();
 
@@ -430,4 +431,44 @@ exports.sendDailyDigest = onSchedule({
     const text = await res.text().catch(() => '');
     logger.error('Resend send failed (sendDailyDigest)', res.status, text);
   }
+});
+
+// Permanently removes a staff account - both their Firebase Auth login
+// (so the email address is actually freed up and old credentials stop
+// working) and their users/{uid} database record. The client's own
+// Realtime Database rules let management delete a users/{uid} record
+// directly, but there's no client-side way to delete another person's
+// Auth account at all (only your own) - that's the one part only the
+// Admin SDK, server-side, can do, which is the whole reason this needs
+// to be a Cloud Function rather than a plain database write.
+//
+// Self-enforces the management check (database.rules.json can't help
+// here - the Admin SDK bypasses rules entirely), and refuses to delete
+// the caller's own account so a management user can't accidentally lock
+// themselves out.
+exports.deleteStaffUser = onCall({ region: 'us-central1' }, async (request) => {
+  const callerUid = await requireApprovedCaller(request);
+  const callerRoleSnap = await getDatabase().ref('users/' + callerUid + '/role').once('value');
+  if (callerRoleSnap.val() !== 'management') {
+    throw new HttpsError('permission-denied', 'Only management can delete staff accounts.');
+  }
+
+  const { targetUid } = request.data || {};
+  if (!targetUid) throw new HttpsError('invalid-argument', 'Missing targetUid.');
+  if (targetUid === callerUid) {
+    throw new HttpsError('failed-precondition', "You can't delete your own account from here.");
+  }
+
+  try {
+    await getAuth().deleteUser(targetUid);
+  } catch (e) {
+    // Already gone (or some other non-fatal issue) - still clear the
+    // database record below so the app's user list reflects reality
+    // either way, rather than leaving a zombie entry because the Auth
+    // side alone failed.
+    logger.warn('Auth delete failed for ' + targetUid, e.message || e);
+  }
+  await getDatabase().ref('users/' + targetUid).remove();
+
+  return { ok: true };
 });
