@@ -447,28 +447,39 @@ exports.sendDailyDigest = onSchedule({
 // the caller's own account so a management user can't accidentally lock
 // themselves out.
 exports.deleteStaffUser = onCall({ region: 'us-central1' }, async (request) => {
-  const callerUid = await requireApprovedCaller(request);
-  const callerRoleSnap = await getDatabase().ref('users/' + callerUid + '/role').once('value');
-  if (callerRoleSnap.val() !== 'management') {
-    throw new HttpsError('permission-denied', 'Only management can delete staff accounts.');
-  }
-
-  const { targetUid } = request.data || {};
-  if (!targetUid) throw new HttpsError('invalid-argument', 'Missing targetUid.');
-  if (targetUid === callerUid) {
-    throw new HttpsError('failed-precondition', "You can't delete your own account from here.");
-  }
-
   try {
-    await getAuth().deleteUser(targetUid);
-  } catch (e) {
-    // Already gone (or some other non-fatal issue) - still clear the
-    // database record below so the app's user list reflects reality
-    // either way, rather than leaving a zombie entry because the Auth
-    // side alone failed.
-    logger.warn('Auth delete failed for ' + targetUid, e.message || e);
-  }
-  await getDatabase().ref('users/' + targetUid).remove();
+    const callerUid = await requireApprovedCaller(request);
+    const callerRoleSnap = await getDatabase().ref('users/' + callerUid + '/role').once('value');
+    if (callerRoleSnap.val() !== 'management') {
+      throw new HttpsError('permission-denied', 'Only management can delete staff accounts.');
+    }
 
-  return { ok: true };
+    const { targetUid } = request.data || {};
+    if (!targetUid) throw new HttpsError('invalid-argument', 'Missing targetUid.');
+    if (targetUid === callerUid) {
+      throw new HttpsError('failed-precondition', "You can't delete your own account from here.");
+    }
+
+    try {
+      await getAuth().deleteUser(targetUid);
+    } catch (e) {
+      // Already gone (or some other non-fatal issue) - still clear the
+      // database record below so the app's user list reflects reality
+      // either way, rather than leaving a zombie entry because the Auth
+      // side alone failed.
+      logger.warn('Auth delete failed for ' + targetUid, e.message || e);
+    }
+    await getDatabase().ref('users/' + targetUid).remove();
+
+    return { ok: true };
+  } catch (e) {
+    // onCall masks any non-HttpsError as a bare "internal" with no detail
+    // reaching the client (by design, to avoid leaking stack traces) - but
+    // that also means a real bug here is invisible to whoever clicked
+    // Delete. Re-throwing an HttpsError with the actual message attached
+    // surfaces it in the client's alert() instead.
+    if (e instanceof HttpsError) throw e;
+    logger.error('deleteStaffUser failed', e);
+    throw new HttpsError('internal', `Delete failed: ${e?.message || e}`);
+  }
 });
