@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="robots" content="noindex"/>
+<title>Redirecting…</title>
+<style>
+  html,body{height:100%;margin:0;background:#00095b;color:#fff;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;display:flex;align-items:center;justify-content:center;text-align:center}
+  .wrap{padding:32px}
+  .spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 18px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  p{font-size:15px;opacity:.85;margin:0}
+  a{color:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="spinner" id="spinner"></div>
+  <p id="msg">Loading vehicle info…</p>
+</div>
+
+<script type="module">
+// Standalone redirect/scan-logging page - deliberately separate from the
+// main app (index.html), with no sign-in flow at all. Whoever scans a
+// window sticker QR code is a random customer on the lot, not staff - this
+// has to work instantly with zero friction. See firebase/database.rules.json
+// for why stickerLinks is publicly readable and stickerScans publicly
+// (but narrowly) writable: this page runs with no Firebase Auth session.
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, get, push, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDYj9RC-cmfcfZ6sPo_9TmF67mWeEkxkwo",
+  authDomain: "lot-queue.firebaseapp.com",
+  databaseURL: "https://lot-queue-default-rtdb.firebaseio.com",
+  projectId: "lot-queue",
+  storageBucket: "lot-queue.firebasestorage.app",
+  messagingSenderId: "729445608944",
+  appId: "1:729445608944:web:7bfe67714631e279b54135"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const msgEl = document.getElementById('msg');
+const spinnerEl = document.getElementById('spinner');
+
+function fail(text) {
+  spinnerEl.style.display = 'none';
+  msgEl.textContent = text;
+}
+
+// /s/B1234 -> "B1234" (the Hosting rewrite in firebase.json sends every
+// /s/** request to this same file, so the stock # only ever arrives via
+// the path, not a query string).
+const stock = decodeURIComponent(location.pathname.split('/').filter(Boolean).pop() || '').trim().toUpperCase();
+if (!stock) {
+  fail("No vehicle specified.");
+} else {
+  try {
+    const snap = await get(ref(db, 'stickerLinks/' + stock));
+    const link = snap.val();
+    if (!link || !link.url) {
+      fail("This sticker link isn't set up yet. Ask at the dealership for details on this vehicle.");
+    } else {
+      // Logged best-effort, with a timeout so a slow/offline write never
+      // leaves a real customer staring at a spinner - the redirect always
+      // wins within a second either way.
+      const logged = push(ref(db, 'stickerScans/' + stock), { ts: serverTimestamp() }).catch(() => {});
+      await Promise.race([logged, new Promise(r => setTimeout(r, 1200))]);
+      location.replace(link.url);
+    }
+  } catch (e) {
+    fail("Something went wrong loading this link. Please try again.");
+  }
+}
+</script>
+</body>
+</html>

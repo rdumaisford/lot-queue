@@ -1,8 +1,10 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret, defineString } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
 const { initializeApp } = require('firebase-admin/app');
 const { getDatabase } = require('firebase-admin/database');
+const { getAuth } = require('firebase-admin/auth');
 
 initializeApp();
 
@@ -86,6 +88,12 @@ function renderTemplate(emailType, data) {
   }
   if (emailType === 'dropBatch') {
     return renderDropBatchTable(data.subject || 'Incoming Vehicle Batch', data.units || []);
+  }
+  if (emailType === 'salesArrival') {
+    const body = `<p style="margin:0 0 18px;font-size:17px;font-weight:700;color:#00095b">Your vehicle ${esc(data.vehicleDesc || data.stock)} has arrived!</p>
+      <p style="margin:0 0 18px;font-size:14px">Put a <strong>Sold</strong> sign in it and park it in <strong>Sold Row</strong>.</p>
+      ${fieldRows([['Stock #', data.stock], ['Vehicle', data.vehicleDesc]])}`;
+    return wrap(data.subject || 'Vehicle Arrived', body);
   }
   return null;
 }
@@ -180,20 +188,15 @@ async function buildPdfAttachment(pdfUrl, pdfFileName) {
   }
 }
 
-// Single shared entry point for every email the app sends - see
-// sendNotificationEmail() in index.html for the client-side caller.
-//
-// This holds the only credential (RESEND_API_KEY) that can send mail as the
-// dealership's verified domain, so callers are checked against the same
-// "real, approved staff account" bar the database rules use - not just "is
-// signed in". Anonymous sign-in is self-service with no approval step (it's
-// how the TV/kiosk displays authenticate), so `request.auth` alone being
-// truthy would let anyone who merely loaded the page as a kiosk trigger
-// arbitrary sends - an open relay off a verified sending domain. The Admin
-// SDK reads straight from the Realtime Database, bypassing its rules
-// (Cloud Functions run with full admin access), so this is the actual
-// source of truth, not something a client could spoof.
-exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-central1' }, async (request) => {
+// Shared by every onCall below that needs to know "is this a real, approved
+// staff account" - not just "is signed in". Anonymous sign-in is
+// self-service with no approval step (it's how the TV/kiosk displays
+// authenticate), so `request.auth` alone being truthy would let anyone who
+// merely loaded the page as a kiosk call these. The Admin SDK reads straight
+// from the Realtime Database, bypassing its rules (Cloud Functions run with
+// full admin access), so this is the actual source of truth, not something
+// a client could spoof.
+async function requireApprovedCaller(request) {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'Sign in required.');
   }
@@ -204,6 +207,18 @@ exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-
   if (statusSnap.val() !== 'approved') {
     throw new HttpsError('permission-denied', 'Account not approved.');
   }
+  return request.auth.uid;
+}
+
+// Single shared entry point for every email the app sends - see
+// sendNotificationEmail() in index.html for the client-side caller.
+//
+// This holds the only credential (RESEND_API_KEY) that can send mail as the
+// dealership's verified domain, so callers are checked against the same
+// "real, approved staff account" bar the database rules use (see
+// requireApprovedCaller above).
+exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-central1' }, async (request) => {
+  await requireApprovedCaller(request);
 
   const { emailType, to, subject, pdfUrl, pdfFileName, dedupeKey, ...data } = request.data || {};
   if (!to || !subject || (Array.isArray(to) && !to.length)) throw new HttpsError('invalid-argument', 'Missing to/subject.');
@@ -276,5 +291,195 @@ exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-
       await getDatabase().ref('emailDedupe/' + dedupeKey).remove().catch(() => {});
     }
     throw e;
+  }
+});
+
+// Lets the Incoming unit form offer a "Salesperson" picker without needing
+// broad read access to the users list - the database rules restrict that to
+// management only (see database.rules.json), since it's the full staff
+// roster including emails. This returns just {uid, name} for role==='sales'
+// accounts, same "real, approved staff account" bar as every other call
+// here, read straight from the Realtime Database via the Admin SDK
+// (bypassing rules) rather than relying on the client having list access.
+// Management is included too - both because managers sometimes work deals
+// directly, and so a manager can pick themselves here to test the arrival
+// email end-to-end without needing a real sales account to do it.
+exports.getSalesRoster = onCall({ region: 'us-central1' }, async (request) => {
+  await requireApprovedCaller(request);
+  const snap = await getDatabase().ref('users').once('value');
+  const users = snap.val() || {};
+  const roster = Object.entries(users)
+    .filter(([, u]) => (u.role === 'sales' || u.role === 'management') && u.status === 'approved')
+    .map(([uid, u]) => ({ uid, name: u.name || '(unnamed)' }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  return { roster };
+});
+
+// Sends the "your vehicle has arrived" email to one salesperson by uid - the
+// uid comes from getSalesRoster above, but their email address is never
+// sent to the client at all (same reasoning as getSalesRoster's own
+// comment); this looks it up server-side via the Admin SDK right before
+// sending.
+exports.notifySalesArrival = onCall({ secrets: [RESEND_API_KEY], region: 'us-central1' }, async (request) => {
+  await requireApprovedCaller(request);
+
+  const { salesUid, stock, vehicleDesc, status } = request.data || {};
+  if (!salesUid || !stock) throw new HttpsError('invalid-argument', 'Missing salesUid/stock.');
+
+  const userSnap = await getDatabase().ref('users/' + salesUid).once('value');
+  const salesUser = userSnap.val();
+  if (!salesUser || !['sales', 'management'].includes(salesUser.role) || salesUser.status !== 'approved') {
+    throw new HttpsError('failed-precondition', 'That salesperson account could not be found.');
+  }
+  if (!salesUser.email) {
+    throw new HttpsError('failed-precondition', `${salesUser.name || 'This salesperson'} has no email on file.`);
+  }
+
+  const statusLabel = status === 'TURNOVER' ? 'Turnover' : 'Sold';
+  const subject = `${stock} - Your ${statusLabel} vehicle has arrived!`;
+  const html = renderTemplate('salesArrival', { subject, stock, vehicleDesc });
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY.value()}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ from: FROM_EMAIL.value(), to: [salesUser.email], subject, html }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    logger.error('Resend send failed (notifySalesArrival)', res.status, text);
+    throw new HttpsError('internal', `Resend ${res.status}: ${text || 'send failed'}`);
+  }
+
+  return { ok: true };
+});
+
+// Today's date and time-of-day in the dealership's own timezone, regardless
+// of what timezone the function instance's clock is actually running in
+// (Cloud Functions run in UTC) - built from Intl instead of the usual
+// "re-parse a toLocaleString()" trick so it can't be misread as a UTC
+// instant anywhere downstream.
+function dealershipNow() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(new Date());
+  const get = t => parts.find(p => p.type === t).value;
+  return { dateStr: `${get('year')}-${get('month')}-${get('day')}`, hour: Number(get('hour')), minute: Number(get('minute')) };
+}
+
+// Ported from formatUnitDigestLine() in index.html (that client-side copy
+// was removed once this took over sending the digest) - one summary line
+// per Incoming Unit added that day.
+function formatUnitDigestLine(u) {
+  const specLine = [u.year, u.type, u.trim, u.colour].filter(Boolean).join(' ');
+  const condLabel = u.condition === 'used'
+    ? `Used - ${({ TRADEIN: 'Trade-In', AUCTION: 'Auction Purchase' })[u.category] || u.category || ''}${u.subcategory ? ' / ' + ({ RETAIL: 'Retail', ASIS: 'As-Is', WHOLESALE: 'Wholesale', CPO: 'CPO' })[u.subcategory] : ''}`
+    : `New - ${({ RETAIL: 'Retail', FLEET: 'Fleet' })[u.category] || u.category || ''}`;
+  return `${u.stock || u.vin || '-'} - ${u.vehicle || specLine || 'no description'} - ${condLabel}${u.kms ? ' - ' + u.kms + ' km' : ''}`;
+}
+
+// Replaces the old client-side checkAndSendDailyDigest(), which only ever
+// fired if someone happened to have the app open in a browser tab after the
+// configured digest time - not reliable once the dealership's closed for
+// the day. Runs every 15 minutes instead, self-gating exactly the same way
+// that client-side version did: only sends once the configured time of day
+// has passed, only once per day (the dailyDigestSent/{date} transaction
+// guards against this firing twice, or racing a since-decommissioned
+// client-side check), and only if anything actually arrived that day.
+exports.sendDailyDigest = onSchedule({
+  schedule: 'every 15 minutes',
+  secrets: [RESEND_API_KEY],
+  region: 'us-central1',
+}, async () => {
+  const db = getDatabase();
+  const emailSettingsSnap = await db.ref('settings/email').once('value');
+  const emailSettings = emailSettingsSnap.val() || {};
+  const toEmails = (emailSettings.incAddress || '').split(',').map(a => a.trim()).filter(Boolean);
+  if (!toEmails.length) return; // not configured
+
+  const { dateStr: todayStr, hour, minute } = dealershipNow();
+  const [digestH, digestM] = (emailSettings.digestTime || '18:00').split(':').map(Number);
+  const digestTimePassed = hour > digestH || (hour === digestH && minute >= digestM);
+  if (!digestTimePassed) return;
+
+  const claim = await db.ref('dailyDigestSent/' + todayStr).transaction(curr => curr ? undefined : true);
+  if (!claim.committed) return; // already sent today
+
+  const trackerSnap = await db.ref('tracker').once('value');
+  const allUnits = trackerSnap.val() || {};
+  const todaysUnits = Object.values(allUnits).filter(u => u.arrivedDate === todayStr);
+  if (!todaysUnits.length) return; // nothing arrived today - nothing to send
+
+  const lines = todaysUnits.map(formatUnitDigestLine).join('\n');
+  const subject = `Incoming Vehicles - Daily Summary (${todaysUnits.length} unit${todaysUnits.length !== 1 ? 's' : ''})`;
+  const html = renderTemplate('incomingDigest', { subject, count: todaysUnits.length, lines });
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY.value()}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ from: FROM_EMAIL.value(), to: toEmails, subject, html }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    logger.error('Resend send failed (sendDailyDigest)', res.status, text);
+  }
+});
+
+// Permanently removes a staff account - both their Firebase Auth login
+// (so the email address is actually freed up and old credentials stop
+// working) and their users/{uid} database record. The client's own
+// Realtime Database rules let management delete a users/{uid} record
+// directly, but there's no client-side way to delete another person's
+// Auth account at all (only your own) - that's the one part only the
+// Admin SDK, server-side, can do, which is the whole reason this needs
+// to be a Cloud Function rather than a plain database write.
+//
+// Self-enforces the management check (database.rules.json can't help
+// here - the Admin SDK bypasses rules entirely), and refuses to delete
+// the caller's own account so a management user can't accidentally lock
+// themselves out.
+exports.deleteStaffUser = onCall({ region: 'us-central1' }, async (request) => {
+  try {
+    const callerUid = await requireApprovedCaller(request);
+    const callerRoleSnap = await getDatabase().ref('users/' + callerUid + '/role').once('value');
+    if (callerRoleSnap.val() !== 'management') {
+      throw new HttpsError('permission-denied', 'Only management can delete staff accounts.');
+    }
+
+    const { targetUid } = request.data || {};
+    if (!targetUid) throw new HttpsError('invalid-argument', 'Missing targetUid.');
+    if (targetUid === callerUid) {
+      throw new HttpsError('failed-precondition', "You can't delete your own account from here.");
+    }
+
+    try {
+      await getAuth().deleteUser(targetUid);
+    } catch (e) {
+      // Already gone (or some other non-fatal issue) - still clear the
+      // database record below so the app's user list reflects reality
+      // either way, rather than leaving a zombie entry because the Auth
+      // side alone failed.
+      logger.warn('Auth delete failed for ' + targetUid, e.message || e);
+    }
+    await getDatabase().ref('users/' + targetUid).remove();
+
+    return { ok: true };
+  } catch (e) {
+    // onCall masks any non-HttpsError as a bare "internal" with no detail
+    // reaching the client (by design, to avoid leaking stack traces) - but
+    // that also means a real bug here is invisible to whoever clicked
+    // Delete. Re-throwing an HttpsError with the actual message attached
+    // surfaces it in the client's alert() instead.
+    if (e instanceof HttpsError) throw e;
+    logger.error('deleteStaffUser failed', e);
+    throw new HttpsError('internal', `Delete failed: ${e?.message || e}`);
   }
 });
