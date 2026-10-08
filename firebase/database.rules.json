@@ -107,6 +107,7 @@
     "stickerScans": {
       ".read": "auth != null && root.child('users').child(auth.uid).child('status').val() === 'approved' && (root.child('users').child(auth.uid).child('role').val() === 'management' || root.child('users').child(auth.uid).child('role').val() === 'merchandiser')",
       "$stock": {
+        ".write": "auth != null && root.child('users').child(auth.uid).child('status').val() === 'approved' && (root.child('users').child(auth.uid).child('role').val() === 'management' || root.child('users').child(auth.uid).child('role').val() === 'merchandiser')",
         "$scanId": {
           ".write": true,
           ".validate": "newData.hasChildren(['ts']) && newData.child('ts').isNumber()"
