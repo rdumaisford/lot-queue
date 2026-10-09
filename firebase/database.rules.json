@@ -115,6 +115,14 @@
       }
     },
 
+    "stickerTested": {
+      ".read": true,
+      "$stock": {
+        ".write": "(!data.exists() && newData.val() === true) || (auth != null && root.child('users').child(auth.uid).child('status').val() === 'approved' && (root.child('users').child(auth.uid).child('role').val() === 'management' || root.child('users').child(auth.uid).child('role').val() === 'merchandiser'))",
+        ".validate": "newData.isBoolean()"
+      }
+    },
+
     "wholesaleVehicles": {
       ".read": "auth != null && root.child('users').child(auth.uid).child('status').val() === 'approved' && root.child('users').child(auth.uid).child('role').val() === 'management'",
       ".write": "auth != null && root.child('users').child(auth.uid).child('status').val() === 'approved' && root.child('users').child(auth.uid).child('role').val() === 'management'"
