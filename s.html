@@ -12,10 +12,6 @@
   @keyframes spin{to{transform:rotate(360deg)}}
   p{font-size:15px;opacity:.85;margin:0}
   a{color:#fff}
-  .check-circle{width:64px;height:64px;border-radius:50%;background:#1db954;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;animation:pop .3s ease}
-  @keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
-  h1{font-size:19px;margin:0 0 8px}
-  .continue-btn{display:inline-block;margin-top:22px;padding:11px 22px;font-size:14px;font-weight:700;background:#fff;color:#00095b;border-radius:8px;text-decoration:none}
 </style>
 </head>
 <body>
@@ -24,20 +20,16 @@
   <p id="msg">Loading vehicle info…</p>
 </div>
 
-<div class="wrap" id="success-wrap" style="display:none">
-  <div class="check-circle">
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  </div>
-  <h1>QR Code Works!</h1>
-  <p>This is the first scan on this sticker, so we're confirming it before sending you on.</p>
-  <a class="continue-btn" id="continue-link" href="#">Continue to Vehicle</a>
-</div>
-
 <script type="module">
 // Standalone redirect/scan-logging page - deliberately separate from the
 // main app (index.html), with no sign-in flow at all. Whoever scans a
 // window sticker QR code is a random customer on the lot, not staff - this
-// has to work instantly with zero friction. See firebase/database.rules.json
+// has to work instantly with zero friction, with nothing shown but the
+// redirect itself (no "first scan" message - that was previously shown
+// here, but could appear on a customer's real scan if a phone held a
+// stale cached copy of this page, so it's gone for good; "first scan
+// worked" is now surfaced only as a badge in the staff-facing Sticker
+// Scans admin tab, never on this page). See firebase/database.rules.json
 // for why stickerLinks is publicly readable and stickerScans publicly
 // (but narrowly) writable: this page runs with no Firebase Auth session.
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
@@ -55,29 +47,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const loadingWrapEl = document.getElementById('loading-wrap');
-const successWrapEl = document.getElementById('success-wrap');
 const msgEl = document.getElementById('msg');
 const spinnerEl = document.getElementById('spinner');
 
 function fail(text) {
   spinnerEl.style.display = 'none';
   msgEl.textContent = text;
-}
-
-// First-ever scan on a sticker is almost always whoever just printed and
-// stuck it on the car, testing that it actually works before trusting it
-// in front of a customer - show them a clear confirmation instead of a
-// silent redirect, then continue on to the real vehicle page either way.
-function showTestSuccess(url) {
-  loadingWrapEl.style.display = 'none';
-  successWrapEl.style.display = 'block';
-  const continueLink = document.getElementById('continue-link');
-  continueLink.href = url;
-  let redirected = false;
-  const go = () => { if (!redirected) { redirected = true; location.replace(url); } };
-  continueLink.addEventListener('click', (e) => { e.preventDefault(); go(); });
-  setTimeout(go, 5000);
 }
 
 // /s/B1234 -> "B1234" (the Hosting rewrite in firebase.json sends every
@@ -100,7 +75,8 @@ if (!stock) {
       // unauthenticated caller. Read it directly first - fast, cheap, and
       // doesn't depend on transaction retry semantics - and only fall back
       // to the claim-it-atomically transaction when it looks unset, so two
-      // near-simultaneous first scans can't both show the test message.
+      // near-simultaneous first scans can't both claim it. Either way the
+      // page behaves identically - this only decides what gets written.
       const alreadyTestedSnap = await get(ref(db, 'stickerTested/' + stock)).catch(() => null);
       let isFirstScan = false;
       if (!alreadyTestedSnap || alreadyTestedSnap.val() !== true) {
@@ -117,11 +93,7 @@ if (!stock) {
       // wins within a second either way.
       const logged = push(ref(db, 'stickerScans/' + stock), scanData).catch(() => {});
       await Promise.race([logged, new Promise(r => setTimeout(r, 1200))]);
-      if (isFirstScan) {
-        showTestSuccess(link.url);
-      } else {
-        location.replace(link.url);
-      }
+      location.replace(link.url);
     }
   } catch (e) {
     fail("Something went wrong loading this link. Please try again.");
