@@ -97,13 +97,19 @@ if (!stock) {
       // firebase/database.rules.json), so "is this the first scan" can't be
       // answered by reading scan history. stickerTested/{stock} is a tiny
       // public flag that can only be CREATED (never overwritten) by an
-      // unauthenticated caller - the transaction only ever commits once per
-      // stock #, so this stays true forever after the first real scan.
-      const testedResult = await runTransaction(ref(db, 'stickerTested/' + stock), (current) => {
-        if (current === true) return; // abort - already verified, no write
-        return true;
-      }).catch(() => ({ committed: false }));
-      const isFirstScan = testedResult.committed;
+      // unauthenticated caller. Read it directly first - fast, cheap, and
+      // doesn't depend on transaction retry semantics - and only fall back
+      // to the claim-it-atomically transaction when it looks unset, so two
+      // near-simultaneous first scans can't both show the test message.
+      const alreadyTestedSnap = await get(ref(db, 'stickerTested/' + stock)).catch(() => null);
+      let isFirstScan = false;
+      if (!alreadyTestedSnap || alreadyTestedSnap.val() !== true) {
+        const testedResult = await runTransaction(ref(db, 'stickerTested/' + stock), (current) => {
+          if (current === true) return; // abort - already verified, no write
+          return true;
+        }).catch(() => ({ committed: false }));
+        isFirstScan = testedResult.committed;
+      }
       const scanData = { ts: serverTimestamp() };
       if (isFirstScan) scanData.test = true;
       // Logged best-effort, with a timeout so a slow/offline write never

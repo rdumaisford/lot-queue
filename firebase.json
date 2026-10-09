@@ -13,6 +13,20 @@
     ],
     "rewrites": [
       { "source": "/s/**", "destination": "/s.html" }
+    ],
+    "headers": [
+      {
+        "source": "/s/**",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, max-age=0, must-revalidate" }
+        ]
+      },
+      {
+        "source": "/s.html",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, max-age=0, must-revalidate" }
+        ]
+      }
     ]
   },
   "database": {
