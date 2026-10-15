@@ -79,6 +79,8 @@ function renderTemplate(emailType, data) {
     // sendGRReadyEmail/cancelGR in index.html), but cancelled wins if
     // somehow more than one were ever true.
     const status = data.cancelled ? { color: '#dc2626', label: '❌ DEAL CANCELLED' }
+      : data.delivered ? { color: '#0891b2', label: '🚚 VEHICLE DELIVERED' }
+      : data.deliveryOverdue ? { color: '#d97706', label: '⏰ DELIVERY OVERDUE' }
       : data.celebrate ? { color: '#7c3aed', label: '🎉 READY FOR DELIVERY' }
       : data.updateNotice ? { color: '#d97706', label: '🔶 CHANGES MADE TO DEAL' }
       : data.noteAdded ? { color: '#d97706', label: '📝 NOTE ADDED' }
@@ -295,7 +297,7 @@ exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-
   await requireApprovedCaller(request);
 
   const { emailType, to, subject, pdfUrl, pdfFileName, dedupeKey, inReplyTo, references, threadPath, staffUids, ...data } = request.data || {};
-  if (!to || !subject || (Array.isArray(to) && !to.length)) throw new HttpsError('invalid-argument', 'Missing to/subject.');
+  if (!subject) throw new HttpsError('invalid-argument', 'Missing subject.');
 
   const html = renderTemplate(emailType, { ...data, subject });
   if (!html) throw new HttpsError('invalid-argument', `Unknown email type: ${emailType}`);
@@ -306,7 +308,11 @@ exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-
   // resolved here server-side the same way notifySalesArrival already does.
   // A missing account, role, or email just drops that one recipient rather
   // than failing the whole send - the shared inbox in `to` always goes out.
-  const toList = Array.isArray(to) ? to.slice() : [to];
+  // `to` can be omitted/empty when a caller wants ONLY resolved staffUids as
+  // recipients (e.g. the delivery congrats email, which deliberately skips
+  // the shared Get Ready inbox - see markGRDelivered in index.html) -
+  // validated below once staffUids has had a chance to contribute.
+  const toList = Array.isArray(to) ? to.slice() : (to ? [to] : []);
   if (Array.isArray(staffUids) && staffUids.length) {
     const staffSnaps = await Promise.all(staffUids.map(uid => getDatabase().ref('users/' + uid + '/email').once('value')));
     for (const snap of staffSnaps) {
@@ -314,6 +320,7 @@ exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-
       if (email && !toList.includes(email)) toList.push(email);
     }
   }
+  if (!toList.length) throw new HttpsError('invalid-argument', 'No recipients resolved.');
 
   // Email threading: Resend assigns its own Message-ID per send and never
   // hands it back here (not in this call's response, not via a retrieve
@@ -634,6 +641,64 @@ exports.sendDailyDigest = onSchedule({
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     logger.error('Resend send failed (sendDailyDigest)', res.status, text);
+  }
+});
+
+// Reminds the Salesperson/F&I Manager to update a deal's status once its
+// delivery date/time has passed and nobody's marked it delivered (or
+// cancelled) yet - catches a deal that quietly slips past its delivery
+// window with no record of what actually happened. deliveryReminderSent is
+// claimed via a transaction (same one-sender-wins pattern as
+// dailyDigestSent) so two overlapping runs of this schedule can't double-
+// send, and it's a one-time flag, not reset, so this fires at most once per
+// deal rather than every 30 minutes forever.
+exports.checkGRDeliveryReminders = onSchedule({
+  schedule: 'every 30 minutes',
+  secrets: [RESEND_API_KEY],
+  region: 'us-central1',
+}, async () => {
+  const db = getDatabase();
+  const { dateStr: todayStr, hour, minute } = dealershipNow();
+
+  const snap = await db.ref('getready').once('value');
+  const deals = snap.val() || {};
+
+  for (const [id, d] of Object.entries(deals)) {
+    if (d.cancelled || d.delivered || d.deliveryReminderSent) continue;
+    if (!d.deliveryDate || !d.deliveryTime) continue;
+    const [dH, dM] = d.deliveryTime.split(':').map(Number);
+    const isPast = d.deliveryDate < todayStr
+      || (d.deliveryDate === todayStr && (hour > dH || (hour === dH && minute >= dM)));
+    if (!isPast) continue;
+
+    const claim = await db.ref('getready/' + id + '/deliveryReminderSent').transaction(curr => curr ? undefined : true);
+    if (!claim.committed) continue;
+
+    const staffUids = [d.salespersonUid, d.fniManagerUid].filter(Boolean);
+    if (!staffUids.length) continue; // nobody to remind (Wholesale/Dealer Trade/Fleet don't tag these)
+    const staffSnaps = await Promise.all(staffUids.map(uid => db.ref('users/' + uid + '/email').once('value')));
+    const toList = [...new Set(staffSnaps.map(s => s.val()).filter(Boolean))];
+    if (!toList.length) continue;
+
+    const subject = `Delivery Overdue - ${d.stock || 'no stock #'} - ${d.customer || ''}`.trim();
+    const html = renderTemplate('getReady', {
+      subject,
+      deliveryOverdue: true,
+      intro: `This deal's delivery date/time has passed and it hasn't been marked delivered yet - please update its status (Mark Delivered once it's actually out the door, or Cancel if the deal fell through).`,
+      stock: d.stock || '', dealNum: d.dealNum || '', vehicle: d.vehicle || '', vin: d.vin || '',
+      customer: d.customer || '', salesperson: d.salesperson || '', deskManager: d.deskManager || '', fniManager: d.fniManager || '',
+      type: d.type || '', deliveryDate: d.deliveryDate || '', deliveryTime: d.deliveryTime || '',
+    });
+
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${RESEND_API_KEY.value()}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: FROM_EMAIL.value(), to: toList, subject, html }),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      logger.error('Resend send failed (checkGRDeliveryReminders)', d.stock, res.status, text);
+    }
   }
 });
 
