@@ -70,7 +70,8 @@ function renderTemplate(emailType, data) {
     } else {
       rows = fieldRows([
         ['Stock #', data.stock], ['Deal #', data.dealNum], ['Vehicle', data.vehicle], ['VIN', data.vin],
-        ['Customer', data.customer], ['Salesperson', data.salesperson], ['Type', data.type],
+        ['Customer', data.customer], ['Salesperson', data.salesperson],
+        ['Desk Manager', data.deskManager], ['F&I Manager', data.fniManager], ['Type', data.type],
         ['Financing', data.financing], ['Delivery Date', data.deliveryDate], ['Delivery Time', data.deliveryTime],
         ['Gas/Charge', data.gasStatus], ['Notes', data.notes], ['Services', data.steps],
         ['Trades', data.trades],
@@ -304,13 +305,22 @@ exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-
 // Management is included too - both because managers sometimes work deals
 // directly, and so a manager can pick themselves here to test the arrival
 // email end-to-end without needing a real sales account to do it.
+//
+// `roles` optionally narrows/widens which roles come back (e.g. Get Ready's
+// Salesperson/Desk Manager/F&I Manager pickers each need a different role,
+// not just sales+management) - each entry also carries its role now so a
+// caller fetching several roles at once can bucket the one response client
+// side instead of making several round trips.
 exports.getSalesRoster = onCall({ region: 'us-central1' }, async (request) => {
   await requireApprovedCaller(request);
+  const roles = Array.isArray(request.data?.roles) && request.data.roles.length
+    ? request.data.roles
+    : ['sales', 'management'];
   const snap = await getDatabase().ref('users').once('value');
   const users = snap.val() || {};
   const roster = Object.entries(users)
-    .filter(([, u]) => (u.role === 'sales' || u.role === 'management') && u.status === 'approved')
-    .map(([uid, u]) => ({ uid, name: u.name || '(unnamed)' }))
+    .filter(([, u]) => roles.includes(u.role) && u.status === 'approved')
+    .map(([uid, u]) => ({ uid, name: u.name || '(unnamed)', role: u.role }))
     .sort((a, b) => a.name.localeCompare(b.name));
   return { roster };
 });
