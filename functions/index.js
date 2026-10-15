@@ -237,11 +237,26 @@ async function requireApprovedCaller(request) {
 exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-central1' }, async (request) => {
   await requireApprovedCaller(request);
 
-  const { emailType, to, subject, pdfUrl, pdfFileName, dedupeKey, inReplyTo, references, threadPath, ...data } = request.data || {};
+  const { emailType, to, subject, pdfUrl, pdfFileName, dedupeKey, inReplyTo, references, threadPath, staffUids, ...data } = request.data || {};
   if (!to || !subject || (Array.isArray(to) && !to.length)) throw new HttpsError('invalid-argument', 'Missing to/subject.');
 
   const html = renderTemplate(emailType, { ...data, subject });
   if (!html) throw new HttpsError('invalid-argument', `Unknown email type: ${emailType}`);
+
+  // Tagged Salesperson/Desk Manager/F&I Manager get looped into the thread
+  // too - their emails are never sent to the client (see getSalesRoster), so
+  // the caller only passes uids (see buildGREmailParams in index.html);
+  // resolved here server-side the same way notifySalesArrival already does.
+  // A missing account, role, or email just drops that one recipient rather
+  // than failing the whole send - the shared inbox in `to` always goes out.
+  const toList = Array.isArray(to) ? to.slice() : [to];
+  if (Array.isArray(staffUids) && staffUids.length) {
+    const staffSnaps = await Promise.all(staffUids.map(uid => getDatabase().ref('users/' + uid + '/email').once('value')));
+    for (const snap of staffSnaps) {
+      const email = snap.val();
+      if (email && !toList.includes(email)) toList.push(email);
+    }
+  }
 
   // Email threading: Resend assigns its own Message-ID per send and never
   // hands it back here (not in this call's response, not via a retrieve
@@ -292,7 +307,7 @@ exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-
 
     const payload = {
       from: FROM_EMAIL.value(),
-      to: Array.isArray(to) ? to : [to],
+      to: toList,
       subject,
       html,
       ...(attachments.length ? { attachments } : {}),
