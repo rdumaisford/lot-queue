@@ -45,6 +45,16 @@ function fieldRows(fields) {
 
 function renderTemplate(emailType, data) {
   if (emailType === 'getReady') {
+    // Email HTML can't do animated confetti, so this is the static-emoji
+    // equivalent - a festive banner only the "ready for delivery" email
+    // asks for (see sendGRReadyEmail), ahead of the usual intro/field rows.
+    const celebrateBanner = data.celebrate
+      ? `<div style="text-align:center;padding:26px 16px;margin:0 0 20px;border-radius:12px;background:linear-gradient(135deg,#fef3c7,#fce7f3,#dbeafe);border:2px dashed #ec4899">
+          <div style="font-size:42px;line-height:1;margin-bottom:10px">🎉🎊🥳🎈</div>
+          <div style="font-size:21px;font-weight:800;color:#be185d">Your vehicle is ready for delivery!</div>
+          <div style="font-size:13px;color:#7c3aed;margin-top:4px">Time to get this one out the door 🚗💨</div>
+        </div>`
+      : '';
     const intro = data.intro ? `<p style="margin:0 0 16px;font-size:14px">${esc(data.intro)}</p>` : '';
     // Wholesale and Dealer Trade only ever collect a handful of fields (see
     // the app's own type-specific intake form) - each gets its own minimal
@@ -77,7 +87,7 @@ function renderTemplate(emailType, data) {
         ['Trades', data.trades],
       ]);
     }
-    return wrap(data.subject || 'Get Ready Deal', intro + rows);
+    return wrap(data.subject || 'Get Ready Deal', celebrateBanner + intro + rows);
   }
   if (emailType === 'incomingDigest') {
     const lines = String(data.lines || '')
@@ -221,11 +231,22 @@ async function requireApprovedCaller(request) {
 exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-central1' }, async (request) => {
   await requireApprovedCaller(request);
 
-  const { emailType, to, subject, pdfUrl, pdfFileName, dedupeKey, ...data } = request.data || {};
+  const { emailType, to, subject, pdfUrl, pdfFileName, dedupeKey, messageId, inReplyTo, ...data } = request.data || {};
   if (!to || !subject || (Array.isArray(to) && !to.length)) throw new HttpsError('invalid-argument', 'Missing to/subject.');
 
   const html = renderTemplate(emailType, { ...data, subject });
   if (!html) throw new HttpsError('invalid-argument', `Unknown email type: ${emailType}`);
+
+  // Email threading: a caller that wants several emails about the same
+  // underlying thing (e.g. every Get Ready email for one deal - New,
+  // Updated, a note, Cancelled, Ready for Delivery) to land as one Gmail/
+  // Outlook conversation instead of separate emails passes a stable
+  // messageId on the FIRST one and inReplyTo (that same value) on every
+  // one after it. Not every mail provider honours a caller-supplied
+  // Message-ID, so this is best-effort - harmless if ignored.
+  const headers = {};
+  if (messageId) headers['Message-ID'] = messageId;
+  if (inReplyTo) { headers['In-Reply-To'] = inReplyTo; headers['References'] = inReplyTo; }
 
   // Idempotency: if the response to this call gets lost between here and
   // the browser (network blip, not a real failure), the client can't tell
@@ -267,6 +288,7 @@ exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-
       subject,
       html,
       ...(attachments.length ? { attachments } : {}),
+      ...(Object.keys(headers).length ? { headers } : {}),
     };
 
     const res = await fetch('https://api.resend.com/emails', {
