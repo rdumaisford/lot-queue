@@ -41,10 +41,20 @@ function wrap(title, bodyHtml) {
   </body></html>`;
 }
 
-function fieldRows(fields) {
+// Each field is [label, value] or [label, value, key] - key lets a caller
+// (the getReady "updated" email) mark specific rows as changed via
+// changedFields, so the exact detail that's different stands out instead of
+// making the reader compare the whole table against what they remember.
+function fieldRows(fields, changedFields) {
+  const changed = new Set(changedFields || []);
   const rows = fields
     .filter(([, value]) => value !== undefined && value !== null && value !== '')
-    .map(([label, value]) => `<tr><td style="padding:6px 10px 6px 0;color:#71717a;width:150px;vertical-align:top;white-space:nowrap">${esc(label)}</td><td style="padding:6px 0;white-space:pre-wrap">${esc(value)}</td></tr>`)
+    .map(([label, value, key]) => {
+      const isChanged = key && changed.has(key);
+      const rowStyle = isChanged ? 'background:#fef9c3' : '';
+      const cellStyle = isChanged ? 'font-weight:700;color:#854d0e' : 'color:#71717a';
+      return `<tr style="${rowStyle}"><td style="padding:6px 10px 6px 0;${cellStyle};width:150px;vertical-align:top;white-space:nowrap">${isChanged?'\u{1f536} ':''}${esc(label)}</td><td style="padding:6px 0;white-space:pre-wrap;${isChanged?'font-weight:700;color:#854d0e':''}">${esc(value)}</td></tr>`;
+    })
     .join('');
   return `<table style="width:100%;border-collapse:collapse;font-size:14px">${rows}</table>`;
 }
@@ -61,6 +71,15 @@ function renderTemplate(emailType, data) {
           <div style="font-size:13px;color:#7c3aed;margin-top:4px">Time to get this one out the door 🚗💨</div>
         </div>`
       : '';
+    // Only the "deal updated" email sets this (see sendGetReadyUpdateEmail) -
+    // makes it obvious at a glance that something changed, with the specific
+    // field(s) picked out below in the row table itself (see fieldRows).
+    const updateBanner = data.updateNotice
+      ? `<div style="padding:14px 16px;margin:0 0 20px;border-radius:10px;background:#fef9c3;border:2px solid #eab308;display:flex;align-items:center;gap:10px">
+          <span style="font-size:24px;line-height:1">\u{1f536}</span>
+          <div style="font-size:14px;font-weight:700;color:#854d0e">This deal was just updated - the changed detail${(data.changedFields||[]).length>1?'s are':' is'} highlighted below.</div>
+        </div>`
+      : '';
     const intro = data.intro ? `<p style="margin:0 0 16px;font-size:14px">${esc(data.intro)}</p>` : '';
     // Wholesale and Dealer Trade only ever collect a handful of fields (see
     // the app's own type-specific intake form) - each gets its own minimal
@@ -68,32 +87,55 @@ function renderTemplate(emailType, data) {
     // show a wall of blank/placeholder rows or need every row individually
     // guarded. fieldRows() already drops any row whose value is empty, so
     // whichever of these was actually left blank (e.g. no Deal #) just
-    // doesn't appear.
+    // doesn't appear. The third item in each row is its diff key (see
+    // fieldRows/changedFields) - purely for the "updated" email's highlight,
+    // harmless on every other send since changedFields is only ever set there.
     let rows;
     if (data.type === 'WHOLESALE') {
       rows = fieldRows([
-        ['Stock #', data.stock], ['Deal #', data.dealNum], ['Type', data.type],
-        ['Auction Company', data.customer], ['Entered By', data.salesperson],
-        ['Pickup Date', data.deliveryDate], ['Pickup Time', data.deliveryTime],
-      ]);
+        ['Stock #', data.stock, 'stock'], ['Deal #', data.dealNum, 'dealNum'], ['Type', data.type, 'type'],
+        ['Auction Company', data.customer, 'customer'], ['Entered By', data.salesperson, 'salesperson'],
+        ['Pickup Date', data.deliveryDate, 'deliveryDate'], ['Pickup Time', data.deliveryTime, 'deliveryTime'],
+      ], data.changedFields);
     } else if (data.type === 'DEALER TRADE') {
       rows = fieldRows([
-        ['Stock #', data.stock], ['Deal #', data.dealNum], ['Type', data.type],
-        ['Purchasing Dealership', data.customer], ['Entered By', data.salesperson],
-        ['Pickup Date', data.deliveryDate], ['Pickup Time', data.deliveryTime],
-        ['Trade-In', data.trades],
-      ]);
+        ['Stock #', data.stock, 'stock'], ['Deal #', data.dealNum, 'dealNum'], ['Type', data.type, 'type'],
+        ['Purchasing Dealership', data.customer, 'customer'], ['Entered By', data.salesperson, 'salesperson'],
+        ['Pickup Date', data.deliveryDate, 'deliveryDate'], ['Pickup Time', data.deliveryTime, 'deliveryTime'],
+        ['Trade-In', data.trades, 'trades'],
+      ], data.changedFields);
     } else {
       rows = fieldRows([
-        ['Stock #', data.stock], ['Deal #', data.dealNum], ['Vehicle', data.vehicle], ['VIN', data.vin],
-        ['Customer', data.customer], ['Salesperson', data.salesperson],
-        ['Desk Manager', data.deskManager], ['F&I Manager', data.fniManager], ['Type', data.type],
-        ['Financing', data.financing], ['Delivery Date', data.deliveryDate], ['Delivery Time', data.deliveryTime],
-        ['Gas/Charge', data.gasStatus], ['Notes', data.notes], ['Services', data.steps],
-        ['Trades', data.trades],
-      ]);
+        ['Stock #', data.stock, 'stock'], ['Deal #', data.dealNum, 'dealNum'], ['Vehicle', data.vehicle, 'vehicle'], ['VIN', data.vin, 'vin'],
+        ['Customer', data.customer, 'customer'], ['Salesperson', data.salesperson, 'salesperson'],
+        ['Desk Manager', data.deskManager, 'deskManager'], ['F&I Manager', data.fniManager, 'fniManager'], ['Type', data.type, 'type'],
+        ['Financing', data.financing, 'financing'], ['Delivery Date', data.deliveryDate, 'deliveryDate'], ['Delivery Time', data.deliveryTime, 'deliveryTime'],
+        ['Gas/Charge', data.gasStatus, 'gasStatus'], ['Notes', data.notes, 'notes'], ['Services', data.steps, 'steps'],
+        ['Trades', data.trades, 'trades'],
+      ], data.changedFields);
     }
-    return wrap(data.subject || 'Get Ready Deal', celebrateBanner + intro + rows);
+    // Ready for Delivery only - who actually finished each prep stage and
+    // when (see grCompletionSummaryText), so the "it's ready" email doubles
+    // as a record of who did the work, not just that it's done.
+    const completionRows = (data.celebrate && data.completionSummary)
+      ? String(data.completionSummary).split('\n').filter(Boolean).map(line => {
+          const [label, ...rest] = line.split(': ');
+          return [label, rest.join(': ')];
+        })
+      : [];
+    const completionSection = completionRows.length
+      ? `<div style="margin-top:20px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#71717a;margin-bottom:6px">Completed by</div>
+          ${fieldRows(completionRows)}
+        </div>`
+      : '';
+    // Only the "deal updated" email - points whoever gets it back to where
+    // they actually clear the highlight, since replying to the email itself
+    // doesn't do anything.
+    const acknowledgeBanner = data.updateNotice
+      ? `<div style="margin-top:20px;padding:14px 16px;border-radius:10px;background:#eff6ff;border:1px solid #bfdbfe;text-align:center;font-size:13px;font-weight:600;color:#1d4ed8">Please check "My Get Readies" in Vehicle Manager to view/accept changes.</div>`
+      : '';
+    return wrap(data.subject || 'Get Ready Deal', celebrateBanner + updateBanner + intro + rows + completionSection + acknowledgeBanner);
   }
   if (emailType === 'incomingDigest') {
     const lines = String(data.lines || '')

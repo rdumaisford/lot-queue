@@ -15,6 +15,20 @@ service firebase.storage {
       allow delete: if false;
     }
 
+    // Gas/charge completion photos (receipt, or the vehicle plugged in) -
+    // required before marking gas filled/charging complete on a Get Ready
+    // deal (see grHandleFuelPhotoSelected). Same "real signed-in staff
+    // account" bar as the PDFs above - the actual flow only ever offers
+    // this to whoever can touch the gas/charge banner in the first place.
+    match /getready-fuel-photos/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.token.firebase.sign_in_provider != 'anonymous'
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if false;
+    }
+
     // Announcement PDFs - the Add/Edit Announcement modal only exposes the
     // attach button to management, but Storage rules can't check that role
     // (it lives in the Realtime Database, not an auth custom claim), so
