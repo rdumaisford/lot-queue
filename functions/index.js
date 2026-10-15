@@ -1,14 +1,20 @@
-const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret, defineString } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
 const { initializeApp } = require('firebase-admin/app');
 const { getDatabase } = require('firebase-admin/database');
 const { getAuth } = require('firebase-admin/auth');
+const { Webhook } = require('svix');
 
 initializeApp();
 
 const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
+// Resend's own "Signing Secret" for the webhook endpoint below (resendWebhook)
+// - from the Resend dashboard once that webhook is added there, not something
+// we choose ourselves. Lets us verify a request claiming to be Resend
+// actually is, via the Svix library Resend signs webhooks with.
+const RESEND_WEBHOOK_SECRET = defineSecret('RESEND_WEBHOOK_SECRET');
 // Must be an address on a domain you've verified in Resend, e.g.
 // "Vehicle Manager <notifications@yourdealership.com>". Until a domain is
 // verified, Resend only lets onboarding@resend.dev deliver, and only to the
@@ -231,22 +237,24 @@ async function requireApprovedCaller(request) {
 exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-central1' }, async (request) => {
   await requireApprovedCaller(request);
 
-  const { emailType, to, subject, pdfUrl, pdfFileName, dedupeKey, messageId, inReplyTo, ...data } = request.data || {};
+  const { emailType, to, subject, pdfUrl, pdfFileName, dedupeKey, inReplyTo, references, threadPath, ...data } = request.data || {};
   if (!to || !subject || (Array.isArray(to) && !to.length)) throw new HttpsError('invalid-argument', 'Missing to/subject.');
 
   const html = renderTemplate(emailType, { ...data, subject });
   if (!html) throw new HttpsError('invalid-argument', `Unknown email type: ${emailType}`);
 
-  // Email threading: a caller that wants several emails about the same
-  // underlying thing (e.g. every Get Ready email for one deal - New,
-  // Updated, a note, Cancelled, Ready for Delivery) to land as one Gmail/
-  // Outlook conversation instead of separate emails passes a stable
-  // messageId on the FIRST one and inReplyTo (that same value) on every
-  // one after it. Not every mail provider honours a caller-supplied
-  // Message-ID, so this is best-effort - harmless if ignored.
+  // Email threading: Resend assigns its own Message-ID per send and never
+  // hands it back here (not in this call's response, not via a retrieve
+  // endpoint) - the only place it actually shows up is the email.sent
+  // webhook (see resendWebhook below). So this call can set In-Reply-To/
+  // References from whatever real Message-ID a PREVIOUS send in the same
+  // thread already resolved (passed in by the caller - see grThreadFields
+  // in index.html), but can't set this send's own Message-ID. threadPath
+  // registers where resendWebhook should write THIS send's resolved ID
+  // once Resend reports it, so the NEXT email in the thread can reference it.
   const headers = {};
-  if (messageId) headers['Message-ID'] = messageId;
-  if (inReplyTo) { headers['In-Reply-To'] = inReplyTo; headers['References'] = inReplyTo; }
+  if (inReplyTo) headers['In-Reply-To'] = inReplyTo;
+  if (references) headers['References'] = references;
 
   // Idempotency: if the response to this call gets lost between here and
   // the browser (network blip, not a real failure), the client can't tell
@@ -306,6 +314,16 @@ exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-
       throw new HttpsError('internal', `Resend ${res.status}: ${text || 'send failed'}`);
     }
 
+    if (threadPath) {
+      const resData = await res.json().catch(() => null);
+      if (resData?.id) {
+        // resendWebhook looks this up by Resend's own email id (the one
+        // thing both this call and that webhook event agree on) once it
+        // hears back what this send's real Message-ID turned out to be.
+        await getDatabase().ref('emailThreadMap/' + resData.id).set({ path: threadPath, field: 'emailMessageId', refField: 'emailReferences', at: Date.now() });
+      }
+    }
+
     return { ok: true };
   } catch (e) {
     // A genuine failure (not just a dropped response) shouldn't leave the
@@ -315,6 +333,63 @@ exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-
     }
     throw e;
   }
+});
+
+// Public endpoint Resend calls directly (not through the app, no Firebase
+// Auth involved) whenever something happens to an email we sent - set up as
+// a webhook in the Resend dashboard, pointed at this function's URL, for the
+// email.sent event. Verifies the request is genuinely from Resend (Svix-
+// signed) before trusting anything in it. Only email.sent is actually
+// needed: that's the one event carrying the real Message-ID Resend assigned
+// (see sendNotificationEmail above for why we need it and can't get it any
+// other way), which is all this uses it for - resolving sendNotificationEmail's
+// emailThreadMap entry for that send into the real thing a later email's
+// In-Reply-To/References can reference.
+exports.resendWebhook = onRequest({ secrets: [RESEND_WEBHOOK_SECRET], region: 'us-central1' }, async (req, res) => {
+  let event;
+  try {
+    const wh = new Webhook(RESEND_WEBHOOK_SECRET.value());
+    event = wh.verify(req.rawBody, {
+      'svix-id': req.header('svix-id'),
+      'svix-timestamp': req.header('svix-timestamp'),
+      'svix-signature': req.header('svix-signature'),
+    });
+  } catch (e) {
+    logger.warn('Resend webhook signature check failed:', e.message);
+    res.status(400).send('Invalid signature');
+    return;
+  }
+
+  try {
+    if (event.type === 'email.sent') {
+      const emailId = event.data?.email_id || event.data?.id;
+      const resolvedMessageId = event.data?.message_id;
+      if (emailId && resolvedMessageId) {
+        const mapRef = getDatabase().ref('emailThreadMap/' + emailId);
+        const mapSnap = await mapRef.once('value');
+        const mapping = mapSnap.val();
+        if (mapping?.path && mapping?.field) {
+          // The reply chain shifts forward: whatever was "latest" becomes a
+          // reference, and this send's newly-resolved id becomes "latest" -
+          // so the NEXT email in the thread replies to THIS one, while
+          // References keeps the full chain for clients that use it to
+          // reconstruct thread order.
+          await getDatabase().ref(mapping.path).transaction(current => {
+            if (!current) return current;
+            const prevMessageId = current[mapping.field] || null;
+            const refField = mapping.refField || (mapping.field + 'References');
+            const prevRefs = current[refField] || '';
+            const nextRefs = [prevRefs, prevMessageId].filter(Boolean).join(' ').trim();
+            return { ...current, [mapping.field]: resolvedMessageId, [refField]: nextRefs || null };
+          });
+        }
+        await mapRef.remove();
+      }
+    }
+  } catch (e) {
+    logger.error('Resend webhook handling failed:', e);
+  }
+  res.status(200).send('ok');
 });
 
 // Lets the Incoming unit form offer a "Salesperson" picker without needing
