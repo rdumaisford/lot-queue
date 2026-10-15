@@ -5,6 +5,7 @@ const logger = require('firebase-functions/logger');
 const { initializeApp } = require('firebase-admin/app');
 const { getDatabase } = require('firebase-admin/database');
 const { getAuth } = require('firebase-admin/auth');
+const { getStorage } = require('firebase-admin/storage');
 const { Webhook } = require('svix');
 
 initializeApp();
@@ -80,6 +81,16 @@ function renderTemplate(emailType, data) {
           <div style="font-size:14px;font-weight:700;color:#854d0e">This deal was just updated - the changed detail${(data.changedFields||[]).length>1?'s are':' is'} highlighted below.</div>
         </div>`
       : '';
+    // Only the cancellation email sets this (see cancelGR) - impossible to
+    // miss at a glance, same intent as the celebrate banner above but for
+    // the opposite news.
+    const cancelBanner = data.cancelled
+      ? `<div style="text-align:center;padding:22px 16px;margin:0 0 20px;border-radius:12px;background:#fef2f2;border:3px solid #dc2626">
+          <div style="font-size:36px;line-height:1;margin-bottom:8px">❌</div>
+          <div style="font-size:22px;font-weight:800;color:#dc2626;letter-spacing:.02em">CANCELLED</div>
+          <div style="font-size:13px;color:#991b1b;margin-top:4px">This Get Ready deal has been cancelled.</div>
+        </div>`
+      : '';
     const intro = data.intro ? `<p style="margin:0 0 16px;font-size:14px">${esc(data.intro)}</p>` : '';
     // Wholesale and Dealer Trade only ever collect a handful of fields (see
     // the app's own type-specific intake form) - each gets its own minimal
@@ -135,7 +146,7 @@ function renderTemplate(emailType, data) {
     const acknowledgeBanner = data.updateNotice
       ? `<div style="margin-top:20px;padding:14px 16px;border-radius:10px;background:#eff6ff;border:1px solid #bfdbfe;text-align:center;font-size:13px;font-weight:600;color:#1d4ed8">Please check "My Get Readies" in Vehicle Manager to view/accept changes.</div>`
       : '';
-    return wrap(data.subject || 'Get Ready Deal', celebrateBanner + updateBanner + intro + rows + completionSection + acknowledgeBanner);
+    return wrap(data.subject || 'Get Ready Deal', cancelBanner + celebrateBanner + updateBanner + intro + rows + completionSection + acknowledgeBanner);
   }
   if (emailType === 'incomingDigest') {
     const lines = String(data.lines || '')
@@ -657,6 +668,86 @@ exports.deleteStaffUser = onCall({ region: 'us-central1' }, async (request) => {
     // surfaces it in the client's alert() instead.
     if (e instanceof HttpsError) throw e;
     logger.error('deleteStaffUser failed', e);
+    throw new HttpsError('internal', `Delete failed: ${e?.message || e}`);
+  }
+});
+
+// Permanently removes a Get Ready deal - management only. The app's own
+// deal cancel (cancelGR) is what everyone else uses day to day, which keeps
+// the record and just marks it Cancelled; this is the one true delete, for
+// cleaning up test entries/duplicates, and it also clears out the deal's
+// uploaded Get Ready sheet PDF and any gas/charge completion photos from
+// Storage - those don't get removed just by deleting the database record
+// (Storage rules refuse client-side deletes entirely - see storage.rules),
+// so left alone they'd sit there accumulating Storage billing forever with
+// nothing left in the app pointing at them.
+// Gas/charge completion photo filenames carry a timestamp (see
+// grHandleFuelPhotoSelected in index.html), so this lists by prefix rather
+// than guessing the exact name - shared by deleteGetReadyDeal and
+// deleteFuelPhoto below, the two places a photo actually needs to go away
+// rather than just having its deal field cleared.
+async function deleteFuelPhotoFiles(bucket, dealId) {
+  try {
+    const [files] = await bucket.getFiles({ prefix: `getready-fuel-photos/${dealId}-` });
+    await Promise.all(files.map(f => f.delete().catch(e => logger.warn('Fuel photo delete failed for ' + f.name, e.message || e))));
+  } catch (e) {
+    logger.warn('Fuel photo list failed for ' + dealId, e.message || e);
+  }
+}
+
+exports.deleteGetReadyDeal = onCall({ region: 'us-central1' }, async (request) => {
+  try {
+    const callerUid = await requireApprovedCaller(request);
+    const callerRoleSnap = await getDatabase().ref('users/' + callerUid + '/role').once('value');
+    if (callerRoleSnap.val() !== 'management') {
+      throw new HttpsError('permission-denied', 'Only management can delete Get Ready deals.');
+    }
+
+    const { dealId } = request.data || {};
+    if (!dealId) throw new HttpsError('invalid-argument', 'Missing dealId.');
+
+    const dealSnap = await getDatabase().ref('getready/' + dealId).once('value');
+    const deal = dealSnap.val();
+    if (!deal) throw new HttpsError('not-found', 'That deal no longer exists.');
+
+    const bucket = getStorage().bucket();
+    const deletions = [];
+    if (deal.pdfUrl) {
+      deletions.push(bucket.file(`getready-pdfs/${dealId}.pdf`).delete().catch(e => {
+        logger.warn('Get Ready PDF delete failed for ' + dealId, e.message || e);
+      }));
+    }
+    if (deal.gasPhotoUrl) deletions.push(deleteFuelPhotoFiles(bucket, dealId));
+    await Promise.all(deletions);
+
+    await getDatabase().ref('getready/' + dealId).remove();
+
+    return { ok: true };
+  } catch (e) {
+    if (e instanceof HttpsError) throw e;
+    logger.error('deleteGetReadyDeal failed', e);
+    throw new HttpsError('internal', `Delete failed: ${e?.message || e}`);
+  }
+});
+
+// Clears a gas/charge completion photo out of Storage when it's reset (see
+// toggleGRField in index.html, which clears the deal's own gasPhotoUrl/By/
+// At fields) - the client can't delete it directly (Storage rules refuse
+// client-side deletes entirely, see storage.rules), so without this the
+// file would just sit there unreferenced, accumulating Storage billing,
+// every time someone undoes and redoes a gas/charge completion. Same "real
+// approved staff account" bar as clearing the field itself (not management-
+// only - anyone who can touch the gas/charge banner can reset it).
+exports.deleteFuelPhoto = onCall({ region: 'us-central1' }, async (request) => {
+  try {
+    await requireApprovedCaller(request);
+    const { dealId } = request.data || {};
+    if (!dealId) throw new HttpsError('invalid-argument', 'Missing dealId.');
+    await deleteFuelPhotoFiles(getStorage().bucket(), dealId);
+    return { ok: true };
+  } catch (e) {
+    if (e instanceof HttpsError) throw e;
+    logger.error('deleteFuelPhoto failed', e);
     throw new HttpsError('internal', `Delete failed: ${e?.message || e}`);
   }
 });
