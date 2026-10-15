@@ -26,6 +26,11 @@ const FROM_EMAIL = defineString('RESEND_FROM_EMAIL', { default: 'onboarding@rese
 // ~33% by base64 encoding.
 const MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024;
 
+// The app's own Hosting URL - used to build the "View Deal" button in Get
+// Ready emails (see renderTemplate's getReady branch and ?gr= handling in
+// index.html's startApp/getready listener).
+const APP_URL = 'https://lot-queue.web.app';
+
 function esc(val) {
   return String(val ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -110,6 +115,14 @@ function renderTemplate(emailType, data) {
     const intro = data.noteAdded
       ? `<p style="margin:0 0 10px;font-size:14px;font-weight:700;color:#92400e">${esc(data.intro)}</p>${data.noteText?`<div style="margin:0 0 16px;padding:12px 14px;background:#fffbeb;border-left:3px solid #d97706;border-radius:4px;font-size:14px;font-style:italic">"${esc(data.noteText)}"</div>`:''}`
       : data.intro ? `<p style="margin:0 0 16px;font-size:14px">${esc(data.intro)}</p>` : '';
+    // Jumps straight back to this deal in the app (see openGRDealLink in
+    // index.html) - every Get Ready email gets this except cancelled ones,
+    // where there's nothing left to go act on. dealId is only ever missing
+    // for a grDiffFields() call (diffing only, never actually sent) or an
+    // older/odd send path that didn't thread it through.
+    const viewDealButton = (data.dealId && !data.cancelled)
+      ? `<div style="margin:0 0 20px"><a href="${APP_URL}/?gr=${encodeURIComponent(data.dealId)}" style="display:inline-block;padding:10px 20px;background:#00095b;color:#fff;font-size:13px;font-weight:700;text-decoration:none;border-radius:8px">View Deal →</a></div>`
+      : '';
     // Wholesale and Dealer Trade only ever collect a handful of fields (see
     // the app's own type-specific intake form) - each gets its own minimal
     // row list rather than reusing the full Retail list, which would either
@@ -170,7 +183,7 @@ function renderTemplate(emailType, data) {
     const acknowledgeBanner = data.updateNotice
       ? `<div style="margin-top:20px;padding:14px 16px;border-radius:10px;background:#eff6ff;border:1px solid #bfdbfe;text-align:center;font-size:13px;font-weight:600;color:#1d4ed8">Please check "My Get Readies" in Vehicle Manager to view/accept changes.</div>`
       : '';
-    return wrap(data.subject || 'Get Ready Deal', intro + rows + completionSection + acknowledgeBanner, status.color, status.label);
+    return wrap(data.subject || 'Get Ready Deal', intro + viewDealButton + rows + completionSection + acknowledgeBanner, status.color, status.label);
   }
   if (emailType === 'incomingDigest') {
     const lines = String(data.lines || '')
@@ -708,6 +721,7 @@ exports.checkGRDeliveryReminders = onSchedule({
     const html = renderTemplate('getReady', {
       subject,
       deliveryOverdue: true,
+      dealId: id,
       intro: `This deal's delivery date/time has passed and it hasn't been marked delivered yet - please update its status (Mark Delivered once it's actually out the door, or Cancel if the deal fell through).`,
       stock: d.stock || '', dealNum: d.dealNum || '', vehicle: d.vehicle || '', vin: d.vin || '',
       customer: d.customer || '', salesperson: d.salesperson || '', deskManager: d.deskManager || '', fniManager: d.fniManager || '',
