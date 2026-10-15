@@ -30,6 +30,24 @@ function esc(val) {
   return String(val ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// Turns a stored "YYYY-MM-DD" + "HH:MM" pair into one plain-text line like
+// "September 9, 2026 at 12:20pm" for the getReady email rows below - mashed
+// together and spelled out, instead of the raw ISO date/24h time sitting in
+// two separate rows. dateStr alone (no timeStr) still formats, just without
+// the "at ..." suffix.
+function fmtEmailDateTime(dateStr, timeStr) {
+  if (!dateStr) return '';
+  const [yr, mo, dy] = dateStr.split('-').map(Number);
+  let out = new Date(yr, mo - 1, dy).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  if (timeStr) {
+    const [h, m] = timeStr.split(':').map(Number);
+    const t = new Date(2000, 0, 1, h, m);
+    const time = t.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).replace(' ', '').toLowerCase();
+    out += ` at ${time}`;
+  }
+  return out;
+}
+
 // headerColor/headerLabel let a caller (see the getReady status map below)
 // turn the header into a quick-glance status strip instead of just the
 // subject repeated - with hundreds of deals a month, "what actually
@@ -101,18 +119,24 @@ function renderTemplate(emailType, data) {
     // doesn't appear. The third item in each row is its diff key (see
     // fieldRows/changedFields) - purely for the "updated" email's highlight,
     // harmless on every other send since changedFields is only ever set there.
+    // Mashed into one plain-text line ("September 9, 2026 at 12:20pm")
+    // instead of the raw ISO date + 24h time sitting in two separate rows -
+    // changedFields still only ever carries the 'deliveryDate' key (see
+    // grDiffFields in index.html), so a change to either the date or the
+    // time alone still highlights this one combined row.
+    const deliveryText = fmtEmailDateTime(data.deliveryDate, data.deliveryTime);
     let rows;
     if (data.type === 'WHOLESALE') {
       rows = fieldRows([
         ['Stock #', data.stock, 'stock'], ['Deal #', data.dealNum, 'dealNum'], ['Type', data.type, 'type'],
         ['Auction Company', data.customer, 'customer'], ['Entered By', data.salesperson, 'salesperson'],
-        ['Pickup Date', data.deliveryDate, 'deliveryDate'], ['Pickup Time', data.deliveryTime, 'deliveryTime'],
+        ['Pickup', deliveryText, 'deliveryDate'],
       ], data.changedFields);
     } else if (data.type === 'DEALER TRADE') {
       rows = fieldRows([
         ['Stock #', data.stock, 'stock'], ['Deal #', data.dealNum, 'dealNum'], ['Type', data.type, 'type'],
         ['Purchasing Dealership', data.customer, 'customer'], ['Entered By', data.salesperson, 'salesperson'],
-        ['Pickup Date', data.deliveryDate, 'deliveryDate'], ['Pickup Time', data.deliveryTime, 'deliveryTime'],
+        ['Pickup', deliveryText, 'deliveryDate'],
         ['Trade-In', data.trades, 'trades'],
       ], data.changedFields);
     } else {
@@ -120,7 +144,7 @@ function renderTemplate(emailType, data) {
         ['Stock #', data.stock, 'stock'], ['Deal #', data.dealNum, 'dealNum'], ['Vehicle', data.vehicle, 'vehicle'], ['VIN', data.vin, 'vin'],
         ['Customer', data.customer, 'customer'], ['Salesperson', data.salesperson, 'salesperson'],
         ['Desk Manager', data.deskManager, 'deskManager'], ['F&I Manager', data.fniManager, 'fniManager'], ['Type', data.type, 'type'],
-        ['Financing', data.financing, 'financing'], ['Delivery Date', data.deliveryDate, 'deliveryDate'], ['Delivery Time', data.deliveryTime, 'deliveryTime'],
+        ['Financing', data.financing, 'financing'], ['Delivery', deliveryText, 'deliveryDate'],
         ['Gas/Charge', data.gasStatus, 'gasStatus'], ['Notes', data.notes, 'notes'], ['Services', data.steps, 'steps'],
         ['Trades', data.trades, 'trades'],
       ], data.changedFields);
