@@ -30,11 +30,19 @@ function esc(val) {
   return String(val ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-function wrap(title, bodyHtml) {
+// headerColor/headerLabel let a caller (see the getReady status map below)
+// turn the header into a quick-glance status strip instead of just the
+// subject repeated - with hundreds of deals a month, "what actually
+// happened" needs to read in under a second from the inbox/preview pane,
+// not require opening the email and reading the first sentence of the body.
+function wrap(title, bodyHtml, headerColor, headerLabel) {
+  const labelLine = headerLabel
+    ? `<div style="font-size:18px;font-weight:800;letter-spacing:.03em;margin-bottom:4px">${esc(headerLabel)}</div><div style="font-size:13px;font-weight:500;opacity:.85">${esc(title)}</div>`
+    : esc(title);
   return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#1a1a1a">
     <div style="max-width:600px;margin:0 auto;padding:24px">
       <div style="background:#fff;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
-        <div style="background:#00095b;color:#fff;padding:16px 24px;font-size:16px;font-weight:700">${esc(title)}</div>
+        <div style="background:${headerColor||'#00095b'};color:#fff;padding:16px 24px;${headerLabel?'':'font-size:16px;font-weight:700'}">${labelLine}</div>
         <div style="padding:24px">${bodyHtml}</div>
       </div>
       <div style="text-align:center;color:#a1a1aa;font-size:11px;margin-top:16px">Sent automatically by Vehicle Manager</div>
@@ -62,35 +70,19 @@ function fieldRows(fields, changedFields) {
 
 function renderTemplate(emailType, data) {
   if (emailType === 'getReady') {
-    // Email HTML can't do animated confetti, so this is the static-emoji
-    // equivalent - a festive banner only the "ready for delivery" email
-    // asks for (see sendGRReadyEmail), ahead of the usual intro/field rows.
-    const celebrateBanner = data.celebrate
-      ? `<div style="text-align:center;padding:26px 16px;margin:0 0 20px;border-radius:12px;background:linear-gradient(135deg,#fef3c7,#fce7f3,#dbeafe);border:2px dashed #ec4899">
-          <div style="font-size:42px;line-height:1;margin-bottom:10px">🎉🎊🥳🎈</div>
-          <div style="font-size:21px;font-weight:800;color:#be185d">Your vehicle is ready for delivery!</div>
-          <div style="font-size:13px;color:#7c3aed;margin-top:4px">Time to get this one out the door 🚗💨</div>
-        </div>`
-      : '';
-    // Only the "deal updated" email sets this (see sendGetReadyUpdateEmail) -
-    // makes it obvious at a glance that something changed, with the specific
-    // field(s) picked out below in the row table itself (see fieldRows).
-    const updateBanner = data.updateNotice
-      ? `<div style="padding:14px 16px;margin:0 0 20px;border-radius:10px;background:#fef9c3;border:2px solid #eab308;display:flex;align-items:center;gap:10px">
-          <span style="font-size:24px;line-height:1">\u{1f536}</span>
-          <div style="font-size:14px;font-weight:700;color:#854d0e">This deal was just updated - the changed detail${(data.changedFields||[]).length>1?'s are':' is'} highlighted below.</div>
-        </div>`
-      : '';
-    // Only the cancellation email sets this (see cancelGR) - impossible to
-    // miss at a glance, same intent as the celebrate banner above but for
-    // the opposite news.
-    const cancelBanner = data.cancelled
-      ? `<div style="text-align:center;padding:22px 16px;margin:0 0 20px;border-radius:12px;background:#fef2f2;border:3px solid #dc2626">
-          <div style="font-size:36px;line-height:1;margin-bottom:8px">❌</div>
-          <div style="font-size:22px;font-weight:800;color:#dc2626;letter-spacing:.02em">CANCELLED</div>
-          <div style="font-size:13px;color:#991b1b;margin-top:4px">This Get Ready deal has been cancelled.</div>
-        </div>`
-      : '';
+    // The header itself now tells the whole story in one glance (color +
+    // a plain status word) - with hundreds of these going out a month,
+    // nobody should have to open the email and read a sentence of body
+    // text just to know whether this is a new deal, an edit, a cancellation
+    // or a ready-for-delivery. Checked in this order because a send only
+    // ever sets one of these three flags (see sendGetReadyUpdateEmail/
+    // sendGRReadyEmail/cancelGR in index.html), but cancelled wins if
+    // somehow more than one were ever true.
+    const status = data.cancelled ? { color: '#dc2626', label: '❌ DEAL CANCELLED' }
+      : data.celebrate ? { color: '#7c3aed', label: '🎉 READY FOR DELIVERY' }
+      : data.updateNotice ? { color: '#d97706', label: '🔶 CHANGES MADE TO DEAL' }
+      : data.noteAdded ? { color: '#d97706', label: '📝 NOTE ADDED' }
+      : { color: '#15803d', label: '🆕 NEW GET READY DEAL' };
     const intro = data.intro ? `<p style="margin:0 0 16px;font-size:14px">${esc(data.intro)}</p>` : '';
     // Wholesale and Dealer Trade only ever collect a handful of fields (see
     // the app's own type-specific intake form) - each gets its own minimal
@@ -146,7 +138,7 @@ function renderTemplate(emailType, data) {
     const acknowledgeBanner = data.updateNotice
       ? `<div style="margin-top:20px;padding:14px 16px;border-radius:10px;background:#eff6ff;border:1px solid #bfdbfe;text-align:center;font-size:13px;font-weight:600;color:#1d4ed8">Please check "My Get Readies" in Vehicle Manager to view/accept changes.</div>`
       : '';
-    return wrap(data.subject || 'Get Ready Deal', cancelBanner + celebrateBanner + updateBanner + intro + rows + completionSection + acknowledgeBanner);
+    return wrap(data.subject || 'Get Ready Deal', intro + rows + completionSection + acknowledgeBanner, status.color, status.label);
   }
   if (emailType === 'incomingDigest') {
     const lines = String(data.lines || '')
