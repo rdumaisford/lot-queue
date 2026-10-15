@@ -83,7 +83,13 @@ function renderTemplate(emailType, data) {
       : data.updateNotice ? { color: '#d97706', label: '🔶 CHANGES MADE TO DEAL' }
       : data.noteAdded ? { color: '#d97706', label: '📝 NOTE ADDED' }
       : { color: '#15803d', label: '🆕 NEW GET READY DEAL' };
-    const intro = data.intro ? `<p style="margin:0 0 16px;font-size:14px">${esc(data.intro)}</p>` : '';
+    // Note-added email: "X added a note" stands out bold/colored on its own
+    // line, with the actual note text below it in a quoted callout - rather
+    // than one plain sentence where the note text and the "who did this"
+    // part read with equal weight.
+    const intro = data.noteAdded
+      ? `<p style="margin:0 0 10px;font-size:14px;font-weight:700;color:#92400e">${esc(data.intro)}</p>${data.noteText?`<div style="margin:0 0 16px;padding:12px 14px;background:#fffbeb;border-left:3px solid #d97706;border-radius:4px;font-size:14px;font-style:italic">"${esc(data.noteText)}"</div>`:''}`
+      : data.intro ? `<p style="margin:0 0 16px;font-size:14px">${esc(data.intro)}</p>` : '';
     // Wholesale and Dealer Trade only ever collect a handful of fields (see
     // the app's own type-specific intake form) - each gets its own minimal
     // row list rather than reusing the full Retail list, which would either
@@ -382,11 +388,17 @@ exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-
 
     if (threadPath) {
       const resData = await res.json().catch(() => null);
+      // Traceable by deal # in functions:log - threadPath alone is just a
+      // database key (getready/{pushId}), not anything a person recognizes.
+      const dealLabel = `${data.dealNum || '?'} / ${data.stock || '?'}`;
       if (resData?.id) {
         // resendWebhook looks this up by Resend's own email id (the one
         // thing both this call and that webhook event agree on) once it
         // hears back what this send's real Message-ID turned out to be.
         await getDatabase().ref('emailThreadMap/' + resData.id).set({ path: threadPath, field: 'emailMessageId', refField: 'emailReferences', at: Date.now() });
+        logger.info(`Thread registered for ${dealLabel}: resendId=${resData.id} threadPath=${threadPath} hadInReplyTo=${!!inReplyTo}`);
+      } else {
+        logger.warn(`No Resend id in response for ${dealLabel} - thread will NOT advance (next send on this deal won't have In-Reply-To)`, resData);
       }
     }
 
@@ -434,9 +446,18 @@ exports.resendWebhook = onRequest({ secrets: [RESEND_WEBHOOK_SECRET], region: 'u
   }
 
   try {
+    logger.info(`Resend webhook received: type=${event.type}`, event.data);
     if (event.type === 'email.sent') {
       const emailId = event.data?.email_id || event.data?.id;
       const resolvedMessageId = event.data?.message_id;
+      if (!emailId || !resolvedMessageId) {
+        // If this ever fires, event.data's actual key names (logged above)
+        // don't match what this code assumes (email_id/message_id) - that
+        // assumption was never confirmed against a real payload, only
+        // against docs/research, same class of bug the svix return-value
+        // one above turned out to be.
+        logger.warn(`email.sent missing emailId or resolvedMessageId - emailId=${emailId} resolvedMessageId=${resolvedMessageId}`);
+      }
       if (emailId && resolvedMessageId) {
         const mapRef = getDatabase().ref('emailThreadMap/' + emailId);
         const mapSnap = await mapRef.once('value');
@@ -447,7 +468,7 @@ exports.resendWebhook = onRequest({ secrets: [RESEND_WEBHOOK_SECRET], region: 'u
           // so the NEXT email in the thread replies to THIS one, while
           // References keeps the full chain for clients that use it to
           // reconstruct thread order.
-          await getDatabase().ref(mapping.path).transaction(current => {
+          const txResult = await getDatabase().ref(mapping.path).transaction(current => {
             if (!current) return current;
             const prevMessageId = current[mapping.field] || null;
             const refField = mapping.refField || (mapping.field + 'References');
@@ -455,6 +476,9 @@ exports.resendWebhook = onRequest({ secrets: [RESEND_WEBHOOK_SECRET], region: 'u
             const nextRefs = [prevRefs, prevMessageId].filter(Boolean).join(' ').trim();
             return { ...current, [mapping.field]: resolvedMessageId, [refField]: nextRefs || null };
           });
+          logger.info(`Thread resolved: emailId=${emailId} path=${mapping.path} resolvedMessageId=${resolvedMessageId} committed=${txResult.committed}`);
+        } else {
+          logger.warn(`No emailThreadMap entry for emailId=${emailId} (expired, already consumed, or never registered - see sendNotificationEmail's "Thread registered"/"No Resend id" logs)`);
         }
         await mapRef.remove();
       }
