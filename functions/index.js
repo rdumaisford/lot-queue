@@ -106,6 +106,12 @@ function renderTemplate(emailType, data) {
   if (emailType === 'dropBatch') {
     return renderDropBatchTable(data.subject || 'Incoming Vehicle Batch', data.units || []);
   }
+  if (emailType === 'incomingHistoryClear') {
+    // Same table layout as the daily drop batch - it's already built to show
+    // exactly this unit shape, and keeping it visually the same means
+    // management doesn't have to learn a second report format just for this.
+    return renderDropBatchTable(data.subject || 'Incoming History Cleared', data.units || []);
+  }
   if (emailType === 'salesArrival') {
     const body = `<p style="margin:0 0 18px;font-size:17px;font-weight:700;color:#00095b">Your vehicle ${esc(data.vehicleDesc || data.stock)} has arrived!</p>
       <p style="margin:0 0 18px;font-size:14px">Put a <strong>Sold</strong> sign in it and park it in <strong>Sold Row</strong>.</p>
