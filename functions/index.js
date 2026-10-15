@@ -349,11 +349,18 @@ exports.resendWebhook = onRequest({ secrets: [RESEND_WEBHOOK_SECRET], region: 'u
   let event;
   try {
     const wh = new Webhook(RESEND_WEBHOOK_SECRET.value());
-    event = wh.verify(req.rawBody, {
+    // svix 2.x's verify() only checks the signature (throws on failure) and
+    // always returns undefined - it no longer hands back the parsed payload
+    // the way older versions did. Every delivery was "verifying" fine and
+    // then crashing right after on event.type, since event was always
+    // undefined - this parses the now-trusted body ourselves instead of
+    // relying on verify()'s return value.
+    wh.verify(req.rawBody, {
       'svix-id': req.header('svix-id'),
       'svix-timestamp': req.header('svix-timestamp'),
       'svix-signature': req.header('svix-signature'),
     });
+    event = JSON.parse(req.rawBody.toString('utf8'));
   } catch (e) {
     logger.warn('Resend webhook signature check failed:', e.message);
     res.status(400).send('Invalid signature');
