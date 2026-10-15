@@ -79,7 +79,7 @@ function renderTemplate(emailType, data) {
     // sendGRReadyEmail/cancelGR in index.html), but cancelled wins if
     // somehow more than one were ever true.
     const status = data.cancelled ? { color: '#dc2626', label: '❌ DEAL CANCELLED' }
-      : data.delivered ? { color: '#0891b2', label: '🚚 VEHICLE DELIVERED' }
+      : data.delivered ? { color: '#0891b2', label: '🥳 VEHICLE DELIVERED' }
       : data.deliveryOverdue ? { color: '#d97706', label: '⏰ DELIVERY OVERDUE' }
       : data.celebrate ? { color: '#7c3aed', label: '🎉 READY FOR DELIVERY' }
       : data.updateNotice ? { color: '#d97706', label: '🔶 CHANGES MADE TO DEAL' }
