@@ -183,7 +183,7 @@ function renderTemplate(emailType, data) {
     // they actually clear the highlight, since replying to the email itself
     // doesn't do anything.
     const acknowledgeBanner = data.updateNotice
-      ? `<div style="margin-top:20px;padding:14px 16px;border-radius:10px;background:#eff6ff;border:1px solid #bfdbfe;text-align:center;font-size:13px;font-weight:600;color:#1d4ed8">Please check "My Get Readies" in Vehicle Manager to view/accept changes.</div>`
+      ? `<div style="margin-top:20px;padding:14px 16px;border-radius:10px;background:#eff6ff;border:1px solid #bfdbfe;text-align:center;font-size:13px;font-weight:600;color:#1d4ed8">The highlighted detail(s) above are what changed - this deal's card is flagged in Vehicle Manager until someone dismisses it.</div>`
       : '';
     return wrap(data.subject || 'Get Ready Deal', intro + viewDealButton + rows + completionSection + acknowledgeBanner, status.color, status.label);
   }
