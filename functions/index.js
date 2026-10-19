@@ -618,7 +618,15 @@ function dealershipNow() {
     hour: '2-digit', minute: '2-digit', hour12: false,
   }).formatToParts(new Date());
   const get = t => parts.find(p => p.type === t).value;
-  return { dateStr: `${get('year')}-${get('month')}-${get('day')}`, hour: Number(get('hour')), minute: Number(get('minute')) };
+  // hour12:false is supposed to give 00-23, but depending on the exact
+  // Node/ICU build it can instead give "24" for the midnight minute (a
+  // known Intl quirk - h23 vs h24 hour cycles) instead of "00". Every
+  // caller compares this against a plain 0-23 delivery/digest hour, so an
+  // unnormalized 24 reads as later than literally any time of day - which
+  // is exactly what made a 3pm delivery look "overdue" the moment
+  // checkGRDeliveryReminders ran at 12:00am on the delivery date itself.
+  // %24 is a no-op on a correct 0-23 reading and fixes the 24 case.
+  return { dateStr: `${get('year')}-${get('month')}-${get('day')}`, hour: Number(get('hour')) % 24, minute: Number(get('minute')) };
 }
 
 // Ported from formatUnitDigestLine() in index.html (that client-side copy
