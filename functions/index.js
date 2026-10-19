@@ -162,7 +162,7 @@ function renderTemplate(emailType, data) {
         ['Customer', data.customer, 'customer'], ['Salesperson', data.salesperson, 'salesperson'],
         ['Desk Manager', data.deskManager, 'deskManager'], ['F&I Manager', data.fniManager, 'fniManager'],
         ['Delivery Person', data.deliveryPerson, 'deliveryPerson'], ['Type', data.type, 'type'],
-        ['Financing', data.financing, 'financing'], ['Delivery', deliveryText, 'deliveryDate'],
+        ['Source', data.financing, 'financing'], ['Delivery', deliveryText, 'deliveryDate'],
         ['Gas/Charge', data.gasStatus, 'gasStatus'], ['Notes', data.notes, 'notes'], ['Services', data.steps, 'steps'],
         ['Trades', data.trades, 'trades'],
       ], data.changedFields);
