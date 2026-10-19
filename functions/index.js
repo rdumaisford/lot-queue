@@ -26,10 +26,13 @@ const FROM_EMAIL = defineString('RESEND_FROM_EMAIL', { default: 'onboarding@rese
 // ~33% by base64 encoding.
 const MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024;
 
-// The app's own Hosting URL - used to build the "View Deal" button in Get
-// Ready emails (see renderTemplate's getReady branch and ?gr= handling in
-// index.html's startApp/getready listener).
-const APP_URL = 'https://lot-queue.web.app';
+// The app's own URL - used to build the "View Deal" button in Get Ready
+// emails (see renderTemplate's getReady branch and ?gr= handling in
+// index.html's startApp/getready listener). The dealership's own custom
+// domain, not the default *.web.app one - both serve the same Hosting
+// site, but every link people actually click (emails, etc.) should read
+// as the dealership's own domain.
+const APP_URL = 'https://lotqueue.bfdealerhub.com';
 
 function esc(val) {
   return String(val ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
