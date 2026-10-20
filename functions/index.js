@@ -1025,7 +1025,8 @@ exports.deleteFuelPhoto = onCall({ region: 'us-central1' }, async (request) => {
 // byToken/{token} -> uid, admin-only - database.rules.json has no rule for
 // calendarFeeds so clients can't read it) that Outlook/Google/Apple can
 // "subscribe from web" to. The feed lists every Get Ready deal they're
-// tagged on (Salesperson, Desk Manager, F&I Manager or Delivery Person) and
+// tagged on (Salesperson, Desk Manager, F&I Manager or Delivery Person) -
+// or every deal at all for management, who oversee every delivery - and
 // is rebuilt on every fetch, so reschedules/cancellations show up on the
 // calendar app's next refresh without anyone re-exporting anything. The
 // token is the only credential - calendar apps can't sign in - so it can
@@ -1096,7 +1097,7 @@ function buildDeliveryEvent(id, d, uid, nowStamp) {
   const summary = `${d.delivered ? '✓ ' : ''}${what}: ${[d.stock, d.customer, d.vehicle].filter(Boolean).join(' - ')}`;
   const description = [
     d.delivered ? 'Delivered' : '',
-    `Your role: ${roles.join(', ')}`,
+    roles.length ? `Your role: ${roles.join(', ')}` : '',
     d.dealNum ? `Deal #: ${d.dealNum}` : '',
     d.type ? `Type: ${CAL_TYPE_LABELS[d.type] || d.type}` : '',
     d.vin ? `VIN: ${d.vin}` : '',
@@ -1134,16 +1135,17 @@ exports.calendarFeed = onRequest({ region: 'us-central1' }, async (req, res) => 
   const user = (await db.ref('users/' + uid).once('value')).val();
   if (!user || user.status !== 'approved') { res.status(404).send('Not found'); return; }
 
+  const seesAll = user.role === 'management';
   const deals = (await db.ref('getready').once('value')).val() || {};
   const nowStamp = icsUtcStamp(Date.now());
   const events = [];
   for (const [id, d] of Object.entries(deals)) {
     if (!d || d.cancelled || !/^\d{4}-\d{2}-\d{2}$/.test(d.deliveryDate || '')) continue;
-    if (!CAL_ROLE_FIELDS.some(([f]) => d[f] === uid)) continue;
+    if (!seesAll && !CAL_ROLE_FIELDS.some(([f]) => d[f] === uid)) continue;
     events.push(...buildDeliveryEvent(id, d, uid, nowStamp));
   }
 
-  const calName = `Deliveries - ${user.name || 'Lot Queue'}`;
+  const calName = seesAll ? 'Deliveries - All' : `Deliveries - ${user.name || 'Lot Queue'}`;
   const ics = [
     'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Lot Queue//Get Ready Deliveries//EN',
     'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
