@@ -222,10 +222,13 @@ function renderTemplate(emailType, data) {
     const changeNotice = data.mustChangePassword
       ? `<p style="margin:0 0 18px;font-size:14px">You'll be asked to set your own password the first time you sign in.</p>`
       : '';
+    const appHost = APP_URL.replace(/^https?:\/\//, '');
     const body = `<p style="margin:0 0 18px;font-size:17px;font-weight:700;color:#00095b">Welcome to Vehicle Manager, ${esc(data.name || 'there')}!</p>
-      <p style="margin:0 0 18px;font-size:14px">An account has been set up for you as <strong>${esc(data.role || '')}</strong>. Sign in at <a href="${APP_URL}">${APP_URL.replace(/^https?:\/\//,'')}</a> with the details below.</p>
+      <p style="margin:0 0 18px;font-size:14px">An account has been set up for you as <strong>${esc(data.role || '')}</strong>. Sign in with the details below.</p>
       ${fieldRows([['Email', data.email], ['Temporary Password', data.password]])}
-      ${changeNotice}`;
+      ${changeNotice}
+      <div style="margin:20px 0"><a href="${APP_URL}" style="display:inline-block;padding:10px 20px;background:#00095b;color:#fff;font-size:13px;font-weight:700;text-decoration:none;border-radius:8px">Sign In →</a></div>
+      <p style="margin:0;font-size:13px;color:#71717a">Bookmark <a href="${APP_URL}" style="color:#00095b;font-weight:600">${appHost}</a> on your phone/computer so it's quick to get back to.</p>`;
     return wrap(data.subject || 'Welcome to Vehicle Manager', body);
   }
   return null;
