@@ -38,6 +38,39 @@ function esc(val) {
   return String(val ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// Message-IDs normally look like "<abc123@mail.bfdealerhub.com>" (angle
+// brackets, with a "." and "@" RTDB keys can't contain) - strips the
+// brackets for comparison, then base64url-encodes that for actual use as an
+// RTDB key under messageIdToPath (see resendWebhook), since the raw string
+// still isn't a valid key even once unbracketed.
+function normalizeMessageId(raw) {
+  if (!raw) return '';
+  return String(raw).trim().replace(/^<|>$/g, '');
+}
+function encodeMessageIdKey(raw) {
+  return Buffer.from(normalizeMessageId(raw)).toString('base64url');
+}
+
+// Fallback for a received email with no plain-text body, just HTML - good
+// enough for a quick note on a deal, not meant to preserve formatting.
+function stripHtml(html) {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+// Cuts a reply off at the quoted original message most email clients paste
+// below it (">" quote lines, "-----Original Message-----", or "On ... wrote:")
+// so the note that lands on the deal is just the new part someone actually
+// typed, not the whole thread quoted back underneath it.
+function stripQuotedReply(text) {
+  if (!text) return '';
+  const lines = text.split(/\r?\n/);
+  const cutAt = lines.findIndex(line => {
+    const t = line.trim();
+    return t.startsWith('>') || /^-{3,}\s*Original Message\s*-{3,}/i.test(t) || /^On .+wrote:$/.test(t);
+  });
+  return (cutAt === -1 ? lines : lines.slice(0, cutAt)).join('\n').trim();
+}
+
 // Turns a stored "YYYY-MM-DD" + "HH:MM" pair into one plain-text line like
 // "September 9, 2026 at 12:20pm" for the getReady email rows below - mashed
 // together and spelled out, instead of the raw ISO date/24h time sitting in
@@ -481,16 +514,28 @@ exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-
 });
 
 // Public endpoint Resend calls directly (not through the app, no Firebase
-// Auth involved) whenever something happens to an email we sent - set up as
-// a webhook in the Resend dashboard, pointed at this function's URL, for the
-// email.sent event. Verifies the request is genuinely from Resend (Svix-
-// signed) before trusting anything in it. Only email.sent is actually
-// needed: that's the one event carrying the real Message-ID Resend assigned
-// (see sendNotificationEmail above for why we need it and can't get it any
-// other way), which is all this uses it for - resolving sendNotificationEmail's
-// emailThreadMap entry for that send into the real thing a later email's
-// In-Reply-To/References can reference.
-exports.resendWebhook = onRequest({ secrets: [RESEND_WEBHOOK_SECRET], region: 'us-central1' }, async (req, res) => {
+// Auth involved) whenever something happens to an email we sent or received -
+// set up as a webhook in the Resend dashboard, pointed at this function's
+// URL, subscribed to the email.sent and email.received events. Verifies the
+// request is genuinely from Resend (Svix-signed) before trusting anything in
+// it.
+//
+// email.sent carries the real Message-ID Resend assigned (see
+// sendNotificationEmail above for why we need it and can't get it any other
+// way) - resolves sendNotificationEmail's emailThreadMap entry for that send
+// into the real thing a later email's In-Reply-To/References can reference,
+// and also records it in messageIdToPath (see below) so an incoming reply to
+// THIS specific send, however many exchanges later, can still be traced back.
+//
+// email.received is a staff member replying to a Get Ready notification
+// (requires Inbound receiving to be turned on for the sending domain in the
+// Resend dashboard, with its own DNS records - see mail.bfdealerhub.com's
+// setup). The webhook payload itself is metadata only (no body/headers), so
+// this fetches the full message from the Received Emails API, finds which
+// deal it's replying to via messageIdToPath, and appends it as a note -
+// same shape as a note typed directly into the app (see grAddNote in
+// index.html), just attributed as an email reply.
+exports.resendWebhook = onRequest({ secrets: [RESEND_WEBHOOK_SECRET, RESEND_API_KEY], region: 'us-central1' }, async (req, res) => {
   let event;
   try {
     const wh = new Webhook(RESEND_WEBHOOK_SECRET.value());
@@ -543,11 +588,84 @@ exports.resendWebhook = onRequest({ secrets: [RESEND_WEBHOOK_SECRET], region: 'u
             const nextRefs = [prevRefs, prevMessageId].filter(Boolean).join(' ').trim();
             return { ...current, [mapping.field]: resolvedMessageId, [refField]: nextRefs || null };
           });
+          // Keyed by the real Message-ID itself (normalized - see
+          // normalizeMessageId) rather than overwritten per-deal, so a reply
+          // to an OLDER email in the thread (not just the latest one sent)
+          // still resolves to the right deal - see the email.received
+          // handler below.
+          await getDatabase().ref('messageIdToPath/' + encodeMessageIdKey(resolvedMessageId)).set({ path: mapping.path, at: Date.now() });
           logger.info(`Thread resolved: emailId=${emailId} path=${mapping.path} resolvedMessageId=${resolvedMessageId} committed=${txResult.committed}`);
         } else {
           logger.warn(`No emailThreadMap entry for emailId=${emailId} (expired, already consumed, or never registered - see sendNotificationEmail's "Thread registered"/"No Resend id" logs)`);
         }
         await mapRef.remove();
+      }
+    } else if (event.type === 'email.received') {
+      const emailId = event.data?.email_id || event.data?.id;
+      if (!emailId) {
+        logger.warn('email.received missing an email id', event.data);
+      } else {
+        // Webhooks can retry a delivery on a transient failure - claims this
+        // emailId before doing any work so a retry of the same event can't
+        // post the same reply as a note twice, same idempotency idea as
+        // sendNotificationEmail's dedupeKey above (just for inbound).
+        let alreadyProcessed = false;
+        await getDatabase().ref('inboundEmailDedupe/' + emailId).transaction(curr => {
+          if (curr) { alreadyProcessed = true; return undefined; }
+          return { at: Date.now() };
+        });
+        if (alreadyProcessed) {
+          logger.info(`email.received ${emailId} already processed - skipping`);
+        } else {
+          const resp = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
+            headers: { Authorization: `Bearer ${RESEND_API_KEY.value()}` },
+          });
+          if (!resp.ok) {
+            logger.error(`Failed to fetch received email ${emailId}: ${resp.status} ${await resp.text().catch(()=>'')}`);
+          } else {
+            const full = await resp.json();
+            // Logged in full the first few times this actually fires -
+            // the exact response shape (where In-Reply-To actually lives,
+            // whether headers is an object or an array) is only documented
+            // loosely as of when this was written, same "confirm it against
+            // a real payload" caution as email.sent above.
+            logger.info(`Received email fetched: id=${emailId}`, full);
+            const headers = full?.headers;
+            let inReplyTo = full?.in_reply_to || full?.inReplyTo || null;
+            if (!inReplyTo && headers) {
+              if (Array.isArray(headers)) {
+                const h = headers.find(x => String(x?.name||'').toLowerCase() === 'in-reply-to');
+                inReplyTo = h?.value || null;
+              } else if (typeof headers === 'object') {
+                inReplyTo = headers['In-Reply-To'] || headers['in-reply-to'] || null;
+              }
+            }
+            if (!inReplyTo) {
+              logger.warn(`Received email ${emailId} has no In-Reply-To header - can't match it to a deal`, full);
+            } else {
+              const mapSnap = await getDatabase().ref('messageIdToPath/' + encodeMessageIdKey(inReplyTo)).once('value');
+              const mapping = mapSnap.val();
+              if (!mapping?.path) {
+                logger.warn(`No messageIdToPath entry for in-reply-to=${inReplyTo} (reply to something we didn't send, or too old to still be tracked)`);
+              } else {
+                const fromRaw = full?.from || event.data?.from || '';
+                const fromMatch = /^(.*?)\s*<(.+)>$/.exec(fromRaw);
+                const fromName = fromMatch ? fromMatch[1].trim().replace(/^"|"$/g, '') : '';
+                const fromEmail = fromMatch ? fromMatch[2] : fromRaw;
+                const senderLabel = fromName || fromEmail || 'Unknown';
+                const rawBody = full?.text || stripHtml(full?.html) || '(no content)';
+                const replyText = stripQuotedReply(rawBody) || '(no content)';
+                const txResult = await getDatabase().ref(mapping.path).transaction(current => {
+                  if (!current) return current;
+                  const noteEntries = Array.isArray(current.noteEntries) ? current.noteEntries.slice() : [];
+                  noteEntries.push({ text: replyText, by: `${senderLabel} (via email reply)`, ts: Date.now() });
+                  return { ...current, noteEntries };
+                });
+                logger.info(`Reply from ${senderLabel} added as a note on ${mapping.path}, committed=${txResult.committed}`);
+              }
+            }
+          }
+        }
       }
     }
   } catch (e) {
