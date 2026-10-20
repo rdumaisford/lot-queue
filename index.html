@@ -6871,6 +6871,9 @@ function grIsSimpleType(d) {
 // Wholesale/Dealer Trade skip Vehicle text, Salesperson, F&I Manager and
 // licensing - there's no customer on the other end of either. Used for
 // saveGR's field-blanking (see grApplyTypeVisibility for the modal side).
+// Fleet deals have real customers too, so they're treated exactly like
+// Retail everywhere the form asks for or requires customer/sales details.
+function grIsRetailLike(type) { return type === 'RETAIL' || type === 'FLEET'; }
 function grHidesSalesFields(d) {
   return d.type === 'WHOLESALE' || d.type === 'DEALER TRADE';
 }
@@ -8095,7 +8098,7 @@ function renderGRCard(d, perms, isDupe) {
           const LICENSING_LABELS = { NEW_PLATES: 'New Plates', PLATE_TRANSFER: 'Plate Transfer', NOTES: 'Notes' };
           if (!d.licensingType) {
             return `<div style="padding:10px 16px;border-bottom:1px solid var(--border)">
-              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:6px">Licensing${d.type==='RETAIL'?' *':''}</div>
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:6px">Licensing${grIsRetailLike(d.type)?' *':''}</div>
               ${canChecklist?`<div style="display:flex;gap:6px;flex-wrap:wrap">
                 <button class="btn-tedit" onclick="setGRLicensingType('${d.id}','NEW_PLATES')">New Plates</button>
                 <button class="btn-tedit" onclick="setGRLicensingType('${d.id}','PLATE_TRANSFER')">Plate Transfer</button>
@@ -8437,8 +8440,7 @@ function grRenderTradeSlots() {
 window.grApplyTypeVisibility = function(type) {
   const isWholesale = type === 'WHOLESALE';
   const isDealerTrade = type === 'DEALER TRADE';
-  const isFleet = type === 'FLEET';
-  const isRetail = type === 'RETAIL';
+  const isRetail = grIsRetailLike(type); // Retail or Fleet
   const simple = isWholesale || isDealerTrade;
   // Fleet uses the same full layout as Retail (PDF sheet with auto-fill,
   // Vehicle, Salesperson, Desk/F&I Manager, trade-ins, licensing, source) -
@@ -8453,18 +8455,17 @@ window.grApplyTypeVisibility = function(type) {
   document.querySelectorAll('#gr-modal .gr-not-simple-only').forEach(el => { el.style.display = simple ? 'none' : ''; });
   document.getElementById('gr-gascharge-row').style.display = simple ? 'none' : '';
   document.getElementById('gr-licensing-row').style.display = simple ? 'none' : '';
-  document.getElementById('gr-licensing-label').textContent = (isRetail || isFleet) ? 'Licensing *' : 'Licensing';
+  document.getElementById('gr-licensing-label').textContent = isRetail ? 'Licensing *' : 'Licensing';
   document.getElementById('gr-desk-manager-row').style.display = '';
   const customerLabel = document.getElementById('gr-customer-label');
   const customerInput = document.getElementById('gr-customer');
-  customerLabel.textContent = isWholesale ? 'Auction Company' : isDealerTrade ? 'Purchasing Dealership' : isFleet ? 'Customer / Company' : 'Customer name';
-  customerInput.placeholder = isWholesale ? 'e.g. ADESA Toronto' : isDealerTrade ? 'e.g. Georgian Ford' : isFleet ? 'e.g. fleet account or company name' : 'e.g. Brad Bodanis';
+  customerLabel.textContent = isWholesale ? 'Auction Company' : isDealerTrade ? 'Purchasing Dealership' : 'Customer name';
+  customerInput.placeholder = isWholesale ? 'e.g. ADESA Toronto' : isDealerTrade ? 'e.g. Georgian Ford' : 'e.g. Brad Bodanis';
   document.getElementById('gr-delivery-date-label').textContent = simple ? 'Pickup date' : 'Delivery date';
   document.getElementById('gr-delivery-time-label').textContent = simple ? 'Pickup time' : 'Delivery time';
   // Salesperson/F&I Manager required only on Retail deals (saveGR enforces
   // this; the asterisk here is just the matching visual cue) - Desk Manager
-  // is required on Retail AND Wholesale/Dealer Trade (Fleet shows all
-  // three but doesn't require them).
+  // is required on Retail/Fleet AND Wholesale/Dealer Trade.
   document.getElementById('gr-salesperson-label').textContent = isRetail ? 'Salesperson *' : 'Salesperson';
   document.getElementById('gr-desk-manager-label').textContent = (isRetail || isWholesale || isDealerTrade) ? 'Desk Manager *' : 'Desk Manager';
   document.getElementById('gr-fni-label').textContent = isRetail ? 'F&I Manager *' : 'F&I Manager';
@@ -9031,11 +9032,11 @@ window.saveGR = async function() {
   if (deal.licensingType === 'NOTES' && !deal.licensingNote) { alert('Please enter a reason/note for licensing.'); return; }
   if (!deal.deliveryDate) { alert('Please check Delivery Date'); return; }
   if (!deal.deliveryTime) { alert('Please check Delivery Time'); return; }
-  // Retail deals require all three roster picks tagged. Wholesale/Dealer
+  // Retail and Fleet deals require all three roster picks tagged. Wholesale/Dealer
   // Trade also need a Desk Manager tagged (they don't collect Salesperson/
   // F&I at all - see grApplyTypeVisibility - so those two aren't checked
-  // for them). Fleet/As-Is don't require any of these.
-  if (deal.type === 'RETAIL') {
+  // for them). As-Is doesn't require any of these.
+  if (grIsRetailLike(deal.type)) {
     if (!deal.salespersonUid) { alert('Please select a Salesperson.'); return; }
     if (!deal.deskManagerUid) { alert('Please select a Desk Manager.'); return; }
     if (!deal.fniManagerUid) { alert('Please select an F&I Manager.'); return; }
