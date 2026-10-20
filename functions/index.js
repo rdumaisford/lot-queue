@@ -1019,3 +1019,145 @@ exports.deleteFuelPhoto = onCall({ region: 'us-central1' }, async (request) => {
     throw new HttpsError('internal', `Delete failed: ${e?.message || e}`);
   }
 });
+
+// ── Delivery calendar feed ──
+// Each staff member gets a private, unguessable link (calendarFeeds/
+// byToken/{token} -> uid, admin-only - database.rules.json has no rule for
+// calendarFeeds so clients can't read it) that Outlook/Google/Apple can
+// "subscribe from web" to. The feed lists every Get Ready deal they're
+// tagged on (Salesperson, Desk Manager, F&I Manager or Delivery Person) and
+// is rebuilt on every fetch, so reschedules/cancellations show up on the
+// calendar app's next refresh without anyone re-exporting anything. The
+// token is the only credential - calendar apps can't sign in - so it can
+// be reset (reset: true) if a link ever gets shared by mistake.
+const crypto = require('crypto');
+
+function calendarFeedUrl(token) {
+  return `${APP_URL}/cal/${token}.ics`;
+}
+
+exports.getCalendarFeedUrl = onCall({ region: 'us-central1' }, async (request) => {
+  const uid = await requireApprovedCaller(request);
+  const db = getDatabase();
+  const uidRef = db.ref('calendarFeeds/byUid/' + uid);
+  const existing = (await uidRef.once('value')).val();
+  if (existing && !request.data?.reset) return { url: calendarFeedUrl(existing) };
+
+  const token = crypto.randomBytes(24).toString('base64url');
+  const updates = { ['calendarFeeds/byUid/' + uid]: token, ['calendarFeeds/byToken/' + token]: uid };
+  if (existing) updates['calendarFeeds/byToken/' + existing] = null; // old link stops working
+  await db.ref().update(updates);
+  return { url: calendarFeedUrl(token) };
+});
+
+// RFC 5545 text escaping + 75-octet line folding.
+function icsText(val) {
+  return String(val ?? '').replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+}
+function icsFold(line) {
+  const out = [];
+  let buf = Buffer.from(line, 'utf8');
+  while (buf.length > 75) {
+    let cut = 75;
+    while (cut > 0 && (buf[cut] & 0xC0) === 0x80) cut--; // don't split a UTF-8 character
+    out.push(buf.subarray(0, cut).toString('utf8'));
+    buf = Buffer.concat([Buffer.from(' '), buf.subarray(cut)]);
+  }
+  out.push(buf.toString('utf8'));
+  return out.join('\r\n');
+}
+function icsUtcStamp(ms) {
+  return new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+}
+
+const DELIVERY_EVENT_MINUTES = 60;
+const CAL_ROLE_FIELDS = [
+  ['salespersonUid', 'Salesperson'],
+  ['deskManagerUid', 'Desk Manager'],
+  ['fniManagerUid', 'F&I Manager'],
+  ['deliveryPersonUid', 'Delivery Person'],
+];
+const CAL_TYPE_LABELS = { RETAIL: 'Retail', FLEET: 'Fleet', WHOLESALE: 'Wholesale', 'DEALER TRADE': 'Dealer Trade', 'AS-IS': 'As-Is' };
+
+// Outlook needs the timezone spelled out, not just a TZID name.
+const TORONTO_VTIMEZONE = [
+  'BEGIN:VTIMEZONE', 'TZID:America/Toronto',
+  'BEGIN:DAYLIGHT', 'TZOFFSETFROM:-0500', 'TZOFFSETTO:-0400', 'TZNAME:EDT',
+  'DTSTART:19700308T020000', 'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU', 'END:DAYLIGHT',
+  'BEGIN:STANDARD', 'TZOFFSETFROM:-0400', 'TZOFFSETTO:-0500', 'TZNAME:EST',
+  'DTSTART:19701101T020000', 'RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU', 'END:STANDARD',
+  'END:VTIMEZONE',
+];
+
+function buildDeliveryEvent(id, d, uid, nowStamp) {
+  const roles = CAL_ROLE_FIELDS.filter(([f]) => d[f] === uid).map(([, label]) => label);
+  const simple = d.type === 'WHOLESALE' || d.type === 'DEALER TRADE';
+  const what = simple ? 'Pickup' : 'Delivery';
+  const summary = `${d.delivered ? '✓ ' : ''}${what}: ${[d.stock, d.customer, d.vehicle].filter(Boolean).join(' - ')}`;
+  const description = [
+    d.delivered ? 'Delivered' : '',
+    `Your role: ${roles.join(', ')}`,
+    d.dealNum ? `Deal #: ${d.dealNum}` : '',
+    d.type ? `Type: ${CAL_TYPE_LABELS[d.type] || d.type}` : '',
+    d.vin ? `VIN: ${d.vin}` : '',
+    d.salesperson ? `Salesperson: ${d.salesperson}` : '',
+    d.deliveryPerson ? `Delivery Person: ${d.deliveryPerson}` : '',
+    `View deal: ${APP_URL}/?gr=${id}`,
+  ].filter(Boolean).join('\n');
+
+  const date = d.deliveryDate.replace(/-/g, '');
+  const lines = ['BEGIN:VEVENT', `UID:getready-${id}@lotqueue`, `DTSTAMP:${nowStamp}`];
+  if (typeof d.updatedAt === 'number') lines.push(`LAST-MODIFIED:${icsUtcStamp(d.updatedAt)}`);
+  if (/^\d{2}:\d{2}$/.test(d.deliveryTime || '')) {
+    const [h, m] = d.deliveryTime.split(':').map(Number);
+    const end = h * 60 + m + DELIVERY_EVENT_MINUTES;
+    const pad = n => String(n).padStart(2, '0');
+    // Clamp at 23:59 rather than rolling into the next day for a late slot.
+    const endStr = end >= 24 * 60 ? '235900' : `${pad(Math.floor(end / 60))}${pad(end % 60)}00`;
+    lines.push(`DTSTART;TZID=America/Toronto:${date}T${pad(h)}${pad(m)}00`, `DTEND;TZID=America/Toronto:${date}T${endStr}`);
+  } else {
+    const next = new Date(d.deliveryDate + 'T12:00:00Z');
+    next.setUTCDate(next.getUTCDate() + 1);
+    lines.push(`DTSTART;VALUE=DATE:${date}`, `DTEND;VALUE=DATE:${next.toISOString().slice(0, 10).replace(/-/g, '')}`);
+  }
+  lines.push(`SUMMARY:${icsText(summary)}`, `DESCRIPTION:${icsText(description)}`, `URL:${APP_URL}/?gr=${id}`, 'TRANSP:OPAQUE', 'END:VEVENT');
+  return lines;
+}
+
+// Served at /cal/{token}.ics via the Hosting rewrite in firebase.json.
+exports.calendarFeed = onRequest({ region: 'us-central1' }, async (req, res) => {
+  const token = (req.path.split('/').pop() || '').replace(/\.ics$/i, '') || String(req.query.t || '');
+  if (!/^[A-Za-z0-9_-]{20,64}$/.test(token)) { res.status(404).send('Not found'); return; }
+  const db = getDatabase();
+  const uid = (await db.ref('calendarFeeds/byToken/' + token).once('value')).val();
+  if (!uid) { res.status(404).send('Not found'); return; }
+  const user = (await db.ref('users/' + uid).once('value')).val();
+  if (!user || user.status !== 'approved') { res.status(404).send('Not found'); return; }
+
+  const deals = (await db.ref('getready').once('value')).val() || {};
+  const nowStamp = icsUtcStamp(Date.now());
+  const events = [];
+  for (const [id, d] of Object.entries(deals)) {
+    if (!d || d.cancelled || !/^\d{4}-\d{2}-\d{2}$/.test(d.deliveryDate || '')) continue;
+    if (!CAL_ROLE_FIELDS.some(([f]) => d[f] === uid)) continue;
+    events.push(...buildDeliveryEvent(id, d, uid, nowStamp));
+  }
+
+  const calName = `Deliveries - ${user.name || 'Lot Queue'}`;
+  const ics = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Lot Queue//Get Ready Deliveries//EN',
+    'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    `X-WR-CALNAME:${icsText(calName)}`, 'X-WR-TIMEZONE:America/Toronto',
+    'REFRESH-INTERVAL;VALUE=DURATION:PT1H', 'X-PUBLISHED-TTL:PT1H',
+    ...TORONTO_VTIMEZONE,
+    ...events,
+    'END:VCALENDAR',
+  ].map(icsFold).join('\r\n') + '\r\n';
+
+  res.set('Content-Type', 'text/calendar; charset=utf-8');
+  res.set('Content-Disposition', 'inline; filename="deliveries.ics"');
+  // private/no-store keeps Firebase Hosting's CDN from caching one person's
+  // feed - every fetch hits the function and reads live data.
+  res.set('Cache-Control', 'private, no-store, max-age=0');
+  res.status(200).send(ics);
+});
