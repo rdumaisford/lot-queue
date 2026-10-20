@@ -2,10 +2,13 @@
   "name": "functions",
   "description": "Cloud Functions for lot-queue (email notifications via Resend)",
   "private": true,
-  "engines": { "node": "20" },
+  "engines": {
+    "node": "20"
+  },
   "main": "index.js",
   "dependencies": {
     "firebase-admin": "^12.6.0",
-    "firebase-functions": "^6.0.1"
+    "firebase-functions": "^6.0.1",
+    "svix": "^2.8.0"
   }
 }

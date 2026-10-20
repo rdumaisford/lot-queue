@@ -1,14 +1,21 @@
-const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret, defineString } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
 const { initializeApp } = require('firebase-admin/app');
 const { getDatabase } = require('firebase-admin/database');
 const { getAuth } = require('firebase-admin/auth');
+const { getStorage } = require('firebase-admin/storage');
+const { Webhook } = require('svix');
 
 initializeApp();
 
 const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
+// Resend's own "Signing Secret" for the webhook endpoint below (resendWebhook)
+// - from the Resend dashboard once that webhook is added there, not something
+// we choose ourselves. Lets us verify a request claiming to be Resend
+// actually is, via the Svix library Resend signs webhooks with.
+const RESEND_WEBHOOK_SECRET = defineSecret('RESEND_WEBHOOK_SECRET');
 // Must be an address on a domain you've verified in Resend, e.g.
 // "Vehicle Manager <notifications@yourdealership.com>". Until a domain is
 // verified, Resend only lets onboarding@resend.dev deliver, and only to the
@@ -19,15 +26,82 @@ const FROM_EMAIL = defineString('RESEND_FROM_EMAIL', { default: 'onboarding@rese
 // ~33% by base64 encoding.
 const MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024;
 
+// The app's own URL - used to build the "View Deal" button in Get Ready
+// emails (see renderTemplate's getReady branch and ?gr= handling in
+// index.html's startApp/getready listener). The dealership's own custom
+// domain, not the default *.web.app one - both serve the same Hosting
+// site, but every link people actually click (emails, etc.) should read
+// as the dealership's own domain.
+const APP_URL = 'https://lotqueue.bfdealerhub.com';
+
 function esc(val) {
   return String(val ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-function wrap(title, bodyHtml) {
+// Message-IDs normally look like "<abc123@mail.bfdealerhub.com>" (angle
+// brackets, with a "." and "@" RTDB keys can't contain) - strips the
+// brackets for comparison, then base64url-encodes that for actual use as an
+// RTDB key under messageIdToPath (see resendWebhook), since the raw string
+// still isn't a valid key even once unbracketed.
+function normalizeMessageId(raw) {
+  if (!raw) return '';
+  return String(raw).trim().replace(/^<|>$/g, '');
+}
+function encodeMessageIdKey(raw) {
+  return Buffer.from(normalizeMessageId(raw)).toString('base64url');
+}
+
+// Fallback for a received email with no plain-text body, just HTML - good
+// enough for a quick note on a deal, not meant to preserve formatting.
+function stripHtml(html) {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+// Cuts a reply off at the quoted original message most email clients paste
+// below it (">" quote lines, "-----Original Message-----", or "On ... wrote:")
+// so the note that lands on the deal is just the new part someone actually
+// typed, not the whole thread quoted back underneath it.
+function stripQuotedReply(text) {
+  if (!text) return '';
+  const lines = text.split(/\r?\n/);
+  const cutAt = lines.findIndex(line => {
+    const t = line.trim();
+    return t.startsWith('>') || /^-{3,}\s*Original Message\s*-{3,}/i.test(t) || /^On .+wrote:$/.test(t);
+  });
+  return (cutAt === -1 ? lines : lines.slice(0, cutAt)).join('\n').trim();
+}
+
+// Turns a stored "YYYY-MM-DD" + "HH:MM" pair into one plain-text line like
+// "September 9, 2026 at 12:20pm" for the getReady email rows below - mashed
+// together and spelled out, instead of the raw ISO date/24h time sitting in
+// two separate rows. dateStr alone (no timeStr) still formats, just without
+// the "at ..." suffix.
+function fmtEmailDateTime(dateStr, timeStr) {
+  if (!dateStr) return '';
+  const [yr, mo, dy] = dateStr.split('-').map(Number);
+  let out = new Date(yr, mo - 1, dy).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  if (timeStr) {
+    const [h, m] = timeStr.split(':').map(Number);
+    const t = new Date(2000, 0, 1, h, m);
+    const time = t.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).replace(' ', '').toLowerCase();
+    out += ` at ${time}`;
+  }
+  return out;
+}
+
+// headerColor/headerLabel let a caller (see the getReady status map below)
+// turn the header into a quick-glance status strip instead of just the
+// subject repeated - with hundreds of deals a month, "what actually
+// happened" needs to read in under a second from the inbox/preview pane,
+// not require opening the email and reading the first sentence of the body.
+function wrap(title, bodyHtml, headerColor, headerLabel) {
+  const labelLine = headerLabel
+    ? `<div style="font-size:18px;font-weight:800;letter-spacing:.03em;margin-bottom:4px">${esc(headerLabel)}</div><div style="font-size:13px;font-weight:500;opacity:.85">${esc(title)}</div>`
+    : esc(title);
   return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#1a1a1a">
     <div style="max-width:600px;margin:0 auto;padding:24px">
       <div style="background:#fff;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
-        <div style="background:#00095b;color:#fff;padding:16px 24px;font-size:16px;font-weight:700">${esc(title)}</div>
+        <div style="background:${headerColor||'#00095b'};color:#fff;padding:16px 24px;${headerLabel?'':'font-size:16px;font-weight:700'}">${labelLine}</div>
         <div style="padding:24px">${bodyHtml}</div>
       </div>
       <div style="text-align:center;color:#a1a1aa;font-size:11px;margin-top:16px">Sent automatically by Vehicle Manager</div>
@@ -35,48 +109,119 @@ function wrap(title, bodyHtml) {
   </body></html>`;
 }
 
-function fieldRows(fields) {
+// Each field is [label, value] or [label, value, key] - key lets a caller
+// (the getReady "updated" email) mark specific rows as changed via
+// changedFields, so the exact detail that's different stands out instead of
+// making the reader compare the whole table against what they remember.
+function fieldRows(fields, changedFields) {
+  const changed = new Set(changedFields || []);
   const rows = fields
     .filter(([, value]) => value !== undefined && value !== null && value !== '')
-    .map(([label, value]) => `<tr><td style="padding:6px 10px 6px 0;color:#71717a;width:150px;vertical-align:top;white-space:nowrap">${esc(label)}</td><td style="padding:6px 0;white-space:pre-wrap">${esc(value)}</td></tr>`)
+    .map(([label, value, key]) => {
+      const isChanged = key && changed.has(key);
+      const rowStyle = isChanged ? 'background:#fef9c3' : '';
+      const cellStyle = isChanged ? 'font-weight:700;color:#854d0e' : 'color:#71717a';
+      return `<tr style="${rowStyle}"><td style="padding:6px 10px 6px 0;${cellStyle};width:150px;vertical-align:top;white-space:nowrap">${isChanged?'\u{1f536} ':''}${esc(label)}</td><td style="padding:6px 0;white-space:pre-wrap;${isChanged?'font-weight:700;color:#854d0e':''}">${esc(value)}</td></tr>`;
+    })
     .join('');
   return `<table style="width:100%;border-collapse:collapse;font-size:14px">${rows}</table>`;
 }
 
 function renderTemplate(emailType, data) {
   if (emailType === 'getReady') {
-    const intro = data.intro ? `<p style="margin:0 0 16px;font-size:14px">${esc(data.intro)}</p>` : '';
+    // The header itself now tells the whole story in one glance (color +
+    // a plain status word) - with hundreds of these going out a month,
+    // nobody should have to open the email and read a sentence of body
+    // text just to know whether this is a new deal, an edit, a cancellation
+    // or a ready-for-delivery. Checked in this order because a send only
+    // ever sets one of these three flags (see sendGetReadyUpdateEmail/
+    // sendGRReadyEmail/cancelGR in index.html), but cancelled wins if
+    // somehow more than one were ever true.
+    const status = data.cancelled ? { color: '#dc2626', label: '❌ DEAL CANCELLED' }
+      : data.delivered ? { color: '#0891b2', label: '🥳 VEHICLE DELIVERED' }
+      : data.deliveryOverdue ? { color: '#d97706', label: '⏰ DELIVERY OVERDUE' }
+      : data.celebrate ? { color: '#7c3aed', label: '🎉 READY FOR DELIVERY' }
+      : data.deliveryAssigned ? { color: '#0891b2', label: '🚚 YOU’RE THE DELIVERY PERSON' }
+      : data.updateNotice ? { color: '#d97706', label: '🔶 CHANGES MADE TO DEAL' }
+      : data.noteAdded ? { color: '#d97706', label: '📝 NOTE ADDED' }
+      : { color: '#15803d', label: '🆕 NEW GET READY DEAL' };
+    // Note-added email: "X added a note" stands out bold/colored on its own
+    // line, with the actual note text below it in a quoted callout - rather
+    // than one plain sentence where the note text and the "who did this"
+    // part read with equal weight.
+    const intro = data.noteAdded
+      ? `<p style="margin:0 0 10px;font-size:14px;font-weight:700;color:#92400e">${esc(data.intro)}</p>${data.noteText?`<div style="margin:0 0 16px;padding:12px 14px;background:#fffbeb;border-left:3px solid #d97706;border-radius:4px;font-size:14px;font-style:italic">"${esc(data.noteText)}"</div>`:''}`
+      : data.intro ? `<p style="margin:0 0 16px;font-size:14px">${esc(data.intro)}</p>` : '';
+    // Jumps straight back to this deal in the app (see openGRDealLink in
+    // index.html) - every Get Ready email gets this except cancelled ones,
+    // where there's nothing left to go act on. dealId is only ever missing
+    // for a grDiffFields() call (diffing only, never actually sent) or an
+    // older/odd send path that didn't thread it through.
+    const viewDealButton = (data.dealId && !data.cancelled)
+      ? `<div style="margin:0 0 20px"><a href="${APP_URL}/?gr=${encodeURIComponent(data.dealId)}" style="display:inline-block;padding:10px 20px;background:#00095b;color:#fff;font-size:13px;font-weight:700;text-decoration:none;border-radius:8px">View Deal →</a></div>`
+      : '';
     // Wholesale and Dealer Trade only ever collect a handful of fields (see
     // the app's own type-specific intake form) - each gets its own minimal
     // row list rather than reusing the full Retail list, which would either
     // show a wall of blank/placeholder rows or need every row individually
     // guarded. fieldRows() already drops any row whose value is empty, so
     // whichever of these was actually left blank (e.g. no Deal #) just
-    // doesn't appear.
+    // doesn't appear. The third item in each row is its diff key (see
+    // fieldRows/changedFields) - purely for the "updated" email's highlight,
+    // harmless on every other send since changedFields is only ever set there.
+    // Mashed into one plain-text line ("September 9, 2026 at 12:20pm")
+    // instead of the raw ISO date + 24h time sitting in two separate rows -
+    // changedFields still only ever carries the 'deliveryDate' key (see
+    // grDiffFields in index.html), so a change to either the date or the
+    // time alone still highlights this one combined row.
+    const deliveryText = fmtEmailDateTime(data.deliveryDate, data.deliveryTime);
     let rows;
     if (data.type === 'WHOLESALE') {
       rows = fieldRows([
-        ['Stock #', data.stock], ['Deal #', data.dealNum], ['Type', data.type],
-        ['Auction Company', data.customer], ['Entered By', data.salesperson],
-        ['Pickup Date', data.deliveryDate], ['Pickup Time', data.deliveryTime],
-      ]);
+        ['Stock #', data.stock, 'stock'], ['Deal #', data.dealNum, 'dealNum'], ['Type', data.type, 'type'],
+        ['Auction Company', data.customer, 'customer'], ['Entered By', data.salesperson, 'salesperson'],
+        ['Pickup', deliveryText, 'deliveryDate'],
+      ], data.changedFields);
     } else if (data.type === 'DEALER TRADE') {
       rows = fieldRows([
-        ['Stock #', data.stock], ['Deal #', data.dealNum], ['Type', data.type],
-        ['Purchasing Dealership', data.customer], ['Entered By', data.salesperson],
-        ['Pickup Date', data.deliveryDate], ['Pickup Time', data.deliveryTime],
-        ['Trade-In', data.trades],
-      ]);
+        ['Stock #', data.stock, 'stock'], ['Deal #', data.dealNum, 'dealNum'], ['Type', data.type, 'type'],
+        ['Purchasing Dealership', data.customer, 'customer'], ['Entered By', data.salesperson, 'salesperson'],
+        ['Pickup', deliveryText, 'deliveryDate'],
+        ['Trade-In', data.trades, 'trades'],
+      ], data.changedFields);
     } else {
       rows = fieldRows([
-        ['Stock #', data.stock], ['Deal #', data.dealNum], ['Vehicle', data.vehicle], ['VIN', data.vin],
-        ['Customer', data.customer], ['Salesperson', data.salesperson], ['Type', data.type],
-        ['Financing', data.financing], ['Delivery Date', data.deliveryDate], ['Delivery Time', data.deliveryTime],
-        ['Gas/Charge', data.gasStatus], ['Notes', data.notes], ['Services', data.steps],
-        ['Trades', data.trades],
-      ]);
+        ['Stock #', data.stock, 'stock'], ['Deal #', data.dealNum, 'dealNum'], ['Vehicle', data.vehicle, 'vehicle'], ['VIN', data.vin, 'vin'],
+        ['Customer', data.customer, 'customer'], ['Salesperson', data.salesperson, 'salesperson'],
+        ['Desk Manager', data.deskManager, 'deskManager'], ['F&I Manager', data.fniManager, 'fniManager'],
+        ['Delivery Person', data.deliveryPerson, 'deliveryPerson'], ['Type', data.type, 'type'],
+        ['Source', data.financing, 'financing'], ['Delivery', deliveryText, 'deliveryDate'],
+        ['Gas/Charge', data.gasStatus, 'gasStatus'], ['Notes', data.notes, 'notes'], ['Services', data.steps, 'steps'],
+        ['Trades', data.trades, 'trades'],
+      ], data.changedFields);
     }
-    return wrap(data.subject || 'Get Ready Deal', intro + rows);
+    // Ready for Delivery only - who actually finished each prep stage and
+    // when (see grCompletionSummaryText), so the "it's ready" email doubles
+    // as a record of who did the work, not just that it's done.
+    const completionRows = (data.celebrate && data.completionSummary)
+      ? String(data.completionSummary).split('\n').filter(Boolean).map(line => {
+          const [label, ...rest] = line.split(': ');
+          return [label, rest.join(': ')];
+        })
+      : [];
+    const completionSection = completionRows.length
+      ? `<div style="margin-top:20px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#71717a;margin-bottom:6px">Completed by</div>
+          ${fieldRows(completionRows)}
+        </div>`
+      : '';
+    // Only the "deal updated" email - points whoever gets it back to where
+    // they actually clear the highlight, since replying to the email itself
+    // doesn't do anything.
+    const acknowledgeBanner = data.updateNotice
+      ? `<div style="margin-top:20px;padding:14px 16px;border-radius:10px;background:#eff6ff;border:1px solid #bfdbfe;text-align:center;font-size:13px;font-weight:600;color:#1d4ed8">The highlighted detail(s) above are what changed - this deal's card is flagged in Vehicle Manager until someone dismisses it.</div>`
+      : '';
+    return wrap(data.subject || 'Get Ready Deal', intro + viewDealButton + rows + completionSection + acknowledgeBanner, status.color, status.label);
   }
   if (emailType === 'incomingDigest') {
     const lines = String(data.lines || '')
@@ -89,11 +234,35 @@ function renderTemplate(emailType, data) {
   if (emailType === 'dropBatch') {
     return renderDropBatchTable(data.subject || 'Incoming Vehicle Batch', data.units || []);
   }
+  if (emailType === 'incomingHistoryClear') {
+    // Same table layout as the daily drop batch - it's already built to show
+    // exactly this unit shape, and keeping it visually the same means
+    // management doesn't have to learn a second report format just for this.
+    return renderDropBatchTable(data.subject || 'Incoming History Cleared', data.units || []);
+  }
   if (emailType === 'salesArrival') {
     const body = `<p style="margin:0 0 18px;font-size:17px;font-weight:700;color:#00095b">Your vehicle ${esc(data.vehicleDesc || data.stock)} has arrived!</p>
       <p style="margin:0 0 18px;font-size:14px">Put a <strong>Sold</strong> sign in it and park it in <strong>Sold Row</strong>.</p>
       ${fieldRows([['Stock #', data.stock], ['Vehicle', data.vehicleDesc]])}`;
     return wrap(data.subject || 'Vehicle Arrived', body);
+  }
+  if (emailType === 'staffWelcome') {
+    // mustChangePassword is only set true when the account was actually
+    // created with the shared default password (see createStaffAccount in
+    // index.html) - a one-off generated password never forces a change, so
+    // the instructions below only claim that when it's actually true,
+    // rather than telling someone to expect a prompt that won't show up.
+    const changeNotice = data.mustChangePassword
+      ? `<p style="margin:0 0 18px;font-size:14px">You'll be asked to set your own password the first time you sign in.</p>`
+      : '';
+    const appHost = APP_URL.replace(/^https?:\/\//, '');
+    const body = `<p style="margin:0 0 18px;font-size:17px;font-weight:700;color:#00095b">Welcome to Vehicle Manager, ${esc(data.name || 'there')}!</p>
+      <p style="margin:0 0 18px;font-size:14px">An account has been set up for you as <strong>${esc(data.role || '')}</strong>. Sign in with the details below.</p>
+      ${fieldRows([['Email', data.email], ['Temporary Password', data.password]])}
+      ${changeNotice}
+      <div style="margin:20px 0"><a href="${APP_URL}" style="display:inline-block;padding:10px 20px;background:#00095b;color:#fff;font-size:13px;font-weight:700;text-decoration:none;border-radius:8px">Sign In →</a></div>
+      <p style="margin:0;font-size:13px;color:#71717a">Bookmark <a href="${APP_URL}" style="color:#00095b;font-weight:600">${appHost}</a> on your phone/computer so it's quick to get back to.</p>`;
+    return wrap(data.subject || 'Welcome to Vehicle Manager', body);
   }
   return null;
 }
@@ -220,11 +389,44 @@ async function requireApprovedCaller(request) {
 exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-central1' }, async (request) => {
   await requireApprovedCaller(request);
 
-  const { emailType, to, subject, pdfUrl, pdfFileName, dedupeKey, ...data } = request.data || {};
-  if (!to || !subject || (Array.isArray(to) && !to.length)) throw new HttpsError('invalid-argument', 'Missing to/subject.');
+  const { emailType, to, subject, pdfUrl, pdfFileName, dedupeKey, inReplyTo, references, threadPath, staffUids, ...data } = request.data || {};
+  if (!subject) throw new HttpsError('invalid-argument', 'Missing subject.');
 
   const html = renderTemplate(emailType, { ...data, subject });
   if (!html) throw new HttpsError('invalid-argument', `Unknown email type: ${emailType}`);
+
+  // Tagged Salesperson/Desk Manager/F&I Manager get looped into the thread
+  // too - their emails are never sent to the client (see getSalesRoster), so
+  // the caller only passes uids (see buildGREmailParams in index.html);
+  // resolved here server-side the same way notifySalesArrival already does.
+  // A missing account, role, or email just drops that one recipient rather
+  // than failing the whole send - the shared inbox in `to` always goes out.
+  // `to` can be omitted/empty when a caller wants ONLY resolved staffUids as
+  // recipients (e.g. the delivery congrats email, which deliberately skips
+  // the shared Get Ready inbox - see markGRDelivered in index.html) -
+  // validated below once staffUids has had a chance to contribute.
+  const toList = Array.isArray(to) ? to.slice() : (to ? [to] : []);
+  if (Array.isArray(staffUids) && staffUids.length) {
+    const staffSnaps = await Promise.all(staffUids.map(uid => getDatabase().ref('users/' + uid + '/email').once('value')));
+    for (const snap of staffSnaps) {
+      const email = snap.val();
+      if (email && !toList.includes(email)) toList.push(email);
+    }
+  }
+  if (!toList.length) throw new HttpsError('invalid-argument', 'No recipients resolved.');
+
+  // Email threading: Resend assigns its own Message-ID per send and never
+  // hands it back here (not in this call's response, not via a retrieve
+  // endpoint) - the only place it actually shows up is the email.sent
+  // webhook (see resendWebhook below). So this call can set In-Reply-To/
+  // References from whatever real Message-ID a PREVIOUS send in the same
+  // thread already resolved (passed in by the caller - see grThreadFields
+  // in index.html), but can't set this send's own Message-ID. threadPath
+  // registers where resendWebhook should write THIS send's resolved ID
+  // once Resend reports it, so the NEXT email in the thread can reference it.
+  const headers = {};
+  if (inReplyTo) headers['In-Reply-To'] = inReplyTo;
+  if (references) headers['References'] = references;
 
   // Idempotency: if the response to this call gets lost between here and
   // the browser (network blip, not a real failure), the client can't tell
@@ -262,10 +464,11 @@ exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-
 
     const payload = {
       from: FROM_EMAIL.value(),
-      to: Array.isArray(to) ? to : [to],
+      to: toList,
       subject,
       html,
       ...(attachments.length ? { attachments } : {}),
+      ...(Object.keys(headers).length ? { headers } : {}),
     };
 
     const res = await fetch('https://api.resend.com/emails', {
@@ -283,6 +486,22 @@ exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-
       throw new HttpsError('internal', `Resend ${res.status}: ${text || 'send failed'}`);
     }
 
+    if (threadPath) {
+      const resData = await res.json().catch(() => null);
+      // Traceable by deal # in functions:log - threadPath alone is just a
+      // database key (getready/{pushId}), not anything a person recognizes.
+      const dealLabel = `${data.dealNum || '?'} / ${data.stock || '?'}`;
+      if (resData?.id) {
+        // resendWebhook looks this up by Resend's own email id (the one
+        // thing both this call and that webhook event agree on) once it
+        // hears back what this send's real Message-ID turned out to be.
+        await getDatabase().ref('emailThreadMap/' + resData.id).set({ path: threadPath, field: 'emailMessageId', refField: 'emailReferences', at: Date.now() });
+        logger.info(`Thread registered for ${dealLabel}: resendId=${resData.id} threadPath=${threadPath} hadInReplyTo=${!!inReplyTo}`);
+      } else {
+        logger.warn(`No Resend id in response for ${dealLabel} - thread will NOT advance (next send on this deal won't have In-Reply-To)`, resData);
+      }
+    }
+
     return { ok: true };
   } catch (e) {
     // A genuine failure (not just a dropped response) shouldn't leave the
@@ -292,6 +511,167 @@ exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-
     }
     throw e;
   }
+});
+
+// Public endpoint Resend calls directly (not through the app, no Firebase
+// Auth involved) whenever something happens to an email we sent or received -
+// set up as a webhook in the Resend dashboard, pointed at this function's
+// URL, subscribed to the email.sent and email.received events. Verifies the
+// request is genuinely from Resend (Svix-signed) before trusting anything in
+// it.
+//
+// email.sent carries the real Message-ID Resend assigned (see
+// sendNotificationEmail above for why we need it and can't get it any other
+// way) - resolves sendNotificationEmail's emailThreadMap entry for that send
+// into the real thing a later email's In-Reply-To/References can reference,
+// and also records it in messageIdToPath (see below) so an incoming reply to
+// THIS specific send, however many exchanges later, can still be traced back.
+//
+// email.received is a staff member replying to a Get Ready notification
+// (requires Inbound receiving to be turned on for the sending domain in the
+// Resend dashboard, with its own DNS records - see mail.bfdealerhub.com's
+// setup). The webhook payload itself is metadata only (no body/headers), so
+// this fetches the full message from the Received Emails API, finds which
+// deal it's replying to via messageIdToPath, and appends it as a note -
+// same shape as a note typed directly into the app (see grAddNote in
+// index.html), just attributed as an email reply.
+exports.resendWebhook = onRequest({ secrets: [RESEND_WEBHOOK_SECRET, RESEND_API_KEY], region: 'us-central1' }, async (req, res) => {
+  let event;
+  try {
+    const wh = new Webhook(RESEND_WEBHOOK_SECRET.value());
+    // svix 2.x's verify() only checks the signature (throws on failure) and
+    // always returns undefined - it no longer hands back the parsed payload
+    // the way older versions did. Every delivery was "verifying" fine and
+    // then crashing right after on event.type, since event was always
+    // undefined - this parses the now-trusted body ourselves instead of
+    // relying on verify()'s return value.
+    wh.verify(req.rawBody, {
+      'svix-id': req.header('svix-id'),
+      'svix-timestamp': req.header('svix-timestamp'),
+      'svix-signature': req.header('svix-signature'),
+    });
+    event = JSON.parse(req.rawBody.toString('utf8'));
+  } catch (e) {
+    logger.warn('Resend webhook signature check failed:', e.message);
+    res.status(400).send('Invalid signature');
+    return;
+  }
+
+  try {
+    logger.info(`Resend webhook received: type=${event.type}`, event.data);
+    if (event.type === 'email.sent') {
+      const emailId = event.data?.email_id || event.data?.id;
+      const resolvedMessageId = event.data?.message_id;
+      if (!emailId || !resolvedMessageId) {
+        // If this ever fires, event.data's actual key names (logged above)
+        // don't match what this code assumes (email_id/message_id) - that
+        // assumption was never confirmed against a real payload, only
+        // against docs/research, same class of bug the svix return-value
+        // one above turned out to be.
+        logger.warn(`email.sent missing emailId or resolvedMessageId - emailId=${emailId} resolvedMessageId=${resolvedMessageId}`);
+      }
+      if (emailId && resolvedMessageId) {
+        const mapRef = getDatabase().ref('emailThreadMap/' + emailId);
+        const mapSnap = await mapRef.once('value');
+        const mapping = mapSnap.val();
+        if (mapping?.path && mapping?.field) {
+          // The reply chain shifts forward: whatever was "latest" becomes a
+          // reference, and this send's newly-resolved id becomes "latest" -
+          // so the NEXT email in the thread replies to THIS one, while
+          // References keeps the full chain for clients that use it to
+          // reconstruct thread order.
+          const txResult = await getDatabase().ref(mapping.path).transaction(current => {
+            if (!current) return current;
+            const prevMessageId = current[mapping.field] || null;
+            const refField = mapping.refField || (mapping.field + 'References');
+            const prevRefs = current[refField] || '';
+            const nextRefs = [prevRefs, prevMessageId].filter(Boolean).join(' ').trim();
+            return { ...current, [mapping.field]: resolvedMessageId, [refField]: nextRefs || null };
+          });
+          // Keyed by the real Message-ID itself (normalized - see
+          // normalizeMessageId) rather than overwritten per-deal, so a reply
+          // to an OLDER email in the thread (not just the latest one sent)
+          // still resolves to the right deal - see the email.received
+          // handler below.
+          await getDatabase().ref('messageIdToPath/' + encodeMessageIdKey(resolvedMessageId)).set({ path: mapping.path, at: Date.now() });
+          logger.info(`Thread resolved: emailId=${emailId} path=${mapping.path} resolvedMessageId=${resolvedMessageId} committed=${txResult.committed}`);
+        } else {
+          logger.warn(`No emailThreadMap entry for emailId=${emailId} (expired, already consumed, or never registered - see sendNotificationEmail's "Thread registered"/"No Resend id" logs)`);
+        }
+        await mapRef.remove();
+      }
+    } else if (event.type === 'email.received') {
+      const emailId = event.data?.email_id || event.data?.id;
+      if (!emailId) {
+        logger.warn('email.received missing an email id', event.data);
+      } else {
+        // Webhooks can retry a delivery on a transient failure - claims this
+        // emailId before doing any work so a retry of the same event can't
+        // post the same reply as a note twice, same idempotency idea as
+        // sendNotificationEmail's dedupeKey above (just for inbound).
+        let alreadyProcessed = false;
+        await getDatabase().ref('inboundEmailDedupe/' + emailId).transaction(curr => {
+          if (curr) { alreadyProcessed = true; return undefined; }
+          return { at: Date.now() };
+        });
+        if (alreadyProcessed) {
+          logger.info(`email.received ${emailId} already processed - skipping`);
+        } else {
+          const resp = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
+            headers: { Authorization: `Bearer ${RESEND_API_KEY.value()}` },
+          });
+          if (!resp.ok) {
+            logger.error(`Failed to fetch received email ${emailId}: ${resp.status} ${await resp.text().catch(()=>'')}`);
+          } else {
+            const full = await resp.json();
+            // Logged in full the first few times this actually fires -
+            // the exact response shape (where In-Reply-To actually lives,
+            // whether headers is an object or an array) is only documented
+            // loosely as of when this was written, same "confirm it against
+            // a real payload" caution as email.sent above.
+            logger.info(`Received email fetched: id=${emailId}`, full);
+            const headers = full?.headers;
+            let inReplyTo = full?.in_reply_to || full?.inReplyTo || null;
+            if (!inReplyTo && headers) {
+              if (Array.isArray(headers)) {
+                const h = headers.find(x => String(x?.name||'').toLowerCase() === 'in-reply-to');
+                inReplyTo = h?.value || null;
+              } else if (typeof headers === 'object') {
+                inReplyTo = headers['In-Reply-To'] || headers['in-reply-to'] || null;
+              }
+            }
+            if (!inReplyTo) {
+              logger.warn(`Received email ${emailId} has no In-Reply-To header - can't match it to a deal`, full);
+            } else {
+              const mapSnap = await getDatabase().ref('messageIdToPath/' + encodeMessageIdKey(inReplyTo)).once('value');
+              const mapping = mapSnap.val();
+              if (!mapping?.path) {
+                logger.warn(`No messageIdToPath entry for in-reply-to=${inReplyTo} (reply to something we didn't send, or too old to still be tracked)`);
+              } else {
+                const fromRaw = full?.from || event.data?.from || '';
+                const fromMatch = /^(.*?)\s*<(.+)>$/.exec(fromRaw);
+                const fromName = fromMatch ? fromMatch[1].trim().replace(/^"|"$/g, '') : '';
+                const fromEmail = fromMatch ? fromMatch[2] : fromRaw;
+                const senderLabel = fromName || fromEmail || 'Unknown';
+                const rawBody = full?.text || stripHtml(full?.html) || '(no content)';
+                const replyText = stripQuotedReply(rawBody) || '(no content)';
+                const txResult = await getDatabase().ref(mapping.path).transaction(current => {
+                  if (!current) return current;
+                  const noteEntries = Array.isArray(current.noteEntries) ? current.noteEntries.slice() : [];
+                  noteEntries.push({ text: replyText, by: `${senderLabel} (via email reply)`, ts: Date.now() });
+                  return { ...current, noteEntries };
+                });
+                logger.info(`Reply from ${senderLabel} added as a note on ${mapping.path}, committed=${txResult.committed}`);
+              }
+            }
+          }
+        }
+      }
+    }
+  } catch (e) {
+    logger.error('Resend webhook handling failed:', e);
+  }
+  res.status(200).send('ok');
 });
 
 // Lets the Incoming unit form offer a "Salesperson" picker without needing
@@ -304,13 +684,22 @@ exports.sendNotificationEmail = onCall({ secrets: [RESEND_API_KEY], region: 'us-
 // Management is included too - both because managers sometimes work deals
 // directly, and so a manager can pick themselves here to test the arrival
 // email end-to-end without needing a real sales account to do it.
+//
+// `roles` optionally narrows/widens which roles come back (e.g. Get Ready's
+// Salesperson/Desk Manager/F&I Manager pickers each need a different role,
+// not just sales+management) - each entry also carries its role now so a
+// caller fetching several roles at once can bucket the one response client
+// side instead of making several round trips.
 exports.getSalesRoster = onCall({ region: 'us-central1' }, async (request) => {
   await requireApprovedCaller(request);
+  const roles = Array.isArray(request.data?.roles) && request.data.roles.length
+    ? request.data.roles
+    : ['sales', 'management'];
   const snap = await getDatabase().ref('users').once('value');
   const users = snap.val() || {};
   const roster = Object.entries(users)
-    .filter(([, u]) => (u.role === 'sales' || u.role === 'management') && u.status === 'approved')
-    .map(([uid, u]) => ({ uid, name: u.name || '(unnamed)' }))
+    .filter(([, u]) => roles.includes(u.role) && u.status === 'approved')
+    .map(([uid, u]) => ({ uid, name: u.name || '(unnamed)', role: u.role }))
     .sort((a, b) => a.name.localeCompare(b.name));
   return { roster };
 });
@@ -368,7 +757,15 @@ function dealershipNow() {
     hour: '2-digit', minute: '2-digit', hour12: false,
   }).formatToParts(new Date());
   const get = t => parts.find(p => p.type === t).value;
-  return { dateStr: `${get('year')}-${get('month')}-${get('day')}`, hour: Number(get('hour')), minute: Number(get('minute')) };
+  // hour12:false is supposed to give 00-23, but depending on the exact
+  // Node/ICU build it can instead give "24" for the midnight minute (a
+  // known Intl quirk - h23 vs h24 hour cycles) instead of "00". Every
+  // caller compares this against a plain 0-23 delivery/digest hour, so an
+  // unnormalized 24 reads as later than literally any time of day - which
+  // is exactly what made a 3pm delivery look "overdue" the moment
+  // checkGRDeliveryReminders ran at 12:00am on the delivery date itself.
+  // %24 is a no-op on a correct 0-23 reading and fixes the 24 case.
+  return { dateStr: `${get('year')}-${get('month')}-${get('day')}`, hour: Number(get('hour')) % 24, minute: Number(get('minute')) };
 }
 
 // Ported from formatUnitDigestLine() in index.html (that client-side copy
@@ -433,6 +830,65 @@ exports.sendDailyDigest = onSchedule({
   }
 });
 
+// Reminds the Salesperson/F&I Manager to update a deal's status once its
+// delivery date/time has passed and nobody's marked it delivered (or
+// cancelled) yet - catches a deal that quietly slips past its delivery
+// window with no record of what actually happened. deliveryReminderSent is
+// claimed via a transaction (same one-sender-wins pattern as
+// dailyDigestSent) so two overlapping runs of this schedule can't double-
+// send, and it's a one-time flag, not reset, so this fires at most once per
+// deal rather than every 30 minutes forever.
+exports.checkGRDeliveryReminders = onSchedule({
+  schedule: 'every 30 minutes',
+  secrets: [RESEND_API_KEY],
+  region: 'us-central1',
+}, async () => {
+  const db = getDatabase();
+  const { dateStr: todayStr, hour, minute } = dealershipNow();
+
+  const snap = await db.ref('getready').once('value');
+  const deals = snap.val() || {};
+
+  for (const [id, d] of Object.entries(deals)) {
+    if (d.cancelled || d.delivered || d.deliveryReminderSent) continue;
+    if (!d.deliveryDate || !d.deliveryTime) continue;
+    const [dH, dM] = d.deliveryTime.split(':').map(Number);
+    const isPast = d.deliveryDate < todayStr
+      || (d.deliveryDate === todayStr && (hour > dH || (hour === dH && minute >= dM)));
+    if (!isPast) continue;
+
+    const claim = await db.ref('getready/' + id + '/deliveryReminderSent').transaction(curr => curr ? undefined : true);
+    if (!claim.committed) continue;
+
+    const staffUids = [d.salespersonUid, d.fniManagerUid].filter(Boolean);
+    if (!staffUids.length) continue; // nobody to remind (Wholesale/Dealer Trade/Fleet don't tag these)
+    const staffSnaps = await Promise.all(staffUids.map(uid => db.ref('users/' + uid + '/email').once('value')));
+    const toList = [...new Set(staffSnaps.map(s => s.val()).filter(Boolean))];
+    if (!toList.length) continue;
+
+    const subject = `Delivery Overdue - ${d.stock || 'no stock #'} - ${d.customer || ''}`.trim();
+    const html = renderTemplate('getReady', {
+      subject,
+      deliveryOverdue: true,
+      dealId: id,
+      intro: `This deal's delivery date/time has passed and it hasn't been marked delivered yet - please update its status (Mark Delivered once it's actually out the door, or Cancel if the deal fell through).`,
+      stock: d.stock || '', dealNum: d.dealNum || '', vehicle: d.vehicle || '', vin: d.vin || '',
+      customer: d.customer || '', salesperson: d.salesperson || '', deskManager: d.deskManager || '', fniManager: d.fniManager || '',
+      type: d.type || '', deliveryDate: d.deliveryDate || '', deliveryTime: d.deliveryTime || '',
+    });
+
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${RESEND_API_KEY.value()}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: FROM_EMAIL.value(), to: toList, subject, html }),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      logger.error('Resend send failed (checkGRDeliveryReminders)', d.stock, res.status, text);
+    }
+  }
+});
+
 // Permanently removes a staff account - both their Firebase Auth login
 // (so the email address is actually freed up and old credentials stop
 // working) and their users/{uid} database record. The client's own
@@ -480,6 +936,86 @@ exports.deleteStaffUser = onCall({ region: 'us-central1' }, async (request) => {
     // surfaces it in the client's alert() instead.
     if (e instanceof HttpsError) throw e;
     logger.error('deleteStaffUser failed', e);
+    throw new HttpsError('internal', `Delete failed: ${e?.message || e}`);
+  }
+});
+
+// Permanently removes a Get Ready deal - management only. The app's own
+// deal cancel (cancelGR) is what everyone else uses day to day, which keeps
+// the record and just marks it Cancelled; this is the one true delete, for
+// cleaning up test entries/duplicates, and it also clears out the deal's
+// uploaded Get Ready sheet PDF and any gas/charge completion photos from
+// Storage - those don't get removed just by deleting the database record
+// (Storage rules refuse client-side deletes entirely - see storage.rules),
+// so left alone they'd sit there accumulating Storage billing forever with
+// nothing left in the app pointing at them.
+// Gas/charge completion photo filenames carry a timestamp (see
+// grHandleFuelPhotoSelected in index.html), so this lists by prefix rather
+// than guessing the exact name - shared by deleteGetReadyDeal and
+// deleteFuelPhoto below, the two places a photo actually needs to go away
+// rather than just having its deal field cleared.
+async function deleteFuelPhotoFiles(bucket, dealId) {
+  try {
+    const [files] = await bucket.getFiles({ prefix: `getready-fuel-photos/${dealId}-` });
+    await Promise.all(files.map(f => f.delete().catch(e => logger.warn('Fuel photo delete failed for ' + f.name, e.message || e))));
+  } catch (e) {
+    logger.warn('Fuel photo list failed for ' + dealId, e.message || e);
+  }
+}
+
+exports.deleteGetReadyDeal = onCall({ region: 'us-central1' }, async (request) => {
+  try {
+    const callerUid = await requireApprovedCaller(request);
+    const callerRoleSnap = await getDatabase().ref('users/' + callerUid + '/role').once('value');
+    if (callerRoleSnap.val() !== 'management') {
+      throw new HttpsError('permission-denied', 'Only management can delete Get Ready deals.');
+    }
+
+    const { dealId } = request.data || {};
+    if (!dealId) throw new HttpsError('invalid-argument', 'Missing dealId.');
+
+    const dealSnap = await getDatabase().ref('getready/' + dealId).once('value');
+    const deal = dealSnap.val();
+    if (!deal) throw new HttpsError('not-found', 'That deal no longer exists.');
+
+    const bucket = getStorage().bucket();
+    const deletions = [];
+    if (deal.pdfUrl) {
+      deletions.push(bucket.file(`getready-pdfs/${dealId}.pdf`).delete().catch(e => {
+        logger.warn('Get Ready PDF delete failed for ' + dealId, e.message || e);
+      }));
+    }
+    if (deal.gasPhotoUrl) deletions.push(deleteFuelPhotoFiles(bucket, dealId));
+    await Promise.all(deletions);
+
+    await getDatabase().ref('getready/' + dealId).remove();
+
+    return { ok: true };
+  } catch (e) {
+    if (e instanceof HttpsError) throw e;
+    logger.error('deleteGetReadyDeal failed', e);
+    throw new HttpsError('internal', `Delete failed: ${e?.message || e}`);
+  }
+});
+
+// Clears a gas/charge completion photo out of Storage when it's reset (see
+// toggleGRField in index.html, which clears the deal's own gasPhotoUrl/By/
+// At fields) - the client can't delete it directly (Storage rules refuse
+// client-side deletes entirely, see storage.rules), so without this the
+// file would just sit there unreferenced, accumulating Storage billing,
+// every time someone undoes and redoes a gas/charge completion. Same "real
+// approved staff account" bar as clearing the field itself (not management-
+// only - anyone who can touch the gas/charge banner can reset it).
+exports.deleteFuelPhoto = onCall({ region: 'us-central1' }, async (request) => {
+  try {
+    await requireApprovedCaller(request);
+    const { dealId } = request.data || {};
+    if (!dealId) throw new HttpsError('invalid-argument', 'Missing dealId.');
+    await deleteFuelPhotoFiles(getStorage().bucket(), dealId);
+    return { ok: true };
+  } catch (e) {
+    if (e instanceof HttpsError) throw e;
+    logger.error('deleteFuelPhoto failed', e);
     throw new HttpsError('internal', `Delete failed: ${e?.message || e}`);
   }
 });
