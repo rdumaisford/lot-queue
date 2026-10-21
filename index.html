@@ -6887,12 +6887,13 @@ window.grRemoveServiceDetailLine = async function(id, lineIndex) {
 function grIsSimpleType(d) {
   return d.type === 'WHOLESALE' || d.type === 'DEALER TRADE';
 }
-// Wholesale/Dealer Trade/Fleet all skip Vehicle text, Salesperson, Desk
-// Manager, F&I Manager and trade-ins - there's no customer on the other
-// end of any of these three. Used for saveGR's field-blanking and the
-// modal's field visibility (grApplyTypeVisibility).
+// Wholesale/Dealer Trade skip Vehicle text, Salesperson, Desk Manager,
+// F&I Manager and trade-ins - there's no customer on the other end of
+// either. Fleet collects the same fields as Retail (see
+// grApplyTypeVisibility), so it's not included here. Used for saveGR's
+// field-blanking.
 function grHidesSalesFields(d) {
-  return d.type === 'WHOLESALE' || d.type === 'DEALER TRADE' || d.type === 'FLEET';
+  return d.type === 'WHOLESALE' || d.type === 'DEALER TRADE';
 }
 // Sold Row is the only location that counts as ready - a lot team member
 // has to have explicitly confirmed it by hand via grSetLocation. Still
@@ -8490,38 +8491,28 @@ function grRenderTradeSlots() {
 window.grApplyTypeVisibility = function(type) {
   const isWholesale = type === 'WHOLESALE';
   const isDealerTrade = type === 'DEALER TRADE';
-  const isFleet = type === 'FLEET';
-  const isRetail = type === 'RETAIL';
+  // Fleet collects the exact same information as Retail (Vehicle text,
+  // Salesperson, F&I Manager, Desk Manager, PDF sheet upload/auto-scan,
+  // Gas/Charge, Licensing) - the two are only distinguished by their Type
+  // tag from here on, not by what the form shows or requires.
+  const isRetail = type === 'RETAIL' || type === 'FLEET';
   const simple = isWholesale || isDealerTrade;
-  // Fleet drops the customer-facing fields (Vehicle text, Salesperson, F&I
-  // Manager, PDF sheet) same as Wholesale/Dealer Trade - but unlike those
-  // two it still goes through real prep, so Gas/Charge and the trade-in
-  // section (no trade-in on a fleet unit, so hidden same as Wholesale) are
-  // handled separately below rather than folded into the same "simple"
-  // flag (see grIsSimpleType/grHidesSalesFields). Desk Manager is also
-  // handled on its own (gr-desk-manager-row, not .gr-full-only) - Wholesale
-  // and Dealer Trade still need a manager tagged even though they skip
-  // everything else in that bundle; only Fleet has no manager tagged.
-  document.querySelectorAll('#gr-modal .gr-full-only').forEach(el => { el.style.display = (simple || isFleet) ? 'none' : ''; });
-  document.querySelectorAll('#gr-modal .gr-not-wholesale-only').forEach(el => { el.style.display = (isWholesale || isFleet) ? 'none' : ''; });
-  // Delivery Person - unlike .gr-full-only above, Fleet keeps this one
-  // (someone still has to be assigned to drive/deliver it), only Wholesale/
-  // Dealer Trade (pickups, not deliveries) hide it.
+  document.querySelectorAll('#gr-modal .gr-full-only').forEach(el => { el.style.display = simple ? 'none' : ''; });
+  document.querySelectorAll('#gr-modal .gr-not-wholesale-only').forEach(el => { el.style.display = isWholesale ? 'none' : ''; });
   document.querySelectorAll('#gr-modal .gr-not-simple-only').forEach(el => { el.style.display = simple ? 'none' : ''; });
   document.getElementById('gr-gascharge-row').style.display = simple ? 'none' : '';
   document.getElementById('gr-licensing-row').style.display = simple ? 'none' : '';
   document.getElementById('gr-licensing-label').textContent = isRetail ? 'Licensing *' : 'Licensing';
-  document.getElementById('gr-desk-manager-row').style.display = isFleet ? 'none' : '';
+  document.getElementById('gr-desk-manager-row').style.display = '';
   const customerLabel = document.getElementById('gr-customer-label');
   const customerInput = document.getElementById('gr-customer');
-  customerLabel.textContent = isWholesale ? 'Auction Company' : isDealerTrade ? 'Purchasing Dealership' : isFleet ? 'Fleet Notes' : 'Customer name';
-  customerInput.placeholder = isWholesale ? 'e.g. ADESA Toronto' : isDealerTrade ? 'e.g. Georgian Ford' : isFleet ? 'e.g. Service loaner, parts department' : 'e.g. Brad Bodanis';
+  customerLabel.textContent = isWholesale ? 'Auction Company' : isDealerTrade ? 'Purchasing Dealership' : 'Customer name';
+  customerInput.placeholder = isWholesale ? 'e.g. ADESA Toronto' : isDealerTrade ? 'e.g. Georgian Ford' : 'e.g. Brad Bodanis';
   document.getElementById('gr-delivery-date-label').textContent = simple ? 'Pickup date' : 'Delivery date';
   document.getElementById('gr-delivery-time-label').textContent = simple ? 'Pickup time' : 'Delivery time';
-  // Salesperson/F&I Manager required only on Retail deals (saveGR enforces
-  // this; the asterisk here is just the matching visual cue) - Desk Manager
-  // is required on Retail AND Wholesale/Dealer Trade (not Fleet, which
-  // doesn't even show it).
+  // Salesperson/F&I Manager/Desk Manager required on Retail and Fleet deals
+  // (saveGR enforces this; the asterisk here is just the matching visual
+  // cue) - Desk Manager is also required on Wholesale/Dealer Trade.
   document.getElementById('gr-salesperson-label').textContent = isRetail ? 'Salesperson *' : 'Salesperson';
   document.getElementById('gr-desk-manager-label').textContent = (isRetail || isWholesale || isDealerTrade) ? 'Desk Manager *' : 'Desk Manager';
   document.getElementById('gr-fni-label').textContent = isRetail ? 'F&I Manager *' : 'F&I Manager';
@@ -9068,20 +9059,14 @@ window.saveGR = async function() {
       deal.salesperson = currentUser.name;
       deal.salespersonUid = currentUser.uid;
     }
-    if (deal.type === 'WHOLESALE' || deal.type === 'FLEET') {
-      deal.trades = [];
-    }
+    deal.trades = [];
   }
-  // Delivery Person - kept for Fleet (still a real delivery/pickup someone
-  // has to be assigned to), only blanked for Wholesale/Dealer Trade same
-  // "hidden field, don't save its stale value" reasoning as above.
+  // Delivery Person/Desk Manager - kept for Fleet (still a real delivery/
+  // pickup, still desk-managed, same as Retail), only blanked for
+  // Wholesale/Dealer Trade same "hidden field, don't save its stale value"
+  // reasoning as above.
   if (grIsSimpleType(deal)) {
     deal.deliveryPerson = ''; deal.deliveryPersonUid = '';
-  }
-  if (deal.type === 'FLEET') {
-    deal.deskManager = ''; deal.deskManagerUid = '';
-  }
-  if (grIsSimpleType(deal)) {
     deal.fuelStatus = 'none'; deal.gasAmount = '';
   }
   if (editingGRId) deal.gasFilled = getReadyDeals[editingGRId]?.gasFilled || false;
@@ -9102,7 +9087,7 @@ window.saveGR = async function() {
   // Trade also need a Desk Manager tagged (they don't collect Salesperson/
   // F&I at all - see grApplyTypeVisibility - so those two aren't checked
   // for them). Fleet/As-Is don't require any of these.
-  if (deal.type === 'RETAIL') {
+  if (deal.type === 'RETAIL' || deal.type === 'FLEET') {
     if (!deal.salespersonUid) { alert('Please select a Salesperson.'); return; }
     if (!deal.deskManagerUid) { alert('Please select a Desk Manager.'); return; }
     if (!deal.fniManagerUid) { alert('Please select an F&I Manager.'); return; }
