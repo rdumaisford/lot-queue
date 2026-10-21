@@ -8205,7 +8205,7 @@ function renderGRCard(d, perms, isDupe) {
           return `<div class="gr-gas-banner${needsService?'':' no-gas-needed'}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${bg}">
             <span style="font-size:20px">🔧</span>
             <div style="flex:1">
-              <div style="font-weight:700${titleColor}">${needsService?(held?'Service Delay':'Service Work On Time'):'No Services Needed'}</div>
+              <div style="font-weight:700${titleColor}">${needsService?(held?'Service Delay':'Service On Time'):'No Services Needed'}</div>
               ${held?`<div style="font-size:11px;font-weight:700;color:#92400e">${esc(d.serviceHoldReason||'No reason given')}${d.serviceHoldBy?' · '+esc(d.serviceHoldBy):''}</div>`:''}
               ${needsService && !held?`<div style="font-size:11px;font-weight:700;color:#15803d">Please confirm completed before delivery</div>`:''}
               ${serviceLabels.length?`<ul style="margin:4px 0 0;padding-left:16px;font-size:11px;font-weight:400;line-height:1.3;${needsService?'color:'+bodyColor:'opacity:.7'}">${GR_CHECKLIST.filter(([key])=>d['req_'+key]).map(([key,label])=>`<li style="margin:3px 0">${esc(label)}${canChecklist?` <button onclick="grRemoveServiceItem('${d.id}','${key}')" title="Remove - not actually needed" style="border:none;background:none;color:#94a3b8;cursor:pointer;font-size:10px;padding:0 0 0 2px;line-height:1">✕</button>`:''}</li>`).join('')}</ul>`:''}
@@ -8240,8 +8240,8 @@ function renderGRCard(d, perms, isDupe) {
           return `<div class="gr-gas-banner" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${d.licensingHold?'background:#fffbeb':'background:#f0fdf4'}">
             <span style="font-size:20px">🪪</span>
             <div style="flex:1">
-              <div style="font-weight:700;color:${d.licensingHold?'#b45309':'#15803d'}">${d.licensingHold?'Licensing Delay':esc(label)+(noteLine?' - '+noteLine:'')}</div>
-              ${d.licensingHold?`<div style="font-size:11px;font-weight:700;color:#92400e">${esc(d.licensingHoldReason||'No reason given')}${d.licensingHoldBy?' · '+esc(d.licensingHoldBy):''}</div>`:`<div style="font-size:11px;font-weight:700;color:#15803d">Sent to Licensing - please confirm completed before delivery</div>`}
+              <div style="font-weight:700;color:${d.licensingHold?'#b45309':'#15803d'}">${d.licensingHold?'Licensing Delay':'Licensing On Time'}</div>
+              ${d.licensingHold?`<div style="font-size:11px;font-weight:700;color:#92400e">${esc(d.licensingHoldReason||'No reason given')}${d.licensingHoldBy?' · '+esc(d.licensingHoldBy):''}</div>`:`<div style="font-size:11px;font-weight:700;color:#15803d">${esc(label)}${noteLine?' - '+noteLine:''} - please confirm completed before delivery</div>`}
             </div>
             <div style="display:flex;gap:6px;flex-shrink:0">
               ${canChecklist?`<button class="btn-tedit" onclick="resetGRLicensing('${d.id}')">Change</button>
