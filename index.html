@@ -9549,6 +9549,10 @@ function grCompletionSummaryText(d) {
 // to send anything) - when given, it becomes dealId so the Cloud Function
 // can render a "View Deal" button straight back to this deal in the app
 // (see openGRDealLink).
+// Wholesale deal emails go only to this fixed list, not the normal Get
+// Ready inbox/staff thread - set by explicit request, not editable from
+// Settings like emailSettings.grAddress is.
+const WHOLESALE_GR_EMAILS = ['inventorycontrol@barrieford.com', 'rdumais@barrieford.com', 'salesmanagers@barrieford.com', 'bsmith@barrieford.com'];
 function buildGREmailParams(d, subject, intro, id) {
   const financingLabel = {CASH:'Cash',COMMERCIAL_LEASE:'Commercial Lease',FINANCE:'Finance',FORD_RCL:'Ford RCL',TRICOR_LEASE:'Tricor Lease'}[d.financing] || d.financing || '';
   const fuelStatus = grEffectiveFuelStatus(d);
@@ -9569,14 +9573,16 @@ function buildGREmailParams(d, subject, intro, id) {
     ...GR_CHECKLIST.filter(([key]) => d['req_'+key]).map(([,label]) => `• ${label}`),
     ...(d.serviceDetails ? d.serviceDetails.split('\n').filter(Boolean).map(l => `• ${l}`) : []),
   ].join('\n');
+  const isWholesale = d.type === 'WHOLESALE';
   return {
-    to: splitEmails(emailSettings.grAddress),
+    to: isWholesale ? WHOLESALE_GR_EMAILS : splitEmails(emailSettings.grAddress),
     // Tagged Salesperson/Desk Manager/F&I Manager get looped into every
     // email on this deal's thread too, not just the shared Get Ready inbox -
     // their emails are never sent to the client (see getSalesRoster), so
     // this only passes the uids; sendNotificationEmail resolves them
-    // server-side the same way notifySalesArrival already does.
-    staffUids: [d.salespersonUid, d.deskManagerUid, d.fniManagerUid].filter(Boolean),
+    // server-side the same way notifySalesArrival already does. Skipped
+    // for Wholesale - those go ONLY to WHOLESALE_GR_EMAILS above.
+    staffUids: isWholesale ? [] : [d.salespersonUid, d.deskManagerUid, d.fniManagerUid].filter(Boolean),
     subject,
     intro,
     stock: d.stock||'',
