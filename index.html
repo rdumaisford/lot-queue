@@ -8197,22 +8197,27 @@ function renderGRCard(d, perms, isDupe) {
           return '';
         })():''}
         ${!isSimpleType?gasBanner:''}
-        ${!isSimpleType?`<div class="gr-gas-banner${needsService?'':' no-gas-needed'}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${needsService?(d.serviceHold?'background:#fef2f2':'background:#fffbeb'):''}">
-          <span style="font-size:20px">🔧</span>
-          <div style="flex:1">
-            <div style="font-weight:700${needsService?(d.serviceHold?';color:#dc2626':';color:#b45309'):''}">${needsService?(d.serviceHold?'Service Delay':'Service Work On Time'):'No Services Needed'}</div>
-            ${needsService && d.serviceHold?`<div style="font-size:11px;font-weight:700;color:#991b1b">${esc(d.serviceHoldReason||'No reason given')}${d.serviceHoldBy?' · '+esc(d.serviceHoldBy):''}</div>`:''}
-            ${needsService && !d.serviceHold?`<div style="font-size:11px;font-weight:700;color:#92400e">Please confirm completed before delivery</div>`:''}
-            ${serviceLabels.length?`<ul style="margin:4px 0 0;padding-left:16px;font-size:11px;font-weight:400;line-height:1.3;${needsService?'color:#92400e':'opacity:.7'}">${GR_CHECKLIST.filter(([key])=>d['req_'+key]).map(([key,label])=>`<li style="margin:3px 0">${esc(label)}${canChecklist?` <button onclick="grRemoveServiceItem('${d.id}','${key}')" title="Remove - not actually needed" style="border:none;background:none;color:#94a3b8;cursor:pointer;font-size:10px;padding:0 0 0 2px;line-height:1">✕</button>`:''}</li>`).join('')}</ul>`:''}
-            ${d.serviceDetails?`<ul style="margin:4px 0 0;padding-left:16px;font-size:11px;font-weight:400;line-height:1.3;${needsService?'color:#92400e':'opacity:.7'}">${d.serviceDetails.split('\n').filter(Boolean).map((l,i)=>`<li style="margin:3px 0">${esc(l)}${canChecklist?` <button onclick="grRemoveServiceDetailLine('${d.id}',${i})" title="Remove - not actually needed" style="border:none;background:none;color:#94a3b8;cursor:pointer;font-size:10px;padding:0 0 0 2px;line-height:1">✕</button>`:''}</li>`).join('')}</ul>`:''}
-            ${d['req_pdi'] && pdiAtIncomingNote?pdiAtIncomingNote:''}
-          </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
-            <span style="font-size:18px">${needsService?(d.serviceHold?'⏸':'⏳'):'✓'}</span>
-            ${canChecklist && needsService?`<button onclick="setGRDeptHold('${d.id}','service',${d.serviceHold?'false':'true'})" style="border:none;background:none;color:${d.serviceHold?'#991b1b':'#92400e'};font-size:11px;text-decoration:underline;cursor:pointer;padding:0;white-space:nowrap">${d.serviceHold?'Resume':'⏸ Hold'}</button>`:''}
-            ${!d.serviceHold && needsService && currentUser && (currentUser.role==='service'||currentUser.role==='management')?`<button onclick="setGRDeptDelay('${d.id}','service')" style="border:none;background:none;color:#dc2626;font-size:11px;text-decoration:underline;cursor:pointer;padding:0;white-space:nowrap">⏱ Delay</button>`:''}
-          </div>
-        </div>`:''}
+        ${!isSimpleType?(() => {
+          const held = needsService && d.serviceHold;
+          const bg = !needsService ? '' : held ? 'background:#fffbeb' : 'background:#f0fdf4';
+          const titleColor = !needsService ? '' : held ? ';color:#b45309' : ';color:#15803d';
+          const bodyColor = held ? '#92400e' : '#15803d';
+          return `<div class="gr-gas-banner${needsService?'':' no-gas-needed'}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${bg}">
+            <span style="font-size:20px">🔧</span>
+            <div style="flex:1">
+              <div style="font-weight:700${titleColor}">${needsService?(held?'Service Delay':'Service Work On Time'):'No Services Needed'}</div>
+              ${held?`<div style="font-size:11px;font-weight:700;color:#92400e">${esc(d.serviceHoldReason||'No reason given')}${d.serviceHoldBy?' · '+esc(d.serviceHoldBy):''}</div>`:''}
+              ${needsService && !held?`<div style="font-size:11px;font-weight:700;color:#15803d">Please confirm completed before delivery</div>`:''}
+              ${serviceLabels.length?`<ul style="margin:4px 0 0;padding-left:16px;font-size:11px;font-weight:400;line-height:1.3;${needsService?'color:'+bodyColor:'opacity:.7'}">${GR_CHECKLIST.filter(([key])=>d['req_'+key]).map(([key,label])=>`<li style="margin:3px 0">${esc(label)}${canChecklist?` <button onclick="grRemoveServiceItem('${d.id}','${key}')" title="Remove - not actually needed" style="border:none;background:none;color:#94a3b8;cursor:pointer;font-size:10px;padding:0 0 0 2px;line-height:1">✕</button>`:''}</li>`).join('')}</ul>`:''}
+              ${d.serviceDetails?`<ul style="margin:4px 0 0;padding-left:16px;font-size:11px;font-weight:400;line-height:1.3;${needsService?'color:'+bodyColor:'opacity:.7'}">${d.serviceDetails.split('\n').filter(Boolean).map((l,i)=>`<li style="margin:3px 0">${esc(l)}${canChecklist?` <button onclick="grRemoveServiceDetailLine('${d.id}',${i})" title="Remove - not actually needed" style="border:none;background:none;color:#94a3b8;cursor:pointer;font-size:10px;padding:0 0 0 2px;line-height:1">✕</button>`:''}</li>`).join('')}</ul>`:''}
+              ${d['req_pdi'] && pdiAtIncomingNote?pdiAtIncomingNote:''}
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0">
+              ${canChecklist && needsService?`<button class="btn-tedit" onclick="setGRDeptHold('${d.id}','service',${held?'false':'true'})" style="${held?'background:#f0fdf4;color:#15803d;border-color:#86efac':'background:#fffbeb;color:#92400e;border-color:#fde68a'}">${held?'Resume':'Hold'}</button>`:''}
+              ${!held && needsService && currentUser && (currentUser.role==='service'||currentUser.role==='management')?`<button class="btn-tedit" onclick="setGRDeptDelay('${d.id}','service')" style="background:#fef2f2;color:#dc2626;border-color:#fca5a5">Delay</button>`:''}
+            </div>
+          </div>`;
+        })():''}
         ${!isSimpleType?(() => {
           // Licensing - New Plates / Plate Transfer / Notes (a free-text
           // reason, asked for right when it's picked, e.g. "Notes from the
@@ -8232,17 +8237,16 @@ function renderGRCard(d, perms, isDupe) {
           }
           const label = LICENSING_LABELS[d.licensingType] || d.licensingType;
           const noteLine = d.licensingType === 'NOTES' && d.licensingNote ? esc(d.licensingNote) : '';
-          return `<div class="gr-gas-banner" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${d.licensingHold?'background:#fef2f2':'background:#fffbeb'}">
+          return `<div class="gr-gas-banner" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${d.licensingHold?'background:#fffbeb':'background:#f0fdf4'}">
             <span style="font-size:20px">🪪</span>
             <div style="flex:1">
-              <div style="font-weight:700;color:${d.licensingHold?'#dc2626':'#b45309'}">${d.licensingHold?'Licensing Delay':esc(label)+(noteLine?' - '+noteLine:'')}</div>
-              ${d.licensingHold?`<div style="font-size:11px;font-weight:700;color:#991b1b">${esc(d.licensingHoldReason||'No reason given')}${d.licensingHoldBy?' · '+esc(d.licensingHoldBy):''}</div>`:`<div style="font-size:11px;font-weight:700;color:#92400e">Sent to Licensing - please confirm completed before delivery</div>`}
+              <div style="font-weight:700;color:${d.licensingHold?'#b45309':'#15803d'}">${d.licensingHold?'Licensing Delay':esc(label)+(noteLine?' - '+noteLine:'')}</div>
+              ${d.licensingHold?`<div style="font-size:11px;font-weight:700;color:#92400e">${esc(d.licensingHoldReason||'No reason given')}${d.licensingHoldBy?' · '+esc(d.licensingHoldBy):''}</div>`:`<div style="font-size:11px;font-weight:700;color:#15803d">Sent to Licensing - please confirm completed before delivery</div>`}
             </div>
-            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
-              <span style="font-size:18px">${d.licensingHold?'⏸':'⏳'}</span>
-              ${canChecklist?`<button onclick="resetGRLicensing('${d.id}')" style="border:none;background:none;color:${d.licensingHold?'#991b1b':'#92400e'};font-size:11px;text-decoration:underline;cursor:pointer;padding:0;white-space:nowrap">Change</button>
-              <button onclick="setGRDeptHold('${d.id}','licensing',${d.licensingHold?'false':'true'})" style="border:none;background:none;color:${d.licensingHold?'#991b1b':'#92400e'};font-size:11px;text-decoration:underline;cursor:pointer;padding:0;white-space:nowrap">${d.licensingHold?'Resume':'⏸ Hold'}</button>`:''}
-              ${!d.licensingHold && canChecklist?`<button onclick="setGRDeptDelay('${d.id}','licensing')" style="border:none;background:none;color:#dc2626;font-size:11px;text-decoration:underline;cursor:pointer;padding:0;white-space:nowrap">⏱ Delay</button>`:''}
+            <div style="display:flex;gap:6px;flex-shrink:0">
+              ${canChecklist?`<button class="btn-tedit" onclick="resetGRLicensing('${d.id}')">Change</button>
+              <button class="btn-tedit" onclick="setGRDeptHold('${d.id}','licensing',${d.licensingHold?'false':'true'})" style="${d.licensingHold?'background:#f0fdf4;color:#15803d;border-color:#86efac':'background:#fffbeb;color:#92400e;border-color:#fde68a'}">${d.licensingHold?'Resume':'Hold'}</button>`:''}
+              ${!d.licensingHold && canChecklist?`<button class="btn-tedit" onclick="setGRDeptDelay('${d.id}','licensing')" style="background:#fef2f2;color:#dc2626;border-color:#fca5a5">Delay</button>`:''}
             </div>
           </div>`;
         })():''}
