@@ -414,7 +414,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
    enough that it needs horizontal scroll on a laptop; the full-width
    layout means a normal desktop monitor shows it with no scrolling at all. */
 .trows{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface);min-width:1500px}
-.trow{display:grid;grid-template-columns:26px 90px 150px minmax(160px,1.3fr) 300px 130px 260px 90px 78px;gap:12px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--border);font-size:13px}
+.trow{display:grid;grid-template-columns:26px 90px 150px minmax(200px,1.3fr) 300px 130px 260px minmax(140px,1fr) 78px;gap:12px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--border);font-size:13px}
 .trow:last-child{border-bottom:none}
 .trow:hover{background:#fafaf9}
 .trow.is-complete{background:#f0fdf4}
@@ -443,7 +443,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .trow-inline-status option[value="TURNOVER"]{color:#d97706;font-weight:700}
 .trow-meta{font-size:11px;color:var(--text-faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .trow-lock-icon,.trow-note-icon{font-size:12px;cursor:default}
-.trows-head{display:grid;grid-template-columns:26px 90px 150px minmax(160px,1.3fr) 300px 130px 260px 90px 78px;gap:12px;padding:8px 14px;background:#f8fafc;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint)}
+.trows-head{display:grid;grid-template-columns:26px 90px 150px minmax(200px,1.3fr) 300px 130px 260px minmax(140px,1fr) 78px;gap:12px;padding:8px 14px;background:#f8fafc;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint)}
 
 /* Desktop: bigger grid */
 @media(min-width:1200px){.tracker-card-grid{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}}
@@ -964,6 +964,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-spot.cm-selected{box-shadow:0 0 0 2.5px #f59e0b,0 0 0 4px #fef3c7!important;z-index:4;transform:translateY(-1px)}
 .cm-spot.cm-drag-over{border-color:var(--ford)!important;background:#eff6ff!important;box-shadow:0 0 0 2px #93c5fd!important;transform:scale(1.05)}
 #gr-pdf-row.gr-pdf-dragover{border-color:var(--ford)!important;background:#eff6ff!important;box-shadow:0 0 0 2px #93c5fd inset}
+.gr-file-drop.drag-over{border-color:var(--ford)!important;background:#eff6ff!important;box-shadow:0 0 0 2px #93c5fd inset}
 @keyframes cmHoldPulse{0%{box-shadow:0 0 0 0 rgba(245,158,11,.7)}100%{box-shadow:0 0 0 6px rgba(245,158,11,0)}}
 .cm-spot.cm-holding{animation:cmHoldPulse 3s ease-out forwards;z-index:3}
 .cm-spot.cm-armed{box-shadow:0 0 0 3px #f59e0b!important;z-index:5}
@@ -7241,6 +7242,56 @@ window.grDeleteNote = async function(id, idx) {
   noteEntries.splice(idx, 1);
   await update(ref(db,'getready/'+id), { noteEntries });
 };
+window.grFileDropOver = function(ev) {
+  ev.preventDefault();
+  ev.dataTransfer.dropEffect = 'copy';
+  ev.currentTarget.classList.add('drag-over');
+};
+window.grFileDropLeave = function(ev) {
+  if (ev.currentTarget.contains(ev.relatedTarget)) return;
+  ev.currentTarget.classList.remove('drag-over');
+};
+window.grAttachDrop = function(ev, id) {
+  ev.preventDefault();
+  ev.currentTarget.classList.remove('drag-over');
+  const files = ev.dataTransfer.files;
+  if (files && files.length) grUploadAttachments(id, files);
+};
+// Reference files (invoices, etc) beyond the one required deal sheet PDF -
+// unlike that PDF, these are plain Storage uploads with no form-field
+// scanning, so any file type is accepted.
+window.grUploadAttachments = async function(id, fileList) {
+  const files = Array.from(fileList || []);
+  if (!files.length) return;
+  const d = getReadyDeals[id];
+  if (!d) return;
+  const attachments = Array.isArray(d.attachments) ? d.attachments.slice() : [];
+  for (const file of files) {
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9.\-_ ]/g, '_');
+      const path = `getready-attachments/${id}/${Date.now()}-${safeName}`;
+      const fileRef = storageRef(storage, path);
+      await uploadBytes(fileRef, file, { contentType: file.type || 'application/octet-stream' });
+      const url = await getDownloadURL(fileRef);
+      attachments.push({ name: file.name, url, path, uploadedBy: currentUser.name, uploadedAt: Date.now() });
+    } catch(e) {
+      console.error('Attachment upload failed:', e);
+      alert(`Failed to upload "${file.name}".`);
+    }
+  }
+  await update(ref(db,'getready/'+id), { attachments });
+};
+// Management can remove any attachment; anyone else can only remove their own upload.
+window.grDeleteAttachment = async function(id, idx) {
+  const d = getReadyDeals[id];
+  if (!d || !Array.isArray(d.attachments) || !d.attachments[idx]) return;
+  const target = d.attachments[idx];
+  if (!(currentUser.role === 'management' || target.uploadedBy === currentUser.name)) return;
+  if (!confirm(`Remove "${target.name}"?`)) return;
+  const attachments = d.attachments.slice();
+  attachments.splice(idx, 1);
+  await update(ref(db,'getready/'+id), { attachments });
+};
 window.grDeleteLegacyNote = async function(id) {
   const d = getReadyDeals[id];
   if (!d || !d.notes) return;
@@ -8134,6 +8185,29 @@ function renderGRCard(d, perms, isDupe) {
             </div>`).join('')}
         </div>` : ''}
         ${d.instructions?`<div style="padding:8px 16px;font-size:12px;color:#92400e;background:#fffbeb;border-bottom:1px solid var(--border)">⚠ ${esc(d.instructions)}</div>`:''}
+        ${(() => {
+          // Reference files - invoices, etc, beyond the one required deal
+          // sheet PDF above. Anyone who can open this popup sees the list;
+          // only canFull (same gate as "Add a note") can add more, and only
+          // management or the uploader can remove one - same pattern as notes.
+          const attachments = Array.isArray(d.attachments) ? d.attachments : [];
+          if (!attachments.length && !canFull) return '';
+          const list = attachments.length ? `<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:${canFull?'8':'0'}px">${attachments.map((f,i) => `
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+              ${isSafeHttpsUrl(f.url)?`<a href="${esc(f.url)}" target="_blank" rel="noopener" style="flex:1;min-width:0;color:var(--ford);text-decoration:none;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(f.name||'')}">📎 ${esc(f.name||'File')}</a>`:`<span style="flex:1;min-width:0;color:var(--text-faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📎 ${esc(f.name||'File')}</span>`}
+              <span style="color:var(--text-faint);font-size:10px;white-space:nowrap">${f.uploadedBy?esc(f.uploadedBy):''}</span>
+              ${(currentUser && (currentUser.role==='management' || f.uploadedBy===currentUser.name))?`<button onclick="grDeleteAttachment('${d.id}',${i})" title="Remove file" style="border:none;background:none;color:#94a3b8;cursor:pointer;font-size:12px;padding:0 2px;flex-shrink:0">✕</button>`:''}
+            </div>`).join('')}</div>` : '';
+          const dropZone = canFull ? `<div id="gr-attach-drop-${d.id}" class="gr-file-drop" ondragover="grFileDropOver(event)" ondragleave="grFileDropLeave(event)" ondrop="grAttachDrop(event,'${d.id}')" style="padding:7px 10px;border:1px dashed var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;gap:8px">
+            <input type="file" multiple id="gr-attach-input-${d.id}" style="display:none" onchange="grUploadAttachments('${d.id}', this.files);this.value='';"/>
+            <span style="font-size:11px;color:var(--text-muted);flex:1">${attachments.length?'Add more files…':'Drag files here, or'}</span>
+            <button type="button" onclick="document.getElementById('gr-attach-input-${d.id}').click()" style="padding:5px 10px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer">+ Add file</button>
+          </div>` : '';
+          return `<div style="padding:10px 16px;border-bottom:1px solid var(--border)">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:6px">Files</div>
+            ${list}${dropZone}
+          </div>`;
+        })()}
         <div class="gr-notes">
           ${(d.notes || (Array.isArray(d.noteEntries) && d.noteEntries.length)) ? `<div style="padding:8px 16px 0;display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto">${renderGRNoteBubbles(d)}</div>` : ''}
           ${canFull?`<div style="display:flex;gap:6px;padding:8px 16px">
