@@ -514,6 +514,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .gr-type-pill.wholesale{background:#fef3c7;color:#92400e}
 .gr-type-pill.dealertrade{background:#faf5ff;color:#7c3aed}
 .gr-type-pill.fleet{background:#e0f2fe;color:#075985}
+.gr-type-pill.new-condition{background:#dcfce7;color:#15803d}
 .gr-card-vehicle{font-size:13px;color:var(--text-muted);margin-top:3px;font-weight:500}
 .gr-card-customer{font-size:12px;color:var(--text-faint);margin-top:2px}
 .gr-gas-banner{display:flex;align-items:center;gap:8px;padding:10px 16px;background:#fef2f2;border-bottom:2px solid #fecaca;font-size:13px;font-weight:600;color:#991b1b}
@@ -1705,6 +1706,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
           <input class="search-input" id="gr-search" type="text" placeholder="Search stock, customer, deal #…" oninput="grSearchInput()"/>
         </div>
         <button class="filter-chip active" onclick="setGRFilter('ALL',this)">All</button>
+        <button class="filter-chip" onclick="setGRFilter('NEW',this)">New</button>
+        <button class="filter-chip" onclick="setGRFilter('USED',this)">Used</button>
         <button class="filter-chip" onclick="setGRFilter('AS-IS',this)">As-Is</button>
         <button class="filter-chip" onclick="setGRFilter('RETAIL',this)">Retail</button>
         <button class="filter-chip" onclick="setGRFilter('WHOLESALE',this)">Wholesale</button>
@@ -1738,6 +1741,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
             <input class="search-input" id="grc-search" type="text" placeholder="Search resolved deals…" oninput="grcSearchInput()"/>
           </div>
           <button class="filter-chip active" onclick="setGRCompletedFilter('ALL',this)">All</button>
+          <button class="filter-chip" onclick="setGRCompletedFilter('NEW',this)">New</button>
+          <button class="filter-chip" onclick="setGRCompletedFilter('USED',this)">Used</button>
           <button class="filter-chip" onclick="setGRCompletedFilter('AS-IS',this)">As-Is</button>
           <button class="filter-chip" onclick="setGRCompletedFilter('RETAIL',this)">Retail</button>
           <button class="filter-chip" onclick="setGRCompletedFilter('WHOLESALE',this)">Wholesale</button>
@@ -3053,6 +3058,12 @@ F24118, 2026, Bronco Sport, Big Bend, 302A, D4, M, 99A, 448, 53Q; FX4, OneDrive/
           <option value="WHOLESALE">Wholesale</option>
           <option value="DEALER TRADE">Dealer Trade</option>
           <option value="FLEET">Fleet</option>
+        </select>
+      </div>
+      <div class="modal-form-row"><label>Condition</label>
+        <select id="gr-condition">
+          <option value="used">Used</option>
+          <option value="new">New</option>
         </select>
       </div>
       <div class="modal-form-row"><label id="gr-delivery-date-label">Delivery date</label><input id="gr-delivery-date" type="date"/></div>
@@ -7008,6 +7019,8 @@ function getGRFiltered() {
   let rows = grScopedDeals();
   if (grFilterStatus === 'GAS') rows = rows.filter(d => grEffectiveFuelStatus(d) !== 'none' && !d.gasFilled);
   else if (grFilterStatus === 'SERVICE') rows = rows.filter(grNeedsService);
+  else if (grFilterStatus === 'NEW') rows = rows.filter(d => d.condition === 'new');
+  else if (grFilterStatus === 'USED') rows = rows.filter(d => d.condition !== 'new');
   else if (grFilterStatus !== 'ALL') rows = rows.filter(d => d.type === grFilterStatus);
   if (q) rows = rows.filter(d => [d.stock,d.dealNum,d.vehicle,d.vin,d.customer,d.salesperson,d.notes].join(' ').toLowerCase().includes(q));
   // Pure delivery order - doesn't matter what's been checked off (gas,
@@ -7032,7 +7045,9 @@ window.setGRCompletedFilter = function(status, btn) {
 function getGRCompletedFiltered() {
   const q = (document.getElementById('grc-search')?.value||'').trim().toLowerCase();
   let rows = grScopedDeals().filter(d => grIsReadyForDelivery(d) || grIsCancelled(d));
-  if (grcFilterStatus !== 'ALL') rows = rows.filter(d => d.type === grcFilterStatus);
+  if (grcFilterStatus === 'NEW') rows = rows.filter(d => d.condition === 'new');
+  else if (grcFilterStatus === 'USED') rows = rows.filter(d => d.condition !== 'new');
+  else if (grcFilterStatus !== 'ALL') rows = rows.filter(d => d.type === grcFilterStatus);
   if (q) rows = rows.filter(d => [d.stock,d.dealNum,d.vehicle,d.vin,d.customer,d.salesperson,d.notes].join(' ').toLowerCase().includes(q));
   rows.sort((a,b) => (b.completedAt||b.cancelledAt||0) - (a.completedAt||a.cancelledAt||0));
   return rows;
@@ -8050,8 +8065,8 @@ function renderGRCard(d, perms, isDupe) {
         </div>`:''}
         <div style="padding:10px 16px;border-bottom:1px solid var(--border)">
           ${d.dealNum?`<div style="font-size:11px;color:var(--text-faint)">Deal # ${hl('dealNum', esc(d.dealNum))}</div>`:''}
-          ${!isSimpleType?`<div class="gr-card-vehicle">${hl('vehicle', esc(grSpecLine || d.vehicle || '-'))}${d.vin?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">${hl('vin', esc(d.vin))}</span>`:d.vin6?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">…${esc(d.vin6)}</span>`:''}</div>`
-            :((grSpecLine||d.vin)?`<div class="gr-card-vehicle">${grSpecLine?esc(grSpecLine):''}${d.vin?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">${hl('vin', esc(d.vin))}</span>`:''}</div>`:'')}
+          ${!isSimpleType?`<div class="gr-card-vehicle">${d.condition==='new'?'<span class="gr-type-pill new-condition" style="margin-right:6px;vertical-align:middle">New</span>':''}${hl('vehicle', esc(grSpecLine || d.vehicle || '-'))}${d.vin?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">${hl('vin', esc(d.vin))}</span>`:d.vin6?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">…${esc(d.vin6)}</span>`:''}</div>`
+            :((grSpecLine||d.vin)?`<div class="gr-card-vehicle">${d.condition==='new'?'<span class="gr-type-pill new-condition" style="margin-right:6px;vertical-align:middle">New</span>':''}${grSpecLine?esc(grSpecLine):''}${d.vin?` <span style="font-family:monospace;font-size:10px;color:var(--text-faint)">${hl('vin', esc(d.vin))}</span>`:''}</div>`:'')}
           ${d.customer?`<div class="gr-card-customer">${d.type==='WHOLESALE'?'🏛 ':d.type==='DEALER TRADE'?'🏢 ':''}${hl('customer', esc(d.customer))}</div>`:''}
           ${(d.salesperson||d.deskManager||d.fniManager||d.deliveryPerson)?`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
             ${d.salesperson?`<span style="font-size:12px;font-weight:700;color:#1d4ed8;white-space:nowrap" title="Salesperson">👤 ${hl('salesperson', esc(d.salesperson))}</span>`:''}
@@ -8206,6 +8221,7 @@ function renderGRCard(d, perms, isDupe) {
         <div class="gr-card-top">
           <span class="gr-card-stock">${stockCopy(d.stock)}</span>
           <span class="gr-type-pill ${typePillClass}">${esc(d.type||'-')}</span>
+          ${d.condition==='new'?`<span class="gr-type-pill new-condition">New</span>`:''}
           ${holdBadge}${updatedBadge}${dupeBadge}
         </div>
         <div style="margin-top:6px">${dotsRowHtml}</div>
@@ -8576,6 +8592,7 @@ window.openGRModal = function(id, presetType) {
   grRenderServicesChecklist(d);
   document.getElementById('gr-type').value = d.type || presetType || 'RETAIL';
   grApplyTypeVisibility(document.getElementById('gr-type').value);
+  document.getElementById('gr-condition').value = d.condition || 'used';
   document.getElementById('gr-delivery-date').value = d.deliveryDate || '';
   document.getElementById('gr-delivery-time').value = d.deliveryTime || '';
   setGRFuelStatus(id ? grEffectiveFuelStatus(d) : 'gas');
@@ -8978,6 +8995,7 @@ window.saveGR = async function() {
     fniManagerUid, fniManager: grFniRoster.find(s => s.uid === fniManagerUid)?.name || '',
     deliveryPersonUid, deliveryPerson: grDeliveryRoster.find(s => s.uid === deliveryPersonUid)?.name || '',
     type: document.getElementById('gr-type').value,
+    condition: document.getElementById('gr-condition').value,
     deliveryDate: document.getElementById('gr-delivery-date').value,
     deliveryTime: document.getElementById('gr-delivery-time').value,
     fuelStatus: grFuelStatus,
