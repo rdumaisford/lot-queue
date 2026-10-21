@@ -963,6 +963,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
 .cm-note-del:hover{color:#991b1b}
 .cm-spot.cm-selected{box-shadow:0 0 0 2.5px #f59e0b,0 0 0 4px #fef3c7!important;z-index:4;transform:translateY(-1px)}
 .cm-spot.cm-drag-over{border-color:var(--ford)!important;background:#eff6ff!important;box-shadow:0 0 0 2px #93c5fd!important;transform:scale(1.05)}
+#gr-pdf-row.gr-pdf-dragover{border-color:var(--ford)!important;background:#eff6ff!important;box-shadow:0 0 0 2px #93c5fd inset}
 @keyframes cmHoldPulse{0%{box-shadow:0 0 0 0 rgba(245,158,11,.7)}100%{box-shadow:0 0 0 6px rgba(245,158,11,0)}}
 .cm-spot.cm-holding{animation:cmHoldPulse 3s ease-out forwards;z-index:3}
 .cm-spot.cm-armed{box-shadow:0 0 0 3px #f59e0b!important;z-index:5}
@@ -3027,9 +3028,9 @@ F24118, 2026, Bronco Sport, Big Bend, 302A, D4, M, 99A, 448, 53Q; FX4, OneDrive/
   <div class="modal-card">
     <div class="modal-title-row"><span id="gr-modal-title">Add Get Ready deal</span><button class="modal-close" onclick="closeGRModal()">×</button></div>
     <div id="gr-lock-banner" style="display:none;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;margin-bottom:12px"></div>
-    <div id="gr-pdf-row" class="gr-full-only" style="margin-bottom:12px;padding:10px 14px;border:1px dashed var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <div id="gr-pdf-row" class="gr-full-only" style="margin-bottom:12px;padding:10px 14px;border:1px dashed var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;gap:10px;flex-wrap:wrap" ondragover="grPdfDragOver(event)" ondragleave="grPdfDragLeave(event)" ondrop="grPdfDrop(event)">
       <input type="file" id="gr-pdf-input" accept="application/pdf" style="display:none" onchange="handleGRPdfUpload(this.files[0])"/>
-      <span id="gr-pdf-status" style="font-size:13px;color:var(--text-muted);flex:1">No Get Ready sheet attached</span>
+      <span id="gr-pdf-status" style="font-size:13px;color:var(--text-muted);flex:1">No Get Ready sheet attached — drag &amp; drop a PDF here, or</span>
       <button type="button" onclick="document.getElementById('gr-pdf-input').click()" style="padding:7px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer">📄 Attach / replace PDF</button>
       <a id="gr-pdf-view-link" href="#" target="_blank" rel="noopener" style="display:none;padding:7px 14px;font-size:13px;font-weight:600;border-radius:var(--radius-sm);background:var(--ford);color:#fff;text-decoration:none">View sheet</a>
     </div>
@@ -8644,7 +8645,7 @@ function updateGRPdfRowUI() {
     link.style.display = 'inline-block';
     link.href = grExistingPdfUrl;
   } else {
-    status.textContent = 'No Get Ready sheet attached';
+    status.textContent = 'No Get Ready sheet attached — drag & drop a PDF here, or';
     link.style.display = 'none';
   }
 }
@@ -8867,6 +8868,22 @@ function applyGRPdfFields(form) {
   // dropped, same "only if blank" rule as everything else here.
   fillGRIfEmpty('gr-comments', pdfFieldText(form, 'Remarks_'));
 }
+
+window.grPdfDragOver = function(ev) {
+  ev.preventDefault();
+  ev.dataTransfer.dropEffect = 'copy';
+  document.getElementById('gr-pdf-row').classList.add('gr-pdf-dragover');
+};
+window.grPdfDragLeave = function(ev) {
+  if (ev.currentTarget.contains(ev.relatedTarget)) return;
+  ev.currentTarget.classList.remove('gr-pdf-dragover');
+};
+window.grPdfDrop = function(ev) {
+  ev.preventDefault();
+  ev.currentTarget.classList.remove('gr-pdf-dragover');
+  const file = ev.dataTransfer.files && ev.dataTransfer.files[0];
+  if (file) handleGRPdfUpload(file);
+};
 
 window.handleGRPdfUpload = async function(file) {
   if (!file) return;
