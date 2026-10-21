@@ -1712,6 +1712,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <button class="filter-chip" onclick="setGRFilter('FLEET',this)">Fleet</button>
         <button class="filter-chip" onclick="setGRFilter('GAS',this)">Needs Gas/Charge</button>
         <button class="filter-chip" onclick="setGRFilter('SERVICE',this)">Needs Service</button>
+        <select id="gr-fni-filter" onchange="setGRFniFilter(this.value)" style="display:none;padding:6px 10px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"></select>
         <span id="gr-row-count" style="font-size:13px;color:var(--text-muted);white-space:nowrap"></span>
         <button class="btn-add-unit" id="btn-add-getready" onclick="openGRTypePicker()" style="display:none;margin-left:auto">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
@@ -3295,6 +3296,13 @@ function applyPermissions() {
   // happens to be missing everyone else's deals.
   const grLabel = document.getElementById('tab-getready-label');
   if (grLabel) grLabel.textContent = ['sales','fandi'].includes(currentUser.role) ? 'My Get Readies' : 'Get Ready';
+  // F&I cover for each other when one's out sick - this lets F&I see
+  // someone else's deals on request instead of only ever their own, and
+  // lets management jump straight to one F&I's deals instead of scanning
+  // the full list (see grScopedDeals/setGRFniFilter).
+  if (['fandi','management'].includes(currentUser.role)) {
+    loadGRRosters().then(grRenderFniFilterSelect);
+  }
   const cmEditBtn = document.getElementById('cm-edit-btn');
   if (cmEditBtn) cmEditBtn.style.display = cmCanEditLayout() ? '' : 'none';
   const flAddBtn = document.getElementById('fl-add-btn');
@@ -6939,19 +6947,52 @@ window.setGRFilter = function(status, btn) {
   if (grView === 'calendar') renderGRCalendar();
 };
 
+// F&I cover for each other when one's out sick - grFniFilterUid lets an F&I
+// user look at a specific colleague's deals (or 'ALL' of them) instead of
+// only ever their own, and lets management narrow the otherwise-unfiltered
+// full list down to one F&I's deals. Plain UI state, not persisted - every
+// panel load/login starts back on "My Deals"/unfiltered.
+let grFniFilterUid = null;
+function grRenderFniFilterSelect() {
+  const sel = document.getElementById('gr-fni-filter');
+  if (!sel || !currentUser) return;
+  if (!['fandi','management'].includes(currentUser.role)) { sel.style.display = 'none'; return; }
+  const isFandi = currentUser.role === 'fandi';
+  const options = [isFandi ? `<option value="">My Deals</option>` : `<option value="">All F&amp;I</option>`]
+    .concat(isFandi ? [`<option value="ALL">All F&amp;I Deals</option>`] : [])
+    .concat(grFniRoster.filter(r => !isFandi || r.uid !== currentUser.uid).map(r => `<option value="${r.uid}">${esc(r.name)}${isFandi?"'s Deals":''}</option>`));
+  sel.innerHTML = options.join('');
+  sel.value = grFniFilterUid || '';
+  sel.style.display = '';
+}
+window.setGRFniFilter = function(value) {
+  grFniFilterUid = value || null;
+  renderGetReady();
+  if (grView === 'calendar') renderGRCalendar();
+};
+
 // Deals visible to the current role - Sales/F&I only see their own, every
 // other role (Lot, Management, etc.) sees everything. Matched by uid, now
 // that Salesperson/F&I Manager are roster-backed picks rather than free
 // text (see saveGR) - falls back to a name match for any deal saved before
-// that change, which only ever has the free-text name on file.
+// that change, which only ever has the free-text name on file. F&I/
+// management can override this with grFniFilterUid (see setGRFniFilter).
 function grScopedDeals() {
   let rows = Object.entries(getReadyDeals).map(([id,d])=>({id,...d}));
   if (currentUser?.role === 'sales') {
     rows = rows.filter(d => d.salespersonUid ? d.salespersonUid === currentUser.uid
       : (d.salesperson||'').toLowerCase() === (currentUser.name||'').toLowerCase());
   } else if (currentUser?.role === 'fandi') {
-    rows = rows.filter(d => d.fniManagerUid ? d.fniManagerUid === currentUser.uid
-      : (d.fniManager||'').toLowerCase() === (currentUser.name||'').toLowerCase());
+    if (grFniFilterUid === 'ALL') {
+      // explicit "show every F&I's deals" - no filtering at all
+    } else if (grFniFilterUid) {
+      rows = rows.filter(d => (d.fniManagerUid||'') === grFniFilterUid);
+    } else {
+      rows = rows.filter(d => d.fniManagerUid ? d.fniManagerUid === currentUser.uid
+        : (d.fniManager||'').toLowerCase() === (currentUser.name||'').toLowerCase());
+    }
+  } else if (currentUser?.role === 'management' && grFniFilterUid) {
+    rows = rows.filter(d => (d.fniManagerUid||'') === grFniFilterUid);
   }
   return rows;
 }
