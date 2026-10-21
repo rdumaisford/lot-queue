@@ -8173,6 +8173,7 @@ function renderGRCard(d, perms, isDupe) {
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px">
           ${d.pdfUrl&&isSafeHttpsUrl(d.pdfUrl)?`<a href="${esc(d.pdfUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:11px;font-weight:600;color:var(--ford);text-decoration:none;white-space:nowrap">📄 View Deal Form</a>`:''}
           ${d.salesperson?`<span style="font-size:12px;font-weight:700;color:#1d4ed8;white-space:nowrap" title="Salesperson">👤 ${hl('salesperson', esc(d.salesperson))}</span>`:''}
+          ${d.fniManager?`<span style="font-size:12px;font-weight:700;color:#b45309;white-space:nowrap" title="F&amp;I Manager">💰 ${hl('fniManager', esc(d.fniManager))}</span>`:''}
           ${d.deliveryPerson?`<span style="font-size:12px;font-weight:700;color:#0891b2;white-space:nowrap" title="Delivery Person">🚚 ${hl('deliveryPerson', esc(d.deliveryPerson))}</span>`:''}
           <span style="margin-left:auto;font-size:11px;color:var(--text-faint);white-space:nowrap">Details ›</span>
         </div>
