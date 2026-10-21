@@ -6909,14 +6909,22 @@ function grLocationConfirmed(d) {
 }
 function grIsComplete(d) {
   if (!grLocationConfirmed(d)) return false;
+  // Services and Licensing are assumed on-time by default - neither one is
+  // a gate here on its own (see the banners/grNeedsService below, both
+  // purely informational). The one way either department can actually
+  // block completeness is an explicit hold on their own stage (see
+  // setGRDeptHold) - until they clear it, the deal can't read On Time/Ready.
+  if (d.serviceHold || d.licensingHold) return false;
   if (grIsSimpleType(d)) return true;
   const customDone = (d.customFields||[]).filter(f=>f.label).every(f=>f.done);
-  // Services and Licensing aren't gates anymore - both just show on the
-  // card as informational ("Sent to Service"/"Sent to Licensing") with no
-  // confirm step, since neither Service nor reception/licensing wants to
-  // log in and tap a checkbox per deal (see the banners above and
-  // grNeedsService below).
   return customDone && (grEffectiveFuelStatus(d)==='none' || d.gasFilled);
+}
+// Within 3 hours of the scheduled delivery/pickup, so the salesperson's
+// "Confirm Ready" button isn't offered before it's actually meaningful.
+function grWithinReadyWindow(d) {
+  if (!d.deliveryDate) return false;
+  const target = new Date(d.deliveryDate + 'T' + (d.deliveryTime || '00:00')).getTime();
+  return (target - Date.now()) <= 3*60*60*1000;
 }
 
 // A deal only leaves the active list for "Ready for delivery" once BOTH the
@@ -6947,7 +6955,13 @@ function grDealStatusTag(d) {
   if (grIsCancelled(d)) return { color: '#dc2626', label: 'Cancelled' };
   if (grIsSimpleType(d)) return { color: '#8b5cf6', label: d.dealCompleted ? 'Picked up' : 'Pickup' };
   if (d.dealCompleted) return { color: '#2563eb', label: 'Delivered' };
-  if (grIsComplete(d)) return { color: '#22c55e', label: 'Ready to go' };
+  if (d.serviceHold && d.licensingHold) return { color: '#dc2626', label: 'Service & Licensing Hold' };
+  if (d.serviceHold) return { color: '#dc2626', label: 'Service Hold' };
+  if (d.licensingHold) return { color: '#dc2626', label: 'Licensing Hold' };
+  // On Time = prep done, nobody's flagged a hold - assumed good until the
+  // salesperson physically checks the vehicle closer to delivery and taps
+  // Confirm Ready (see confirmGRReady/grWithinReadyWindow).
+  if (grIsComplete(d)) return { color: d.readyConfirmed ? '#15803d' : '#22c55e', label: d.readyConfirmed ? 'Ready' : 'On Time' };
   return { color: '#f97316', label: 'In progress' };
 }
 
@@ -7491,6 +7505,35 @@ window.acknowledgeGRUpdate = async function(id) {
   });
 };
 
+// Lets Service or Licensing flag that their OWN stage is delayed, rather
+// than the whole deal (see setGRDealStatus above for that) - a deal is
+// assumed on-time by default (see grIsComplete), this is the one way
+// either department can actually say otherwise, and it sticks until
+// whoever's covering that stage clears it.
+window.setGRDeptHold = async function(id, dept, value) {
+  const d = getReadyDeals[id];
+  if (!d) return;
+  const field = dept === 'service' ? 'serviceHold' : 'licensingHold';
+  const deptLabel = dept === 'service' ? 'Service' : 'Licensing';
+  if (value) {
+    const reason = prompt(`What's holding up ${deptLabel} on this deal? (e.g. "waiting on part")`, '');
+    if (reason === null) return;
+    if (!confirm(`Put ${deptLabel} on hold${reason.trim() ? ' - "'+reason.trim()+'"' : ''}? This deal won't show On Time/Ready until you clear it.`)) return;
+    await update(ref(db,'getready/'+id), { [field]: true, [field+'Reason']: reason.trim() || null, [field+'By']: currentUser.name, [field+'At']: Date.now() });
+  } else {
+    await update(ref(db,'getready/'+id), { [field]: false, [field+'Reason']: null, [field+'By']: null, [field+'At']: null });
+  }
+};
+// The salesperson's own physical "I checked it, it's actually ready"
+// confirmation - separate from the prep checklist being done (On Time),
+// only offered starting 3 hours out (grWithinReadyWindow) so it means
+// something when it's pressed.
+window.confirmGRReady = async function(id) {
+  const d = getReadyDeals[id];
+  if (!d) return;
+  if (!confirm('Confirm this vehicle is physically ready for delivery?')) return;
+  await update(ref(db,'getready/'+id), { readyConfirmed: true, readyConfirmedBy: currentUser.name, readyConfirmedAt: Date.now() });
+};
 window.setGRDealStatus = async function(id, status) {
   const d = getReadyDeals[id];
   if (!d) return;
@@ -8104,17 +8147,43 @@ function renderGRCard(d, perms, isDupe) {
             ${canChecklist?`<button onclick="resetGRFinancing('${d.id}')" style="border:none;background:none;color:var(--text-faint);font-size:11px;text-decoration:underline;cursor:pointer;padding:0;margin-left:auto">Change</button>`:''}
           </div>`;
         })()}
+        ${(!isSimpleType && grIsComplete(d) && !d.dealCompleted)?(() => {
+          const canConfirmReady = currentUser && (currentUser.role==='management' || currentUser.uid === d.salespersonUid);
+          if (d.readyConfirmed) {
+            const when = d.readyConfirmedAt ? new Date(d.readyConfirmedAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : '';
+            return `<div class="gr-gas-banner" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;background:#f0fdf4">
+              <span style="font-size:20px">✅</span>
+              <div style="flex:1">
+                <div style="font-weight:700;color:#15803d">Ready</div>
+                <div style="font-size:11px;font-weight:400;opacity:.7">Confirmed by ${esc(d.readyConfirmedBy||'someone')}${when?' · '+when:''}</div>
+              </div>
+            </div>`;
+          }
+          if (canConfirmReady && grWithinReadyWindow(d)) {
+            return `<div class="gr-gas-banner" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;background:#eff6ff">
+              <span style="font-size:20px">🚗</span>
+              <div style="flex:1">
+                <div style="font-weight:700;color:#1d4ed8">On Time</div>
+                <div style="font-size:11px;font-weight:400;opacity:.7">Confirm once you've physically checked the vehicle is ready</div>
+              </div>
+              <button class="btn-tedit" onclick="confirmGRReady('${d.id}')" style="background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:700">✓ Confirm Ready</button>
+            </div>`;
+          }
+          return '';
+        })():''}
         ${!isSimpleType?gasBanner:''}
-        ${!isSimpleType?`<div class="gr-gas-banner${needsService?'':' no-gas-needed'}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${needsService?'background:#fffbeb':''}">
+        ${!isSimpleType?`<div class="gr-gas-banner${needsService?'':' no-gas-needed'}" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${needsService?(d.serviceHold?'background:#fef2f2':'background:#fffbeb'):''}">
           <span style="font-size:20px">🔧</span>
           <div style="flex:1">
-            <div style="font-weight:700${needsService?';color:#b45309':''}">${needsService?'Sent to Service':'No Services Needed'}</div>
-            ${needsService?`<div style="font-size:11px;font-weight:700;color:#92400e">Please confirm completed before delivery</div>`:''}
+            <div style="font-weight:700${needsService?(d.serviceHold?';color:#dc2626':';color:#b45309'):''}">${needsService?(d.serviceHold?'Service Hold':'Sent to Service'):'No Services Needed'}</div>
+            ${needsService && d.serviceHold?`<div style="font-size:11px;font-weight:700;color:#991b1b">${esc(d.serviceHoldReason||'No reason given')}${d.serviceHoldBy?' · '+esc(d.serviceHoldBy):''}</div>`:''}
+            ${needsService && !d.serviceHold?`<div style="font-size:11px;font-weight:700;color:#92400e">Please confirm completed before delivery</div>`:''}
             ${serviceLabels.length?`<ul style="margin:4px 0 0;padding-left:16px;font-size:11px;font-weight:400;line-height:1.3;${needsService?'color:#92400e':'opacity:.7'}">${GR_CHECKLIST.filter(([key])=>d['req_'+key]).map(([key,label])=>`<li style="margin:3px 0">${esc(label)}${canChecklist?` <button onclick="grRemoveServiceItem('${d.id}','${key}')" title="Remove - not actually needed" style="border:none;background:none;color:#94a3b8;cursor:pointer;font-size:10px;padding:0 0 0 2px;line-height:1">✕</button>`:''}</li>`).join('')}</ul>`:''}
             ${d.serviceDetails?`<ul style="margin:4px 0 0;padding-left:16px;font-size:11px;font-weight:400;line-height:1.3;${needsService?'color:#92400e':'opacity:.7'}">${d.serviceDetails.split('\n').filter(Boolean).map((l,i)=>`<li style="margin:3px 0">${esc(l)}${canChecklist?` <button onclick="grRemoveServiceDetailLine('${d.id}',${i})" title="Remove - not actually needed" style="border:none;background:none;color:#94a3b8;cursor:pointer;font-size:10px;padding:0 0 0 2px;line-height:1">✕</button>`:''}</li>`).join('')}</ul>`:''}
+            ${canChecklist && needsService?`<button onclick="setGRDeptHold('${d.id}','service',${d.serviceHold?'false':'true'})" style="border:none;background:none;color:${d.serviceHold?'#991b1b':'#92400e'};font-size:11px;text-decoration:underline;cursor:pointer;padding:4px 0 0;margin-left:-2px">${d.serviceHold?'Resume':'⏸ Put Service on hold'}</button>`:''}
             ${d['req_pdi'] && pdiAtIncomingNote?pdiAtIncomingNote:''}
           </div>
-          <span style="font-size:18px">${needsService?'⏳':'✓'}</span>
+          <span style="font-size:18px">${needsService?(d.serviceHold?'⏸':'⏳'):'✓'}</span>
         </div>`:''}
         ${!isSimpleType?(() => {
           // Licensing - New Plates / Plate Transfer / Notes (a free-text
@@ -8135,14 +8204,15 @@ function renderGRCard(d, perms, isDupe) {
           }
           const label = LICENSING_LABELS[d.licensingType] || d.licensingType;
           const noteLine = d.licensingType === 'NOTES' && d.licensingNote ? esc(d.licensingNote) : '';
-          return `<div class="gr-gas-banner" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;background:#fffbeb">
+          return `<div class="gr-gas-banner" style="font-size:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;${d.licensingHold?'background:#fef2f2':'background:#fffbeb'}">
             <span style="font-size:20px">🪪</span>
             <div style="flex:1">
-              <div style="font-weight:700;color:#b45309">${esc(label)}${noteLine?' - '+noteLine:''}</div>
-              <div style="font-size:11px;font-weight:700;color:#92400e">Sent to Licensing - please confirm completed before delivery</div>
-              ${canChecklist?`<button onclick="resetGRLicensing('${d.id}')" style="border:none;background:none;color:#92400e;font-size:11px;text-decoration:underline;cursor:pointer;padding:2px 0 0;margin-left:-2px">Change</button>`:''}
+              <div style="font-weight:700;color:${d.licensingHold?'#dc2626':'#b45309'}">${d.licensingHold?'Licensing Hold':esc(label)+(noteLine?' - '+noteLine:'')}</div>
+              ${d.licensingHold?`<div style="font-size:11px;font-weight:700;color:#991b1b">${esc(d.licensingHoldReason||'No reason given')}${d.licensingHoldBy?' · '+esc(d.licensingHoldBy):''}</div>`:`<div style="font-size:11px;font-weight:700;color:#92400e">Sent to Licensing - please confirm completed before delivery</div>`}
+              ${canChecklist?`<button onclick="resetGRLicensing('${d.id}')" style="border:none;background:none;color:${d.licensingHold?'#991b1b':'#92400e'};font-size:11px;text-decoration:underline;cursor:pointer;padding:2px 0 0;margin-left:-2px">Change</button>
+              <button onclick="setGRDeptHold('${d.id}','licensing',${d.licensingHold?'false':'true'})" style="border:none;background:none;color:${d.licensingHold?'#991b1b':'#92400e'};font-size:11px;text-decoration:underline;cursor:pointer;padding:2px 0 0 10px">${d.licensingHold?'Resume':'⏸ Put on hold'}</button>`:''}
             </div>
-            <span style="font-size:18px">⏳</span>
+            <span style="font-size:18px">${d.licensingHold?'⏸':'⏳'}</span>
           </div>`;
         })():''}
         ${locationSection}
