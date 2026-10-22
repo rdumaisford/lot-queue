@@ -7657,17 +7657,21 @@ function renderGetReadySummary() {
   // see their own tagged deals on screen, so this summary counted deals
   // they couldn't even see until now.
   const all = grScopedDeals().filter(d => !grIsCancelled(d));
+  // Total/type breakdown only count active (not-yet-delivered) deals, same
+  // as the row-count line below the filter chips - a delivered deal is
+  // done, not part of current workload, so it shouldn't inflate these.
+  // "All done" below is the one stat that's deliberately the opposite.
   const active = all.filter(d => !grIsReadyForDelivery(d));
-  const asIs = all.filter(d=>d.type==='AS-IS').length;
-  const retail = all.filter(d=>d.type==='RETAIL').length;
-  const wholesale = all.filter(d=>d.type==='WHOLESALE').length;
-  const dealerTrade = all.filter(d=>d.type==='DEALER TRADE').length;
-  const needsGas = all.filter(d=>grEffectiveFuelStatus(d)!=='none' && !d.gasFilled).length;
+  const asIs = active.filter(d=>d.type==='AS-IS').length;
+  const retail = active.filter(d=>d.type==='RETAIL').length;
+  const wholesale = active.filter(d=>d.type==='WHOLESALE').length;
+  const dealerTrade = active.filter(d=>d.type==='DEALER TRADE').length;
+  const needsGas = active.filter(d=>grEffectiveFuelStatus(d)!=='none' && !d.gasFilled).length;
   const done = all.filter(d=>grIsReadyForDelivery(d)).length;
   const el = document.getElementById('gr-summary');
   if (!el) return;
   el.innerHTML = `
-    <div class="t-stat"><div class="t-stat-num">${all.length}</div><div class="t-stat-label">Total</div></div>
+    <div class="t-stat"><div class="t-stat-num">${active.length}</div><div class="t-stat-label">Total</div></div>
     <div class="t-stat"><div class="t-stat-num" style="color:#1d4ed8">${asIs}</div><div class="t-stat-label">As-Is</div></div>
     <div class="t-stat"><div class="t-stat-num" style="color:#6d28d9">${retail}</div><div class="t-stat-label">Retail</div></div>
     <div class="t-stat"><div class="t-stat-num" style="color:#92400e">${wholesale}</div><div class="t-stat-label">Wholesale</div></div>
