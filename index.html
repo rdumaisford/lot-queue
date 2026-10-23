@@ -3136,6 +3136,9 @@ F24118, 2026, Bronco Sport, Big Bend, 302A, D4, M, 99A, 448, 53Q; FX4, OneDrive/
       <div id="gr-licensing-note-row" style="display:none">
         <input id="gr-licensing-note" type="text" placeholder="Reason / note for licensing…" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/>
       </div>
+      <div style="margin-top:8px">
+        <input id="gr-licensing-rin" type="text" placeholder="RIN / Notes (optional)" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/>
+      </div>
     </div>
     <div class="modal-form-row modal-full" id="gr-financing-row" style="margin-top:10px">
       <label>Source</label>
@@ -7241,9 +7244,16 @@ window.setGRLicensingType = async function(id, type) {
     note = note.trim();
     if (!note) { alert('Please enter a reason.'); return; }
   }
+  // RIN/Notes is asked for no matter which licensing type is picked - it's
+  // always optional, so an empty answer just means none on file yet, not a
+  // cancel (only an actual Cancel on the prompt itself backs out of this).
+  const rinInput = prompt('RIN / Notes (optional):', '');
+  if (rinInput === null) return; // cancelled
+  const rin = rinInput.trim() || null;
   await update(ref(db,'getready/'+id), {
     licensingType: type,
     licensingNote: note,
+    licensingRin: rin,
     licensingStatus: null,
     licensingSentBy: null, licensingSentAt: null,
     licensingDoneBy: null, licensingDoneAt: null,
@@ -7254,7 +7264,7 @@ window.setGRLicensingType = async function(id, type) {
 window.resetGRLicensing = async function(id) {
   if (!confirm('Change the licensing type for this deal?')) return;
   await update(ref(db,'getready/'+id), {
-    licensingType: null, licensingNote: null, licensingStatus: null,
+    licensingType: null, licensingNote: null, licensingRin: null, licensingStatus: null,
     licensingSentBy: null, licensingSentAt: null, licensingDoneBy: null, licensingDoneAt: null,
   });
 };
@@ -8273,6 +8283,7 @@ function renderGRCard(d, perms, isDupe) {
             <div style="flex:1">
               <div style="font-weight:700;color:${d.licensingHold?'#b45309':'#15803d'}">${d.licensingHold?'Licensing Delay':'Licensing On Time'}</div>
               ${d.licensingHold?`<div style="font-size:11px;font-weight:700;color:#92400e">${esc(d.licensingHoldReason||'No reason given')}${d.licensingHoldBy?' · '+esc(d.licensingHoldBy):''}</div>`:`<div style="font-size:11px;font-weight:700;color:#15803d">${esc(label)}${noteLine?' - '+noteLine:''} - please confirm completed before delivery</div>`}
+              ${d.licensingRin?`<div style="font-size:13px;color:#92400e;margin:2px 0">RIN / Notes: <strong>${esc(d.licensingRin)}</strong></div>`:''}
             </div>
             <div style="display:flex;gap:6px;flex-shrink:0">
               ${canChecklist?`<button class="btn-tedit" onclick="resetGRLicensing('${d.id}')">Change</button>
@@ -8710,6 +8721,7 @@ window.openGRModal = function(id, presetType) {
   grModalFinancing = d.financing || null;
   grUpdateModalFinancingButtons();
   document.getElementById('gr-licensing-note').value = d.licensingNote || '';
+  document.getElementById('gr-licensing-rin').value = d.licensingRin || '';
   document.getElementById('gr-lic-newplates-btn').classList.toggle('active', grModalLicensingType==='NEW_PLATES');
   document.getElementById('gr-lic-transfer-btn').classList.toggle('active', grModalLicensingType==='PLATE_TRANSFER');
   document.getElementById('gr-lic-notes-btn').classList.toggle('active', grModalLicensingType==='NOTES');
@@ -9115,6 +9127,7 @@ window.saveGR = async function() {
     vin: document.getElementById('gr-vin').value.trim().toUpperCase(),
     licensingType: grModalLicensingType || null,
     licensingNote: grModalLicensingType === 'NOTES' ? document.getElementById('gr-licensing-note').value.trim() : null,
+    licensingRin: grModalLicensingType ? (document.getElementById('gr-licensing-rin').value.trim() || null) : null,
     financing: grModalFinancing || null,
     customer: document.getElementById('gr-customer').value.trim(),
     salespersonUid, salesperson: grSalesRoster.find(s => s.uid === salespersonUid)?.name || '',
@@ -9181,7 +9194,7 @@ window.saveGR = async function() {
   }
   if (grHidesSalesFields(deal)) {
     deal.vehicle = ''; deal.fniManager = ''; deal.fniManagerUid = '';
-    deal.licensingType = null; deal.licensingNote = null;
+    deal.licensingType = null; deal.licensingNote = null; deal.licensingRin = null;
     deal.licensingStatus = null; deal.licensingSentBy = null; deal.licensingSentAt = null;
     deal.licensingDoneBy = null; deal.licensingDoneAt = null;
     // Salesperson isn't asked for on these types - record who actually
