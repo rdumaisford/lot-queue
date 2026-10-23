@@ -2124,6 +2124,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <button class="filter-chip" onclick="setStickerFilter('new',this)">New</button>
         <button class="filter-chip" onclick="setStickerFilter('used',this)">Used</button>
         <button class="filter-chip" onclick="setStickerFilter('showroom',this)">Showroom</button>
+        <button class="filter-chip" onclick="setStickerFilter('custom',this)">Custom Links</button>
       </div>
 
       <!-- Trending chart - ranked horizontal bars, scans in the last 7
@@ -2144,7 +2145,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <table style="width:100%;border-collapse:collapse;font-size:13px">
           <thead>
             <tr style="border-bottom:2px solid var(--border)">
-              <th style="text-align:left;padding:10px 12px">Stock #</th>
+              <th style="text-align:left;padding:10px 12px">Item</th>
               <th style="text-align:left;padding:10px 12px">Type</th>
               <th style="text-align:left;padding:10px 12px">Shortlink</th>
               <th style="text-align:center;padding:10px 12px">Scans</th>
@@ -2162,15 +2163,27 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
     <div id="sticker-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this)closeStickerModal()">
       <div class="modal-card">
         <div class="modal-title-row"><span>New Shortlink</span><button class="modal-close" onclick="closeStickerModal()">×</button></div>
-        <div class="modal-form-row"><label>Stock # *</label><input id="sticker-f-stock" type="text" placeholder="e.g. B09" onkeydown="if(event.key==='Enter')saveStickerLink()"/></div>
-        <div class="modal-form-row" style="margin-top:10px"><label>Type</label>
-          <select id="sticker-f-type">
-            <option value="used">Used</option>
-            <option value="new">New</option>
-            <option value="showroom">Showroom</option>
-          </select>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <button type="button" id="sticker-kind-vehicle-btn" onclick="setStickerModalKind('vehicle')" class="toggle-btn active" style="flex:1;padding:9px;border-radius:8px;font-size:13px">🚗 Vehicle</button>
+          <button type="button" id="sticker-kind-custom-btn" onclick="setStickerModalKind('custom')" class="toggle-btn" style="flex:1;padding:9px;border-radius:8px;font-size:13px">🔗 Custom Link</button>
         </div>
-        <div style="font-size:12px;color:var(--text-faint);margin-top:8px">Links straight to this vehicle's page on barrieford.com - no need to paste anything. The shortlink is copied to your clipboard automatically on save.</div>
+        <div id="sticker-vehicle-fields">
+          <div class="modal-form-row"><label>Stock # *</label><input id="sticker-f-stock" type="text" placeholder="e.g. B09" onkeydown="if(event.key==='Enter')saveStickerLink()"/></div>
+          <div class="modal-form-row" style="margin-top:10px"><label>Type</label>
+            <select id="sticker-f-type">
+              <option value="used">Used</option>
+              <option value="new">New</option>
+              <option value="showroom">Showroom</option>
+            </select>
+          </div>
+          <div style="font-size:12px;color:var(--text-faint);margin-top:8px">Links straight to this vehicle's page on barrieford.com - no need to paste anything. The shortlink is copied to your clipboard automatically on save.</div>
+        </div>
+        <div id="sticker-custom-fields" style="display:none">
+          <div class="modal-form-row"><label>Label *</label><input id="sticker-f-label" type="text" placeholder="e.g. Showroom Banner Stand" oninput="suggestStickerSlug()"/></div>
+          <div class="modal-form-row" style="margin-top:10px"><label>Destination URL *</label><input id="sticker-f-url" type="text" placeholder="https://…" onkeydown="if(event.key==='Enter')saveStickerLink()"/></div>
+          <div class="modal-form-row" style="margin-top:10px"><label>Shortlink slug *</label><input id="sticker-f-slug" type="text" placeholder="e.g. banner-showroom" onkeydown="if(event.key==='Enter')saveStickerLink()"/></div>
+          <div style="font-size:12px;color:var(--text-faint);margin-top:8px">For anything that isn't a vehicle - a banner stand, a poster, a business card. Pick any destination URL and a short, print-friendly slug (lot-queue.web.app/s/&lt;slug&gt;). The shortlink is copied to your clipboard automatically on save.</div>
+        </div>
         <div class="modal-actions">
           <button class="btn-modal-cancel" onclick="closeStickerModal()">Cancel</button>
           <button class="btn-modal-primary" id="sticker-save-btn" onclick="saveStickerLink()">Save</button>
@@ -2183,6 +2196,20 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
       <div class="modal-card">
         <div class="modal-title-row"><span id="sticker-scans-title">Scan History</span><button class="modal-close" onclick="closeStickerScansModal()">×</button></div>
         <div id="sticker-scans-list" style="max-height:50vh;overflow-y:auto"></div>
+      </div>
+    </div>
+
+    <!-- QR code modal - generated on the fly (api.qrserver.com), nothing
+         stored; print it or stick it on a banner stand straight from here
+         instead of making one with a separate tool. -->
+    <div id="sticker-qr-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this)closeStickerQrModal()">
+      <div class="modal-card" style="max-width:340px;text-align:center">
+        <div class="modal-title-row"><span id="sticker-qr-title">QR Code</span><button class="modal-close" onclick="closeStickerQrModal()">×</button></div>
+        <img id="sticker-qr-img" src="" alt="QR code" style="width:260px;height:260px;border:1px solid var(--border);border-radius:var(--radius-sm);background:#fff"/>
+        <div id="sticker-qr-url" style="margin-top:10px;font-family:monospace;font-size:12px;color:var(--text-muted);word-break:break-all"></div>
+        <div class="modal-actions">
+          <a id="sticker-qr-download" href="" download style="flex:1;text-align:center;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);text-decoration:none;font-size:14px;font-weight:600">⬇ Download PNG</a>
+        </div>
       </div>
     </div>
 
@@ -14754,8 +14781,10 @@ function stickerShortUrl(stock) {
   return `${location.origin}/s/${encodeURIComponent(stock)}`;
 }
 
-// 'ALL' | 'new' | 'used' | 'showroom' - filters both the trend chart and
-// the table below by the same stickerLinks[stock].type.
+// 'ALL' | 'new' | 'used' | 'showroom' | 'custom' - filters both the trend
+// chart and the table below. Vehicle links are matched by their .type;
+// 'custom' instead matches .kind === 'custom' (a banner stand etc has no
+// new/used/showroom type of its own).
 let stickerFilterType = 'ALL';
 window.setStickerFilter = function(type, btn) {
   stickerFilterType = type;
@@ -14763,6 +14792,11 @@ window.setStickerFilter = function(type, btn) {
   btn.classList.add('active');
   renderStickerLinks();
 };
+function stickerMatchesFilter(link) {
+  if (stickerFilterType === 'ALL') return true;
+  if (stickerFilterType === 'custom') return link?.kind === 'custom';
+  return link?.type === stickerFilterType;
+}
 const STICKER_TYPE_LABELS = { new:'New', used:'Used', showroom:'Showroom' };
 
 // Ranked horizontal bars - most-scanned stock #s in the last rolling 7
@@ -14777,10 +14811,11 @@ function renderStickerTrendChart() {
 
   const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const counts = Object.entries(stickerScans).filter(([stock]) =>
-    stickerFilterType === 'ALL' || stickerLinks[stock]?.type === stickerFilterType
+    stickerMatchesFilter(stickerLinks[stock])
   ).map(([stock, scans]) => {
     const weekScans = Object.values(scans || {}).filter(s => !s.test && (s.ts||0) >= weekAgo);
-    return { stock, count: weekScans.length };
+    const label = stickerLinks[stock]?.kind === 'custom' ? (stickerLinks[stock].label || stock) : stock;
+    return { stock, label, count: weekScans.length };
   }).filter(r => r.count > 0).sort((a,b) => b.count - a.count).slice(0, 8);
 
   const total = counts.reduce((sum,r) => sum + r.count, 0);
@@ -14797,7 +14832,7 @@ function renderStickerTrendChart() {
     const pct = Math.max(4, Math.round((r.count / max) * 100));
     const stockEsc = esc(r.stock).replace(/'/g,"\\'");
     return `<div style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="openStickerScansModal('${stockEsc}')" title="${r.count} scan${r.count!==1?'s':''} in the last 7 days">
-      <div style="width:64px;flex-shrink:0;font-size:12px;font-weight:700;color:var(--ford);text-align:right">${esc(r.stock)}</div>
+      <div style="width:100px;flex-shrink:0;font-size:12px;font-weight:700;color:var(--ford);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.label)}</div>
       <div style="flex:1;background:var(--bg);border-radius:4px;height:20px;position:relative">
         <div style="width:${pct}%;height:100%;background:var(--ford);border-radius:0 4px 4px 0"></div>
       </div>
@@ -14812,7 +14847,7 @@ function renderStickerLinks() {
   const emptyEl = document.getElementById('sticker-links-empty');
   if (!body) return;
   const stocks = Object.keys(stickerLinks).filter(stock =>
-    stickerFilterType === 'ALL' || stickerLinks[stock]?.type === stickerFilterType
+    stickerMatchesFilter(stickerLinks[stock])
   ).sort((a, b) => (stickerLinks[b]?.createdAt || 0) - (stickerLinks[a]?.createdAt || 0));
   if (!stocks.length) {
     body.innerHTML = '';
@@ -14822,7 +14857,9 @@ function renderStickerLinks() {
   emptyEl.style.display = 'none';
   body.innerHTML = stocks.map(stock => {
     const link = stickerLinks[stock];
-    const typeLabel = STICKER_TYPE_LABELS[link?.type] || '-';
+    const isCustom = link?.kind === 'custom';
+    const itemLabel = isCustom ? (link.label || stock) : stock;
+    const typeLabel = isCustom ? 'Custom' : (STICKER_TYPE_LABELS[link?.type] || '-');
     const allScans = Object.values(stickerScans[stock] || {});
     // The first scan on a sticker is the verification test (see s.html) -
     // it proves the QR works but isn't a real customer scan, so it's kept
@@ -14834,12 +14871,13 @@ function renderStickerLinks() {
     const lastLabel = lastTs ? timeAgo(lastTs) : '-';
     const stockEsc = esc(stock).replace(/'/g,"\\'");
     return `<tr style="border-bottom:1px solid var(--border)">
-      <td style="padding:10px 12px;font-weight:700;color:var(--ford)">${esc(stock)}${isVerified ? ` <span title="QR code verified working" style="color:#1db954;font-weight:700">✓ Working</span>` : ''}</td>
+      <td style="padding:10px 12px;font-weight:700;color:var(--ford)">${isCustom?'🔗 ':''}${esc(itemLabel)}${isVerified ? ` <span title="QR code verified working" style="color:#1db954;font-weight:700">✓ Working</span>` : ''}</td>
       <td style="padding:10px 12px;color:var(--text-muted)">${esc(typeLabel)}</td>
       <td style="padding:10px 12px;font-family:monospace;font-size:12px;color:var(--text-muted)">/s/${esc(stock)}</td>
       <td style="padding:10px 12px;text-align:center;font-weight:700">${count ? `<span style="cursor:pointer;color:var(--ford)" onclick="openStickerScansModal('${stockEsc}')">${count}</span>` : '0'}</td>
       <td style="padding:10px 12px;color:var(--text-muted)">${esc(lastLabel)}</td>
       <td style="padding:10px 12px;white-space:nowrap">
+        <button class="btn-tedit" title="Show QR code" onclick="openStickerQrModal('${stockEsc}')">▦</button>
         <button class="btn-tedit" title="Copy shortlink" onclick="copyToClipboard('${stickerShortUrl(stock).replace(/'/g,"\\'")}', event)">🔗</button>
         <button class="btn-tedit" title="Reset scan stats" onclick="resetStickerStats('${stockEsc}')">↺</button>
         <button class="btn-tdel" title="Delete" onclick="deleteStickerLink('${stockEsc}')">✕</button>
@@ -14855,9 +14893,33 @@ function stickerDestinationUrl(stock) {
   return `https://www.barrieford.com/vehicles/?qs=${encodeURIComponent(stock.toLowerCase())}&st=price,asc&view=grid`;
 }
 
+let stickerModalKind = 'vehicle'; // 'vehicle' | 'custom'
+window.setStickerModalKind = function(kind) {
+  stickerModalKind = kind;
+  document.getElementById('sticker-kind-vehicle-btn').classList.toggle('active', kind==='vehicle');
+  document.getElementById('sticker-kind-custom-btn').classList.toggle('active', kind==='custom');
+  document.getElementById('sticker-vehicle-fields').style.display = kind==='vehicle' ? 'block' : 'none';
+  document.getElementById('sticker-custom-fields').style.display = kind==='custom' ? 'block' : 'none';
+};
+// Suggests a URL-safe slug from the label as the user types (e.g. "Showroom
+// Banner Stand" -> "showroom-banner-stand") - only while the slug field
+// hasn't been hand-edited, same "don't clobber a deliberate edit" pattern
+// as everywhere else in the app that auto-fills a field from another.
+let stickerSlugTouched = false;
+window.suggestStickerSlug = function() {
+  if (stickerSlugTouched) return;
+  const label = document.getElementById('sticker-f-label').value;
+  document.getElementById('sticker-f-slug').value = label.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+};
 window.openStickerModal = function() {
   document.getElementById('sticker-f-stock').value = '';
   document.getElementById('sticker-f-type').value = 'used';
+  document.getElementById('sticker-f-label').value = '';
+  document.getElementById('sticker-f-url').value = '';
+  document.getElementById('sticker-f-slug').value = '';
+  stickerSlugTouched = false;
+  document.getElementById('sticker-f-slug').onblur = () => { stickerSlugTouched = true; };
+  setStickerModalKind('vehicle');
   const btn = document.getElementById('sticker-save-btn');
   btn.disabled = false; btn.textContent = 'Save';
   document.getElementById('sticker-modal').style.display = 'flex';
@@ -14873,6 +14935,7 @@ async function copyStickerShortlink(stock) {
   await window.copyToClipboard(stickerShortUrl(stock));
 }
 window.saveStickerLink = async function() {
+  if (stickerModalKind === 'custom') { await saveCustomStickerLink(); return; }
   const stock = document.getElementById('sticker-f-stock').value.trim().toUpperCase();
   const type = document.getElementById('sticker-f-type').value;
   if (!stock) { alert('Enter a stock #.'); return; }
@@ -14901,6 +14964,34 @@ window.saveStickerLink = async function() {
   }
   btn.disabled = false; btn.textContent = 'Save';
 };
+// Custom links reuse the exact same stickerLinks/stickerScans path as
+// vehicle shortlinks (s.html just reads whatever key is in the URL and
+// redirects to its .url - see s.html) - only the key (a hand-picked slug
+// instead of a stock #) and a couple of extra fields (kind/label) differ.
+async function saveCustomStickerLink() {
+  const label = document.getElementById('sticker-f-label').value.trim();
+  const url = document.getElementById('sticker-f-url').value.trim();
+  const slug = document.getElementById('sticker-f-slug').value.trim().toLowerCase().replace(/[^a-z0-9-]/g,'');
+  if (!label) { alert('Enter a label.'); return; }
+  if (!url) { alert('Enter a destination URL.'); return; }
+  if (!isSafeHttpsUrl(url)) { alert('Destination URL must start with https://'); return; }
+  if (!slug) { alert('Enter a shortlink slug.'); return; }
+  if (stickerLinks[slug] && stickerLinks[slug].kind !== 'custom') { alert(`"${slug}" is already used by a vehicle shortlink - pick a different slug.`); return; }
+  const btn = document.getElementById('sticker-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    await set(ref(db,'stickerLinks/'+slug), {
+      url, kind: 'custom', label, createdBy: currentUser.name, createdAt: Date.now(),
+    });
+    await copyStickerShortlink(slug);
+    btn.textContent = 'Copied to clipboard ✓';
+    setTimeout(closeStickerModal, 700);
+    return;
+  } catch(e) {
+    alert('Error saving - check your connection, then try again.');
+  }
+  btn.disabled = false; btn.textContent = 'Save';
+}
 window.deleteStickerLink = async function(stock) {
   if (!confirm(`Delete the shortlink for ${stock}? Any QR code you've made for it will stop working. This doesn't delete its scan history.`)) return;
   await remove(ref(db,'stickerLinks/'+stock));
@@ -14923,6 +15014,27 @@ window.openStickerScansModal = function(stock) {
 };
 window.closeStickerScansModal = function() {
   document.getElementById('sticker-scans-modal').style.display = 'none';
+};
+
+// Generated on the fly via api.qrserver.com's free QR endpoint - nothing
+// stored, nothing to keep in sync; it just encodes whatever shortlink
+// stickerShortUrl() already produces, same URL that /s/<key> itself
+// redirects from (see s.html).
+window.openStickerQrModal = function(stock) {
+  const link = stickerLinks[stock];
+  const label = link?.kind === 'custom' ? (link.label || stock) : stock;
+  const url = stickerShortUrl(stock);
+  document.getElementById('sticker-qr-title').textContent = `QR Code - ${label}`;
+  const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(url)}`;
+  document.getElementById('sticker-qr-img').src = qrImgUrl;
+  document.getElementById('sticker-qr-url').textContent = url;
+  const downloadLink = document.getElementById('sticker-qr-download');
+  downloadLink.href = qrImgUrl;
+  downloadLink.download = `qr-${stock}.png`;
+  document.getElementById('sticker-qr-modal').style.display = 'flex';
+};
+window.closeStickerQrModal = function() {
+  document.getElementById('sticker-qr-modal').style.display = 'none';
 };
 
 // Wraps the handful of functions most likely to be the cause of reported
