@@ -1717,7 +1717,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15
         <button class="filter-chip" onclick="setGRFilter('SERVICE',this)">Needs Service</button>
         <select id="gr-fni-filter" onchange="setGRFniFilter(this.value)" style="display:none;padding:6px 10px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"></select>
         <span id="gr-row-count" style="font-size:13px;color:var(--text-muted);white-space:nowrap"></span>
-        <button class="btn-add-unit" id="btn-add-getready" onclick="openGRTypePicker()" style="display:none;margin-left:auto">
+        <button type="button" onclick="openCalendarFeedModal()" title="Add your deliveries to Outlook" style="margin-left:auto;padding:7px 12px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer;white-space:nowrap">📅 My Calendar</button>
+        <button class="btn-add-unit" id="btn-add-getready" onclick="openGRTypePicker()" style="display:none">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
           Add Get Ready
         </button>
@@ -3057,6 +3058,30 @@ F24118, 2026, Bronco Sport, Big Bend, 302A, D4, M, 99A, 448, 53Q; FX4, OneDrive/
   </div>
 </div>
 
+<!-- "My Calendar" - private subscribe-from-web link for the signed-in
+     person's deliveries (see getCalendarFeedUrl/calendarFeed in
+     functions/index.js). -->
+<div id="cal-feed-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this)closeCalendarFeedModal()">
+  <div class="modal-card" style="max-width:520px">
+    <div class="modal-title-row"><span>📅 My Deliveries Calendar</span><button class="modal-close" onclick="closeCalendarFeedModal()">×</button></div>
+    <div id="cal-feed-scope" style="font-size:13px;color:var(--text-muted);margin-bottom:10px">Every Get Ready deal you're tagged on (Salesperson, Desk Manager, F&amp;I or Delivery Person) shows up on your calendar and stays up to date as deliveries change.</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <input id="cal-feed-url" type="text" readonly value="Loading…" onclick="this.select()" style="flex:1;min-width:0;padding:9px 12px;font-size:13px;font-family:monospace;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/>
+      <button type="button" id="cal-feed-copy-btn" onclick="copyCalendarFeedUrl()" class="btn-modal-primary" style="white-space:nowrap">Copy link</button>
+    </div>
+    <ol style="font-size:13px;color:var(--text);margin:0 0 12px 18px;padding:0;line-height:1.6">
+      <li>Copy the link above.</li>
+      <li>In Outlook, go to <strong>Calendar → Add calendar → Subscribe from web</strong>.</li>
+      <li>Paste the link, name it (e.g. "Deliveries") and click <strong>Import</strong>.</li>
+    </ol>
+    <div style="font-size:12px;color:var(--text-faint);margin-bottom:12px">Outlook checks for changes every few hours. Keep this link private - anyone with it can see your deliveries.</div>
+    <div class="modal-actions">
+      <button type="button" class="btn-modal-cancel" onclick="resetCalendarFeedUrl()">Reset link</button>
+      <button type="button" class="btn-modal-primary" onclick="closeCalendarFeedModal()">Done</button>
+    </div>
+  </div>
+</div>
+
 <!-- Add/Edit Get Ready modal -->
 <div id="gr-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this)closeGRModal()">
   <div class="modal-card">
@@ -3195,6 +3220,7 @@ const callSendNotificationEmail = httpsCallable(functionsFB, 'sendNotificationEm
 const callGetSalesRoster = httpsCallable(functionsFB, 'getSalesRoster');
 const callNotifySalesArrival = httpsCallable(functionsFB, 'notifySalesArrival');
 const callDeleteStaffUser = httpsCallable(functionsFB, 'deleteStaffUser');
+const callGetCalendarFeedUrl = httpsCallable(functionsFB, 'getCalendarFeedUrl');
 const callDeleteGetReadyDeal = httpsCallable(functionsFB, 'deleteGetReadyDeal');
 const callDeleteFuelPhoto = httpsCallable(functionsFB, 'deleteFuelPhoto');
 // Human staff authenticate via email/password sign-in (see loadIdentity/watchUserApproval below).
@@ -3701,6 +3727,47 @@ window.signOutUser = function() {
   if (currentUser?.uid) remove(ref(db, 'driverLocation/'+currentUser.uid)).catch(()=>{});
   localStorage.removeItem('rides-sharing-active');
   withTimeout(signOut(auth), 1200, 'Sign-out').catch(()=>{}).then(()=>location.reload());
+};
+// "📅 My Calendar" - fetches (or creates, on first use) this person's
+// private calendar feed link. The link itself is the only credential a
+// calendar app has, so Reset swaps in a new one and the old one stops
+// working (see getCalendarFeedUrl in functions/index.js).
+async function loadCalendarFeedUrl(reset) {
+  const input = document.getElementById('cal-feed-url');
+  input.value = 'Loading…';
+  try {
+    const res = await callGetCalendarFeedUrl({ reset: !!reset });
+    input.value = res.data.url;
+  } catch (e) {
+    console.error('getCalendarFeedUrl failed', e);
+    input.value = '';
+    alert('Could not load your calendar link - check your connection, then try again.');
+  }
+}
+window.openCalendarFeedModal = function() {
+  document.getElementById('cal-feed-modal').style.display = 'flex';
+  document.getElementById('cal-feed-copy-btn').textContent = 'Copy link';
+  // Management's feed has every deal, not just ones they're tagged on (see
+  // calendarFeed in functions/index.js).
+  document.getElementById('cal-feed-scope').textContent = currentUser?.role === 'management'
+    ? "As a manager, every Get Ready delivery and pickup shows up on your calendar and stays up to date as deliveries change."
+    : "Every Get Ready deal you're tagged on (Salesperson, Desk Manager, F&I or Delivery Person) shows up on your calendar and stays up to date as deliveries change.";
+  loadCalendarFeedUrl(false);
+};
+window.closeCalendarFeedModal = function() {
+  document.getElementById('cal-feed-modal').style.display = 'none';
+};
+window.copyCalendarFeedUrl = async function() {
+  const input = document.getElementById('cal-feed-url');
+  if (!/^https:/.test(input.value)) return;
+  try { await navigator.clipboard.writeText(input.value); }
+  catch (e) { input.select(); document.execCommand('copy'); }
+  document.getElementById('cal-feed-copy-btn').textContent = 'Copied ✓';
+};
+window.resetCalendarFeedUrl = function() {
+  if (!confirm('Reset your calendar link? The old link stops working - you\'ll need to re-add the new one in Outlook.')) return;
+  document.getElementById('cal-feed-copy-btn').textContent = 'Copy link';
+  loadCalendarFeedUrl(true);
 };
 // Existing "Change role" / "Change driver" buttons still call resetIdentity() - now signs out.
 window.resetIdentity = function() {

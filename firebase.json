@@ -12,6 +12,7 @@
       "firebase/**"
     ],
     "rewrites": [
+      { "source": "/cal/**", "function": { "functionId": "calendarFeed", "region": "us-central1" } },
       { "source": "/s/**", "destination": "/s.html" }
     ],
     "headers": [
