@@ -57,14 +57,25 @@ function fail(text) {
 
 // /s/B1234 -> "B1234" (the Hosting rewrite in firebase.json sends every
 // /s/** request to this same file, so the stock # only ever arrives via
-// the path, not a query string).
-const stock = decodeURIComponent(location.pathname.split('/').filter(Boolean).pop() || '').trim().toUpperCase();
+// the path, not a query string). Tried as typed first, then uppercased as
+// a fallback - vehicle stock #s are always stored/compared uppercase
+// elsewhere in the app, but a custom link's slug (see the Sticker Scans
+// tab's "Custom Link" option) is whatever case it was actually saved in,
+// so a single fixed-case lookup here would silently 404 on anything saved
+// in a different one.
+const rawKey = decodeURIComponent(location.pathname.split('/').filter(Boolean).pop() || '').trim();
+let stock = rawKey;
 if (!stock) {
   fail("No vehicle specified.");
 } else {
   try {
-    const snap = await get(ref(db, 'stickerLinks/' + stock));
-    const link = snap.val();
+    let snap = await get(ref(db, 'stickerLinks/' + stock));
+    let link = snap.val();
+    if ((!link || !link.url) && rawKey.toUpperCase() !== rawKey) {
+      stock = rawKey.toUpperCase();
+      snap = await get(ref(db, 'stickerLinks/' + stock));
+      link = snap.val();
+    }
     if (!link || !link.url) {
       fail("This sticker link isn't set up yet. Ask at the dealership for details on this vehicle.");
     } else {

@@ -14902,14 +14902,19 @@ window.setStickerModalKind = function(kind) {
   document.getElementById('sticker-custom-fields').style.display = kind==='custom' ? 'block' : 'none';
 };
 // Suggests a URL-safe slug from the label as the user types (e.g. "Showroom
-// Banner Stand" -> "showroom-banner-stand") - only while the slug field
+// Banner Stand" -> "SHOWROOM-BANNER-STAND") - only while the slug field
 // hasn't been hand-edited, same "don't clobber a deliberate edit" pattern
 // as everywhere else in the app that auto-fills a field from another.
+// Uppercase to match s.html's lookup, which always uppercases whatever key
+// it reads out of the /s/<key> URL (that's there for stock #s, which are
+// stored/compared uppercase everywhere in this app - a lowercase custom
+// slug would never actually match what's in the database, which is
+// exactly the "isn't set up yet" bug a mismatched case caused here).
 let stickerSlugTouched = false;
 window.suggestStickerSlug = function() {
   if (stickerSlugTouched) return;
   const label = document.getElementById('sticker-f-label').value;
-  document.getElementById('sticker-f-slug').value = label.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+  document.getElementById('sticker-f-slug').value = label.toUpperCase().trim().replace(/[^A-Z0-9]+/g,'-').replace(/^-+|-+$/g,'');
 };
 window.openStickerModal = function() {
   document.getElementById('sticker-f-stock').value = '';
@@ -14971,7 +14976,7 @@ window.saveStickerLink = async function() {
 async function saveCustomStickerLink() {
   const label = document.getElementById('sticker-f-label').value.trim();
   const url = document.getElementById('sticker-f-url').value.trim();
-  const slug = document.getElementById('sticker-f-slug').value.trim().toLowerCase().replace(/[^a-z0-9-]/g,'');
+  const slug = document.getElementById('sticker-f-slug').value.trim().toUpperCase().replace(/[^A-Z0-9-]/g,'');
   if (!label) { alert('Enter a label.'); return; }
   if (!url) { alert('Enter a destination URL.'); return; }
   if (!isSafeHttpsUrl(url)) { alert('Destination URL must start with https://'); return; }
