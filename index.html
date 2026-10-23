@@ -3118,7 +3118,7 @@ F24118, 2026, Bronco Sport, Big Bend, 302A, D4, M, 99A, 448, 53Q; FX4, OneDrive/
         <button type="button" id="gr-fuel-none-btn" onclick="setGRFuelStatus('none')" class="toggle-btn" style="flex:1;padding:9px;border-radius:8px;font-size:13px">Not Needed</button>
       </div>
       <div id="gr-gas-amount-row">
-        <input id="gr-gas-amount" type="number" min="0" step="0.01" placeholder="Amount ($)" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/>
+        <input id="gr-gas-amount" type="number" min="0" step="0.01" placeholder="Amount ($) - leave blank for Full Tank" style="width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)"/>
       </div>
     </div>
     <div class="modal-form-row modal-full gr-not-simple-only" id="gr-services-row" style="margin-top:10px">
@@ -7975,7 +7975,7 @@ function renderGRCard(d, perms, isDupe) {
     // with no feedback, and a failed one says so instead of silently
     // reverting.
     const fuelUploadStatus = grFuelUploadStatus[d.id];
-    const gasAmountBadge = d.gasAmount ? `<span style="font-size:15px;font-weight:800;color:#991b1b;background:#fff;border:1px solid #fca5a5;border-radius:6px;padding:1px 8px;margin-left:6px">$${Number(d.gasAmount).toFixed(2)}</span>` : '';
+    const gasAmountBadge = `<span style="font-size:15px;font-weight:800;color:#991b1b;background:#fff;border:1px solid #fca5a5;border-radius:6px;padding:1px 8px;margin-left:6px">${grGasAmountLabel(d)}</span>`;
     const doneWhoWhen = d.gasFilledBy ? ' - 👤 '+d.gasFilledBy+(d.gasFilledAt?' · '+new Date(d.gasFilledAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}):'') : '';
     // Once someone's claimed an in-progress fill/charge, only they (or
     // management) can reset it back to not-started - stops a second person
@@ -9218,6 +9218,12 @@ window.saveGR = async function() {
     deal.deliveryPerson = ''; deal.deliveryPersonUid = '';
     deal.fuelStatus = 'none'; deal.gasAmount = '';
   }
+  // "$0" gas typed in means no gas at all, same as the sheet's "$0 GAS" /
+  // "NO GAS" (see applyGRPdfFields) - not a $0 fill still waiting on
+  // someone. Blank stays a Full Tank (see grGasAmountLabel).
+  if (deal.fuelStatus === 'gas' && deal.gasAmount !== '' && !(Number(deal.gasAmount) > 0)) {
+    deal.fuelStatus = 'none'; deal.gasAmount = '';
+  }
   if (editingGRId) deal.gasFilled = getReadyDeals[editingGRId]?.gasFilled || false;
   else deal.gasFilled = false;
   if (editingGRId) deal.chargeInProgress = getReadyDeals[editingGRId]?.chargeInProgress || false;
@@ -9242,6 +9248,14 @@ window.saveGR = async function() {
     if (!deal.fniManagerUid) { alert('Please select an F&I Manager.'); return; }
   } else if (deal.type === 'WHOLESALE' || deal.type === 'DEALER TRADE') {
     if (!deal.deskManagerUid) { alert('Please select a Desk Manager.'); return; }
+  }
+  // Have whoever's adding the deal confirm the gas amount before it goes
+  // out - it's often pre-filled from the sheet's gas box, which is easy to
+  // misread (plain "GAS" means Full Tank, "$0"/"NO GAS" means none).
+  if (!editingGRId && deal.fuelStatus === 'gas'
+      && !confirm(`Confirm gas amount: ${grGasAmountLabel(deal)}\n\nOK to save, or Cancel to change it.`)) {
+    document.getElementById('gr-gas-amount').focus();
+    return;
   }
   const btn = document.getElementById('gr-save-btn');
   btn.disabled = true; btn.textContent = 'Saving…';
